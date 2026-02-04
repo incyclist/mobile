@@ -10,10 +10,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var reactNativeDelegate: ReactNativeDelegate?
     var reactNativeFactory: RCTReactNativeFactory?
 
+    // 2. Add this specific method to the class
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        return Orientation.getOrientation()
+    }
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+
         let delegate = ReactNativeDelegate()
         let factory = RCTReactNativeFactory(delegate: delegate)
         delegate.dependencyProvider = RCTAppDependencyProvider()

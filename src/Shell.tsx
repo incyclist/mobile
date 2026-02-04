@@ -16,6 +16,7 @@ import { IncyclistBindings, useIncyclist } from 'incyclist-services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json'
 import { RNConsoleAdapter } from './bindings/logging/Adapters/RNConsoleAdapter';
+import Orientation from 'react-native-orientation-locker';
 
 
 export const Shell = () =>{
@@ -44,8 +45,9 @@ export const Shell = () =>{
     // Load and replace UI bundle
     useEffect(() => {
         if ( initialized || refChecking.current)
-            return
-
+                return
+        // Lock to landscape when the app starts
+        Orientation.lockToLandscape();
         initLogging()
         
         const checkUpdate = async () => {
