@@ -18,4 +18,23 @@ buildscript {
     }
 }
 
+// This block is the "magic" fix for legacy libraries like @fdfedin/react-native-native-mqtt
+// It injects a 'jcenter()' method into the repository handler of every sub-project
+allprojects {
+    repositories {
+        // We use Groovy meta-programming to add the missing method dynamically
+        repo ->
+            if (!repo.metaClass.respondsTo(repo, 'jcenter')) {
+                repo.metaClass.jcenter = { -> 
+                    println "Redirecting jcenter() call to mavenCentral() for project ${project.name}"
+                    mavenCentral() 
+                }
+            }
+            
+        google()
+        mavenCentral()
+    }
+}
+
+
 apply plugin: "com.facebook.react.rootproject"

@@ -34,3 +34,16 @@ Open ios/YourProject.xcworkspace in Xcode.
 Go to Product > Scheme > Manage Schemes.
 Duplicate your main scheme and call it dev.
 In the Build Settings of the new scheme, you can add Pre-processor Macros like APP_VARIANT=dev to mirror your Android logic.
+
+
+## 5. Orientation Lib Installation
+- Xcode Settings: Ensure Objective-C Bridging Header in your Project Build Settings points to this file. (./ios/incyclist--Bridging-Header.h)
+In Xcode, click your project -> Build Settings -> search for "Bridging Header". Make sure the path points to this file (e.g., incyclist/incyclist-Bridging-Header.h).
+
+
+## 6.MQTT Library
+
+iOS/tvOS:
+Open your project's ios folder in Xcode.
+Create a new Swift file to trigger the Bridging Header creation prompt (required as this library is Swift-based) [1.2.1].
+Run cd ios && pod install && cd ...

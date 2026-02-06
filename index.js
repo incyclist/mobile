@@ -2,8 +2,9 @@ import 'react-native-get-random-values'; // Must be the very first line
 import { AppRegistry } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { name as appName } from './app.json';
+import { Buffer } from "buffer"
 
-
+global.Buffer = Buffer
 
 /*
 const EventEmitter = require('events');

@@ -1,0 +1,226 @@
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/.travis.yml b/node_modules/@fdfedin/react-native-native-mqtt/.travis.yml
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/CHANGELOG.md b/node_modules/@fdfedin/react-native-native-mqtt/CHANGELOG.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/LICENSE.md b/node_modules/@fdfedin/react-native-native-mqtt/LICENSE.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/README.md b/node_modules/@fdfedin/react-native-native-mqtt/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/README.md b/node_modules/@fdfedin/react-native-native-mqtt/android/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/build.gradle b/node_modules/@fdfedin/react-native-native-mqtt/android/build.gradle
+old mode 100644
+new mode 100755
+index ef74de1..649408d
+--- a/node_modules/@fdfedin/react-native-native-mqtt/android/build.gradle
++++ b/node_modules/@fdfedin/react-native-native-mqtt/android/build.gradle
+@@ -4,7 +4,7 @@ buildscript {
+     }
+     repositories {
+         google()
+-        jcenter()
++        mavenCentral()
+     }
+ 
+     dependencies {
+@@ -27,7 +27,6 @@ def DEFAULT_TARGET_SDK_VERSION = 28
+ 
+ android {
+     compileSdkVersion = DEFAULT_COMPILE_SDK_VERSION
+-    buildToolsVersion = DEFAULT_BUILD_TOOLS_VERSION
+ 
+     defaultConfig {
+     minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
+@@ -85,46 +84,3 @@ def configureReactNativePom(def pom) {
+         }
+     }
+ }
+-
+-afterEvaluate { project ->
+-
+-    task androidJavadoc(type: Javadoc) {
+-        source = android.sourceSets.main.java.srcDirs
+-        classpath += files(android.bootClasspath)
+-//         classpath += files(project.getConfigurations().getByName('compile').asList())
+-        include '**/*.java'
+-    }
+-
+-    task androidJavadocJar(type: Jar, dependsOn: androidJavadoc) {
+-        archiveClassifier.set('javadoc')
+-        from androidJavadoc.destinationDir
+-    }
+-
+-    task androidSourcesJar(type: Jar) {
+-        archiveClassifier.set('sources')
+-        from android.sourceSets.main.java.srcDirs
+-        include '**/*.java'
+-    }
+-
+-    android.libraryVariants.all { variant ->
+-        def name = variant.name.capitalize()
+-        task "jar${name}"(type: Jar, dependsOn: variant.javaCompile) {
+-            from variant.javaCompile.destinationDir
+-        }
+-    }
+-
+-    artifacts {
+-        archives androidSourcesJar
+-        archives androidJavadocJar
+-    }
+-
+-    task installArchives(type: Upload) {
+-        configuration = configurations.archives
+-        repositories {
+-            maven {
+-                // Deploy to react-native-event-bridge/maven, ready to publish to npm
+-                url = uri("file://${projectDir}/../android/maven")
+-            }
+-        }
+-    }
+-}
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/gradlew b/node_modules/@fdfedin/react-native-native-mqtt/android/gradlew
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/gradlew.bat b/node_modules/@fdfedin/react-native-native-mqtt/android/gradlew.bat
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/AndroidManifest.xml b/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/AndroidManifest.xml
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/MqttClient.java b/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/MqttClient.java
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/NativeMqttModule.java b/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/NativeMqttModule.java
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/NativeMqttPackage.java b/node_modules/@fdfedin/react-native-native-mqtt/android/src/main/java/com/davesters/reactnative/mqtt/NativeMqttPackage.java
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/EventEmitter.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/EventEmitter.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/EventType.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/EventType.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaAsyncSocket/GCDAsyncSocket.h b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaAsyncSocket/GCDAsyncSocket.h
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaAsyncSocket/GCDAsyncUdpSocket.h b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaAsyncSocket/GCDAsyncUdpSocket.h
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTT.h b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTT.h
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTT.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTT.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTDeliver.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTDeliver.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTLogger.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTLogger.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTMessage.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTMessage.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTReader.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTReader.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTSocket.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTSocket.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTStorage.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTStorage.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTTimer.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTTimer.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTTypes.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTTypes.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTWebSocket.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/CocoaMQTTWebSocket.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/Frame.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/Frame.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameConnAck.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameConnAck.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameConnect.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameConnect.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameDisconnect.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameDisconnect.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePingReq.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePingReq.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePingResp.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePingResp.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubAck.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubAck.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubComp.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubComp.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubRec.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubRec.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubRel.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePubRel.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePublish.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FramePublish.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameSubAck.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameSubAck.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameSubscribe.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameSubscribe.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameUnsubAck.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameUnsubAck.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameUnsubscribe.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/Libraries/CocoaMQTT/FrameUnsubscribe.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/MqttClient.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/MqttClient.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt-Bridging-Header.h b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt-Bridging-Header.h
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.swift b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcodeproj/project.pbxproj b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcodeproj/project.pbxproj
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcodeproj/xcshareddata/xcschemes/NativeMqtt.xcscheme b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcodeproj/xcshareddata/xcschemes/NativeMqtt.xcscheme
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcworkspace/contents.xcworkspacedata b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqtt.xcworkspace/contents.xcworkspacedata
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqttBridge.m b/node_modules/@fdfedin/react-native-native-mqtt/ios/NativeMqttBridge.m
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/lib/index.js b/node_modules/@fdfedin/react-native-native-mqtt/lib/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/lib/index.js.map b/node_modules/@fdfedin/react-native-native-mqtt/lib/index.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/react-native-native-mqtt.podspec b/node_modules/@fdfedin/react-native-native-mqtt/react-native-native-mqtt.podspec
+old mode 100644
+new mode 100755
+diff --git a/node_modules/@fdfedin/react-native-native-mqtt/types/index.d.ts b/node_modules/@fdfedin/react-native-native-mqtt/types/index.d.ts
+old mode 100644
+new mode 100755

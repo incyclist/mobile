@@ -2,6 +2,9 @@ import { getBindings, IncyclistBindings  } from "incyclist-services"
 import { getLogBinding } from "./logging"
 import { getAppInfoBinding } from "./appInfo"
 import { getUserSettingsBinding } from "./user-settings"
+import { getSecretBinding } from "./secret"
+import { getMessageQueueBinding } from "./mq"
+import { getDirectConnectBinding } from "./direct-connect"
 
 
 let _bindings:IncyclistBindings|undefined
@@ -19,7 +22,9 @@ export const initBindings = async  ()=> {
     bindings.logging = getLogBinding()
     bindings.appInfo = await getAppInfoBinding()
     bindings.settings = getUserSettingsBinding()
-    // bindings.secret = SecretsBinding.getInstance()
+    bindings.secret = getSecretBinding()
+    bindings.mq = getMessageQueueBinding()
+    bindings.wifi = getDirectConnectBinding() 
 
     
     // bindings.db = getRepositoryBinding() 
@@ -36,7 +41,6 @@ export const initBindings = async  ()=> {
     // bindings.serial = initSerialBinding()
     // bindings.ant = getAntBinding()
     // bindings.ble = getBleBinding()
-    // bindings.wifi = getDirectConnectBinding() 
 
     _bindings = bindings
     return bindings

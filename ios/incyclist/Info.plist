@@ -49,6 +49,15 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
+        <false/>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_http._tcp.</string>
+        <string>_wahoo-fitness-tnp._tcp.local.</string>
+        <string>_openbikecontrol._tcp.local.</string>        
+    </array>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>This app uses the local network to discover printers and other devices.</string>
+
 </dict>
 </plist>

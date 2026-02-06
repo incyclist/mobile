@@ -111,7 +111,19 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             manifestPlaceholders = [usesCleartextTraffic:"false"]
         }
+    }
 
+}
+
+configurations.all {
+    resolutionStrategy {
+        dependencySubstitution {
+            substitute module('org.bouncycastle:bcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk15to18:1.78.1')
+            substitute module('org.bouncycastle:bcpkix-jdk15on') using module('org.bouncycastle:bcpkix-jdk15to18:1.78.1')
+        }
+        
+        force 'org.bouncycastle:bcprov-jdk15to18:1.78.1'
+        force 'org.bouncycastle:bcpkix-jdk15to18:1.78.1'
     }
 }
 
