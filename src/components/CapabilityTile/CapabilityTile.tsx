@@ -6,6 +6,7 @@ import {CapabilityDisplayProps, TIncyclistCapability} from 'incyclist-services'
 
 interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
+    marginRight?: number
     
 }
 
@@ -17,6 +18,7 @@ export const CapabilityTile = ({
         value,
         unit,
         height,
+        marginRight=0,
         
         onClick
      }: CapabilityTileProps) => {
@@ -28,13 +30,13 @@ export const CapabilityTile = ({
 
     const onPress = ()=>{
         if (onClick)
-            onClick(capability)
+            onClick()
     }
 
     if ( deviceName) {
         return (
             <TouchableOpacity
-                style={[styles.tile, { height, backgroundColor}]}
+                style={[styles.tile, { height, backgroundColor,marginRight}]}
                 onPress={onPress}
             >
 
@@ -93,8 +95,7 @@ export const CapabilityTile = ({
 
 const styles = StyleSheet.create({
   tile: {
-    aspectRatio:1,
-    marginBottom: 12,
+    aspectRatio:1.5,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'space-between',

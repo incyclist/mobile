@@ -4,7 +4,7 @@ import { TouchableOpacity, Text, StyleSheet } from 'react-native'
 export type OnExitHandler = ()=>void
 
 export interface ExitButtonProps {
-    onExit: OnExitHandler
+    onExit?: OnExitHandler
 }
 
 export const ExitButton = ({ onExit}: ExitButtonProps) => (

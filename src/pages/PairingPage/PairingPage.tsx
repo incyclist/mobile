@@ -1,20 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Dimensions } from 'react-native'
+import {Dimensions } from 'react-native'
 
-import { colors } from '../../theme'
 
-import { useDevicePairing,PairingDisplayProps, useIncyclist, DevicePairingService, UserInterfaceServcie, IObserver } from 'incyclist-services'
-import { ButtonBar, CapabilityGrid, ExitButton, MainBackground } from '../../components'
+import { useDevicePairing,PairingDisplayProps, IObserver } from 'incyclist-services'
+import { MainBackground } from '../../components'
 import { useLogging } from '../../hooks'
+import { PairingPageView } from './View'
 
 const { height } = Dimensions.get('window')
 const compact = height < 420
 
 const initialProps:PairingDisplayProps = { 
     title: undefined, 
-    capabilties: {top: [],bottom:[]},
+    capabilities: {top: [],bottom:[]},
     interfaces: [],
-    buttons:{primary:'ok',showOK:false, showExit:true, showSimulate:false, showSkip:false}
+    buttons:[]
+    
 }
 
 export const PairingPage = () => {
@@ -22,7 +23,6 @@ export const PairingPage = () => {
     const refObserver = useRef<IObserver|null|undefined>(null)
 
     const service = useDevicePairing()
-    const incyclist = useIncyclist()
 
     const {logError,logEvent} = useLogging('Pairing')
 
@@ -40,7 +40,6 @@ export const PairingPage = () => {
             const update = () => {
                 
                 const updated = service.getPageDisplayProperties()
-                console.log('# got update', JSON.stringify(updated))
                 if (updated) {
                     setProps(updated)
                     
@@ -64,41 +63,8 @@ export const PairingPage = () => {
         return <MainBackground />
     }
 
-    const onExit = ()=>{
-        incyclist.onAppExit()
-    }
 
-  return (
-    <MainBackground>
-        <View style={styles.container}>
-        <Text style={styles.title}>{props.title}</Text>
-
-        {/* <InterfaceInfo interfaces={props.interfaces} /> */}
-
-        <CapabilityGrid capabilities={props.capabilties} compact={compact} />
-
-        <ButtonBar {...props.buttons} />
-
-        <ExitButton onExit={onExit}/>
-
-        </View>
-    </MainBackground>
-  )
+  return <PairingPageView {...props}/>
 
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-  },
-  title: {
-    textAlign: 'center',
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginVertical: 0,
-    
-  },
-})

@@ -2,30 +2,34 @@ import React from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { colors } from '../../theme'
 
-import type {PairingButtonProps} from 'incyclist-services'
-
-export const ButtonBar = ({ showSkip,showSimulate,showOK,primary }: PairingButtonProps) => {
-
-    return (
-        <View style={styles.bar}>
-            {showSkip && <Btn label="Skip" primary={primary==='skip'} />}
-            {showSimulate && <Btn label="Simulate" primary={primary==='simulate'} />}
-            {showOK && <Btn label="OK" primary={primary==='ok'} />}
-        </View>
-    )
+interface ButtonBarProps {
+    buttons: Array<ButtonProps>
 }
 
 interface ButtonProps {
     label: string,
     primary?: boolean
+    onClick: ()=>void
 }
 
-const Btn = ({ label, primary }:ButtonProps) => (
-    <TouchableOpacity
-        style={[styles.btn, primary && styles.primary]}>
-        <Text style={styles.text}>{label}</Text>
+const Btn = ({ label, primary,onClick }:ButtonProps) => (
+    <TouchableOpacity onPress={onClick}
+        style={[styles.btn, primary ? styles.primary : styles.secondary]}>
+        <Text style={primary ? styles.textPrimary : styles.textSecondary}>{label}</Text>
     </TouchableOpacity>
 )
+
+
+export const ButtonBar = ( {buttons}: ButtonBarProps) => {
+
+    return (
+        <View style={styles.bar}>
+            {buttons.map( (props:ButtonProps) => <Btn {...props} />)}
+            
+        </View>
+    )
+}
+
 
 const styles = StyleSheet.create({
     bar: {
@@ -37,15 +41,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
         paddingVertical: 16,
         marginHorizontal: 8,
-        backgroundColor: '#444',
         borderRadius: 8,
     },
     primary: {
-        backgroundColor: colors.tileActive,
+        backgroundColor: colors.buttonPrimary,
     },
-    text: {
+    secondary: {
+        borderWidth:2,
+        backgroundColor: colors.buttonSecondary,
+        borderColor: colors.buttonPrimary,
+    },
+    textPrimary: {
         color: '#fff',
         fontSize: 18,
         fontWeight: '700',
     },
+    textSecondary: {
+        color: colors.buttonPrimary,
+        fontSize: 18,
+        fontWeight: '700',
+    },
+
 })

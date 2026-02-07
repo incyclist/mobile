@@ -76,3 +76,5 @@ yarn-error.log
 
 /config
 /dist
+*storybook.log
+storybook-static
