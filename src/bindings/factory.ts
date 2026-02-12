@@ -5,6 +5,7 @@ import { getUserSettingsBinding } from "./user-settings"
 import { getSecretBinding } from "./secret"
 import { getMessageQueueBinding } from "./mq"
 import { getDirectConnectBinding } from "./direct-connect"
+import { getBleBinding } from "./ble"
 
 
 let _bindings:IncyclistBindings|undefined
@@ -25,6 +26,7 @@ export const initBindings = async  ()=> {
     bindings.secret = getSecretBinding()
     bindings.mq = getMessageQueueBinding()
     bindings.wifi = getDirectConnectBinding() 
+    bindings.ble = getBleBinding()
 
     
     // bindings.db = getRepositoryBinding() 
@@ -33,14 +35,10 @@ export const initBindings = async  ()=> {
     // bindings.video = new VideoProcessing()
     // bindings.fs = fs
     // bindings.downloadManager = DownloadManager.getInstance()
-    // bindings.mq = MessageQueue.getInstance()
     // bindings.form = FormPostBinding.getInstance()
     // bindings.ui = NativeUiService.getInstance()
     // bindings.crypto = getCryptoBinding()
     // bindings.outh = OAuthBinding.getInstance()
-    // bindings.serial = initSerialBinding()
-    // bindings.ant = getAntBinding()
-    // bindings.ble = getBleBinding()
 
     _bindings = bindings
     return bindings

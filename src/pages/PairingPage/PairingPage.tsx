@@ -1,14 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import {Dimensions } from 'react-native'
 
 
-import { useDevicePairing,PairingDisplayProps, IObserver } from 'incyclist-services'
+import { getDevicesPageService,PairingDisplayProps, IObserver } from 'incyclist-services'
 import { MainBackground } from '../../components'
-import { useLogging } from '../../hooks'
+import { useLogging,useUnmountEffect } from '../../hooks'
 import { PairingPageView } from './View'
 
-const { height } = Dimensions.get('window')
-const compact = height < 420
 
 const initialProps:PairingDisplayProps = { 
     title: undefined, 
@@ -22,42 +19,43 @@ export const PairingPage = () => {
     const [props, setProps] = useState<PairingDisplayProps>(initialProps)
     const refObserver = useRef<IObserver|null|undefined>(null)
 
-    const service = useDevicePairing()
+    const service = getDevicesPageService()
+    const {logError,logEvent} = useLogging('PairingPage')
 
-    const {logError,logEvent} = useLogging('Pairing')
+
+    const onUpdate = useCallback(() => {
+        
+        const updated = service.getPageDisplayProperties()
+        if (updated) {
+            //console.log('# update', updated)
+            setProps(updated)
+            
+        }
+    },[service])
 
 
     useEffect(() => {
         if (!service || refObserver.current)
             return
 
-        logEvent({message:'opening pairing page'})
-
         let observer
         try {
+
             refObserver.current = observer = service?.openPage()
+            observer.on('page-update', onUpdate)
 
-            const update = () => {
-                
-                const updated = service.getPageDisplayProperties()
-                if (updated) {
-                    setProps(updated)
-                    
-                }
-            }
-
-            observer.on('page-update', update)
-
-            update()
-
-
+            onUpdate()
         }
         catch(err:any) {
             logError(err,'init effect')
         }
 
 
-    }, [service, logError, logEvent])
+    }, [service, logError, logEvent, onUpdate])
+
+    useUnmountEffect( ()=> {
+        service.closePage()        
+    })
 
     if (!refObserver.current) {
         return <MainBackground />

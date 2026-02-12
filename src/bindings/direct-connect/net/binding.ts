@@ -36,12 +36,7 @@ class RNSocket extends EventEmitter implements Socket  {
 
 export class ReactNativeNetBinding implements NetBinding {
     createSocket(): Socket {
-
-        
-
-        
-        console.log('[Socket]creat Socket =>')
-        
+       
         // We cast/wrap because the library is 99% compatible with your interface
         return new RNSocket()
     }

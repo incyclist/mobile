@@ -44,3 +44,38 @@ export const Initial: Story = {
 };
 
 
+export const Paired: Story = {
+  args: {   
+    capabilities: {
+        top:[ 
+            { title:'control',capability:'control',deviceName:'DCSIM FTMS 1234',connectState:'connected', onClick:fn() },
+            { title:'power',capability:'power',deviceName:'DCSIM FTMS 1234',value: 154, unit:'W' , onClick:fn() },
+            { title:'heartrate',capability:'heartrate',deviceName:'HRM Dual',value:135, unit:'bpm', onClick:fn() }
+        ],
+        bottom:[
+            { title:'cadence',capability:'cadence',deviceName:'DCSIM FTMS 1234',value:90, unit:'rpm',onClick:fn() },            
+            { title:'speed',capability:'speed',deviceName:'DCSIM FTMS 1234',value:29.1, unit:'km/h',onClick:fn() },
+        ]
+    }
+  },
+};
+
+
+export const PairedWaiting: Story = {
+  args: {   
+    capabilities: {
+        top:[ 
+            { title:'control',capability:'control',deviceName:'DCSIM FTMS 1234',connectState:'waiting', onClick:fn() },
+            { title:'power',capability:'power',deviceName:'DCSIM FTMS 1234',value: 154, unit:'W' , onClick:fn() },
+            { title:'heartrate',capability:'heartrate',deviceName:'HRM Dual',value:135, unit:'bpm', onClick:fn() }
+        ],
+        bottom:[
+            { title:'cadence',capability:'cadence',deviceName:'DCSIM FTMS 1234',value:90, unit:'rpm',onClick:fn() },            
+            { title:'speed',capability:'speed',deviceName:'DCSIM FTMS 1234',value:29.1, unit:'km/h',onClick:fn() },
+        ]
+    }
+  },
+};
+
+
+

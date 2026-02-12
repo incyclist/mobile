@@ -1,4 +1,8 @@
 import type { StorybookConfig } from '@storybook/react-native-web-vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import { mergeConfig } from 'vite'; 
+import svgr from 'vite-plugin-svgr'; // 1. Import the plugin
+
 
 const config: StorybookConfig = {
     stories: [
@@ -6,16 +10,33 @@ const config: StorybookConfig = {
         "../src/pages/**/*.stories.@(js|jsx|mjs|ts|tsx)"
 
     ],
+    
     addons: ['@storybook/addon-docs'],
     framework: "@storybook/react-native-web-vite",
 
     viteFinal: async (config:any) => {
-        config.resolve.alias = {
-        ...config.resolve.alias,
-        
-        'react-native-safe-area-context': 'react-native-web-safe-area-context',
-        };
-        return config;
+        return mergeConfig(config, {
+            plugins: [
+                tsconfigPaths(), // Automatically syncs tsconfig.json paths
+                svgr({ include: "**/*.svg", })  // This ensures it works exactly like react-native-svg-transformer
+                
+                
+            ], 
+            resolve: {
+                alias: {
+                    'react-native-safe-area-context': 'react-native-web-safe-area-context',
+                    'react-native-linear-gradient': 'react-native-web/dist/exports/View'
+                },
+            },
+        });
+
+        // config.resolve.alias = {
+        //     ...config.resolve.alias,
+        //     'react-native-safe-area-context': 'react-native-web-safe-area-context',
+        // };
+        // return config;
     },
 };
+
+
 export default config;

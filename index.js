@@ -4,24 +4,38 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { name as appName } from './app.json';
 import { Buffer } from "buffer"
 
+
+// Polyfill Buffer
 global.Buffer = Buffer
 
-/*
-const EventEmitter = require('events');
-if (!EventEmitter.default) {
-  EventEmitter.default = EventEmitter;
-}
-
-if (typeof Buffer === 'undefined') {
-  global.Buffer = require('buffer').Buffer;
-}
+// Polyfill Process/nextTick
 if (typeof process === 'undefined') {
   global.process = require('process');
 }
-
-// Ensure process.nextTick exists (often used by EventEmitters)
-if (!global.process.nextTick) {
+if (!process.nextTick) {
+  global.process = global.process || {};
   global.process.nextTick = setImmediate;
+}
+
+// Polyfill TextEncoder/Decoder (The Protobuf Fix)
+// We import specifically from sinonjs to handle the {fatal: true} option
+import { TextEncoder, TextDecoder } from '@sinonjs/text-encoding';
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+if (typeof structuredClone==='undefined') {
+    global.structuredClone = (o)=> {
+        try {
+            return JSON.parse(JSON.stringify(o))
+        } catch  {}
+    }
+}
+
+/* required of default exports of events are used
+const EventEmitter = require('events');
+if (!EventEmitter.default) {
+  EventEmitter.default = EventEmitter;
 }
 */
 

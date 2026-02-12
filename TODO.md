@@ -52,10 +52,65 @@ x MQTT
 
 # OPEN FOR PROD
 - Implement proper secret binding ( App Attestation + Secret Storage)
-- Setup MQTT Server to use TLS
+- Setup MQTT Server to use TLS (Potentially migrate to mosquitto)
 - Lookup for alternative MQTT lib
 - Update Update-server to support mobile channel
 - Find a way to define the App Features in a way that they cannot be overwritten by the bundles
+
+# Planning
+
+S:fXRmRMZJUn.=7%
+
+## Phase 1: MVP Single GPX Ride Only ( no workout, no video, no activity, no upload)
+15.2.: 
+    - BLE integrated, 
+    - Pairing Page completed, 
+    - Routes Dummy Page ( will equal Routes and Search in Desktop)
+    - Workout Dummy Page
+    - (Search Dummy Page)
+    - Activities Dummy Page
+    - NavigationBar
+22.2: 
+    - User Settings   
+    - Map Component
+    - MVP: Route Page               ( GPX only, list only, no search) 
+    - MVP:Route Details Component   ( only route details and start button) 
+    - MVP:Follow Route Ride Page    ( no overlays, just option to stop)
+xxx: 
+    - IOS !!
+    - GPX Route Details Completion 
+    - Ride Dashboard Component
+    - Ride Map Component
+    - Elevation Graph Component
+    - Elevation Preview Overlay
+    - Total Elevation Overlay
+    - Ride Settings
+        - Activity
+        - Gear
+        - Ride
+    - Add Elevation Graph to Route List
+    - Nearby Rides List
+    - PrevRides List
+
+
+## Phase 2: MVP Existing Video + GPX Ride Only ( no workout, no activity, no upload)
+    + Activities (and redo activity)
+    + Video Ride
+    + Videos in Route page
+    + Download (incl. binding)
+
+## Phase 3: add external Apps, add GPX upload
+
+## Phase 4: add workouts, add free ride
+
+## Phase 5: completion and initial release
+
+
+
+
+    
+    
+
 
 
 

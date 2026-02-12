@@ -1,8 +1,8 @@
-import { AppState, Platform, StatusBar, useColorScheme,BackHandler, ModalBaseProps, useWindowDimensions} from 'react-native';
+import { AppState, Platform, StatusBar, useColorScheme,BackHandler, useWindowDimensions} from 'react-native';
 import { SafeAreaProvider   } from 'react-native-safe-area-context';
 import { MainPage } from './pages/Main/MainPage';
 import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
-import { FC, ReactElement, useEffect, useState } from 'react';
+import { PropsWithChildren, ReactElement, useEffect,  useState } from 'react';
 import { initBindings } from './bindings/factory';
 import app from '../app.json'
 import { PairingPage } from './pages/PairingPage/PairingPage';
@@ -11,12 +11,36 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 let lastState = AppState.currentState
 
+
+const SizeLogger =({ children }: PropsWithChildren<{}>): ReactElement =>{
+
+    let {width,height,scale,fontScale} = useWindowDimensions()
+
+    width = Math.floor(width)
+    height = Math.floor(width)
+    scale = Math.round(scale*10)/10
+    fontScale = Math.round(fontScale*10)/10
+    
+
+    const {logEvent} = useLogging('Incyclist')
+    logEvent({message:'display size', width, height, scale, fontScale})
+    return (
+        <>
+        {children}
+        </>
+    )
+    
+}
+
 export const  App =() => {
     const isDarkMode = useColorScheme() === 'dark';
     const service = useIncyclist()    
     const [initialized,setInitialized] = useState<boolean>(false)
 
     const {logError,logEvent} = useLogging('Incyclist')
+
+
+
      
 
     useEffect(() => {
@@ -57,7 +81,7 @@ export const  App =() => {
         logEvent({message:'Initializing App'})
 
         const features:AppFeatures = {
-            interfaces: ['wifi'],
+            interfaces: ['wifi','ble'],
             ble: '*',
             wifi: '*'
         }
@@ -88,34 +112,13 @@ export const  App =() => {
     if (!initialized) {
         return <LoadingScreen version={app.bundleVersion}/>
     }
-    
-    const SizeLogger =({children}): ReactElement =>{
-
-        let {width,height,scale,fontScale} = useWindowDimensions()
-
-        width = Math.floor(width)
-        height = Math.floor(width)
-        scale = Math.round(scale*10)/10
-        fontScale = Math.round(fontScale*10)/10
-        
-
-        const {logEvent} = useLogging('Incyclist')
-        logEvent({message:'display size', width, height, scale, fontScale})
-        return (
-        <>
-        {children}
-        </>
-        )
-        
-    }
-
 
   return (
     <SafeAreaProvider>
       <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       {initialized ? 
         <SizeLogger>
-            <PairingPage/>
+            <PairingPage />
         </SizeLogger>
          : <MainPage/>}
     </SafeAreaProvider>

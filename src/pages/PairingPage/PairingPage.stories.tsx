@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { View as PairingPage } from 'react-native';
 import { PairingPageView } from './View';
+import {defaultArgs as deviceSelectorArgs} from '../../components/DeviceSelector/DeviceSelector.stories'
 
 const meta:Meta<typeof PairingPageView> = {
   title: 'Components/PairingPage',
@@ -41,6 +42,62 @@ export const Initial: Story = {
             { header:{title:'cadence'},capability:'cadence',deviceName:'',onClick:fn() },            
         ]
     },
+    interfaces: [
+        { name:'ble', state:'scanning' },
+        { name:'wifi', state:'error' }
+    ],
+    buttons: [ {id:'ok', label:'OK', primary:true, onClick:fn()}, {id:'skip', label:'Skip', primary:false, onClick:fn()}]
+  },
+};
+
+
+export const Found: Story = {
+  args: {   
+    title: 'Devices',
+    capabilities: {
+        top:[ 
+            { header:{title:'control'},capability:'control',deviceName:'DCSIM FTMS 1234',connectState:'connected', onClick:fn() },
+            { header:{title:'power'},capability:'power',deviceName:'DCSIM FTMS 1234',value: 154, unit:'W' , onClick:fn() },
+            { header:{title:'heartrate'},capability:'heartrate',deviceName:'HRM Dual',value:135, unit:'bpm', onClick:fn() }
+        ],
+        bottom:[
+            { header:{title:'cadence'},capability:'cadence',deviceName:'DCSIM FTMS 1234',value:90, unit:'rpm',onClick:fn() },            
+            { header:{title:'controller'},capability:'controller',deviceName:'',onClick:fn() },            
+            { header:{title:'speed'},capability:'speed',deviceName:'DCSIM FTMS 1234',value:29.1, unit:'km/h',onClick:fn() },
+        ]
+    },
+    interfaces: [
+        { name:'ble', state:'scanning' },
+        { name:'wifi', state:'error' }
+    ],
+    buttons: [ {id:'ok', label:'OK', primary:true, onClick:fn()}, {id:'skip', label:'Skip', primary:false, onClick:fn()}]
+  },
+};
+
+
+export const Selected: Story = {
+  args: {   
+    title: 'Devices',
+    capabilities: {
+        top:[ 
+            { header:{title:'control'},capability:'control',deviceName:'DCSIM FTMS 1234',connectState:'connected', onClick:fn() },
+            { header:{title:'power'},capability:'power',deviceName:'DCSIM FTMS 1234',value: 154, unit:'W' , onClick:fn() },
+            { header:{title:'heartrate'},capability:'heartrate',deviceName:'HRM Dual',value:135, unit:'bpm', onClick:fn() }
+        ],
+        bottom:[
+            { header:{title:'cadence'},capability:'cadence',deviceName:'DCSIM FTMS 1234',value:90, unit:'rpm',onClick:fn() },            
+            { header:{title:'controller'},capability:'controller',deviceName:'',onClick:fn() },            
+            { header:{title:'speed'},capability:'speed',deviceName:'DCSIM FTMS 1234',value:29.1, unit:'km/h',onClick:fn() },
+        ]
+    },
+    interfaces: [
+        { name:'ble', state:'scanning' },
+        { name:'wifi', state:'error' }
+    ],
+    deviceSelection: {
+        ...deviceSelectorArgs
+    },
+
     buttons: [ {id:'ok', label:'OK', primary:true, onClick:fn()}, {id:'skip', label:'Skip', primary:false, onClick:fn()}]
   },
 };

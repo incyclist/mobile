@@ -1,0 +1,11 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+  <circle cx="64" cy="64" r="50"
+          stroke="currentColor"
+          stroke-width="8"
+          fill="transparent" />
+
+  <path d="M72 20 L48 52 H64 L56 78 L80 46 H64 L72 20 Z" />
+
+  <path d="M49 85 L53 105 H57 L61 92 L65 105 H69 L73 85 H69 L67 98 L62 85 H58 L54 98 L52 85 H49 Z" />
+
+</svg>

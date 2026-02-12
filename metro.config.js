@@ -7,6 +7,11 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 const servicesPath = path.resolve(__dirname, '../services/lib/esm');
 const devicesPath = path.resolve(__dirname, '../devices/lib/esm');
 
+const defaultConfig = getDefaultConfig(__dirname);
+const {
+  resolver: { sourceExts, assetExts }
+} = defaultConfig;
+
 // 2. Check if folder exists AND we are in dev mode
 const isDev = process.env.APP_VARIANT === 'debug' || process.env.APP_VARIANT === 'dev'
 const canUseLocalServicesLib = isDev && fs.existsSync(servicesPath);
@@ -22,9 +27,17 @@ const blockList = [
     // /node_modules\/uuid\/.*/
 ] 
 
+const servicesRoot = path.resolve(__dirname, '../services');
+const devicesRoot = path.resolve(__dirname, '../devices');
+
+
 if (canUseLocalServicesLib)  {
     blockList.push(/node_modules\/incyclist-services\/.*/)
     watchFolders.push(servicesPath)
+}
+else {
+    blockList.push( new RegExp(`${servicesRoot.replace(/[/\\\\]/g, '[/\\\\]')}/.*`), )
+
 }
 if (canUseLocalDevicesLib)  {
     blockList.push(/node_modules\/incyclist-devices\/.*/)
@@ -35,6 +48,7 @@ const settingsPath = (isDev)
   ? path.resolve(__dirname, `config/${process.env.APP_VARIANT }/settings.json`)
   : path.resolve(__dirname, 'polyfill/settings.ts');
 
+const assetsPath = path.resolve(__dirname, 'src/assets');
 /**
  * Metro configuration
  * 
@@ -43,8 +57,14 @@ const settingsPath = (isDev)
  */
 const config = {
     watchFolders,
+    transformer: {
+        babelTransformerPath: require.resolve('react-native-svg-transformer'),
+    },
     resolver: {
+
         blockList,
+        assetExts: assetExts.filter((ext) => ext !== 'svg'),
+        sourceExts: [...sourceExts, 'svg'],        
         extraNodeModules: new Proxy({
             'incyclist-ant-plus': path.resolve(__dirname, 'polyfill/node-mocks.js'),
             '@serialport/stream': path.resolve(__dirname, 'polyfill/node-mocks.js'),
@@ -54,6 +74,7 @@ const config = {
             'fs': path.resolve(__dirname, 'polyfill/node-mocks.js'),
             'stream': path.resolve(__dirname, 'polyfill/node-mocks.js'),     // FIXED: was empty-module
             '@settings' : settingsPath,
+            '@assets':assetsPath,
 
             // Logic-only mocks can stay as empty-module
             'path': require.resolve('metro-runtime/src/modules/empty-module.js'),

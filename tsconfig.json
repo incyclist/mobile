@@ -1,11 +1,15 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
+    "baseUrl": ".",
     "jsx": "react-native", 
     // OR "jsx": "react-jsx" for the modern transform
     "allowJs": true,
     "esModuleInterop": true    ,
     "types": ["jest"],
+    "paths": {
+      "@assets/*": ["src/assets/*"]
+    }    
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]

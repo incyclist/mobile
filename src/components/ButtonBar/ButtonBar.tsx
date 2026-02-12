@@ -1,16 +1,7 @@
 import React from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { colors } from '../../theme'
-
-interface ButtonBarProps {
-    buttons: Array<ButtonProps>
-}
-
-interface ButtonProps {
-    label: string,
-    primary?: boolean
-    onClick: ()=>void
-}
+import { ButtonBarProps, ButtonProps } from './types'
 
 const Btn = ({ label, primary,onClick }:ButtonProps) => (
     <TouchableOpacity onPress={onClick}
@@ -24,7 +15,7 @@ export const ButtonBar = ( {buttons}: ButtonBarProps) => {
 
     return (
         <View style={styles.bar}>
-            {buttons.map( (props:ButtonProps) => <Btn {...props} />)}
+            {buttons.map( (props:ButtonProps) => <Btn key = {props.label} {...props} />)}
             
         </View>
     )

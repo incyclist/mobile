@@ -81,6 +81,9 @@ export class MessageQueue extends EventEmitter  {
         const username = this.getSecret('MQ_USER');
         const password = this.getSecret('MQ_PASSWORD');
 
+        if (!uri || !username || !password)
+            return false
+
         this.client = new Mqtt.Client(uri);
 
 

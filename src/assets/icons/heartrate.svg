@@ -1,0 +1,16 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+  <defs>
+    <mask id="ecg-mask">
+      <rect width="128" height="128" fill="white" />
+      <path d="M10 68 H40 L50 50 L65 85 L80 35 L90 68 H118"
+            stroke="black"
+            stroke-width="6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none" />
+    </mask>
+  </defs>
+
+  <path d="M64 115 C64 115 15 80 15 45 C15 25 35 15 50 25 C58 30 64 40 64 40 C64 40 70 30 78 25 C93 15 113 25 113 45 C113 80 64 115 64 115 Z"
+        mask="url(#ecg-mask)" />
+</svg>
