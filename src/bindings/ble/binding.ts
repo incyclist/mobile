@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { NativeEventEmitter, NativeModules } from 'react-native'
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native'
 import BleManager, { BleManagerDidUpdateStateEvent, BleState, Peripheral } from 'react-native-ble-manager'
 import {
     BleBinding,
@@ -9,6 +9,7 @@ import {
 
 import { BlePeripheralRN } from './peripheral'
 import { EventLogger } from 'gd-eventlog'
+import { PermissionService } from '../../services'
 
 const BleManagerModule = NativeModules.BleManager
 const bleEmitter = new NativeEventEmitter(BleManagerModule)
@@ -21,18 +22,34 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
     private scanning = false
 
     private logger = new EventLogger('BLE')
+    private permissionsService: PermissionService
 
     public static getInstance(): BleBindingRN {
         this.instance = this.instance ?? new BleBindingRN()
         return this.instance
     }
 
+    async initializeAuthorization(): Promise<void> {
+        if (Platform.OS==='android') {
+            this._state ='unauthorized'
+        }
+        const authorized = await this.permissionsService.hasBlePermission()
+        this.setAuthorized(authorized)
+    }    
+
     constructor() {
         super()
 
-        BleManager.onDidUpdateState( this.onStateChanged.bind(this))
+        BleManager.onDidUpdateState( this.onManagerStateChanged.bind(this))
         BleManager.onDiscoverPeripheral(this.onDiscoverPeripheral.bind(this))
         BleManager.onStopScan( this.onScanStopped.bind(this))
+        this.permissionsService = new PermissionService()
+
+        if (Platform.OS==='android') {
+            this.setAuthorized(false)
+        }
+        this.initializeAuthorization()
+        
     }
 
     get state():BleInterfaceState {
@@ -42,17 +59,29 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             this.logger.logEvent({message:'starting BLE manager ..'})
             BleManager.start({ showAlert: false })
             this._state = 'unknown'
+
             BleManager.checkState().then( bleState => {
                 const prev = this._state
                 this._state = this.mapState(bleState)
                 if (prev!==this._state)
                     this.emit('stateChange', this._state)
             })
+
+            bleEmitter.addListener( 'BleManagerDiscoverPeripheral',this.onDiscoverPeripheral.bind(this))
             
         }
         
         return this._state
 
+    }
+
+    setAuthorized(authorized: boolean): void {
+        const next = authorized ? 'poweredOn' : 'unauthorized'
+
+        if (this.state !== next) {
+            this._state = next
+            this.emit('stateChange', next)
+        }
     }
 
 
@@ -65,6 +94,12 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             return false
         }
     }
+    onManagerStateChanged( event:BleManagerDidUpdateStateEvent):void { 
+        if (Platform.OS==='android' && this._state==='unauthorized') {
+            return
+        }
+        this.onStateChanged(event)
+    }
 
     onStateChanged( event:BleManagerDidUpdateStateEvent):void {
  
@@ -73,8 +108,10 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         const mapped = this.mapState(event.state)
         this._state = mapped
 
-        if (prev!==this._state)
+        if (prev!==this._state) {
             this.emit('stateChange', mapped)
+            this.logger.logEvent({message:'BLE state changed', transition:{ from:prev, to: this._state}})
+        }
     }
 
     onScanStopped() {
@@ -104,13 +141,7 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
 
         this.scanning = true
 
-        bleEmitter.addListener(
-            'BleManagerDiscoverPeripheral',
-            (peripheral) => {
-                const wrapped = new BlePeripheralRN(peripheral)
-                this.emit('discover', wrapped)
-            }
-        )
+        this.logger.logEvent({message:'starting BLE peripheral scan ...'})
 
         BleManager.scan( { 
             serviceUUIDs:serviceUUIDs ?? [],
@@ -119,7 +150,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         })
             .then(() => callback?.())
             .catch((err) => {
-                console.log('# BLEManager.scan ERROR',err)
                 this.emit('error', err)
                 //callback?.(err)
             })
@@ -130,6 +160,7 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             callback?.()
             return
         }
+        this.logger.logEvent({message:'stopping BLE peripheral scan'})
 
         BleManager.stopScan()
             .finally(() => {

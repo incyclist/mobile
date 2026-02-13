@@ -8,6 +8,7 @@ import app from '../app.json'
 import { PairingPage } from './pages/PairingPage/PairingPage';
 import { useLogging } from './hooks';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
+import { getBleBinding } from './bindings/ble';
 
 let lastState = AppState.currentState
 
@@ -35,10 +36,10 @@ const SizeLogger =({ children }: PropsWithChildren<{}>): ReactElement =>{
 export const  App =() => {
     const isDarkMode = useColorScheme() === 'dark';
     const service = useIncyclist()    
+    const ble = getBleBinding()
     const [initialized,setInitialized] = useState<boolean>(false)
 
     const {logError,logEvent} = useLogging('Incyclist')
-
 
 
      
@@ -50,6 +51,7 @@ export const  App =() => {
             }
 
             if (lastState !== 'active' && nextState === 'active') {
+                ble.initializeAuthorization()
                 service.onAppResume()
             }
 
@@ -58,7 +60,7 @@ export const  App =() => {
         })
 
         return () => sub.remove()
-    }, [service])    
+    }, [service,ble])    
 
     useEffect(() => {
         if (Platform.OS !== 'android') return

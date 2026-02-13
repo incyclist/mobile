@@ -59,7 +59,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight:2
+        marginRight:4
     },
     checkbox: {
         width: 20,
@@ -117,8 +117,9 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
                 <DeviceEntry key={`${device.deviceName}-${device.interface}`} {...device} disabled={none}  onClick={()=>onDeviceClicked(device)}/>
                 ))}
             </ScrollView>
-            {canSelectAll && (
-                <View style={styles.footer}>
+
+            <View style={styles.footer}>
+                {canSelectAll && (
                     <View style={styles.checkboxContainer}>
                         <Switch value={all}  onValueChange={onForAllClicked}  
                             ios_backgroundColor={colors.switchThumb.off}
@@ -135,25 +136,26 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
                             
                         <Text style={styles.footerText}>For all capabilities</Text>
                     </View>
-                    <View style={styles.checkboxContainer}>
-                        <Switch value={none}  onValueChange={onNoneClicked}  
-                            ios_backgroundColor={colors.switchThumb.off}
-                            trackColor={colors.switchTrack} 
-                            thumbColor={ all ? colors.switchThumb.on : colors.switchThumb.off}  
-                            {...Platform.select({
-                                web: {
-                                    activeThumbColor: colors.switchThumb.on,
-                                    activeTrackColor: colors.switchTrack.true,
-                                }
-                            })}                            
-                            />
-                            
-                            
-                        <Text style={styles.footerText}>None</Text>
-                    </View>
+                )}
 
+                <View style={styles.checkboxContainer}>
+                    <Switch value={none}  onValueChange={onNoneClicked}  
+                        ios_backgroundColor={colors.switchThumb.off}
+                        trackColor={colors.switchTrack} 
+                        thumbColor={ all ? colors.switchThumb.on : colors.switchThumb.off}  
+                        {...Platform.select({
+                            web: {
+                                activeThumbColor: colors.switchThumb.on,
+                                activeTrackColor: colors.switchTrack.true,
+                            }
+                        })}                            
+                        />
+                        
+                        
+                    <Text style={styles.footerText}>None</Text>
                 </View>
-            )}
+
+            </View>
         </View>
     </Dialog>
       
