@@ -1,4 +1,4 @@
-package com.incyclist
+package com.incyclist.app
 
 import android.os.Bundle // Required for onCreate
 import android.content.Intent
@@ -22,7 +22,7 @@ class MainActivity : ReactActivity() {
      * Returns the name of the main component registered from JavaScript. This is used to schedule
      * rendering of the component.
      */
-    override fun getMainComponentName(): String = "incyclist"
+    override fun getMainComponentName(): String = "Incyclist"
 
     /**
      * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

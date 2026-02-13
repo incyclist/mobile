@@ -1,4 +1,4 @@
-package com.incyclist
+package com.incyclist.app
 
 import android.app.Application
 import com.facebook.react.PackageList

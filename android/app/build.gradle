@@ -89,11 +89,11 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.incyclist"
+    namespace "com.incyclist.app"
     defaultConfig {
         def appConfig = getAppConfig()
 
-        applicationId "com.incyclist"
+        applicationId "com.incyclist.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appConfig[1]
