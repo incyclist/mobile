@@ -5,10 +5,10 @@ import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services
 import { PropsWithChildren, ReactElement, useEffect,  useState } from 'react';
 import { initBindings } from './bindings/factory';
 import app from '../app.json'
-import { PairingPage } from './pages/PairingPage/PairingPage';
 import { useLogging } from './hooks';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 import { getBleBinding } from './bindings/ble';
+import { RootNavigator } from './pages/RootNavigator';
 
 let lastState = AppState.currentState
 
@@ -120,7 +120,8 @@ export const  App =() => {
       <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       {initialized ? 
         <SizeLogger>
-            <PairingPage />
+            <RootNavigator />
+           
         </SizeLogger>
          : <MainPage/>}
     </SafeAreaProvider>

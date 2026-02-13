@@ -6,6 +6,7 @@ import { getSecretBinding } from "./secret"
 import { getMessageQueueBinding } from "./mq"
 import { getDirectConnectBinding } from "./direct-connect"
 import { getBleBinding } from "./ble"
+import { getUIBinding } from "./ui"
 
 
 let _bindings:IncyclistBindings|undefined
@@ -27,6 +28,7 @@ export const initBindings = async  ()=> {
     bindings.mq = getMessageQueueBinding()
     bindings.wifi = getDirectConnectBinding() 
     bindings.ble = getBleBinding()
+    bindings.ui = getUIBinding()
 
     
     // bindings.db = getRepositoryBinding() 
@@ -36,7 +38,6 @@ export const initBindings = async  ()=> {
     // bindings.fs = fs
     // bindings.downloadManager = DownloadManager.getInstance()
     // bindings.form = FormPostBinding.getInstance()
-    // bindings.ui = NativeUiService.getInstance()
     // bindings.crypto = getCryptoBinding()
     // bindings.outh = OAuthBinding.getInstance()
 

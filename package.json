@@ -20,6 +20,8 @@
   "dependencies": {
     "@fdfedin/react-native-native-mqtt": "^0.1.12",
     "@react-native/new-app-screen": "0.83.1",
+    "@react-navigation/native": "^7.1.28",
+    "@react-navigation/native-stack": "^7.12.0",
     "@sinonjs/text-encoding": "^0.7.3",
     "events": "^3.3.0",
     "gd-eventlog": "^0.1.27",
@@ -38,6 +40,7 @@
     "react-native-orientation-locker": "^1.7.0",
     "react-native-permissions": "^5.4.4",
     "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.23.0",
     "react-native-svg": "^15.15.3",
     "react-native-tcp-socket": "^6.4.1",
     "react-native-zeroconf": "^0.14.0",

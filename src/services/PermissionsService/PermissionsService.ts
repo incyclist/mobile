@@ -44,6 +44,17 @@ export class PermissionService {
         return true
     }
 
+    async requestStoragePermission() {
+        if (Platform.OS === 'android') {
+            const version = Number(Platform.Version);
+            if (version >= 33) return true; // Permissions handled differently for media
+            
+            const granted = await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+            return granted === RESULTS.GRANTED;
+        }
+        return true; // iOS handles this via Info.plist descriptions
+    }    
+
     private getAndroidPermissions(): Permission[] {
         if (Number(Platform.Version) >= 31) {
             return [
