@@ -48,20 +48,15 @@ export class UpdateManager {
 
 
       // 2. Prepare clean directory
-      console.log(`create clear bundle dir ... ${BUNDLE_DIR}`)
       if (await exists(BUNDLE_DIR)) {
-          console.log(`cleanup bundle dir ... ${BUNDLE_DIR}`)
         await unlink(BUNDLE_DIR);
       }
-        console.log(`create bundle dir ... ${BUNDLE_DIR}`)
       await mkdir(BUNDLE_DIR);
 
       // 3. Unpack
-      console.log(`perform unzip ... ${BUNDLE_DIR}`)
       await unzip(ZIP_TEMP_PATH, BUNDLE_DIR);
       
       // 4. Cleanup
-      console.log(`cleanup ... ${BUNDLE_DIR}`)
       await unlink(ZIP_TEMP_PATH);
     } catch (error) {
       console.error('[UpdateManager] Error:', error);

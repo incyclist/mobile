@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native'
 import type { PairingDisplayProps,InterfaceDisplayProps  } from 'incyclist-services'
 
 import { colors,textSizes } from '../../theme'
 import { ButtonBar, CapabilityGrid, ExitButton, MainBackground,InterfaceState,DeviceSelector} from '../../components'
-
+import ExitIcon from '../../assets/icons/exit.svg'     
 
 
 const { height } = Dimensions.get('window')
@@ -11,7 +11,7 @@ const compact = height < 420
 
 
 export const PairingPageView = (props:PairingDisplayProps)=> {
-    const {deviceSelection} = props
+    const {deviceSelection,onExit} = props
 
     return (
         <View style={styles.container}>
@@ -43,7 +43,10 @@ export const PairingPageView = (props:PairingDisplayProps)=> {
                     {props.buttons && <ButtonBar buttons={props.buttons} />}
                 </View>
                 
-                {props.showExit && <ExitButton onExit={props.onExit}/>}
+                {props.showExit &&   <TouchableOpacity style={styles.exit} onPress={onExit}>
+                    <ExitIcon fill="#FFFFFF" width={48} height={48}/>
+                  </TouchableOpacity>
+                }
 
             </MainBackground>
         </View>
@@ -81,5 +84,11 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: colors.textPrimary,
         marginVertical: 0,
+    },
+    exit: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        zIndex: 999,          // Ensures it floats above MainBackground children
     },
 })

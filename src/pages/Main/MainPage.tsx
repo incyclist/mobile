@@ -1,10 +1,22 @@
 import React from 'react';
-import { MainBackground } from '../../components';
+import { useIncyclist } from 'incyclist-services';
+import type { TNavigationItem } from '../../components';
+import { navigate } from '../../services';
+import { MainPageView } from './View';
 
 export const MainPage = () => {
-    return (
-        <MainBackground>
-            {/* Future content like Buttons or Text will go here */}
-        </MainBackground>
-    );
+
+    const incyclist = useIncyclist()
+
+    const onClick=( item:TNavigationItem)=> {
+        if (item==='exit')
+            incyclist.onAppExit()
+        else 
+            navigate(item)
+    }
+
+    return <MainPageView onClick={onClick}/>
+    
 };
+
+

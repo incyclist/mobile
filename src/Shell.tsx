@@ -51,7 +51,7 @@ export const Shell = () =>{
 
     if (isLoading) {
         return (
-            <LoadingScreen version={app.bundleVersion}/>
+            <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion}/>
         );
     }
 

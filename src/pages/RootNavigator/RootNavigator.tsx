@@ -16,6 +16,12 @@ export const RootNavigator = () => {
                     contentStyle: { backgroundColor: 'black' } // Optional: ensure full-screen look
                 }}>
                 <Stack.Screen name="main" component={MainPage} />
+                <Stack.Screen name="user" component={MainPage} />
+                <Stack.Screen name="settings" component={MainPage} />
+                <Stack.Screen name="search" component={MainPage} />
+                <Stack.Screen name="routes" component={MainPage} />
+                <Stack.Screen name="workouts" component={MainPage} />
+                <Stack.Screen name="activities" component={MainPage} />
                 <Stack.Screen name="rideDeviceOK" component={MainPage} />
                 <Stack.Screen name="devices" component={PairingPage} />
             </Stack.Navigator>

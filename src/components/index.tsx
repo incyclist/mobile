@@ -6,3 +6,6 @@ export * from './ExitButton'
 export * from './InterfaceState'
 export * from './DeviceEntry'
 export * from './DeviceSelector'
+export * from './NavigationBar'
+
+export type * from './NavigationBar/types'

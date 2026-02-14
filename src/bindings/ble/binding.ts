@@ -63,7 +63,8 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             BleManager.checkState().then( bleState => {
                 const prev = this._state
                 this._state = this.mapState(bleState)
-                if (prev!==this._state)
+                this.logger.logEvent({message:'BLE manager state', bleState, state:this._state})
+                if (prev!==this._state || this._state==='poweredOn')
                     this.emit('stateChange', this._state)
             })
 
@@ -86,14 +87,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
 
 
 
-    emit(eventName: string | symbol, ...args: any[]): boolean {
-        try {
-            return super.emit(eventName,...args)
-        }
-        catch {
-            return false
-        }
-    }
     onManagerStateChanged( event:BleManagerDidUpdateStateEvent):void { 
         if (Platform.OS==='android' && this._state==='unauthorized') {
             return

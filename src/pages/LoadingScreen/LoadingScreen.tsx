@@ -2,9 +2,10 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 interface LoadingScreenProps  {
-    version: string
+    appVersion: string
+    bundleVersion: string
 }
-export const LoadingScreen = ( {version}:LoadingScreenProps)=> {
+export const LoadingScreen = ( {appVersion, bundleVersion}:LoadingScreenProps)=> {
 
     return (
         <SafeAreaView style={styles.container}>
@@ -14,7 +15,8 @@ export const LoadingScreen = ( {version}:LoadingScreenProps)=> {
                 style={styles.logo} 
                 resizeMode="contain"
                 />
-                <Text style={styles.versionText}>Version {version}</Text>
+                <Text style={styles.versionText}>App Version {appVersion}</Text>
+                <Text style={styles.versionText}>UI Version {bundleVersion}</Text>
                 <ActivityIndicator size="large" color="#007AFF" />
             </View>
         </SafeAreaView>

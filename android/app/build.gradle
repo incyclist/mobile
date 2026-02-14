@@ -2,16 +2,30 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+import java.util.Properties
 import groovy.json.JsonSlurper
 
+def env = new Properties()
+def envFile = new File(rootDir, "../.env")
+if (envFile.exists()) {
+    envFile.withInputStream { env.load(it) }
+}
+else {
+    logger.warn(".env file not found at ${envFile.absolutePath}")
+} 
+
 def getAppConfig() {
-    def jsonFile = file("../../app.json")
+    def jsonFile = new File(rootDir, "../app.json")
     def parsedJson = new JsonSlurper().parse(jsonFile)
 
     return [
         parsedJson.appVersion,
         parsedJson.androidVersionCode
     ]
+}
+
+def getEnv = { propName ->
+    return env.getProperty(propName) ?: System.getenv(propName)
 }
 
 /**
@@ -100,6 +114,19 @@ android {
         versionName appConfig[0]
     }
     signingConfigs {
+        release {
+            def keystoreName = getEnv("MYAPP_UPLOAD_STORE_FILE")
+            if (keystoreName != null) {
+                // It looks for the keystore in project root
+                storeFile file(keystoreName)
+                storePassword getEnv("MYAPP_UPLOAD_STORE_PASSWORD")
+                keyAlias getEnv("MYAPP_UPLOAD_KEY_ALIAS")
+                keyPassword getEnv("MYAPP_UPLOAD_KEY_PASSWORD")            
+            }
+            else {
+                logger.warn("Signing properties missing in .env or environment")
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -114,13 +141,13 @@ android {
         // NEW: Test build type (Release-like but allowing local HTTP)
         dev {
             initWith release // Inherits minification and Hermes settings
-            signingConfig signingConfigs.debug // Uses debug key for easy installation
+            signingConfig signingConfigs.debug 
             matchingFallbacks = ['release']
             // This flag is what we'll check in our TypeScript code
             manifestPlaceholders = [usesCleartextTraffic:"true"]
         }        
         release {
-            signingConfig signingConfigs.debug // Change to signingConfigs.release later
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             manifestPlaceholders = [usesCleartextTraffic:"false"]

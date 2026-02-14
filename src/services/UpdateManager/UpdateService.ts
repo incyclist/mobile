@@ -1,7 +1,6 @@
 import { unzip } from 'react-native-zip-archive';
 import DefaultPreference from 'react-native-default-preference';
-import { version as appVersion } from '../../../package.json';
-import { name as appName } from '../../../app.json';
+import { name as appName, appVersion } from '../../../app.json';
 import { CachesDirectoryPath, DocumentDirectoryPath, downloadFile, DownloadFileOptions, exists, mkdir, readDir, unlink } from 'react-native-fs';
 import { isDevVariant } from '../../bindings/appInfo';
 import settings from '@settings'

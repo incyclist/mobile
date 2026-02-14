@@ -32,6 +32,7 @@ export const InterfaceState: React.FC<InterfaceDisplayProps> = ({ name, state, e
         <Icon width={32} height={32} fill={color} />
       </View>
       {state === 'error' && error && <Text style={styles.errorText}>{error}</Text>}
+      {state !== 'error' && state!=='scanning'  && <Text style={styles.errorText}>{state}</Text>}
     </View>
   );
 };

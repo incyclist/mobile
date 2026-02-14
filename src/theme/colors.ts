@@ -5,10 +5,15 @@ export const colors = {
     tileActive: '#dd9933',
     buttonPrimary: '#dd9933',
     selected: '#dd9933',
+    navigationSelected: '#FFFFFF',
     buttonSecondary: '#FFFFFF',
     button: '#EEEEEE',
     text: '#FFFFFF',
     textPrimary: '#FFFFFF',
+    icon:  '#FFFFFF',
+    iconSelected: "#000000",
+    
+    
     tileFooter: '#1E1E1E',
     listSeparator:  '#EEEEEE',
     dialogBackground: ['rgba(56, 1, 31, 0.975)', 'rgba(26, 4, 86, 0.975)'],

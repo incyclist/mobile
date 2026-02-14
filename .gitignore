@@ -80,3 +80,5 @@ yarn-error.log
 /dist
 *storybook.log
 storybook-static
+.env
+TODO.md

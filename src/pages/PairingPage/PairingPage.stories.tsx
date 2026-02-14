@@ -5,7 +5,7 @@ import { PairingPageView } from './View';
 import {defaultArgs as deviceSelectorArgs} from '../../components/DeviceSelector/DeviceSelector.stories'
 
 const meta:Meta<typeof PairingPageView> = {
-  title: 'Components/PairingPage',
+  title: 'Pages/PairingPage',
   component: PairingPageView,
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/writing-docs/autodocs
   tags: ['autodocs'],
@@ -26,6 +26,7 @@ const meta:Meta<typeof PairingPageView> = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+
 
 
 export const Initial: Story = {
@@ -50,9 +51,7 @@ export const Initial: Story = {
   },
 };
 
-
-export const Found: Story = {
-  args: {   
+const defaultArgs = {   
     title: 'Devices',
     capabilities: {
         top:[ 
@@ -71,9 +70,15 @@ export const Found: Story = {
         { name:'wifi', state:'error' }
     ],
     buttons: [ {id:'ok', label:'OK', primary:true, onClick:fn()}, {id:'skip', label:'Skip', primary:false, onClick:fn()}]
-  },
+  }
+
+export const Found: Story = {
+  args: { ...defaultArgs }
 };
 
+export const WithExit: Story = {
+  args: { ...defaultArgs, showExit:true }
+};
 
 export const Selected: Story = {
   args: {   

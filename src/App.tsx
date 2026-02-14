@@ -9,7 +9,8 @@ import { useLogging } from './hooks';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 import { getBleBinding } from './bindings/ble';
 import { RootNavigator } from './pages/RootNavigator';
-
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState
 
 

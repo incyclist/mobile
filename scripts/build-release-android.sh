@@ -1,3 +1,4 @@
 cd android  
-./gradlew assembleRelease 
+./gradlew clean
+./gradlew bundleRelease 
 cd ..

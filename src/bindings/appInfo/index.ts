@@ -14,11 +14,12 @@ export const getOS = () => {
 };
 
 export const getAppInfo = () => {
-    const {version, name} = info;
+    const {name} = info;
+    const {appVersion} = appJson
     const appDir = RNFS.DocumentDirectoryPath;
     const tempDir = RNFS.TemporaryDirectoryPath;
 
-    return {version, name, appDir, tempDir};
+    return {version:appVersion, name, appDir, tempDir};
 };
 
 type AppChannel = 'desktop' | 'mobile' | 'web' | 'tv' | 'backend';
@@ -38,7 +39,7 @@ export const getAppInfoBinding = async () => {
 
     return {
         getOS,
-        getAppVersion:()=>info.version,
+        getAppVersion:()=>appJson.appVersion,
         getUIVersion,
         getAppDir:()=>RNFS.DocumentDirectoryPath,
         getSourceDir:()=>'',

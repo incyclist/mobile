@@ -22,6 +22,7 @@ export const PairingPage = () => {
     const service = getDevicesPageService()
     const {logError,logEvent} = useLogging('PairingPage')
 
+    
 
     const onUpdate = useCallback(() => {
         
@@ -62,7 +63,7 @@ export const PairingPage = () => {
     }
 
 
-  return <PairingPageView {...props}/>
+  return <PairingPageView {...props} showExit />
 
 }
 

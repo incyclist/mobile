@@ -11,17 +11,17 @@ x AppInfo
 x Logging
 x UserSettings
 - BLE
-    - GPS Support on Android (isGPSMandatory, isGPSEnabled, requestGPSEnable)     
-    - LocationPermission (hasLocationPermission, requestLocationPermission)     
-    - BLE Permission (hasBLEPermissoins, requestBLEPermission)
-    - BLE Enabled ( isBLEnabled, requestBLEEnable)
+    x GPS Support on Android (isGPSMandatory, isGPSEnabled, requestGPSEnable)     
+    x LocationPermission (hasLocationPermission, requestLocationPermission)     
+    x BLE Permission (hasBLEPermissoins, requestBLEPermission)
+    x BLE Enabled ( isBLEnabled, requestBLEEnable)
     - Permission Management in UI
-    - Scan for devices
-    - Communicate with devices
+    x Scan for devices
+    x Communicate with devices
 
-- Direct Connect
-    - Bonjour
-    - Device Comms
+x Direct Connect
+    x Bonjour
+    x Device Comms
 - Download ( Interruptable Download)
 - Form Post
 - OAuth
@@ -41,7 +41,7 @@ x MQTT
 
 
 # OPEN FOR BETA
-- Wifi Binding
+x Wifi Binding
 - User Settings
 - Pairing Page
 - <NOT YET IMPLENTED> Page
@@ -63,13 +63,13 @@ S:fXRmRMZJUn.=7%
 
 ## Phase 1: MVP Single GPX Ride Only ( no workout, no video, no activity, no upload)
 15.2.: 
-    - BLE integrated, 
+    x BLE integrated, 
     - Pairing Page completed, 
-    - Routes Dummy Page ( will equal Routes and Search in Desktop)
-    - Workout Dummy Page
-    - (Search Dummy Page)
-    - Activities Dummy Page
-    - NavigationBar
+    x Routes Dummy Page ( will equal Routes and Search in Desktop)
+    x Workout Dummy Page
+    x (Search Dummy Page)
+    x Activities Dummy Page
+    x NavigationBar
 22.2: 
     - User Settings   
     - Map Component
