@@ -81,5 +81,7 @@ yarn-error.log
 *storybook.log
 storybook-static
 .env
+
+/internal
 TODO.md
 /TODO.md
