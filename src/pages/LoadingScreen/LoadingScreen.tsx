@@ -15,8 +15,8 @@ export const LoadingScreen = ( {appVersion, bundleVersion}:LoadingScreenProps)=>
                 style={styles.logo} 
                 resizeMode="contain"
                 />
-                <Text style={styles.versionText}>App Version {appVersion}</Text>
-                <Text style={styles.versionText}>UI Version {bundleVersion}</Text>
+                {appVersion && <Text style={styles.versionText}>App Version {appVersion}</Text>}
+                {bundleVersion && <Text style={styles.versionText}>UI Version {bundleVersion}</Text>}
                 <ActivityIndicator size="large" color="#007AFF" />
             </View>
         </SafeAreaView>
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 16,
     color: '#666666',
-    marginBottom: 30,
+    marginBottom: 3,
   },
 });
 

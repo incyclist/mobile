@@ -13,6 +13,10 @@ export const getOS = () => {
     return {platform, arch, release};
 };
 
+export const getChannel = ():AppChannel=> {
+    return 'mobile' as AppChannel
+}
+
 export const getAppInfo = () => {
     const {name} = info;
     const {appVersion} = appJson
@@ -45,7 +49,7 @@ export const getAppInfoBinding = async () => {
         getSourceDir:()=>'',
         getTempDir:()=>RNFS.TemporaryDirectoryPath,
         isApp:()=>false,
-        getChannel:()=>'mobile' as AppChannel,
+        getChannel:()=>getChannel(),
         session
     }
 

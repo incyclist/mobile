@@ -13,7 +13,7 @@ export const RootNavigator = () => {
             <Stack.Navigator initialRouteName="devices"                 
                 screenOptions={{
                     headerShown: false,
-                    contentStyle: { backgroundColor: 'black' } // Optional: ensure full-screen look
+                    //contentStyle: { backgroundColor: 'black' } // Optional: ensure full-screen look
                 }}>
                 <Stack.Screen name="main" component={MainPage} />
                 <Stack.Screen name="user" component={MainPage} />

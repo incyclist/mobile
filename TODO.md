@@ -59,7 +59,7 @@ x Wifi Binding
 
 # Planning
 
-S:fXRmRMZJUn.=7%
+
 
 ## Phase 1: MVP Single GPX Ride Only ( no workout, no video, no activity, no upload)
 15.2.: 
@@ -71,6 +71,8 @@ S:fXRmRMZJUn.=7%
     x Activities Dummy Page
     x NavigationBar
 22.2: 
+    - Fix: BLE Enable/Disable does not work properly
+    - Add Interface Settings Dialog
     - User Settings   
     - Map Component
     - MVP: Route Page               ( GPX only, list only, no search) 

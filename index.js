@@ -40,11 +40,11 @@ if (!EventEmitter.default) {
 */
 
 
-import { Shell } from './src/Shell.tsx';
+import { Loader } from './src/Loader.tsx';
 
 const Root = () => (
   <SafeAreaProvider>
-    <Shell />
+    <Loader />
   </SafeAreaProvider>
 );
 AppRegistry.registerComponent(appName, () => Root);

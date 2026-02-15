@@ -1,16 +1,18 @@
 import { BaseAdapter, EventLogger } from 'gd-eventlog';
-import {ApiClient} from '../../../utils/api';
+import { ApiClient  } from '../../../services';
 
-const DEFAULT_SEND_INTERVAL = 10; // 2min
+export const DEFAULT_SEND_INTERVAL = 10; 
+export const DEFAULT_REST_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
 
 export type RestLogAdapterProps = {
+    url?: string;
     cacheDir?: string;
     sendInterval?: number;
 };
 
-export default class RestLogAdapter extends BaseAdapter {
+export class RestLogAdapter extends BaseAdapter {
     protected cacheDir: string | undefined;
-    protected iv: number | undefined;
+    protected iv: NodeJS.Timeout|undefined;
     protected inMemoryCache: Array<{context: string; event: any}>;
     protected sendInterval: number;
     protected sendBusy: boolean;
@@ -35,8 +37,9 @@ export default class RestLogAdapter extends BaseAdapter {
         this.cacheDir = opts.cacheDir;
         this.sendInterval = (opts.sendInterval ?? DEFAULT_SEND_INTERVAL) * 1000;
 
-        this.api = new ApiClient('analytics');
-        this.api.useApiVersion('v1');
+        this.api = new ApiClient();
+        this.api.setUrl(opts.url??DEFAULT_REST_LOG_URL)
+        
         this.logger.logEvent({message: 'New RestLogAdapter', opts});
 
         this.iv = this.startWorker(this.sendInterval);
@@ -60,7 +63,7 @@ export default class RestLogAdapter extends BaseAdapter {
         }
     }
 
-    protected startWorker(ms: number):number|undefined {
+    protected startWorker(ms: number):NodeJS.Timeout|undefined {
         if (ms) {
             return setInterval(() => {
                 this.send();
@@ -113,8 +116,6 @@ export default class RestLogAdapter extends BaseAdapter {
                     processed = stats.processed = res.count ?? 0;
 
                     if (processed !== events.length) {
-
-                        console.log('# trigger resend', processed,res.count, events.length,res);
                         // trigger resending of events
                         this.inMemoryCache = this.inMemoryCache.concat(events);
                         stats.mem += events.length;
@@ -150,4 +151,4 @@ export default class RestLogAdapter extends BaseAdapter {
     }
 }
 
-module.exports = RestLogAdapter;
+

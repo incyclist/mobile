@@ -113,7 +113,7 @@ export const  App =() => {
 
 
     if (!initialized) {
-        return <LoadingScreen version={app.bundleVersion}/>
+        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion}/>
     }
 
   return (

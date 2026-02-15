@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { App } from './App'; // This is your actual application
-import { UpdateService } from './services';
+import { initRestLogging, UpdateService } from './services';
 import { EventLogger, LogAdapter } from 'gd-eventlog';
 import { RNConsoleAdapter } from './bindings/logging/Adapters/RNConsoleAdapter';
 import Orientation from 'react-native-orientation-locker';
@@ -8,16 +8,19 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
 
-
-export const Shell = () =>{
+export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
 
     const refChecking = useRef<Promise<any>>(null)
     
+
+
     const initLogging =() =>{
         const logAdapter  = new RNConsoleAdapter( {depth:1}) as LogAdapter
         EventLogger.registerAdapter(logAdapter)
+
+        initRestLogging()
     }
 
 

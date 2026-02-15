@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react'
-import { View, StyleSheet, useWindowDimensions, LayoutChangeEvent, DimensionValue } from 'react-native'
+import React, { useState } from 'react'
+import { View, StyleSheet, LayoutChangeEvent, DimensionValue } from 'react-native'
 import { CapabilityTile } from '../CapabilityTile'
-import {CapabilityDisplayProps, TIncyclistCapability} from 'incyclist-services'
+import {CapabilityDisplayProps} from 'incyclist-services'
 
 interface CapabilityGridProps {
     capabilities?: {
@@ -56,32 +56,22 @@ export const CapabilityGrid = ({ capabilities  }:CapabilityGridProps) => {
 
             {dimensions.h > 0 && items.map((tile, index) => {
 
-                    const {      
-                        capability,
-                        title,
-                        deviceName,
-                        connectState,
-                        value,
-                        disabled,
-                        unit,
-                        interface:ifName,
-                    }  = tile
-
-
+                const { capability, }  = tile
 
                 return (
-                <View 
-                key={index} 
-                style={[styles.tile,{
-                    width: dimensions.w,
-                    height: dimensions.h,
-                    marginRight: (index + 1) % 3 === 0 ? 0 : GAP, // Gap logic for 3 per row
-                }]} 
-                >
-                <CapabilityTile  key={capability}  {...tile} height={dimensions.h} />
+                    <View 
+                    key={index} 
+                    style={[styles.tile,{
+                        width: dimensions.w,
+                        height: dimensions.h,
+                        marginRight: (index + 1) % 3 === 0 ? 0 : GAP, // Gap logic for 3 per row
+                    }]} 
+                    >
+                    <CapabilityTile  key={capability}  {...tile} height={dimensions.h} />
 
-                </View>
-            )})}
+                    </View>
+                )
+            })}
 
             </View>
         </View>

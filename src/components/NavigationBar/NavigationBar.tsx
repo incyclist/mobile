@@ -25,6 +25,7 @@ export const NavigationBar = (props: Props) => {
     const {height} = useWindowDimensions()
 
     const iconSize = Math.min(height/16,64)
+    const small = height < 400
 
 
     const renderIcon = (item: TNavigationItem, isSelected:boolean) => {
@@ -60,8 +61,9 @@ export const NavigationBar = (props: Props) => {
     return (
         <View
             style={[
-                styles.container,
-                isVertical ? styles.vertical : styles.horizontal
+                styles.container, { width: small ? (iconSize +10) : 150}
+                
+                
             ]}
         >
             
@@ -110,8 +112,6 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: 'rgba(0,0,0,0.2)',
         padding: 8,
-    },
-    vertical: {
         position:'absolute',
         left:0,
         flex:1,
@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'space-between',
         alignItems: 'center'
+
     },
     horizontal: {
         flex:1,

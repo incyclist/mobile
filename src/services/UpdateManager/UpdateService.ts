@@ -6,8 +6,9 @@ import { isDevVariant } from '../../bindings/appInfo';
 import settings from '@settings'
 import { EventLogger } from 'gd-eventlog';
 
-// Use your actual BASEURL here
-const BASE_URL_PROD = 'https://updates.incyclist.com';
+
+// TODO: change towards production URL
+const BASE_URL_PROD = 'https://updates.test.incyclist.com';
 const UPDATES_ROOT = `${DocumentDirectoryPath}/updates`;
 
 interface IAppBundleResponse {

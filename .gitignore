@@ -82,3 +82,4 @@ yarn-error.log
 storybook-static
 .env
 TODO.md
+/TODO.md

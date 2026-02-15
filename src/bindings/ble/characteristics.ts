@@ -58,7 +58,6 @@ export class BleRawCharacteristicRN extends EventEmitter implements BleRawCharac
                 }
             })
 
-            console.log('# start  Notification', this.deviceId,this._serviceUuid, this.uuid )
             BleManager.startNotification(
                 this.deviceId,
                 this._serviceUuid!,
@@ -68,7 +67,6 @@ export class BleRawCharacteristicRN extends EventEmitter implements BleRawCharac
                 callback(undefined) 
             })
             .catch(err => {
-                console.log('# start notification error', err)
                 callback(err) 
             })
         }

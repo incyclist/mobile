@@ -1,5 +1,5 @@
-import React, { PropsWithChildren, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native'
+import React, { PropsWithChildren } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { colors } from '../../theme'
 
 import BleIcon from '../../assets/icons/ble.svg'
@@ -62,7 +62,6 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         value,
         disabled,
         unit,
-        height,
         interface:ifName,
         size
         
@@ -105,10 +104,6 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
 
 
-    if (title==='control' || title==='resistance') {
-        console.log('# Pairing: render tile',{title,size,height,deviceName,connectState} )
-    }
-        
 
     if ( deviceName && !disabled) {
         return (
