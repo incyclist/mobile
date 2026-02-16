@@ -20,6 +20,7 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
 
     private _state: BleInterfaceState | undefined
     private scanning = false
+    private started = false
 
     private logger = new EventLogger('BLE')
     private permissionsService: PermissionService
@@ -49,27 +50,41 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             this.setAuthorized(false)
         }
         this.initializeAuthorization()
-        
+        this.start()
+       
+    }
+
+    start() {
+        if (this.started)
+            return;
+
+        this.logger.logEvent({message:'starting BLE manager ..'})
+        BleManager.start({ showAlert: false })
+        .then( ()=> { 
+            this._state = this._state ?? 'unknown'
+
+            // read the initial state
+            BleManager.checkState().then( bleState => {
+                this.updateState(bleState)
+            })
+         })
+        this.started = true
+    }
+
+    protected updateState( bleState:BleState) {
+        const prev = this._state
+        this._state = this.mapState(bleState)
+        this.logger.logEvent({message:'BLE manager state', bleState, state:this._state})
+        if (prev!==this._state || this._state==='poweredOn')
+            this.emit('stateChange', this._state)
+
     }
 
     get state():BleInterfaceState {
 
         // first call, should trigger connection attempt
-        if (this._state===undefined) {
-            this.logger.logEvent({message:'starting BLE manager ..'})
-            BleManager.start({ showAlert: false })
-            this._state = 'unknown'
-
-            BleManager.checkState().then( bleState => {
-                const prev = this._state
-                this._state = this.mapState(bleState)
-                this.logger.logEvent({message:'BLE manager state', bleState, state:this._state})
-                if (prev!==this._state || this._state==='poweredOn')
-                    this.emit('stateChange', this._state)
-            })
-
-            bleEmitter.addListener( 'BleManagerDiscoverPeripheral',this.onDiscoverPeripheral.bind(this))
-            
+        if (!this.started) {
+            this.start()
         }
         
         return this._state
@@ -77,12 +92,27 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
     }
 
     setAuthorized(authorized: boolean): void {
-        const next = authorized ? 'poweredOn' : 'unauthorized'
+        if (!authorized) {
+            this._state = 'unauthorized';
+            this.emit('stateChange', 'unauthorized');
+        } else {
 
-        if (this.state !== next) {
-            this._state = next
-            this.emit('stateChange', next)
+            this._state = 'unknown'
+            this.emit('stateChange', this._state)
+
+            // Don't assume poweredOn. Ask the hardware.
+            BleManager.checkState().then( state => {
+                    const next = this.mapState(state)               
+                    if (this.state !== next) {
+                        this._state = next
+                        this.emit('stateChange', next)
+                    }
+
+            })
         }
+
+
+        
     }
 
 
@@ -95,7 +125,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
     }
 
     onStateChanged( event:BleManagerDidUpdateStateEvent):void {
- 
         const prev = this._state
 
         const mapped = this.mapState(event.state)
@@ -114,6 +143,7 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
     onDiscoverPeripheral(announced:Peripheral) {
         try {
             const peripheral = new BlePeripheralRN(announced)
+
             this.emit('discover', peripheral)
         }
         catch(err) {
@@ -135,6 +165,9 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         this.scanning = true
 
         this.logger.logEvent({message:'starting BLE peripheral scan ...'})
+
+        
+        bleEmitter.addListener( 'BleManagerDiscoverPeripheral',this.onDiscoverPeripheral.bind(this))
 
         BleManager.scan( { 
             serviceUUIDs:serviceUUIDs ?? [],

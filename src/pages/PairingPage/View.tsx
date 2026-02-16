@@ -2,7 +2,8 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-nati
 import type { PairingDisplayProps,InterfaceDisplayProps  } from 'incyclist-services'
 
 import { colors,textSizes } from '../../theme'
-import { ButtonBar, CapabilityGrid, ExitButton, MainBackground,InterfaceState,DeviceSelector} from '../../components'
+import { ButtonBar, CapabilityGrid,  MainBackground,InterfaceState,DeviceSelector } from '../../components'
+import { BleInterfaceSettings } from '../../components/BleInterfaceSettings'
 import ExitIcon from '../../assets/icons/exit.svg'     
 
 
@@ -25,6 +26,7 @@ export const PairingPageView = (props:PairingDisplayProps)=> {
                     name={inter.name}
                     state={inter.state}
                     error={inter.error}
+                    onClick={()=> {inter.onClick()}}
                     />
                 ))}
                 </View>            
@@ -47,6 +49,8 @@ export const PairingPageView = (props:PairingDisplayProps)=> {
                     <ExitIcon fill="#FFFFFF" width={48} height={48}/>
                   </TouchableOpacity>
                 }
+
+                {props.showInterfaceSettings==='ble' && <BleInterfaceSettings/>}
 
             </MainBackground>
         </View>

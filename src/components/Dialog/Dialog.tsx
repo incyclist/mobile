@@ -16,12 +16,17 @@ import { colors, textSizes } from '../../theme';
 export const Dialog = ({ 
     title, 
     style,
+    width, height,
     buttons, 
     children,
     visible=true, 
     onOutsideClick 
 }: PropsWithChildren<DialogProps>) => {
 
+
+
+    const styles = getStyles({width,height})
+    
     const gradientColors = colors.dialogBackground;
 
     // Mock behavior for Web/Storybook Vite
@@ -73,14 +78,23 @@ export const Dialog = ({
     );
 };
 
-const styles = StyleSheet.create({
+
+
+type StyleProps = {
+    width: number|undefined,
+    height: number|undefined
+}
+
+const getStyles = ({width,height}:StyleProps) => StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
     container: {
-        width: '90%',
+        //width: '90%',        
+        width,
+        height,
         maxHeight: '80%',
         borderRadius: 8,
         overflow: 'hidden',
@@ -99,12 +113,13 @@ const styles = StyleSheet.create({
     scrollArea: {
         // flexShrink allows the scrollview to give up space for header/footer
         flexShrink: 1,
+        
     },    
     content: {
         flexGrow: 1,
         padding: 2,
         color:colors.text,
-        fontSize: textSizes.normalText
+        
     },
     footer: {
         borderTopWidth: 1,

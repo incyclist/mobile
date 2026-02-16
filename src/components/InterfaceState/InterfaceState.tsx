@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 // Assuming you use react-native-svg-transformer or similar
 import BleIcon from  '../../assets/icons/ble.svg'; 
 import WifiIcon from '../../assets/icons/wifi.svg';
@@ -15,12 +15,12 @@ const STATE_COLORS: Record<InterfaceDisplayState, string> = {
 
 
 
-export const InterfaceState: React.FC<InterfaceDisplayProps> = ({ name, state, error }) => {
+export const InterfaceState: React.FC<InterfaceDisplayProps> = ({ name, state, onClick,error }) => {
   const Icon = name === 'ble' ? BleIcon : WifiIcon;
   const color = STATE_COLORS[state];
 
   return (
-    <View style={styles.container}>
+    <TouchableOpacity style={styles.container} onPress={onClick}>
       <View style={styles.iconWrapper}>
         {state === 'scanning' && (
           <>
@@ -30,10 +30,11 @@ export const InterfaceState: React.FC<InterfaceDisplayProps> = ({ name, state, e
           </>
         )}
         <Icon width={32} height={32} fill={color} />
+
       </View>
       {state === 'error' && error && <Text style={styles.errorText}>{error}</Text>}
       {state !== 'error' && state!=='scanning'  && <Text style={styles.errorText}>{state}</Text>}
-    </View>
+    </TouchableOpacity>
   );
 };
 

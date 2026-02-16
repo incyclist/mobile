@@ -1,5 +1,7 @@
 import React from 'react';
-import { MainBackground,NavigationBar } from '../../components';
+import {  NavigationBar, MainBackground } from '../../components';
+
+
 import type { TNavigationItem } from '../../components';
 
 export const MainPageView = ( {onClick}: {onClick:( item:TNavigationItem)=>void}) => {

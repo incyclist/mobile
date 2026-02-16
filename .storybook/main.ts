@@ -25,7 +25,11 @@ const config: StorybookConfig = {
             resolve: {
                 alias: {
                     'react-native-safe-area-context': 'react-native-web-safe-area-context',
-                    'react-native-linear-gradient': 'react-native-web/dist/exports/View'
+                    'react-native-permissions': 'react-native-web/dist/exports/View',
+                    'react-native-linear-gradient': 'react-native-web/dist/exports/View',
+                    'react-native-zip-archive':'react-native-web/dist/exports/View',
+                    'react-native-fs':'react-native-web/dist/exports/View',
+                    '@settings':'react-native-web/dist/exports/View',
                 },
             },
         });
