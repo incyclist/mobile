@@ -10,6 +10,7 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 import { getBleBinding } from './bindings/ble';
 import { RootNavigator } from './pages/RootNavigator';
 import { LogBox } from 'react-native';
+import { getUIBinding } from './bindings/ui';
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState
 
@@ -68,7 +69,9 @@ export const  App =() => {
         const sub = BackHandler.addEventListener(
             'hardwareBackPress',
             () => {
-                service.onAppExit()
+                service.onAppExit().then( ()=>{
+                    getUIBinding().quit()
+                } )
                 return false // allow default exit
             }
         )

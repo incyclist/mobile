@@ -4,27 +4,40 @@ import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
+import com.facebook.react.ReactNativeHost
+import com.facebook.react.ReactPackage
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.defaults.DefaultReactNativeHost
 import android.content.Context
-// 1. Add this import
+import com.facebook.soloader.SoLoader
 import java.io.File 
+
 
 class MainApplication : Application(), ReactApplication {
 
+    /**
+     * Legacy/Standard Host (Still required for many tools)
+     */
+    override val reactNativeHost: ReactNativeHost =
+        object : DefaultReactNativeHost(this) {
+            override fun getPackages(): List<ReactPackage> {
+                val packages = PackageList(this).packages.toMutableList()
+                packages.add(ExitPackage()) // Add manual package here
+                return packages
+            }
 
-    // override val reactHost: ReactHost by lazy {
-    //     val localBundle = File(applicationContext.filesDir, "bundle/index.android.bundle")
-    //     val bundlePath = if (localBundle.exists()) localBundle.absolutePath else null
+            override fun getJSMainModuleName(): String = "index"
+            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+            override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+            override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+        }
 
-    //     getDefaultReactHost(
-    //         context = applicationContext,
-    //         packageList = PackageList(this).packages,
-    //         // Add these named arguments to match the function signature
-    //         jsMainModulePath = "index",
-    //         jsBundleFilePath = bundlePath 
-    //     )
-    // }  
+
+    /**
+     * Custom ReactHost implementation.
+     * This is where your app handles dynamic bundle paths.
+     */
 
     override val reactHost: ReactHost by lazy {
         // Read the path set by TypeScript's DefaultPreference
@@ -44,16 +57,30 @@ class MainApplication : Application(), ReactApplication {
             if (file.exists()) file.absolutePath else null
         }
 
+
+        
+        // IMPORTANT: Manually merge ExitPackage into the host's package list
+        val packages = PackageList(this).packages.toMutableList()
+        packages.add(ExitPackage())
+
         getDefaultReactHost(
             context = applicationContext,
-            packageList = PackageList(this).packages,
-            jsMainModulePath = "index",
-            jsBundleFilePath = bundleFile 
+            packageList = packages,
+            jsMainModulePath = "index", // This must be a non-null String
+            jsBundleFilePath = bundleFile // This is allowed to be String?
         )
+
+
     }    
 
     override fun onCreate() {
+        // super.onCreate()
+        // loadReactNative(this)
         super.onCreate()
-        loadReactNative(this)
+        SoLoader.init(this, false)
+        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+            load()
+        }
+
     }
 }

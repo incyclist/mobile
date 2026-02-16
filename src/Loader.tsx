@@ -7,6 +7,7 @@ import Orientation from 'react-native-orientation-locker';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
+import { NativeModules } from 'react-native';
 
 export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -2,9 +2,9 @@ import { INativeUI, SelectDirectoryResult, TakeScreenshotProps } from "incyclist
 import { navigate } from "../../services";
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
-import { BackHandler, Linking, Platform } from "react-native";
+import { BackHandler, Linking, NativeModules, Platform } from "react-native";
 import {pickDirectory} from '@react-native-documents/picker';
-import KeepAwake from 'react-native-keep-awake';
+import { activateKeepAwake, deactivateKeepAwake } from '@sayem314/react-native-keep-awake';
 import { captureScreen } from 'react-native-view-shot';
 import { EventLogger } from "gd-eventlog";
 import {getLocales} from 'react-native-localize'
@@ -14,7 +14,16 @@ export class UIBinding implements INativeUI {
     
     quit(): void {
         if (Platform.OS === 'android') {
-            BackHandler.exitApp();
+
+            const { ExitModule } = NativeModules;
+            if (ExitModule) {
+                console.log('# killing app')
+                ExitModule.killApp();
+                return;
+            }
+
+            console.log('# killing is not available, callin fallback')
+            BackHandler.exitApp();            
         }
     }
     toggleFullscreen(): void {
@@ -23,12 +32,12 @@ export class UIBinding implements INativeUI {
 
     // avoids that screen is turned off, because there was no user interactoin
     disableScreensaver(): void {
-         KeepAwake.activate();
+         activateKeepAwake();
     }
 
     // re-enabels screen saver that was switched off with disableSceenSaver)=
     enableScreensaver(): void {
-        KeepAwake.deactivate();
+        deactivateKeepAwake();
     }
 
     // take a screenshot of the current screen
