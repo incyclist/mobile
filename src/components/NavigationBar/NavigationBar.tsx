@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationItem } from './NavigationItem';
 import { navigationItemsMiddle } from './utils';
@@ -95,7 +95,7 @@ export const NavigationBar = (props: Props) => {
                 ))}
             </View>
 
-            <View style={styles.bottom}>
+            {Platform.OS==='android' && <View style={styles.bottom}>
                 <NavigationItem
                     item="exit"
                     selected={selected === 'exit'}
@@ -103,7 +103,7 @@ export const NavigationBar = (props: Props) => {
                 >
                     {renderIcon('exit',selected==='exit')}
                 </NavigationItem>
-            </View>
+            </View>}
         </View>
     );
 };

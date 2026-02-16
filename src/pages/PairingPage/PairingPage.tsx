@@ -5,6 +5,7 @@ import { getDevicesPageService,PairingDisplayProps, IObserver } from 'incyclist-
 import { MainBackground } from '../../components'
 import { useLogging,useUnmountEffect } from '../../hooks'
 import { PairingPageView } from './View'
+import { Platform } from 'react-native'
 
 
 const initialProps:PairingDisplayProps = { 
@@ -63,7 +64,8 @@ export const PairingPage = () => {
     }
 
 
-  return <PairingPageView {...props} showExit />
+    const showExit = Platform.OS==='android'
+    return <PairingPageView {...props} showExit={showExit} />
 
 }
 

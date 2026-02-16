@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shares the app's internal files directory (/data/user/0/com.package/files) -->
+    <files-path name="internal_files" path="." />
+    
+    <!-- Shares the app's internal cache directory -->
+    <cache-path name="internal_cache" path="." />
+    
+    <!-- Shares external storage dedicated to the app -->
+    <external-files-path name="external_files" path="." />
+    
+    <!-- Optional: Shares the general external storage (SD card/Public folders) -->
+    <external-path name="external_storage" path="." />
+</paths>
