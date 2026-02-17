@@ -1,0 +1,4 @@
+{
+  "include": ["src/**/*.ts", "**/*.json","src/**/*.tsx","**/*.svg" ],
+  "exclude": ["*.jpg","*.png","android/","ios/",".env","./bundle","build/","rules/","config/","conversations/","internal/","node_modules/**", "build/**", ".git/**", ".next/**", "package-lock.json", "yarn.lock", "gemini-response.md"]
+}

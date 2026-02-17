@@ -1,5 +1,6 @@
 package com.incyclist.app
 
+
 import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -7,11 +8,14 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
+import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
-import android.content.Context
 import com.facebook.soloader.SoLoader
+import android.content.Context
 import java.io.File 
+
+
 
 
 class MainApplication : Application(), ReactApplication {
@@ -22,6 +26,9 @@ class MainApplication : Application(), ReactApplication {
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> {
+
+                android.util.Log.d("Incyclist", "Legacy host")
+
                 val packages = PackageList(this).packages.toMutableList()
                 packages.add(ExitPackage()) // Add manual package here
                 return packages
@@ -74,13 +81,14 @@ class MainApplication : Application(), ReactApplication {
     }    
 
     override fun onCreate() {
-        // super.onCreate()
-        // loadReactNative(this)
         super.onCreate()
-        SoLoader.init(this, false)
-        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-            load()
-        }
+        loadReactNative(this)
+
+        // super.onCreate()        
+        // SoLoader.init(this, false)
+        // if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+        //     load()
+        // }
 
     }
 }

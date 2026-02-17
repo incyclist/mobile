@@ -1,0 +1,113 @@
+import React, { useMemo } from 'react';
+import { TFreeMapProps, MapCoord } from './types';
+import { FreeMapView } from './FreeMapView';
+import { getPointsFromProps, toMapCoord } from './utils';
+
+export const FreeMap = (props: TFreeMapProps) => {
+    const {
+        startPos = 0,
+        endPos,
+        colorActive = 'blue',
+        colorInactive = 'grey',
+        viewport,
+        center,
+        zoom,
+        bounds,
+    } = props;
+
+    const points = useMemo(() => getPointsFromProps(props), [props]);
+
+    const polylineData = useMemo((): GeoJSON.FeatureCollection<GeoJSON.LineString> => {
+        const features: GeoJSON.Feature<GeoJSON.LineString>[] = [];
+        
+        const before: MapCoord[] = [];
+        const during: MapCoord[] = [];
+        const after: MapCoord[] = [];
+
+        points.forEach((p) => {
+            const dist = p.routeDistance ?? 0;
+            const coord = toMapCoord(p);
+
+            if (dist < startPos) {
+                before.push(coord);
+            } else if (endPos !== undefined && dist > endPos) {
+                after.push(coord);
+            } else {
+                during.push(coord);
+            }
+        });
+
+        if (before.length > 1) {
+            features.push({
+                type: 'Feature',
+                properties: { color: colorInactive },
+                geometry: { type: 'LineString', coordinates: before },
+            });
+        }
+        if (during.length > 1) {
+            features.push({
+                type: 'Feature',
+                properties: { color: colorActive },
+                geometry: { type: 'LineString', coordinates: during },
+            });
+        }
+        if (after.length > 1) {
+            features.push({
+                type: 'Feature',
+                properties: { color: colorInactive },
+                geometry: { type: 'LineString', coordinates: after },
+            });
+        }
+
+        if (props.routeOptions) {
+            props.routeOptions.forEach((opt) => {
+                features.push({
+                    type: 'Feature',
+                    properties: { color: opt.selected ? 'green' : (opt.color || 'blue') },
+                    geometry: { 
+                        type: 'LineString', 
+                        coordinates: opt.path.map(toMapCoord),
+                    },
+                });
+            });
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [points, startPos, endPos, colorActive, colorInactive, props.routeOptions]);
+
+    const cameraProps = useMemo(() => {
+        if (bounds) {
+            return {
+                bounds: {
+                    ne: toMapCoord(bounds.northeast),
+                    sw: toMapCoord(bounds.southwest),
+                    paddingLeft: 20,
+                    paddingRight: 20,
+                    paddingTop: 20,
+                    paddingBottom: 20,
+                },
+            };
+        }
+
+        const mapCenter = center || viewport?.center || points[0] || { lat: 0, lng: 0 };
+        const mapZoom = zoom || viewport?.zoom || 10;
+
+        return {
+            centerCoordinate: toMapCoord(mapCenter),
+            zoomLevel: mapZoom,
+        };
+    }, [bounds, center, viewport, zoom, points]);
+
+    const markerCoordinate = props.position 
+        ? toMapCoord(props.position) 
+        : undefined;
+
+    return (
+        <FreeMapView
+            {...props}
+            cameraProps={cameraProps}
+            polylineData={polylineData}
+            markerCoordinate={markerCoordinate}
+        />
+    );
+};

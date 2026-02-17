@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: 'rgba(0,0,0,0.2)',
         padding: 8,
-        position:'absolute',
+//        position:'absolute',
         left:0,
         flex:1,
         width: 150,

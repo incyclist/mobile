@@ -1,11 +1,8 @@
-import React, { ReactNode } from 'react';
+import React, { PropsWithChildren } from 'react';
 import { ImageBackground, StyleSheet, View } from 'react-native';
 
-interface MainBackgroundProps {
-  children?: ReactNode;
-}
 
-export const MainBackground = ({ children }: MainBackgroundProps) => {
+export const MainBackground = ({ children }: PropsWithChildren<{}>) => {
   return (
     <ImageBackground 
       source={require('../../assets/background.jpg')} // Replace with your actual path

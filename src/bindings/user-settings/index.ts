@@ -42,7 +42,8 @@ class UserSettingsImplementation implements IUserSettingsBinding {
                 const settings = JSON.parse(data);
                 this.settings = { 
                     ...settings,
-                    ...defSettings
+                    ...defSettings,
+                    CONTROLLERS:true
                 }
 
                 return this.settings;

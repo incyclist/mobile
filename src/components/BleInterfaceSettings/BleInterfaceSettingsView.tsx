@@ -26,12 +26,16 @@ export const BleInterfaceSettingsView = ({
             minHeight: Math.max( 50,0.3*height ),
             justifyContent: 'center',
             maxHeight: 0.9*height,
-            backgroundColor:'red'
         },
         text: {
             fontSize: 16,
             color: colors.text,
             textAlign: 'left',
+        },
+        textCentered: {
+            fontSize: 16,
+            color: colors.text,
+            textAlign: 'center',
         },
         errorText: {
             color: colors.error,
@@ -85,7 +89,7 @@ export const BleInterfaceSettingsView = ({
             return <Text style={[styles.text ]}>{'Bluetooth is disabled on your device. \n\nThe app will not be able to find sensors.'}</Text>;
         }
 
-        return <Text style={styles.text}>Bluetooth is active</Text>;
+        return <Text style={styles.textCentered}>Bluetooth is active</Text>;
     };
 
     return (

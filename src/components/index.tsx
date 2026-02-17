@@ -7,5 +7,6 @@ export * from './InterfaceState'
 export * from './DeviceEntry'
 export * from './DeviceSelector'
 export * from './NavigationBar'
+export * from './FreeMap'
 
 export type * from './NavigationBar/types'

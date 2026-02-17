@@ -50,7 +50,7 @@ export const PairingPageView = (props:PairingDisplayProps)=> {
                   </TouchableOpacity>
                 }
 
-                {props.showInterfaceSettings==='ble' && <BleInterfaceSettings/>}
+                {props.showInterfaceSettings==='ble' && Platform.OS!=='web' && <BleInterfaceSettings/>}
 
             </MainBackground>
         </View>
