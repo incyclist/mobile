@@ -3,7 +3,7 @@ import { TNavigationItem } from './types';
 export const navigationItemsMiddle: TNavigationItem[] = [
     'settings',
     'devices',
-    'search',
+//    'search',
     'routes',
     'workouts',
     'activities'

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainPage } from '../Main';
 import { PairingPage } from '../PairingPage';
 import { navigationRef } from '../../services';
+import { RoutesPage } from '../RoutesPage/RoutesPage';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,8 +19,8 @@ export const RootNavigator = () => {
                 <Stack.Screen name="main" component={MainPage} />
                 <Stack.Screen name="user" component={MainPage} />
                 <Stack.Screen name="settings" component={MainPage} />
-                <Stack.Screen name="search" component={MainPage} />
-                <Stack.Screen name="routes" component={MainPage} />
+                <Stack.Screen name="search" component={RoutesPage} />
+                <Stack.Screen name="routes" component={RoutesPage} />
                 <Stack.Screen name="workouts" component={MainPage} />
                 <Stack.Screen name="activities" component={MainPage} />
                 <Stack.Screen name="rideDeviceOK" component={MainPage} />

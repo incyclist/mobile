@@ -1,5 +1,5 @@
 import * as Mqtt from '@fdfedin/react-native-native-mqtt';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import { getSecretBinding } from '../secret';
 import { EventLogger } from 'gd-eventlog';
 import { v4} from 'uuid'

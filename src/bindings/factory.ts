@@ -7,6 +7,12 @@ import { getMessageQueueBinding } from "./mq"
 import { getDirectConnectBinding } from "./direct-connect"
 import { getBleBinding } from "./ble"
 import { getUIBinding } from "./ui"
+import { getFileSystemBinding } from "./fs"
+import { getPathBinding } from "./path"
+import { getVideoBinding } from "./video"
+import { getRepositoryBinding } from "./db"
+import { getFileLoaderBinding } from "./loader"
+import { getCryptoBinding } from "./crypto"
 
 
 let _bindings:IncyclistBindings|undefined
@@ -29,13 +35,14 @@ export const initBindings = async  ()=> {
     bindings.wifi = getDirectConnectBinding() 
     bindings.ble = getBleBinding()
     bindings.ui = getUIBinding()
+    bindings.fs = getFileSystemBinding()
+    bindings.path = getPathBinding()
+    bindings.video = getVideoBinding()
+    bindings.db = getRepositoryBinding()
+    bindings.loader = getFileLoaderBinding()
+    bindings.crypto = getCryptoBinding()
 
     
-    // bindings.db = getRepositoryBinding() 
-    // bindings.path =PathBinding.getInstance()
-    // bindings.loader=FileLoader.getInstance()
-    // bindings.video = new VideoProcessing()
-    // bindings.fs = fs
     // bindings.downloadManager = DownloadManager.getInstance()
     // bindings.form = FormPostBinding.getInstance()
     // bindings.crypto = getCryptoBinding()
