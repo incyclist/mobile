@@ -1,13 +1,12 @@
 import type { Preview } from '@storybook/react-native-web-vite'
-
 import { getBindings } from 'incyclist-services';
 import { mockCryptoBinding } from './bindings/crypto';
 
-
-// import { sb } from 'storybook/test';
-// sb.mock(import('crypto'), { spy: true });
-// sb.mock(import('node:crypto'), { spy: true });
-// sb.mock(import('stream'), { spy: true });
+// Register mock bindings so incyclist-services works in Storybook without
+// native modules. This must run at module level (not inside a decorator)
+// so it fires before any story component mounts and calls a service.
+const bindings = getBindings();
+bindings.crypto = mockCryptoBinding;
 
 
 

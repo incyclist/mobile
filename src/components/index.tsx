@@ -8,5 +8,6 @@ export * from './DeviceEntry'
 export * from './DeviceSelector'
 export * from './NavigationBar'
 export * from './FreeMap'
-
+export * from './FilterPanel';
+export * from './RoutesTable'
 export type * from './NavigationBar/types'

@@ -14,4 +14,5 @@ export interface NavigationBarProps {
     position: TPosition;
     selected?: TNavigationItem;
     onClick: (item: TNavigationItem) => void;
+    compact?: boolean;
 }

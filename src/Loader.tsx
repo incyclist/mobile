@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { App } from './App'; // This is your actual application
-import { initRestLogging, UpdateService } from './services';
+import { initRestLogging  } from './services';
+
 import { EventLogger, LogAdapter } from 'gd-eventlog';
 import { RNConsoleAdapter } from './bindings/logging/Adapters/RNConsoleAdapter';
 import Orientation from 'react-native-orientation-locker';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
+import { UpdateService } from './services/UpdateManager';
 
 export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -11,6 +11,8 @@ import { getBleBinding } from './bindings/ble';
 import { RootNavigator } from './pages/RootNavigator';
 import { LogBox } from 'react-native';
 import { getUIBinding } from './bindings/ui';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState
 
@@ -120,15 +122,17 @@ export const  App =() => {
     }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      {initialized ? 
-        <SizeLogger>
-            <RootNavigator />
-           
-        </SizeLogger>
-         : <MainPage/>}
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+        <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        {initialized ? 
+            <SizeLogger>
+                <RootNavigator />
+            
+            </SizeLogger>
+            : <MainPage/>}
+        </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
