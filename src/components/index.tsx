@@ -10,4 +10,5 @@ export * from './NavigationBar'
 export * from './FreeMap'
 export * from './FilterPanel';
 export * from './RoutesTable'
+export * from './RouteDetailsDialog'
 export type * from './NavigationBar/types'

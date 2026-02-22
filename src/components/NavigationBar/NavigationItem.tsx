@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, StyleSheet, Text } from 'react-native';
 import { TNavigationItem } from './types';
 import { colors } from '../../theme/colors';
+import { useLogging } from '../../hooks';
 
 interface Props {
     item: TNavigationItem;
@@ -13,14 +14,21 @@ interface Props {
 
 export const NavigationItem = (props: Props) => {
     const { item, selected, compact, onPress, children } = props;
+    const {logEvent} = useLogging('Incyclist')
 
     const value = item.toString();
     const displayText = value.charAt(0).toUpperCase() + value.slice(1);
 
+    const onPressHandler = (next:TNavigationItem)=> {
+        logEvent({ message:'button clicked',button:next})
+        onPress(next)
+
+    }
+
     return (
         <TouchableOpacity
             style={[styles.container, selected && styles.selected]}
-            onPress={() => onPress(item)}
+            onPress={() => onPressHandler(item)}
         >
             <View style={selected ? styles.selectedContent : styles.normalContent}>
                 <View>{children}</View>

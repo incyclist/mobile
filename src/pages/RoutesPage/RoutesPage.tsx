@@ -9,7 +9,9 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { MainBackground } from '../../components';
+import { MainBackground,RouteDetailsDialog } from '../../components';
+import { navigate } from '../../services';
+
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
@@ -21,6 +23,7 @@ const initialProps: RoutePageDisplayProps = {
         routeTypes: [],
         routeSources: [],
     },
+    detailRouteId: undefined,
 };
 
 export const RoutesPage = () => {
@@ -38,6 +41,7 @@ export const RoutesPage = () => {
     const onUpdate = useCallback(() => {
         const updated = service.getPageDisplayProps();
         if (updated) {
+            console.log(new Date().toISOString(), '# received page update')
             setProps(updated);
         }
     }, [service]);
@@ -57,9 +61,15 @@ export const RoutesPage = () => {
 
     useUnmountEffect(() => {
         service.closePage();
+        if (refObserver.current) {
+            refObserver.current?.stop()
+            refObserver.current = null
+        }
+        
     });
 
     const onFilterChanged = (filters: SearchFilter) => {
+        console.log(new Date().toISOString(), '# triggering onFilterChange')
         setCurrentFilters(filters);
         service.onFilterChanged(filters);
     };
@@ -72,11 +82,16 @@ export const RoutesPage = () => {
         service.onImportClicked();
     };
 
+    const onNavigate= (page:string)=> {
+        navigate(page)
+    }
+
     if (!refObserver.current) {
         return <MainBackground />;
     }
 
     return (
+        <>
         <RoutesPageView
             loading={props.loading}
             synchronizing={props.synchronizing ?? false}
@@ -87,7 +102,12 @@ export const RoutesPage = () => {
             onFilterChanged={onFilterChanged}
             onFilterToggle={onFilterToggle}
             onImportClicked={onImportClicked}
+            onNavigate={onNavigate}
             compact={compact}
         />
+        {props.detailRouteId && (
+            <RouteDetailsDialog routeId={props.detailRouteId} />
+        )}
+        </>
     );
 };

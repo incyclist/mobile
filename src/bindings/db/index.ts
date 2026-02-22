@@ -15,19 +15,29 @@ class JsonAccessImplementation implements JsonAccess {
     }
 
     async read(resourceName: string): Promise<JSONObject> {
+
+        console.log(new Date().toISOString(),'# DB.read', resourceName)
+
+
         // Quick access for the "db" index resource via memory cache
-        if (resourceName === 'db' && this.cache.has('db')) {
-            return this.cache.get('db')!;
-        }
+        // if (resourceName === 'db' && this.cache.has('db')) {
+        //     return this.cache.get('db')!;
+        // }
 
         try {
             const path = this.getPath(resourceName);
             if (!(await RNFS.exists(path))) return {} as JSONObject;
             
             const content = await RNFS.readFile(path, 'utf8');
+            console.log(new Date().toISOString(),'# DB.read done', resourceName)
+
+            console.log(new Date().toISOString(),'# DB.parse', resourceName)
             const data = JSON.parse(content);
             
-            if (resourceName === 'db') this.cache.set('db', data);
+            //if (resourceName === 'db') this.cache.set('db', data);
+
+            console.log(new Date().toISOString(),'# DB.parse done', resourceName)
+
             return data;
         } catch {
             return {} as JSONObject;
@@ -87,6 +97,7 @@ export class JsonRepositoryBinding extends AbstractJsonRepositoryBinding {
     }
 
     async get(name: string): Promise<JsonAccess | null> {
+
         return this.instances.get(name) || await this.create(name);
     }
 

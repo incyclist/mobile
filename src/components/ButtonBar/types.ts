@@ -3,6 +3,7 @@ export interface ButtonBarProps {
 }
 
 export interface ButtonProps {
+    id?: string
     label: string,
     primary?: boolean
     onClick: ()=>void

@@ -12,7 +12,6 @@ try {
         Swipeable = require('react-native-gesture-handler').Swipeable;
     }
 } catch  {
-    // Fallback for web/environments where gesture handler isn't linked
     Swipeable = ({ children }: any) => <View>{children}</View>;
 }
 
@@ -31,14 +30,16 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         isDemo,
         cntActive,
         loaded,
-//        outsideFold,
+        outsideFold,
         onSelect,
         onDelete
     } = props;
 
-    // if (outsideFold) {
-    //     return <View style={styles.placeholderContainer} />;
-    // }
+    if (outsideFold) {
+        console.log(new Date().toISOString(),'# render placeholder', title)
+
+        return <View style={styles.placeholderContainer} />;
+    }
 
     const renderMedia = () => {
         if (!loaded) {
@@ -72,14 +73,15 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         </TouchableOpacity>
     );
 
+    console.log(new Date().toISOString(),'# render item', title)
     return (
+
         <Swipeable renderRightActions={renderRightActions}>
             <TouchableOpacity 
                 style={styles.container} 
                 onPress={() => onSelect(id!)}
                 activeOpacity={0.9}
             >
-                {/* Column 1: Media & Graph */}
                 <View style={styles.leftColumn}>
                     <View style={styles.mediaWrapper}>
                         {renderMedia()}
@@ -87,7 +89,6 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                     <View style={styles.graphPlaceholder} />
                 </View>
 
-                {/* Column 2: Info (Title, Pills, Details) */}
                 <View style={styles.middleColumn}>
                     <View style={styles.titleRow}>
                         <Text style={styles.title} numberOfLines={1}>{title}</Text>
@@ -100,7 +101,6 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                         <Text style={styles.detailText}>{isLoop ? 'Loop' : 'Point to Point'}</Text>
                     </View>
 
-                    {/* Pills sit in the top/middle area of this column */}
                     <View style={styles.pillContainer}>
                         {isNew && (
                             <View style={[styles.pill, styles.pillNew]}>
@@ -120,9 +120,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                     </View>
                 </View>
 
-                {/* Column 3: Stats (Distance & Elevation) */}
                 <View style={styles.rightColumn}>
-                    {/* Reserve space for icons as headers later */}
                     <View style={styles.statsHeaderSpace} />
                     
                     <View style={styles.statsGrid}>
@@ -147,10 +145,11 @@ const MARGIN_V = 4;
 const styles = StyleSheet.create({
     placeholderContainer: {
         height: ITEM_HEIGHT + (MARGIN_V * 2),
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
     },
     container: {
         height: ITEM_HEIGHT,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
         marginVertical: MARGIN_V,
         marginHorizontal: 12,
         borderRadius: 6,
@@ -196,7 +195,7 @@ const styles = StyleSheet.create({
     },
     title: {
         color: colors.text,
-        fontSize: 18, // Bigger font as requested
+        fontSize: 18,
         fontWeight: 'bold',
         flexShrink: 1,
     },
@@ -210,11 +209,11 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     detailText: {
-        color: colors.disabled,
+        color: colors.text,
         fontSize: 12,
     },
     detailSeparator: {
-        color: colors.disabled,
+        color: colors.text,
         marginHorizontal: 6,
     },
     pillContainer: {
@@ -242,7 +241,7 @@ const styles = StyleSheet.create({
         borderLeftColor: 'rgba(255, 255, 255, 0.1)',
     },
     statsHeaderSpace: {
-        height: 14, // Space for future icons
+        height: 14,
     },
     statsGrid: {
         flexDirection: 'row',
@@ -259,7 +258,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     statsUnit: {
-        color: colors.disabled,
+        color: colors.text,
         fontSize: 10,
     },
     deleteAction: {

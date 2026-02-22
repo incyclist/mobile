@@ -3,38 +3,60 @@ import { RouteDetailUIItem, RouteItemProps, useRouteList } from 'incyclist-servi
 import { RouteItemView } from './RouteItemView';
 import { useLogging } from '../../hooks';
 
+// Module-level cache — survives FlashList recycling
+const detailsCache = new Map<string, RouteDetailUIItem>();
+
 export const RouteItem = (props: RouteItemProps) => {
-    const { id, loaded /*, outsideFold*/ } = props;
-    const [details, setDetails] = useState<Partial<RouteDetailUIItem>>({});
+    const { id, loaded, outsideFold } = props;
+    
+    const [details, setDetails] = useState<RouteDetailUIItem | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
     
     const service = useRouteList();
     const { logError } = useLogging('RouteItem');
 
+    // Re-sync from cache when id changes (FlashList recycling)
     useEffect(() => {
-        // Only fetch if not loaded, not already fetching, and not hidden by fold
-        if (!loaded && !isLoading /*&& !outsideFold*/) {
-            setIsLoading(true);
-            service.getRouteDetails(id!)
-                .then(routeDetails => {
-                    setDetails( routeDetails);
-                })
-                .catch(err => {
-                    logError(err, 'getRouteDetails');
-                })
-                .finally(() => {
-                    setIsLoading(false);
-                });
+        if (!id) return;
+        const cached = detailsCache.get(id);
+        if (cached) {
+            setDetails(cached);
+        } else {
+            setDetails(undefined);
         }
-    }, [id, loaded, service, logError, isLoading]);
+    }, [id]);
 
-    const {points} = details
-    // Merge original props with fetched details
+    useEffect(() => {
+        // Guard: don't fetch if already have details, currently loading, props say it's loaded,
+        // OR if it's currently outside the fold (and not in the lookahead range)
+        if (details || isLoading || loaded || outsideFold) return;
+        if (id && detailsCache.has(id)) return; 
+        
+        setIsLoading(true);
+        service.getRouteDetails(id!)
+            .then(routeDetails => {
+                if (routeDetails) {
+                    detailsCache.set(id!, routeDetails as RouteDetailUIItem);
+                    setDetails(routeDetails as RouteDetailUIItem);
+                }
+            })
+            .catch(err => {
+                logError(err, 'getRouteDetails');
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, [id, loaded, service, logError, isLoading, details, outsideFold]);
+
+    const points = details?.points ?? props.points;
+    const previewUrl = details?.previewUrl ?? props.previewUrl;
+    
     const displayProps = {
         ...props,
         points,
-        loaded: loaded || !!details.points || !!details.previewUrl,
-        
+        previewUrl,
+        loaded: loaded || !!points || !!previewUrl,
+        outsideFold,
     };
 
     return <RouteItemView {...displayProps} />;

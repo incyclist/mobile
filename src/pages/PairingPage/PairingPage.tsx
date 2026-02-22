@@ -60,10 +60,11 @@ export const PairingPage = () => {
     })
 
     if (!refObserver.current) {
+        console.log( new Date().toISOString(), '# render empty PairingPage', )
         return <MainBackground />
     }
 
-
+    console.log( new Date().toISOString(), '# render full PairingPage', )
     const showExit = Platform.OS==='android'
     return <PairingPageView {...props} showExit={showExit} />
 
