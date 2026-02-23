@@ -37,7 +37,6 @@ export const RouteItemView = (props: RouteItemViewProps) => {
 
     if (outsideFold) {
         console.log(new Date().toISOString(),'# render placeholder', title)
-
         return <View style={styles.placeholderContainer} />;
     }
 
@@ -49,6 +48,13 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         if (hasVideo && previewUrl) {
             return <Image source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
         }
+
+        if (points && points.length > 0) {
+            return (
+                <View style={styles.mapPlaceholder} />
+            );
+        }
+
 
         if (points && points.length > 0) {
             return (
@@ -274,4 +280,9 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: 'bold',
     },
+    mapPlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#1a3a1a',
+    },    
 });

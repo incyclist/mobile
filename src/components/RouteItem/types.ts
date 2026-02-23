@@ -22,7 +22,10 @@ export interface RoutePoint extends LatLng {
     isCut?: boolean;
 }
 
-export interface RouteItemViewProps extends RouteItemProps {
-    onLoadDetails?: () => void;
+export interface RouteItemDisplayProps extends RouteItemProps {
     outsideFold?: boolean;
+}
+
+export interface RouteItemViewProps extends RouteItemDisplayProps {
+    onLoadDetails?: () => void;
 }

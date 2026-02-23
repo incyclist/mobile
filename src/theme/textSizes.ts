@@ -5,5 +5,6 @@ export const textSizes = {
     dialogTitle: 24,
     listEntry: 20,
     normalText: 16,
+    noDataText: 24
 
 }

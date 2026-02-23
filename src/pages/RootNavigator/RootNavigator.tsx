@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainPage } from '../Main';
+import { ExitPage } from '../ExitPage';
 import { PairingPage } from '../PairingPage';
 import { navigationRef } from '../../services';
 import { RoutesPage } from '../RoutesPage/RoutesPage';
@@ -25,6 +26,7 @@ export const RootNavigator = () => {
                 <Stack.Screen name="activities" component={MainPage} />
                 <Stack.Screen name="rideDeviceOK" component={MainPage} />
                 <Stack.Screen name="devices" component={PairingPage} />
+                <Stack.Screen name="exit" component={ExitPage} />
             </Stack.Navigator>
         </NavigationContainer>
     );

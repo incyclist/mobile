@@ -79,11 +79,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }, [prevRides, initialShowPrev]);
 
     useEffect(() => {
-        setStartPosInput(data.startPos.value.toString());
-    }, [data.startPos.value]);
+        setStartPosInput(data?.startPos?.value?.toString());
+    }, [data.startPos?.value]);
 
     useEffect(() => {
-        setRealityInput(data.realityFactor.toString());
+        setRealityInput(data?.realityFactor?.toString());
     }, [data.realityFactor]);
 
     const handleApplySettings = useCallback((updated: UIRouteSettings) => {

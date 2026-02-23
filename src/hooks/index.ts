@@ -1,2 +1,3 @@
 export * from './logging'
 export * from './unmount'
+export * from './render'

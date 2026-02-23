@@ -2,26 +2,25 @@ import { createMMKV } from 'react-native-mmkv';
 import type { MMKV } from 'react-native-mmkv';
 import { AbstractJsonRepositoryBinding } from 'incyclist-services';
 import type { JsonAccess, JSONObject } from 'incyclist-services';
+import { sleep  } from '../../utils/timers';
 
 class MmkvJsonAccessImplementation implements JsonAccess {
     private storage: MMKV;
 
     constructor(name: string) {
+
+
         this.storage = createMMKV({ id: `db_${name}` });
     }
 
     async read(resourceName: string): Promise<JSONObject> {
-        console.log(new Date().toISOString(), '# [MMKV] DB.read', resourceName);
-
-        const dataStr = this.storage.getString(resourceName);
-        console.log(new Date().toISOString(), '# [MMKV] DB.read done', resourceName);
-
-        if (!dataStr) return {} as JSONObject;
 
         try {
-            console.log(new Date().toISOString(), '# [MMKV] DB.parse', resourceName);
+            const dataStr = this.storage.getString(resourceName);
+            await sleep(0)
+            if (!dataStr) return {} as JSONObject;
+
             const data = JSON.parse(dataStr);
-            console.log(new Date().toISOString(), '# [MMKV] DB.parse done', resourceName);
             return data;
         } catch {
             return {} as JSONObject;
@@ -32,6 +31,7 @@ class MmkvJsonAccessImplementation implements JsonAccess {
         try {
             const dataStr = JSON.stringify(data);
             this.storage.set(resourceName, dataStr);
+            await sleep(0)
             return true;
         } catch {
             return false;
@@ -39,9 +39,10 @@ class MmkvJsonAccessImplementation implements JsonAccess {
     }
 
     async delete(resourceName: string): Promise<boolean> {
-        try {
-            // Using remove() as per v3 Nitro API requirements
-            return this.storage.remove(resourceName);
+        try {            
+            const res = this.storage.remove(resourceName);
+            await new Promise(resolve => setTimeout(resolve, 0));
+            return res
         } catch {
             return false;
         }
@@ -50,7 +51,8 @@ class MmkvJsonAccessImplementation implements JsonAccess {
     async list(): Promise<Array<string>> {
         try {
             // Use built-in getAllKeys() and filter out any potential internal keys
-            return this.storage.getAllKeys().filter(k => k !== '__index__');
+            const data = this.storage.getAllKeys().filter(k => k !== '__index__');
+            return data
         } catch {
             return [];
         }

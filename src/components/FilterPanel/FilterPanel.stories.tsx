@@ -56,6 +56,15 @@ export const WithFilters: StoryObj<typeof FilterPanel> = {
         compact: false,
     },
 };
+export const WithContentFilters: StoryObj<typeof FilterPanel> = {
+    args: {
+        filters: {
+            contentType: 'Video'
+        },
+        visible: true,
+        compact: false,
+    },
+};
 
 export const Collapsed: StoryObj<typeof FilterPanel> = {
     args: {

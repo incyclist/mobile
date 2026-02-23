@@ -12,4 +12,5 @@ export * from './FilterPanel';
 export * from './RoutesTable'
 export * from './RouteDetailsDialog'
 export type * from './NavigationBar/types'
+export * from './Icon';
 export * from './Dynamic'
