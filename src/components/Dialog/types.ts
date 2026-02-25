@@ -1,8 +1,13 @@
-import { StyleProp, ViewStyle } from 'react-native';
+import { DimensionValue, StyleProp, ViewStyle } from 'react-native';
 import {  ButtonProps } from '../ButtonBar/types';
+
+export type DialogVariant = 'info' | 'details'  // default: 'informational'
 
 export interface DialogProps {
     title: string;
+    variant?: DialogVariant
+    minWidth?: DimensionValue
+    minHeight?: DimensionValue   
     height?: number, 
     width?: number,
     onOutsideClick?: () => void;

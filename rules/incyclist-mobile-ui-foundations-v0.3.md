@@ -89,6 +89,7 @@ New screens must be registered in `RootNavigator.tsx`.
 - Pure props-in/render-out → single file
 
 ## 7. Storybook
+- Every component needs to have a storybook demonstrating the use of its properties
 - Stories always against the **View** variant
 - Event handlers use `fn()` from `'storybook/test'`
 - Import: `import type { Meta, StoryObj } from '@storybook/react'`
@@ -107,3 +108,9 @@ Check `package.json` first (~35 deps). Do not add without alignment.
 ## 10. Icons
 Use `src/components/Icon`: `<Icon name="funnel" size={20} color={colors.text} />`
 Available: `funnel, chevron-up, chevron-down, plus, import-route`
+
+
+## 11. Agent rules
+Output complete files only — no diffs, full content in backtick blocks.
+Output only files that were changed
+

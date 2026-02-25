@@ -9,12 +9,13 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { MainBackground,RouteDetailsDialog } from '../../components';
+import { MainBackground,RouteDetailsDialog,RouteImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 
 const PageView = memo(RoutesPageView)
-const Dialog = memo(RouteDetailsDialog)
+const DetailsDialog = memo(RouteDetailsDialog)
+const ImportDialog = memo(RouteImportDialog)
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
@@ -42,7 +43,7 @@ export const RoutesPage = () => {
     const compact = height < 420;
 
     const [props, setProps] = useState<RoutePageDisplayProps>(initialProps);
-    
+    const [showImportDialog, setShowImportDialog] = useState(false); // Added local state
 
     const refObserver = useRef<IObserver | null>(null);
     const refRoutes = useRef<RouteItemProps[]>([])
@@ -77,6 +78,7 @@ export const RoutesPage = () => {
             routes: refRoutes.current,
             filterOptions: refFilterOptions.current,
         });
+
     }, [service]);
 
     useEffect(() => {
@@ -117,9 +119,17 @@ export const RoutesPage = () => {
         
     },[props.filterVisible, service, setFilterVisible])
 
-    const onImportClicked = useCallback (() => {
-        service.onImportClicked();
-    },[service]);
+    // Modified: This now controls the local UI state for the ImportRouteDialog
+    const onImportClicked = useCallback(() => {
+        service.onImportClicked()
+        setShowImportDialog(true)
+    }, [service]);
+
+    // Added: Callback to close the ImportRouteDialog
+    const onImportClose = useCallback(() => {
+        setShowImportDialog(false)
+        //service.refreshRoutes(); // Refresh routes after import dialog closes
+    }, [service]);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)
@@ -143,10 +153,16 @@ export const RoutesPage = () => {
             onImportClicked={onImportClicked}
             onNavigate={onNavigate}
             compact={compact}
+            showImportDialog={showImportDialog} // Pass to view
+            onImportClose={onImportClose}       // Pass to view
         />
         {props.detailRouteId && (
-            <Dialog routeId={props.detailRouteId} />
+            <DetailsDialog routeId={props.detailRouteId} />
         )}
+        {props.showImportDialog && (
+            <ImportDialog  />
+        )}
+
         </>
     );
 };

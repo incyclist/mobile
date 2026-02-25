@@ -14,21 +14,23 @@ import {
     FilterPanel,
     TNavigationItem,
 } from '../../components';
-import { Icon } from '../../components/Icon'; // Added import for Icon
+import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
-import { useLogging, useWhyDidYouRender } from '../../hooks';
+import { useLogging } from '../../hooks';
 
 interface RoutesPageViewProps extends RoutePageDisplayProps {
     onFilterToggle: () => void;
     onNavigate: (item: TNavigationItem) => void;
     onImportClicked: () => void;
-    loading: boolean; // Added to props interface
+    loading: boolean; 
     compact: boolean;
+    showImportDialog: boolean; // Added to props interface
+    onImportClose: () => void; // Added to props interface
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
     const {
-        loading, // Destructured
+        loading, 
         synchronizing,
         routes,
         filters,
@@ -38,7 +40,9 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onFilterToggle,
         onImportClicked,
         onNavigate,
-        compact
+        compact,
+        showImportDialog, // Destructured
+        onImportClose,    // Destructured
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
@@ -59,7 +63,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                     {/* New Header Layout */}
                     <View style={styles.header}>
                         <View style={styles.headerSide}>
-                            {synchronizing && ( // Keep synchronizing indicator with the title, if it's not removed
+                            {synchronizing && (
                                 <ActivityIndicator
                                     size="small"
                                     color={colors.text}
@@ -104,13 +108,15 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         ) : (
                             <RoutesTable
                                 routes={routes}
-                                onSelect={() => {}}
-                                onDelete={() => {}}
+                                // As per instruction: Do NOT add onSelect or onDelete to RoutesTable directly
+                                // onSelect={() => {}} 
+                                // onDelete={() => {}}
                             />
                         )}
                     </View>
                 </View>
             </View>
+
         </MainBackground>
     );
 };
@@ -129,7 +135,6 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         overflow: 'hidden',
     },
-    // New Header styles
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -145,13 +150,12 @@ const styles = StyleSheet.create({
     },
     headerSide: {
         flex: 1,
-        flexDirection: 'row', // To align sync spinner if needed
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-end', // Align items to the right within the side
+        justifyContent: 'flex-end',
     },
-    syncSpinner: { marginRight: 10 }, // Adjusted margin for spinner placement
+    syncSpinner: { marginRight: 10 },
 
-    // Import Route button styles
     importButton: {
         flexDirection: 'row',
         alignItems: 'center',
