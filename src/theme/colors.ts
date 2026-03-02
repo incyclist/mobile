@@ -17,6 +17,8 @@ export const colors = {
     tileFooter: '#1E1E1E',
     listSeparator:  '#EEEEEE',
     dialogBackground: ['rgba(56, 1, 31, 0.975)', 'rgba(26, 4, 86, 0.975)'],
+    listItemBackground: 'rgba(26,4,86,0.4)', // ['rgba(56,1,31,0.3),rgba(26,4,86,0.3)'],
+    elevationPreviewColor: '#EEEEEE', //  '#7f7f7f'
     dialogBorder: '#ccc',
     switchTrack:  {
         false: '#767577',

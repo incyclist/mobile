@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { RouteItemViewProps } from './types';
-import { colors  } from '../../theme';
+import { colors } from '../../theme';
 import { getFlagEmoji } from '../../utils/flags';
 import { FreeMap } from '../FreeMap';
+import { ElevationGraph } from '../ElevationGraph';
 
 // Conditional import to prevent Storybook Vite from crashing
 let Swipeable: any = View;
@@ -11,7 +12,7 @@ try {
     if (Platform.OS !== 'web') {
         Swipeable = require('react-native-gesture-handler').Swipeable;
     }
-} catch  {
+} catch {
     Swipeable = ({ children }: any) => <View>{children}</View>;
 }
 
@@ -32,11 +33,10 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         loaded,
         outsideFold,
         onSelect,
-        onDelete
+        onDelete,
     } = props;
 
     if (outsideFold) {
-        console.log(new Date().toISOString(),'# render placeholder', title)
         return <View style={styles.placeholderContainer} />;
     }
 
@@ -51,16 +51,9 @@ export const RouteItemView = (props: RouteItemViewProps) => {
 
         if (points && points.length > 0) {
             return (
-                <View style={styles.mapPlaceholder} />
-            );
-        }
-
-
-        if (points && points.length > 0) {
-            return (
-                <FreeMap 
-                    points={points} 
-                    zoom={10} 
+                <FreeMap
+                    points={points}
+                    zoom={10}
                     scrollWheelZoom={false}
                     zoomControl={false}
                     attributionControl={false}
@@ -71,33 +64,50 @@ export const RouteItemView = (props: RouteItemViewProps) => {
     };
 
     const renderRightActions = () => (
-        <TouchableOpacity 
-            style={styles.deleteAction} 
-            onPress={() => onDelete(id!)}
-        >
+        <TouchableOpacity style={styles.deleteAction} onPress={() => onDelete(id!)}>
             <Text style={styles.deleteText}>Delete</Text>
         </TouchableOpacity>
     );
 
-    console.log(new Date().toISOString(),'# render item', title)
-    return (
+    const routeData =
+        points && points.length > 0
+            ? {
+                  id:id!,
+                  title:title!,
+                  points,
+                  distance: points[points.length - 1].routeDistance,
+              }
+            : undefined;
 
+    return (
         <Swipeable renderRightActions={renderRightActions}>
-            <TouchableOpacity 
-                style={styles.container} 
+            <TouchableOpacity
+                style={styles.container}
                 onPress={() => onSelect(id!)}
                 activeOpacity={0.9}
             >
                 <View style={styles.leftColumn}>
-                    <View style={styles.mediaWrapper}>
-                        {renderMedia()}
-                    </View>
-                    <View style={styles.graphPlaceholder} />
+                    <View style={styles.mediaWrapper}>{renderMedia()}</View>
+                    {routeData ? (
+                        <ElevationGraph
+                            routeData={routeData}
+                            showLine={false}
+                            showColors={false}
+                            showXAxis={false}
+                            showYAxis={false}
+                            style={styles.graphPlaceholder}
+                            minElevationRange={300}
+                        />
+                    ) : (
+                        <View style={styles.graphPlaceholder} />
+                    )}
                 </View>
 
                 <View style={styles.middleColumn}>
                     <View style={styles.titleRow}>
-                        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+                        <Text style={styles.title} numberOfLines={1}>
+                            {title}
+                        </Text>
                         <Text style={styles.flag}>{getFlagEmoji(country)}</Text>
                     </View>
 
@@ -113,7 +123,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                                 <Text style={styles.pillText}>New</Text>
                             </View>
                         )}
-                        {(cntActive??0) > 0 && (
+                        {(cntActive ?? 0) > 0 && (
                             <View style={[styles.pill, styles.pillActive]}>
                                 <Text style={styles.pillTextActive}>{cntActive}</Text>
                             </View>
@@ -128,7 +138,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
 
                 <View style={styles.rightColumn}>
                     <View style={styles.statsHeaderSpace} />
-                    
+
                     <View style={styles.statsGrid}>
                         <View style={styles.statsCol}>
                             <Text style={styles.statsValue}>{totalDistance.value}</Text>
@@ -150,12 +160,12 @@ const MARGIN_V = 4;
 
 const styles = StyleSheet.create({
     placeholderContainer: {
-        height: ITEM_HEIGHT + (MARGIN_V * 2),
+        height: ITEM_HEIGHT + MARGIN_V * 2,
         backgroundColor: 'rgba(0, 0, 0, 0.05)',
     },
     container: {
         height: ITEM_HEIGHT,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: colors.listItemBackground,
         marginVertical: MARGIN_V,
         marginHorizontal: 12,
         borderRadius: 6,
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
     },
     leftColumn: {
         flexDirection: 'row',
-        width: 140,
+        width: 194,
         height: '100%',
         gap: 6,
     },
@@ -186,9 +196,6 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: 'rgba(255, 255, 255, 0.03)',
         borderRadius: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderStyle: 'dashed',
     },
     middleColumn: {
         flex: 1,
@@ -239,7 +246,7 @@ const styles = StyleSheet.create({
     pillDemo: { backgroundColor: '#8BC34A' },
     pillText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
     pillTextActive: { color: '#000000', fontSize: 10, fontWeight: 'bold' },
-    
+
     rightColumn: {
         width: 120,
         justifyContent: 'center',
@@ -280,9 +287,4 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: 'bold',
     },
-    mapPlaceholder: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#1a3a1a',
-    },    
 });
