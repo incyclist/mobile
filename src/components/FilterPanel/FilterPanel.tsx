@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,14 +7,32 @@ import {
     TextInput,
 } from 'react-native';
 import { FilterPanelProps, SearchFilter } from './types';
-import { colors, textSizes } from '../../theme';
+import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
+import { Icon } from '../Icon';
+
+/**
+ * Helper to generate descriptive text for active filters
+ */
+const getFilterPills = (f: SearchFilter): string[] => {
+    const pills: string[] = [];
+    if (f.title) pills.push(`*${f.title}*`);
+    if (f.contentType) pills.push(f.contentType);
+    if (f.routeType) pills.push(f.routeType);
+    if (f.routeSource) pills.push(f.routeSource);
+    if (f.country) pills.push(f.country);
+    if (f.distance?.min) pills.push(`dist:>${f.distance.min.value}${f.distance.min.unit}`);
+    if (f.distance?.max) pills.push(`dist:<${f.distance.max.value}${f.distance.max.unit}`);
+    if (f.elevation?.min) pills.push(`elev:>${f.elevation.min.value}${f.elevation.min.unit}`);
+    if (f.elevation?.max) pills.push(`elev:<${f.elevation.max.value}${f.elevation.max.unit}`);
+    return pills;
+};
 
 /**
  * Internal Input component with numeric validation and blur-based update logic
  */
 const FilterInput = ({ 
-    value, placeholder, max, fieldName, onValueChange, compact, logEvent 
+    value, placeholder, max, fieldName, onValueChange, compact, logEvent, onFocus 
 }: any) => {
     const [localValue, setLocalValue] = useState(value?.toString() ?? '');
     const [error, setError] = useState(false);
@@ -64,6 +82,7 @@ const FilterInput = ({
                 value={localValue}
                 onChangeText={handleChange}
                 onBlur={handleBlur}
+                onFocus={onFocus}
                 placeholder={placeholder}
                 placeholderTextColor={colors.disabled}
                 keyboardType="numeric"
@@ -76,23 +95,27 @@ const FilterInput = ({
 /**
  * Internal Select component with inline dropdown list
  */
-const FilterSelect = ({ 
-    label, value, options, fieldName, onSelect, compact, logEvent, isHalf 
-}: any) => {
-    const [open, setOpen] = useState(false);
+const FilterSelect = (props: any) => {
+    const { 
+        label, value, options, fieldName, onSelect, compact, 
+        logEvent, isHalf, isOpen: open, onOpen 
+    } = props;
+    
     const [triggerHeight, setTriggerHeight] = useState(0);
     const displayValue = value || 'All';
 
     const handleSelect = (item: string) => {
         const newValue = item === 'All' ? undefined : item;
-        onSelect(newValue);
-        setOpen(false);
+        
         logEvent({ 
             message: 'option selected', 
             field: fieldName, 
             value: item, 
             eventSource: 'user' 
         });
+
+        onSelect(newValue);
+        onOpen(null);
     };
 
     return (
@@ -104,7 +127,7 @@ const FilterSelect = ({
             <Text style={styles.label}>{label}</Text>
             <TouchableOpacity 
                 style={[styles.selectTrigger, compact && styles.selectTriggerCompact]} 
-                onPress={() => setOpen(!open)}
+                onPress={() => onOpen(open ? null : fieldName)}
                 onLayout={(e) => setTriggerHeight(e.nativeEvent.layout.height)}
             >
                 <Text style={styles.selectText}>{displayValue}</Text>
@@ -143,30 +166,24 @@ export const FilterPanel = (props: FilterPanelProps) => {
         maxElevation 
     } = options;
 
-    const [localFilters, setLocalFilters] = useState<SearchFilter>(filters);
-    const [localTitle, setLocalTitle] = useState(localFilters.title ?? '');
+    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>(undefined);
+    const [localTitle, setLocalTitle] = useState('');
+    const [openField, setOpenField] = useState<string | null>(null);
 
     const { logEvent } = useLogging('FilterPanel');
 
+    const closeDropdown = useCallback(() => setOpenField(null), []);
+
     useEffect(() => {
+        if (localFilters)
+            return;
+
         setLocalFilters(filters);
-    }, [filters]);
+        setLocalTitle(filters.title ?? '');
+    }, [filters, localFilters]);
 
-    useEffect(() => {
-        setLocalTitle(localFilters.title ?? '');
-    }, [localFilters.title]);
-
-    const getActiveCount = (f: SearchFilter) => {
-        let count = 0;
-        if (f.title) count++;
-        if (f.distance?.min !== undefined || f.distance?.max !== undefined) count++;
-        if (f.elevation?.min !== undefined || f.elevation?.max !== undefined) count++;
-        if (f.country) count++;
-        if (f.contentType) count++;
-        if (f.routeType) count++;
-        if (f.routeSource) count++;
-        return count;
-    };
+    if (!localFilters)
+        return false;
 
     const handleToggle = () => {
         logEvent({ message: 'button clicked', button: 'filter-toggle', eventSource: 'user' });
@@ -197,14 +214,19 @@ export const FilterPanel = (props: FilterPanelProps) => {
         <View style={styles.container}>
             <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
                 <View style={styles.toggleLeft}>
-                    <Text style={styles.filterIcon}>⚙</Text>
-                    <Text style={styles.toggleLabel}>Filters</Text>
+                    <Icon 
+                        name={visible ? 'chevron-up' : 'funnel'} 
+                        size={20} 
+                        color={colors.text} 
+                    />
+                </View> 
+                <View style={styles.pillsRow}>
+                    {getFilterPills(localFilters).map((pill, i) => (
+                        <View key={i} style={styles.pill}>
+                            <Text style={styles.pillText}>{pill}</Text>
+                        </View>
+                    ))}
                 </View>
-                {getActiveCount(localFilters) > 0 && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{getActiveCount(localFilters)} active</Text>
-                    </View>
-                )}
             </TouchableOpacity>
 
             {visible && (
@@ -215,6 +237,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                             style={[styles.input, compact && styles.inputCompact]}
                             value={localTitle}
                             onChangeText={setLocalTitle}
+                            onFocus={closeDropdown}
                             onBlur={() => applyFilter({
                                 ...localFilters,
                                 title: localTitle === '' ? undefined : localTitle
@@ -233,12 +256,14 @@ export const FilterPanel = (props: FilterPanelProps) => {
                                         compact={compact} max={maxDistance?.value} fieldName="distance_min"
                                         value={localFilters.distance?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
+                                        onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
                                         compact={compact} max={maxDistance?.value} fieldName="distance_max"
                                         value={localFilters.distance?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
+                                        onFocus={closeDropdown}
                                     />
                                 </View>
                             </View>
@@ -249,12 +274,14 @@ export const FilterPanel = (props: FilterPanelProps) => {
                                         compact={compact} max={maxElevation?.value} fieldName="elevation_min"
                                         value={localFilters.elevation?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
+                                        onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
                                         compact={compact} max={maxElevation?.value} fieldName="elevation_max"
                                         value={localFilters.elevation?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
+                                        onFocus={closeDropdown}
                                     />
                                 </View>
                             </View>
@@ -265,21 +292,25 @@ export const FilterPanel = (props: FilterPanelProps) => {
                         <FilterSelect 
                             label="Country" value={localFilters.country} options={countries} 
                             fieldName="country" compact={compact} logEvent={logEvent} isHalf={!compact}
+                            isOpen={openField === 'country'} onOpen={setOpenField}
                             onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
                         />
                         <FilterSelect 
                             label="Content" value={localFilters.contentType} options={contentTypes} 
                             fieldName="contentType" compact={compact} logEvent={logEvent} isHalf={!compact}
+                            isOpen={openField === 'contentType'} onOpen={setOpenField}
                             onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
                         />
                         <FilterSelect 
                             label="Type" value={localFilters.routeType} options={routeTypes} 
                             fieldName="routeType" compact={compact} logEvent={logEvent} isHalf={!compact}
+                            isOpen={openField === 'routeType'} onOpen={setOpenField}
                             onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
                         />
                         <FilterSelect 
                             label="Source" value={localFilters.routeSource} options={routeSources} 
                             fieldName="routeSource" compact={compact} logEvent={logEvent} isHalf={!compact}
+                            isOpen={openField === 'routeSource'} onOpen={setOpenField}
                             onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
                         />
                     </View>
@@ -304,10 +335,24 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    filterIcon: { color: colors.text, fontSize: 18 },
-    toggleLabel: { color: colors.text, fontSize: textSizes.normalText, fontWeight: '700' },
-    badge: { backgroundColor: colors.buttonPrimary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
-    badgeText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
+    pillsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 4,
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    pill: {
+        backgroundColor: colors.buttonPrimary,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    pillText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
     panel: { padding: 8 },
     gridTwoColumn: { flexDirection: 'row', flexWrap: 'wrap' },
     gridColumn: { flexDirection: 'column' },

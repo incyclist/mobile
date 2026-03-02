@@ -1,18 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { RouteDetailUIItem, RouteItemProps, useRouteList } from 'incyclist-services';
+import React, { useCallback, useEffect, useState } from 'react';
+import { getRoutesPageService, RouteDetailUIItem, useRouteList } from 'incyclist-services';
 import { RouteItemView } from './RouteItemView';
 import { useLogging } from '../../hooks';
+import { RouteItemDisplayProps } from './types';
 
 // Module-level cache — survives FlashList recycling
 const detailsCache = new Map<string, RouteDetailUIItem>();
 
-export const RouteItem = (props: RouteItemProps) => {
+
+
+export const RouteItem = (props: RouteItemDisplayProps) => {
     const { id, loaded, outsideFold } = props;
     
     const [details, setDetails] = useState<RouteDetailUIItem | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
     
     const service = useRouteList();
+    const page = getRoutesPageService()
     const { logError } = useLogging('RouteItem');
 
     // Re-sync from cache when id changes (FlashList recycling)
@@ -48,6 +52,10 @@ export const RouteItem = (props: RouteItemProps) => {
             });
     }, [id, loaded, service, logError, isLoading, details, outsideFold]);
 
+
+    const onSelect = useCallback( (routeId:string) => { page.onSelect(routeId)} ,[page])
+    const onDelete = useCallback( (routeId:string) => { page.onDelete(routeId)} ,[page])
+
     const points = details?.points ?? props.points;
     const previewUrl = details?.previewUrl ?? props.previewUrl;
     
@@ -59,5 +67,5 @@ export const RouteItem = (props: RouteItemProps) => {
         outsideFold,
     };
 
-    return <RouteItemView {...displayProps} />;
+    return <RouteItemView {...displayProps} onSelect={onSelect} onDelete={onDelete} />;
 };

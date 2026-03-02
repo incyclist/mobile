@@ -1,41 +1,36 @@
 import React from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    ActivityIndicator, 
-    TouchableOpacity 
+import {
+    View,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+    TouchableOpacity
 } from 'react-native';
-import { RouteItemProps } from 'incyclist-services';
-import { 
-    MainBackground, 
-    NavigationBar, 
-    RoutesTable, 
+import { RoutePageDisplayProps } from 'incyclist-services';
+import {
+    MainBackground,
+    NavigationBar,
+    RoutesTable,
     FilterPanel,
     TNavigationItem,
-    SearchFilter,
-    SearchFilterOptions
 } from '../../components';
+import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
 
-interface RoutesPageViewProps {
-    loading: boolean;
-    synchronizing: boolean;
-    routes: RouteItemProps[];
-    filters: SearchFilter;
-    filterOptions: SearchFilterOptions;
-    filterVisible: boolean;
-    onFilterChanged: (f: SearchFilter) => void;
+interface RoutesPageViewProps extends RoutePageDisplayProps {
     onFilterToggle: () => void;
-    onImportClicked: () => void;
     onNavigate: (item: TNavigationItem) => void;
+    onImportClicked: () => void;
+    loading: boolean; 
     compact: boolean;
+    showImportDialog: boolean; // Added to props interface
+    onImportClose: () => void; // Added to props interface
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
     const {
-        loading,
+        loading, 
         synchronizing,
         routes,
         filters,
@@ -45,7 +40,9 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onFilterToggle,
         onImportClicked,
         onNavigate,
-        compact
+        compact,
+        showImportDialog, // Destructured
+        onImportClose,    // Destructured
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
@@ -63,29 +60,32 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                 </View>
 
                 <View style={styles.contentColumn}>
+                    {/* New Header Layout */}
                     <View style={styles.header}>
-                        <View style={styles.headerSpacer} />
-                        <View style={styles.titleRow}>
-                            <Text style={styles.title}>ROUTES</Text>
+                        <View style={styles.headerSide}>
                             {synchronizing && (
-                                <ActivityIndicator 
-                                    size="small" 
-                                    color={colors.text} 
-                                    style={styles.syncSpinner} 
+                                <ActivityIndicator
+                                    size="small"
+                                    color={colors.text}
+                                    style={styles.syncSpinner}
                                 />
                             )}
                         </View>
-                        <View style={styles.headerActions}>
-                            <TouchableOpacity 
-                                style={styles.addButton} 
-                                onPress={() => {
-                                    logEvent({ message: 'button clicked', button: 'add-route', eventSource: 'user' });
-                                    onImportClicked();
-                                }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.addButtonText}>+</Text>
-                            </TouchableOpacity>
+                        <Text style={styles.headerTitle}>ROUTES</Text>
+                        <View style={styles.headerSide}>
+                            {!loading && (
+                                <TouchableOpacity
+                                    style={styles.importButton}
+                                    onPress={() => {
+                                        logEvent({ message: 'button clicked', button: 'import-route', eventSource: 'user' });
+                                        onImportClicked();
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Icon name="import-route" size={20} color={colors.buttonPrimary} />
+                                    <Text style={styles.importButtonText}>Import Route</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
@@ -101,20 +101,22 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                     </View>
 
                     <View style={styles.listArea}>
-                        {loading && routes.length === 0 ? (
+                        {loading && routes?.length === 0 ? (
                             <View style={styles.center}>
                                 <ActivityIndicator size="large" color={colors.tileActive} />
                             </View>
                         ) : (
-                            <RoutesTable 
-                                routes={routes} 
-                                onSelect={() => {}} 
-                                onDelete={() => {}} 
+                            <RoutesTable
+                                routes={routes}
+                                // As per instruction: Do NOT add onSelect or onDelete to RoutesTable directly
+                                // onSelect={() => {}} 
+                                // onDelete={() => {}}
                             />
                         )}
                     </View>
                 </View>
             </View>
+
         </MainBackground>
     );
 };
@@ -125,8 +127,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     navColumn: {
-        flexDirection: 'column',  // stacks vertically
-        alignSelf: 'stretch',     // matches sibling contentColumn height
+        flexDirection: 'column',
+        alignSelf: 'stretch',
     },
     contentColumn: {
         flex: 1,
@@ -136,42 +138,38 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 50,
-        marginVertical: 5,
+        justifyContent: 'space-between',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
-    headerSpacer: { flex: 1 },
-    titleRow: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerActions: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        paddingRight: 8,
-    },
-    title: {
+    headerTitle: {
+        color: colors.text,
         fontSize: textSizes.pageTitle,
         fontWeight: '700',
-        color: colors.text,
+        textAlign: 'center',
     },
-    syncSpinner: { marginLeft: 10 },
-    addButton: {
-        backgroundColor: colors.buttonPrimary,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
+    headerSide: {
+        flex: 1,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-end',
     },
-    addButtonText: {
-        color: '#FFFFFF',
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: -2,
+    syncSpinner: { marginRight: 10 },
+
+    importButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.buttonPrimary,
+    },
+    importButtonText: {
+        color: colors.buttonPrimary,
+        fontSize: textSizes.normalText,
+        fontWeight: '600',
     },
     filterArea: {
         // Height determined by FilterPanel content

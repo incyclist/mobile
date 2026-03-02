@@ -1,5 +1,5 @@
-import React, { PropsWithChildren  } from 'react';
-import { DialogProps } from './types';
+import React, { PropsWithChildren, useEffect, useRef  } from 'react';
+import { DialogProps, DialogVariant } from './types';
 import LinearGradient from 'react-native-linear-gradient'
 import { 
     View, 
@@ -8,24 +8,42 @@ import {
     Modal, 
     TouchableWithoutFeedback, 
     Platform,
-    ScrollView
+    ScrollView,
+    DimensionValue
 } from 'react-native';
 import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
+import { useLogging, useUnmountEffect } from '../../hooks';
+import { EventLogger } from 'gd-eventlog';
 
 export const Dialog = ({ 
     title, 
     style,
-    width, height,
+    width, height,minWidth,minHeight,variant,
     buttons, 
     children,
     visible=true, 
     onOutsideClick 
 }: PropsWithChildren<DialogProps>) => {
 
+    const {logEvent} = useLogging('Incyclist')
+    const refInitialized = useRef<boolean>(false)
 
+    useEffect(() => {
+        if (refInitialized.current) return
+        refInitialized.current = true
+        logEvent({ message: 'dialog shown', dialog: title })
+        EventLogger.setGlobalConfig('dialog',title)
+    }, [logEvent, title])
 
-    const styles = getStyles({width,height})
+    useUnmountEffect( ()=> {
+        refInitialized.current = false
+
+        EventLogger.setGlobalConfig('dialog',null)
+        logEvent({ message: 'dialog closed', dialog: title })
+    })
+
+    const styles = getStyles({width,height,minWidth,minHeight,variant})
     
     const gradientColors = colors.dialogBackground;
 
@@ -82,10 +100,14 @@ export const Dialog = ({
 
 type StyleProps = {
     width: number|undefined,
-    height: number|undefined
+    height: number|undefined,
+    minWidth: DimensionValue|undefined,
+    minHeight: DimensionValue|undefined,
+    variant?: DialogVariant
 }
 
-const getStyles = ({width,height}:StyleProps) => StyleSheet.create({
+const getStyles = ( {width,height,minWidth,minHeight,variant='details'}:StyleProps) => { 
+    return StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'center',
@@ -93,6 +115,8 @@ const getStyles = ({width,height}:StyleProps) => StyleSheet.create({
     },
     container: {
         //width: '90%',        
+        minWidth: minWidth ?? (variant === 'details' ? '50%' : undefined),
+        minHeight: minHeight ?? (variant === 'details' ? '80%' : undefined)        ,
         width,
         height,
         maxHeight: '80%',
@@ -114,9 +138,10 @@ const getStyles = ({width,height}:StyleProps) => StyleSheet.create({
         // flexShrink allows the scrollview to give up space for header/footer
         flexShrink: 1,
         
+        
     },    
     content: {
-        flexGrow: 1,
+        flexGrow: variant === 'details' ? 1 : 0,
         padding: 2,
         color:colors.text,
         
@@ -125,4 +150,4 @@ const getStyles = ({width,height}:StyleProps) => StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.dialogBorder ?? '#ccc',
     },
-});
+})};

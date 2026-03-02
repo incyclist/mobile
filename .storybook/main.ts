@@ -69,6 +69,7 @@ const config: StorybookConfig = {
                     'react-native-ble-manager':      'react-native-web/dist/exports/View',
                     'react-native-linear-gradient':  'react-native-web/dist/exports/View',
                     'react-native-zip-archive':      'react-native-web/dist/exports/View',
+                    '@react-native-documents/picker': path.resolve(dirname, './documentPickerStub.ts'),
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
