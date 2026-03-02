@@ -47,7 +47,17 @@ Apply these rules to all code generation and refactoring tasks within this works
 - **Logic Location:** Do NOT develop business logic, data transformations, or API calls inside this project. 
 - **Integration:** All business logic must be imported from the `incyclists-services` project. Reference or ask for methods from this service when implementing functionality.
 
-## 4. Naming Conventions
+## 4. Observer Subscription Pattern
+
+When a component subscribes to an `IObserver` instance, always follow this structure:
+
+- **Subscribe once** using `useEffect` with a `refInitialized` gate. Do not put cleanup inside the effect's return function.
+- **Unsubscribe and reset** in a single `useUnmountEffect`. This is the only place `observer.off` is called and refs are reset.
+- **Event handler** must be defined as `useCallback` above both hooks so it can be referenced in both.
+
+Never use the `useEffect` return function to call `observer.off` — this leads to premature unsubscription on re-renders and inconsistent cleanup behaviour.
+
+## 5. Naming Conventions
 - **Files/Components:** Use PascalCase (e.g., `UserProfile.tsx`).
 - **Hooks/Variables:** Use camelCase (e.g., `useUserData`).
 
