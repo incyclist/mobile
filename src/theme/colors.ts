@@ -29,5 +29,6 @@ export const colors = {
         on: 'green'
     },
     error: '#D32F2F',
+    warning: '#FFBF00',
     disabled: '#9fa4a8'
 }
