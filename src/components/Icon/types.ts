@@ -1,9 +1,18 @@
-export type IconName = 
-    | 'funnel' 
-    | 'chevron-up' 
-    | 'chevron-down' 
-    | 'plus' 
-    | 'import-route';
+export type IconName =
+    | 'funnel'
+    | 'chevron-up'
+    | 'chevron-down'
+    | 'plus'
+    | 'import-route'
+    | 'time'
+    | 'slope'
+    | 'route'
+    | 'speed'
+    | 'power'
+    | 'heartrate'
+    | 'cadence'
+    | 'gear'
+    ;
 
 export interface IconProps {
     name: IconName;

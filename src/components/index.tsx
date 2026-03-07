@@ -16,3 +16,4 @@ export * from './Icon';
 export * from './Dynamic'
 export * from './RouteImportDialog'
 export * from './ElevationGraph'
+export * from './RideDashboard'
