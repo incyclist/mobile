@@ -25,11 +25,27 @@ export default meta;
 
 type Story = StoryObj<typeof RideMenu>;
 
-export const Open: Story = {
+export const OpenWithResume: Story = {
     args: {
         visible: true,
+        showResume: true,
         onClose: fn(),
         onEndRide: fn(),
+        onPause: fn(),
+        onResume: fn(),
+        onSettings: fn(),
+        onCustomize: fn(),
+    },
+};
+
+export const OpenWithPause: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        onClose: fn(),
+        onEndRide: fn(),
+        onPause: fn(),
+        onResume: fn(),
         onSettings: fn(),
         onCustomize: fn(),
     },
@@ -38,8 +54,11 @@ export const Open: Story = {
 export const Closed: Story = {
     args: {
         visible: false,
+        showResume: false,
         onClose: fn(),
         onEndRide: fn(),
+        onPause: fn(),
+        onResume: fn(),
         onSettings: fn(),
         onCustomize: fn(),
     },
@@ -48,8 +67,11 @@ export const Closed: Story = {
 export const PartialCallbacks: Story = {
     args: {
         visible: true,
+        showResume: false,
         onClose: fn(),
         onEndRide: fn(),
+        onPause: fn(),
+        onResume: fn(),
         onSettings: undefined,
         onCustomize: undefined,
     },
