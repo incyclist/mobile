@@ -6,7 +6,7 @@ import { ActivityDashboardItem } from './types';
 import { MainBackground } from '../MainBackground';
 
 const meta: Meta<typeof RideDashboardView> = {
-    title: 'Components/RideDashboard/RideDashboard',
+    title: 'Components/RideDashboard',
     component: RideDashboardView,
     decorators: [
         (Story) => (
