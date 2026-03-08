@@ -16,11 +16,13 @@ export const useWhyDidYouRender = (componentName: string, props: Record<string, 
         })
 
         if (Object.keys(changedProps).length > 0) {
-            console.log(`# [${componentName}] re-render caused by:`, 
-                Object.keys(changedProps).map(key => 
-                    `${key}: ${typeof changedProps[key].from} → ${typeof changedProps[key].to}`
-                ).join(', ')
-            )
+            try {
+                console.log(`# [${componentName}] re-render caused by:`, 
+                    Object.keys(changedProps).map(key => 
+                        `${key}: ${typeof changedProps[key].from} → ${typeof changedProps[key].to}`
+                    ).join(', ')
+                )
+            } catch {}
         }
 
         prevProps.current = props

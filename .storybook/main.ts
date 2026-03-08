@@ -70,6 +70,7 @@ const config: StorybookConfig = {
                     'react-native-linear-gradient':  'react-native-web/dist/exports/View',
                     'react-native-zip-archive':      'react-native-web/dist/exports/View',
                     '@react-native-documents/picker': path.resolve(dirname, './documentPickerStub.ts'),
+                    'react-native-video': path.resolve(dirname, './mocks/react-native-video.tsx'),
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
