@@ -1,7 +1,6 @@
 import React  from 'react';
 import { View } from 'react-native';
 import { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { RoutesTable } from './RoutesTable';
 import { MainBackground } from '../MainBackground';
 import type { RouteItemProps } from 'incyclist-services';
@@ -42,8 +41,6 @@ const meta: Meta<typeof RoutesTable> = {
         },
     ],
     args: {
-        onSelect: fn(),
-        onDelete: fn(),
     },
 };
 

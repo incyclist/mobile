@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { MainPageView } from './View';
@@ -8,7 +9,7 @@ const meta = {
   component: MainPageView,  
       decorators: [
           (Story) => (
-              <View style={{ height: '100vh', width: '100vw', justifyContent:'center', alignItems:'center' }}>
+              <View style={{ height: '100%', width: '100%', justifyContent:'center', alignItems:'center' }}>
                   <Story />
               </View>
           )
