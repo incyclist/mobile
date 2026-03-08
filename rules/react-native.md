@@ -61,9 +61,12 @@ Never use the `useEffect` return function to call `observer.off` — this leads 
 - **Files/Components:** Use PascalCase (e.g., `UserProfile.tsx`).
 - **Hooks/Variables:** Use camelCase (e.g., `useUserData`).
 
+
 ## Storybook 
-- The project uses  @storybook/react-native-web-vite 
-- All eventhandlers should be provided with fn()  (from 'storybook/test')
+- The project uses @storybook/react-native-web-vite 
+- Import `Meta` and `StoryObj` from `'@storybook/react-native-web-vite'`
+- All event handlers should be provided with `fn()` imported from `'storybook/test'`
+- Stories always target the View component, never the smart component
 
 ## React Native Version
 - The app is using ReactNeative 0.83.1 or higher. Please consider this when giving instructions or selting libraries
