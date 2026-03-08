@@ -30,5 +30,6 @@ export const colors = {
     },
     error: '#D32F2F',
     warning: '#FFBF00',
+    success: '#4CAF50',
     disabled: '#9fa4a8'
 }

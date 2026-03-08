@@ -1,8 +1,15 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import {Dialog} from './Dialog';
+
+const styles = StyleSheet.create({
+    text: { color:'white',fontSize:16},
+    longText: { color:'white',fontSize:16, marginBottom: 15 },
+    container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' }
+})
+
 
 const meta = {
     title: 'Components/Dialog',
@@ -13,7 +20,7 @@ const meta = {
     },
     decorators: [
         (Story) => (
-            <View style={{ flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={styles.container}>
                 <Story />
             </View>
         ),
@@ -24,17 +31,34 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+
+
 export const Basic: Story = {
     args: {
         visible: true,
         title: 'Basic Dialog',
         children: (
             <View>
-                <Text  style={{ color:'white',fontSize:16}}>This is a standard dialog with simple content.</Text>
+                <Text  style={styles.text}>This is a standard dialog with simple content.</Text>
             </View>
         ),
     },
 };
+
+export const TitleStyle: Story = {
+    args: {
+        visible: true,
+        title: 'Basic Dialog',
+        titleStyle: { color: 'red' },
+        children: (
+            <View>
+                <Text  style={styles.text}>This is a standard dialog with simple content.</Text>
+            </View>
+        ),
+    },
+};
+
+ 
 
 export const WithButtons: Story = {
     args: {
@@ -53,7 +77,7 @@ export const WithButtons: Story = {
         ],
         children: (
             <View>
-                <Text  style={{ color:'white',fontSize:16}}>Do you want to save the changes you made to your profile?</Text>
+                <Text  style={styles.text}>Do you want to save the changes you made to your profile?</Text>
             </View>
         ),
     },
@@ -67,7 +91,7 @@ export const LongContent: Story = {
         children: (
             <View>
                 {Array.from({ length: 5 }).map((_, i) => (
-                    <Text key={i} style={{ color:'white',fontSize:16, marginBottom: 15 }}>
+                    <Text key={i} style={styles.longText}>
                         Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
                         Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
                         Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
@@ -84,8 +108,9 @@ export const NoButtons: Story = {
         title: 'Information Only',
         children: (
             <View>
-                <Text  style={{ color:'white',fontSize:16}}>The button bar is automatically hidden because the buttons prop is undefined.</Text>
+                <Text  style={styles.text}>The button bar is automatically hidden because the buttons prop is undefined.</Text>
             </View>
         ),
     },
 };
+
