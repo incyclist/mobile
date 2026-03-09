@@ -6,6 +6,7 @@ import { MainBackground } from '../../components'
 import { useLogging,useUnmountEffect } from '../../hooks'
 import { PairingPageView } from './View'
 import { Platform } from 'react-native'
+import { PairingPageProps } from './types'
 
 
 const initialProps:PairingDisplayProps = { 
@@ -17,7 +18,10 @@ const initialProps:PairingDisplayProps = {
     
 }
 
-export const PairingPage = () => {
+
+
+export const PairingPage = ( {forRide}:PairingPageProps) => {
+
     const [props, setProps] = useState<PairingDisplayProps>(initialProps)
     const refObserver = useRef<IObserver|null|undefined>(null)
 
@@ -44,7 +48,7 @@ export const PairingPage = () => {
         let observer
         try {
 
-            refObserver.current = observer = service?.openPage()
+            refObserver.current = observer = service?.openPage(forRide)
             observer.on('page-update', onUpdate)
 
             onUpdate()
@@ -54,7 +58,7 @@ export const PairingPage = () => {
         }
 
 
-    }, [service, logError, logEvent, onUpdate])
+    }, [service, logError, logEvent, onUpdate, forRide])
 
     useUnmountEffect( ()=> {
         service.closePage()        

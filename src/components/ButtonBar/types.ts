@@ -6,6 +6,7 @@ export interface ButtonProps {
     id?: string
     label: string,
     primary?: boolean
+    attention?: boolean,
     onClick: ()=>void
 }
 

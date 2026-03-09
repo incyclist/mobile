@@ -10,6 +10,7 @@ const dirname = typeof __dirname !== 'undefined'
     : path.dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
+    
     stories: [
         '../src/components/**/*.stories.@(js|jsx|mjs|ts|tsx)',
         '../src/pages/**/*.stories.@(js|jsx|mjs|ts|tsx)',

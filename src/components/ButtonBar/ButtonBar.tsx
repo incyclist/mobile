@@ -2,21 +2,28 @@ import React from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { colors } from '../../theme'
 import { ButtonBarProps, ButtonProps } from './types'
-import { useLogging } from '../../hooks'
+import { useLogging, useScreenLayout } from '../../hooks'
 
-const Btn = ({ id,label, primary,onClick }:ButtonProps) => {
+export const Button = ({ id,label, primary,attention, onClick }:ButtonProps) => {
     const {logEvent} = useLogging('Incyclist')
-
+    const layout  = useScreenLayout()        
+    const isCompact = layout === 'compact'
+    
     const onPress=()=> {
         logEvent( {message:'button clicked', button:label??id  })
         onClick()
     }
 
+    let bgStyle = primary ? styles.primary : styles.secondary
+    if (attention) bgStyle = styles.attention
+
     return (
-    <TouchableOpacity onPress={onPress}
-        style={[styles.btn, primary ? styles.primary : styles.secondary]}>
-        <Text style={primary ? styles.textPrimary : styles.textSecondary}>{label}</Text>
-    </TouchableOpacity>
+        <TouchableOpacity onPress={onPress}
+            style={[styles.btn, bgStyle, isCompact && styles.btnCompact]}>
+            <Text style={[ (primary||attention) ? styles.textPrimary : styles.textSecondary, isCompact && styles.textCompact]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
     )
 }
 
@@ -25,7 +32,7 @@ export const ButtonBar = ( {buttons}: ButtonBarProps) => {
 
     return (
         <View style={styles.bar}>
-            {buttons.map( (props:ButtonProps) => <Btn key = {props.label} {...props} />)}
+            {buttons.map( (props:ButtonProps) => <Button key = {props.label} {...props} />)}
             
         </View>
     )
@@ -47,6 +54,10 @@ const styles = StyleSheet.create({
     primary: {
         backgroundColor: colors.buttonPrimary,
     },
+    attention: {
+        color: '#fff',
+        backgroundColor: colors.error,
+    },
     secondary: {
         borderWidth:2,
         backgroundColor: colors.buttonSecondary,
@@ -61,6 +72,14 @@ const styles = StyleSheet.create({
         color: colors.buttonPrimary,
         fontSize: 18,
         fontWeight: '700',
+    },
+
+    textCompact: {
+       fontSize: 14,
+    },
+    btnCompact: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
     },
 
 })

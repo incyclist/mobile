@@ -28,7 +28,8 @@ export const Multiple: Story = {
   args: {   
     buttons: [
         {label:'OK', primary:true, onClick:fn() },
-        {label:'Cancel', primary:false, onClick:fn() }
+        {label:'Cancel', primary:false, onClick:fn() },
+        {label:'Exit', attention:true, onClick:fn() }
     ]
   },
 };

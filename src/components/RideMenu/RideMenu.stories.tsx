@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RideMenu } from './RideMenu';
@@ -8,8 +8,13 @@ const meta: Meta<typeof RideMenu> = {
     title: 'Components/RideMenu',
     component: RideMenu,
     decorators: [
-        (Story) => (
-            <View style={styles.container}>
+        (Story) => { 
+            const {width, height} = useWindowDimensions()
+            const fullScreen = {minHeight:height||500, minWidth:width||800}
+
+            return (
+            <View style={[styles.container,fullScreen]}>
+                
                 <Image 
                     source={require('../../../__tests__/testdata/screenshot.jpg')}
                     style={styles.backgroundImage}
@@ -17,7 +22,8 @@ const meta: Meta<typeof RideMenu> = {
                 />
                 <Story />
             </View>
-        ),
+        )
+        },
     ],
 };
 

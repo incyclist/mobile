@@ -37,7 +37,7 @@ const PlaybackStatus = ({ status}: PlaybackStatusProps) => {
     </View>
 )};
 
-export const RidePageView = ({ onClick }: RidePageViewProps) => {
+export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
     const [muted, setMuted] = useState(true);
 
     const refObserver = useRef<IObserver | null>(null);
@@ -54,7 +54,7 @@ export const RidePageView = ({ onClick }: RidePageViewProps) => {
         }
         refObserver.current = new Observer();
         setInitialized(true)
-    }, []);
+    }, [initialized]);
 
     // Cleanup observer on unmount
     useUnmountEffect(() => {
@@ -114,22 +114,22 @@ export const RidePageView = ({ onClick }: RidePageViewProps) => {
         addStatus(`loaded buffer=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);
 
-    const handleLoadError = useCallback((error) => {
+    const handleLoadError = useCallback((error:any) => {
         console.log('# video load error',error)
         addStatus(`load-error ${error.message ?? error.code}`);
     }, [addStatus]);
 
-    const handlePlaybackError = useCallback((error) => {
+    const handlePlaybackError = useCallback((error:any) => {
         console.log('# video playback error',error)
         addStatus(`playback-error ${error.message ?? error.code}`);
     }, [addStatus]);
 
-    const handleStalled = useCallback((time, bufferedTime) => {
+    const handleStalled = useCallback((time:number, bufferedTime:number) => {
         console.log('# video stalled', time, bufferedTime)
         addStatus(`stalled t=${time.toFixed(1)}s buf=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);
 
-    const handleWaiting = useCallback((time, rate, bufferedTime) => {
+    const handleWaiting = useCallback((time:number, rate:number, bufferedTime:number) => {
         console.log('# video waiting', time, rate,bufferedTime)
         addStatus(`waiting t=${time.toFixed(1)}s rate=${rate} buf=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);

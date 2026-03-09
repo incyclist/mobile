@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { useUnmountEffect } from '../../hooks';
 import { ElevationGraphProps } from './types';
-import { ElevationGraphView } from './ElevationGraphView';
 import { computeGraphPoints } from './utils';
+import { ElevationGraphView } from './ElevationGraphView';
 
 export const ElevationGraph = (props: ElevationGraphProps) => {
     const {

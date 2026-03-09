@@ -14,6 +14,7 @@ import { RideMenuProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useLogging } from '../../hooks';
 import { Icon } from '../Icon';
+import { Button } from '../ButtonBar';
 
 export const RideMenu = ({
     visible,
@@ -30,7 +31,7 @@ export const RideMenu = ({
     const isCompact = layout === 'compact';
     const { logEvent } = useLogging('Incyclist');
 
-    const panelWidth = isCompact ? screenWidth * 0.80 : Math.min(300, screenWidth * 0.35);
+    const panelWidth = isCompact ? screenWidth * 0.35 : Math.min(300, screenWidth * 0.35);
     
     // Start off-screen (bottom)
     const refPanelHeight = useRef<number>(1000);
@@ -113,21 +114,6 @@ export const RideMenu = ({
     const backdropPointerEvents = visible ? 'auto' : 'none';
     const backdropOpacity = visible ? 1 : 0;
 
-    const handleEndRide = () => {
-        logEvent({ message: 'button clicked', button: 'End Ride' });
-        onEndRide();
-    };
-
-    const handleResume = () => {
-        logEvent({ message: 'button clicked', button: 'Resume' });
-        onResume();
-    };
-
-    const handlePause = () => {
-        logEvent({ message: 'button clicked', button: 'Pause' });
-        onPause();
-    };
-
     return (
         <View 
             style={StyleSheet.absoluteFill} 
@@ -163,30 +149,14 @@ export const RideMenu = ({
                 </View>
 
                 <View style={styles.footer}>
-                    {showResume ? (
-                        <TouchableOpacity 
-                            onPress={handleResume} 
-                            style={[styles.actionButton, styles.resumeButton]}
-                        >
-                            <Text style={styles.actionButtonText}>Resume</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity 
-                            onPress={handlePause} 
-                            style={[styles.actionButton, styles.resumeButton]}
-                        >
-                            <Text style={styles.actionButtonText}>Pause</Text>
-                        </TouchableOpacity>
-                    )}
+                    {showResume ? 
+                        <Button label='Resume' primary onClick={onResume} />
+                     : 
+                        <Button label='Pause' primary onClick={onPause} />                        
+                    }
                     
                     <View style={styles.buttonGap} />
-
-                    <TouchableOpacity 
-                        onPress={handleEndRide} 
-                        style={[styles.actionButton, styles.endRideButton]}
-                    >
-                        <Text style={styles.actionButtonText}>End Ride</Text>
-                    </TouchableOpacity>
+                    <Button label='End Ride' attention onClick={onEndRide} />
                 </View>
             </Animated.View>
         </View>

@@ -6,9 +6,11 @@ import { ExitPage } from '../ExitPage';
 import { PairingPage } from '../PairingPage';
 import { navigationRef } from '../../services';
 import { RoutesPage } from '../RoutesPage/RoutesPage';
-import { RidePage } from '../Ride';
+import { RidePage } from '../Ride'; // New import
+import { VideoDemoPage } from '../VideoDemo/RidePage';
 
 const Stack = createNativeStackNavigator();
+
 
 export const RootNavigator = () => {
     return (
@@ -26,8 +28,20 @@ export const RootNavigator = () => {
                 <Stack.Screen name="workouts" component={MainPage} />
                 <Stack.Screen name="activities" component={MainPage} />
                 <Stack.Screen name="devices" component={PairingPage} />
+                <Stack.Screen name="pairing" component={PairingPage} />
+                <Stack.Screen name="pairingStart">
+                    { ()=> <PairingPage forRide/>} 
+                </Stack.Screen>
+                
                 <Stack.Screen name="exit" component={ExitPage} />
-                <Stack.Screen name="rideDeviceOK" component={RidePage} />
+                <Stack.Screen name="videoDemo" component={VideoDemoPage} /> 
+                
+                <Stack.Screen name='rideDeviceOK'>
+                    {() => <RidePage />}
+                </Stack.Screen>
+                <Stack.Screen name='rideSimulate'>
+                    {() => <RidePage simulate={true} />}
+                </Stack.Screen>
             </Stack.Navigator>
         </NavigationContainer>
     );
