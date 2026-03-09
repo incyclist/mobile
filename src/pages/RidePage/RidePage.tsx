@@ -3,7 +3,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getRidePageService, RideType } from 'incyclist-services';
 import { MainBackground, Button } from '../../components';
-import { VideoRidePage } from '../VideoRidePage';
+import { VideoRidePage } from './Video';
 import { colors } from '../../theme';
 import { textSizes } from '../../theme';
 

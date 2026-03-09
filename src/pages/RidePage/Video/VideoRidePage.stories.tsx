@@ -3,8 +3,8 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { VideoRidePageTestView } from './TestView';
-import sydneyRoute from '../../../__tests__/testdata/sydney.json';
-import teideRoute from '../../../__tests__/testdata/ES_Teide.json';
+import sydneyRoute from '../../../../__tests__/testdata/sydney.json';
+import teideRoute from '../../../../__tests__/testdata/ES_Teide.json';
 
 const callbacks = {
     onMenuOpen: fn(),

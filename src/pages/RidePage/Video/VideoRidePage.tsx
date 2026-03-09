@@ -7,8 +7,8 @@ import {
     RidePageService,
     RideType 
 } from 'incyclist-services';
-import { useUnmountEffect } from '../../hooks';
-import { colors } from '../../theme';
+import { useUnmountEffect } from '../../../hooks';
+import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
 
 interface VideoRidePageProps {

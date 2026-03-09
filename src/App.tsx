@@ -1,6 +1,6 @@
 import { AppState, Platform, StatusBar, useColorScheme,BackHandler, useWindowDimensions} from 'react-native';
 import { SafeAreaProvider   } from 'react-native-safe-area-context';
-import { MainPage } from './pages/Main/MainPage';
+import { MainPage } from './pages/MainPage/MainPage';
 import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
 import { PropsWithChildren, ReactElement, useEffect,  useState } from 'react';
 import { initBindings } from './bindings/factory';

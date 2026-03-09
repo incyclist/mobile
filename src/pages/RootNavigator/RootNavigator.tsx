@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { MainPage } from '../Main';
+import { MainPage } from '../MainPage';
 import { ExitPage } from '../ExitPage';
 import { PairingPage } from '../PairingPage';
 import { navigationRef } from '../../services';
 import { RoutesPage } from '../RoutesPage/RoutesPage';
-import { RidePage } from '../Ride'; // New import
+import { RidePage } from '../RidePage'; // New import
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 
 const Stack = createNativeStackNavigator();
