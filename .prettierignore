@@ -1,0 +1,28 @@
+# Build outputs
+dist/
+build/
+
+# Native
+android/
+ios/
+
+# Assets
+assets/
+documents/
+internal/
+__tests__/
+rules/
+
+# Dependencies
+node_modules/
+config/
+scripts/
+
+# Generated
+coverage/
+.expo/
+.bundle/
+.agent-history/
+.agent-data/
+agent*.*
+*.md
