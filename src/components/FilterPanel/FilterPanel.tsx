@@ -16,6 +16,10 @@ import { Icon } from '../Icon';
  */
 const getFilterPills = (f: SearchFilter): string[] => {
     const pills: string[] = [];
+    if (!f) {
+        return []
+    }
+
     if (f.title) pills.push(`*${f.title}*`);
     if (f.contentType) pills.push(f.contentType);
     if (f.routeType) pills.push(f.routeType);
@@ -164,9 +168,9 @@ export const FilterPanel = (props: FilterPanelProps) => {
         routeSources, 
         maxDistance, 
         maxElevation 
-    } = options;
+    } = options??{};
 
-    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>(undefined);
+    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>({});
     const [localTitle, setLocalTitle] = useState('');
     const [openField, setOpenField] = useState<string | null>(null);
 
@@ -178,8 +182,8 @@ export const FilterPanel = (props: FilterPanelProps) => {
         if (localFilters)
             return;
 
-        setLocalFilters(filters);
-        setLocalTitle(filters.title ?? '');
+        setLocalFilters(filters??{});
+        setLocalTitle(filters?.title ?? '');
     }, [filters, localFilters]);
 
     if (!localFilters)
@@ -199,9 +203,10 @@ export const FilterPanel = (props: FilterPanelProps) => {
         const defaultUnit = key === 'distance' ? (maxDistance?.unit ?? 'km') : (maxElevation?.unit ?? 'm');
         const current = localFilters[key] || {};
         
+        const unit = typeof current[type]==='number' ? defaultUnit : current[type]?.unit || defaultUnit
         const updated = {
             ...current,
-            [type]: val !== undefined ? { value: val, unit: current[type]?.unit || defaultUnit } : undefined
+            [type]: val !== undefined ? { value: val, unit } : undefined
         };
 
         applyFilter({
@@ -254,14 +259,14 @@ export const FilterPanel = (props: FilterPanelProps) => {
                                 <View style={styles.minMaxRow}>
                                     <FilterInput 
                                         compact={compact} max={maxDistance?.value} fieldName="distance_min"
-                                        value={localFilters.distance?.min?.value} logEvent={logEvent}
+                                        value={localFilters?.distance?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
                                         onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
                                         compact={compact} max={maxDistance?.value} fieldName="distance_max"
-                                        value={localFilters.distance?.max?.value} logEvent={logEvent}
+                                        value={localFilters?.distance?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
                                         onFocus={closeDropdown}
                                     />
@@ -272,14 +277,14 @@ export const FilterPanel = (props: FilterPanelProps) => {
                                 <View style={styles.minMaxRow}>
                                     <FilterInput 
                                         compact={compact} max={maxElevation?.value} fieldName="elevation_min"
-                                        value={localFilters.elevation?.min?.value} logEvent={logEvent}
+                                        value={localFilters?.elevation?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
                                         onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
                                         compact={compact} max={maxElevation?.value} fieldName="elevation_max"
-                                        value={localFilters.elevation?.max?.value} logEvent={logEvent}
+                                        value={localFilters?.elevation?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
                                         onFocus={closeDropdown}
                                     />

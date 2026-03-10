@@ -17,6 +17,7 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
+import { FormattedNumber } from '../RouteItem';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -59,18 +60,38 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const [data, setData] = useState<UIRouteSettings>(initialSettings);
     const [initialized, setInitialized] = useState(false);
 
+
+    const val = ( (v:number|FormattedNumber, defValue?:number)=> {
+
+
+        const getVal = ()=> {
+        if (typeof v==='number' )
+            return v.toString()
+        if (typeof v==='undefined' || v.value===undefined)
+            return (defValue!==undefined) ? defValue.toString(): ''
+         return v.value.toString()
+        }
+
+        const res = getVal() 
+        console.log('# val', v, defValue, '->' ,res)
+
+        return res
+    })
+
     // Input and Dropdown States
-    const [startPosInput, setStartPosInput] = useState(initialSettings.startPos.value.toString());
-    const [realityInput, setRealityInput] = useState(initialSettings.realityFactor.toString());
+    const [startPosInput, setStartPosInput] = useState(val(initialSettings?.startPos,0));
+    const [realityInput, setRealityInput] = useState(val(initialSettings?.realityFactor,100));
     const [segmentDropdownOpen, setSegmentDropdownOpen] = useState(false);
     const [segmentTriggerHeight, setSegmentTriggerHeight] = useState(0);
 
     useEffect(() => {
         if (!initialized) {
             setInitialized(true);
+
+            console.log('# init effect', initialSettings)
             setData(initialSettings);
-            setStartPosInput(initialSettings.startPos.value.toString());
-            setRealityInput(initialSettings.realityFactor.toString());
+            setStartPosInput(val(initialSettings?.startPos,0));
+            setRealityInput(val(initialSettings?.realityFactor,100));
         }
     }, [initialized, initialSettings]);
 
@@ -79,11 +100,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }, [prevRides, initialShowPrev]);
 
     useEffect(() => {
-        setStartPosInput(data?.startPos?.value?.toString());
-    }, [data.startPos?.value]);
+        setStartPosInput( val(data?.startPos,0));
+    }, [data?.startPos]);
 
     useEffect(() => {
-        setRealityInput(data?.realityFactor?.toString());
+        setRealityInput( val(data?.realityFactor,100));
     }, [data.realityFactor]);
 
     const handleApplySettings = useCallback((updated: UIRouteSettings) => {
@@ -98,7 +119,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: undefined,
-                startPos: { value: 0, unit: data.startPos.unit },
+                startPos: { value: 0, unit: data.startPos?.unit },
                 endPos: undefined
             });
             return;
@@ -108,8 +129,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: segName,
-                startPos: { value: Number(seg.start), unit: data.startPos.unit },
-                endPos: { value: Number(seg.end), unit: data.startPos.unit }
+                startPos: { value: Number(seg.start), unit: data.startPos?.unit },
+                endPos: { value: Number(seg.end), unit: data.startPos?.unit }
             });
         }
     };
@@ -118,7 +139,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         const val = parseFloat(valStr.replace(/[^0-9.]/g, ''));
         if (!isNaN(val)) {
             logEvent({ message: 'text entered', field: 'startPos', value: val, eventSource: 'user' });
-            const result = onUpdateStartPos(val);
+            const result = onUpdateStartPos(val??0);
             if (result) handleApplySettings({ ...data, ...result });
         }
     };
@@ -127,7 +148,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         const val = Math.min(100, Math.max(0, parseFloat(valStr.replace(/[^0-9.]/g, ''))));
         if (!isNaN(val)) {
             logEvent({ message: 'text entered', field: 'realityFactor', value: val, eventSource: 'user' });
-            handleApplySettings({ ...data, realityFactor: val });
+            handleApplySettings({ ...data, realityFactor: val??100 });
         }
     };
 

@@ -112,6 +112,10 @@ export const RoutesPage = () => {
         service.onFilterChanged(filters);
     },[service])
 
+    const onStartRoute = useCallback( ()=> {
+        service.start()
+    },[service])
+
     const onFilterToggle = useCallback( () => {
         const visible = !props.filterVisible
         setFilterVisible(visible);
@@ -129,7 +133,7 @@ export const RoutesPage = () => {
     const onImportClose = useCallback(() => {
         setShowImportDialog(false)
         //service.refreshRoutes(); // Refresh routes after import dialog closes
-    }, [service]);
+    }, []);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)
@@ -147,7 +151,7 @@ export const RoutesPage = () => {
             routes={(props.routes as RouteItemProps[]) ?? []}
             filters={props.filters}
             filterOptions={props.filterOptions!}
-            filterVisible={props.filterVisible}
+            filterVisible={props.filterVisible}            
             onFilterChanged={onFilterChanged}
             onFilterToggle={onFilterToggle}
             onImportClicked={onImportClicked}
@@ -157,7 +161,7 @@ export const RoutesPage = () => {
             onImportClose={onImportClose}       // Pass to view
         />
         {props.detailRouteId && (
-            <DetailsDialog routeId={props.detailRouteId} />
+            <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
         )}
         {props.showImportDialog && (
             <ImportDialog  />

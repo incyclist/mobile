@@ -2,16 +2,17 @@ import { AppState, Platform, StatusBar, useColorScheme,BackHandler, useWindowDim
 import { SafeAreaProvider   } from 'react-native-safe-area-context';
 import { MainPage } from './pages/MainPage/MainPage';
 import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
-import { PropsWithChildren, ReactElement, useEffect,  useState } from 'react';
+import { PropsWithChildren, ReactElement, useEffect,  useRef,  useState } from 'react';
 import { initBindings } from './bindings/factory';
 import app from '../app.json'
-import { useLogging } from './hooks';
+import { useLogging, useUnmountEffect } from './hooks';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 import { getBleBinding } from './bindings/ble';
 import { RootNavigator } from './pages/RootNavigator';
 import { LogBox } from 'react-native';
 import { getUIBinding } from './bindings/ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState
@@ -46,6 +47,8 @@ export const  App =() => {
     const {logError,logEvent} = useLogging('Incyclist')
 
 
+    const {stopMonitoring} = useOnlineStatusMonitoringInit()
+    const refStopMonitoring = useRef<()=>void>(stopMonitoring)
      
 
     useEffect(() => {
@@ -115,6 +118,10 @@ export const  App =() => {
         init()      
 
     },[initialized, logError, logEvent, service])
+
+    useUnmountEffect( ()=> {
+        refStopMonitoring?.current()
+    })
 
 
     if (!initialized) {

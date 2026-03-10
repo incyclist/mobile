@@ -9,6 +9,7 @@ import {
 import { useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
+import { sleep } from '../../utils/timers';
 
 export const Video = (props: VideoProps) => {
     const {
@@ -35,9 +36,11 @@ export const Video = (props: VideoProps) => {
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
     const refHidden = useRef(hidden);
+    
     const refInfo = useRef({
         loading: false,
         loaded: false,
+        
         playing: false,
         startPlaying: false,
         ended: false,
@@ -72,27 +75,45 @@ export const Video = (props: VideoProps) => {
     }, []);
 
     const handleLoad = useCallback((_data: OnLoadData) => {
-        refInfo.current.loading = false;
-        refInfo.current.loaded = false;
         seekTo(startTime ?? 0);
+        refInfo.current.loading = true
+        refInfo.current.loaded = false
+       
     }, [startTime, seekTo]);
 
-    const handleSeek = useCallback((_data: OnSeekData) => {
+    const handleSeek = useCallback((data: OnSeekData) => {
+
+        const done = ()=> {
+
+            if (!refInfo.current.loading)
+                return;
+
+            refInfo.current.loading = false
+            refInfo.current.loaded = true
+            // internalHidden=false is safe here — VideoView receives (hidden || internalHidden)
+            // so if the hidden prop is true, the component remains invisible regardless        
+            setInternalHidden(false);
+            onLoaded?.(refInfo.current.bufferedTime);
+
+        }
+
         if (refInfo.current.loaded) {
             return;
         }
-        refInfo.current.loaded = true;
+        
         setPaused(true);
+        if (data.currentTime===(startTime ?? 0)) {
+            done()
+        }
+        else {
+            seekTo(startTime ?? 0);            
+            sleep(5).then(done)
+        }
 
-        // internalHidden=false is safe here — VideoView receives (hidden || internalHidden)
-        // so if the hidden prop is true, the component remains invisible regardless        
-        setInternalHidden(false);
-        onLoaded?.(refInfo.current.bufferedTime);
-    }, [onLoaded]);
+
+    }, [onLoaded, seekTo, startTime]);
 
     const handleProgress = useCallback((data: OnProgressData) => {
-        console.log('# [Video].handleProgress raw:', JSON.stringify(data) );
-
         if (refInfo.current.ended) {
             return;
         }
@@ -112,6 +133,10 @@ export const Video = (props: VideoProps) => {
 
     const handleBuffer = useCallback((data: OnBufferData) => {
         if (data.isBuffering) {
+            if (!refInfo.current.loaded) {
+                return;
+            }
+
             onWaiting?.(
                 refInfo.current.currentTime,
                 refInfo.current.currentRate,

@@ -84,8 +84,20 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     return (
         <View style={styles.container}>
             {/* Everything below is rendered but made invisible during start overlay */}
-            <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
 
+
+            {/* Dashboard */}
+            { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
+                <View style={[
+                    styles.dashboardContainer, 
+                    isCompact ? styles.dashboardCompact : styles.dashboardTablet,
+                    dashboardDynamicStyle
+                ]}>
+                    <RideDashboard layout='icon-left'/>
+                </View>
+            </View>}
+
+            <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
                 {video && (
                     <Video 
@@ -93,27 +105,17 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         width='100%' 
                         height='100%' 
                         {...video} 
-                        observer={rideObserver ?? undefined} 
                     />
                 )}
-                {videos?.map(v => (
+                {videos?.map(v => { 
+                    return (
                     <Video 
                         key={v.src} 
                         width='100%' 
                         height='100%' 
-                        {...v} 
-                        observer={rideObserver ?? undefined} 
+                        {...v}
                     />
-                ))}
-
-                {/* Dashboard */}
-                <View style={[
-                    styles.dashboardContainer, 
-                    isCompact ? styles.dashboardCompact : styles.dashboardTablet,
-                    dashboardDynamicStyle
-                ]}>
-                    <RideDashboard />
-                </View>
+                )})}
 
                 {/* 2km Elevation Preview */}
                 <ElevationGraph
@@ -162,6 +164,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     />
                 )}
             </View>
+
 
             {/* Background shown during start overlay */}
             {startOverlayProps && <MainBackground />}
@@ -220,7 +223,7 @@ const styles = StyleSheet.create({
     elevationFull: {
         flex: 1,
         height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.0)',
     },
     menuButtonContainer: {
         paddingHorizontal: 8,

@@ -25,6 +25,7 @@ export const VideoView = memo((props: VideoViewProps) => {
     
     useWhyDidYouRender('VideoView',props)
 
+    console.log('# [Video] render', src)
     return (
         <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, hidden && styles.hidden]}>
             <RNVideo

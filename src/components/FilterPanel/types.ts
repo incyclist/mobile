@@ -2,16 +2,7 @@ export interface MinMax {
     min?: { value: number; unit: string };
     max?: { value: number; unit: string };
 }
-
-export interface SearchFilter {
-    title?: string;
-    distance?: MinMax;
-    elevation?: MinMax;
-    country?: string;
-    contentType?: string;
-    routeType?: string;
-    routeSource?: string;
-}
+import { SearchFilter } from "incyclist-services";
 
 export interface SearchFilterOptions {
     countries: Array<string>;
@@ -30,3 +21,6 @@ export interface FilterPanelProps {
     onFilterChanged: (filters: SearchFilter) => void;
     onToggle: () => void;
 }
+
+
+export type {SearchFilter }

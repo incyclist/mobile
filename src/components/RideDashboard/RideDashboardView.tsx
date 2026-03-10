@@ -48,7 +48,7 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false 
         
         // Fix 2: Smaller font for Time column only in compact or icon-left mode
         const isTimeColumn = item.title === 'Time';
-        const effectiveValueSize = (compact || effectiveLayout === 'icon-left') && isTimeColumn
+        const effectiveValueSize =  isTimeColumn
             ? valueSize * 0.75
             : valueSize;
 

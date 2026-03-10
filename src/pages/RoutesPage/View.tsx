@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity
 } from 'react-native';
-import { RoutePageDisplayProps } from 'incyclist-services';
+import { RoutePageDisplayProps, SearchFilter } from 'incyclist-services';
 import {
     MainBackground,
     NavigationBar,
@@ -22,6 +22,7 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onFilterToggle: () => void;
     onNavigate: (item: TNavigationItem) => void;
     onImportClicked: () => void;
+    onFilterChanged: (filters:SearchFilter)=>void
     loading: boolean; 
     compact: boolean;
     showImportDialog: boolean; // Added to props interface
@@ -41,8 +42,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onImportClicked,
         onNavigate,
         compact,
-        showImportDialog, // Destructured
-        onImportClose,    // Destructured
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
@@ -107,7 +106,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                             </View>
                         ) : (
                             <RoutesTable
-                                routes={routes}
+                                routes={routes!}
                                 // As per instruction: Do NOT add onSelect or onDelete to RoutesTable directly
                                 // onSelect={() => {}} 
                                 // onDelete={() => {}}

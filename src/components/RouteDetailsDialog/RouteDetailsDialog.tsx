@@ -4,8 +4,9 @@ import { useRouteList, useActivityList } from 'incyclist-services';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
+import { RouteDetailsDialogProps } from './types';
 
-export const RouteDetailsDialog = ({ routeId }: { routeId: string }) => {
+export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps ) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
     
@@ -115,6 +116,7 @@ export const RouteDetailsDialog = ({ routeId }: { routeId: string }) => {
                 logEvent({ message: 'button clicked', button: 'start', eventSource: 'user' });
                 card.changeSettings(updatedSettings);
                 card.start();
+                onStart()
             }}
             onCancel={() => {
                 logEvent({ message: 'button clicked', button: 'cancel', eventSource: 'user' });

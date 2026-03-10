@@ -12,13 +12,15 @@ import {
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
+
+    console.log('# [StartRideDisplay] render',props)
     const layout = useScreenLayout();
 
     const isVideoRide = 'videoState' in props;
     const isGPXRide = 'mapType' in props;
 
     // State determination logic
-    const controlDeviceError = devices.find(d => d.isControl && d.status === 'Error');
+    const controlDeviceError = (devices??[]).find(d => d.isControl && d.status === 'Error');
     const mapError = isGPXRide && (props as any).mapStateError;
     const videoError = isVideoRide && (props as any).videoState === 'Start:Failed';
     const sensorError = rideState === 'Error' && devices.find(d => !d.isControl && d.status === 'Error');

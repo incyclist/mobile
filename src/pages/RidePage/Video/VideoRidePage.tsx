@@ -10,6 +10,7 @@ import {
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
+import { MainBackground } from '../../../components';
 
 interface VideoRidePageProps {
     simulate?: boolean;
@@ -86,7 +87,11 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onCancelStart = useCallback(() => refService.current?.onCancelStart(), []);
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
-        return <View style={styleEmpty} />;
+        return (
+            <View style={styleEmpty}>
+                <MainBackground />
+            </View>
+        )
     }
 
     return (

@@ -1,5 +1,10 @@
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
+export interface RouteDetailsDialogProps {
+    routeId: string     
+    onStart:()=>void
+}
+
 export interface RoutePoint {
     lat: number;
     lng: number;

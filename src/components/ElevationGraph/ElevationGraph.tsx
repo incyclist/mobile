@@ -4,6 +4,7 @@ import { useUnmountEffect } from '../../hooks';
 import { ElevationGraphProps } from './types';
 import { computeGraphPoints } from './utils';
 import { ElevationGraphView } from './ElevationGraphView';
+import { RoutePoint } from 'incyclist-services';
 
 export const ElevationGraph = (props: ElevationGraphProps) => {
     const {
@@ -36,7 +37,12 @@ export const ElevationGraph = (props: ElevationGraphProps) => {
 
     // Mutable ref always holds the latest implementation to avoid stale closures
     const refOnPositionUpdate = useRef<(pos: number) => void>(undefined);
-    refOnPositionUpdate.current = (newPos: number) => {
+    refOnPositionUpdate.current = (pos: number|{position:RoutePoint}) => {
+
+        const newPos =  (typeof pos==='number') ? 
+            pos : 
+            pos.position.routeDistance
+
         setMarkerPosition(newPos);
 
         if (range !== undefined) {

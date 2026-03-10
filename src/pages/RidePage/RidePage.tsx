@@ -11,14 +11,18 @@ interface RidePageProps {
     simulate?: boolean;
 }
 
-const NotImplementedView = () => {
-    const navigation = useNavigation();
+interface NotImplementedViewProps {
+    onBack:()=>void
+}
+
+const NotImplementedView = ( {onBack}:NotImplementedViewProps) => {
+    
     return (
         <View style={styles.container}>
             <MainBackground />
             <View style={styles.content}>
                 <Text style={styles.message}>Not yet implemented</Text>
-                <Button id='back' label='Back' primary={false} onClick={() => navigation.goBack()} />
+                <Button id='back' label='Back' primary onClick={onBack} />
             </View>
         </View>
     );
@@ -27,6 +31,7 @@ const NotImplementedView = () => {
 export const RidePage = ({ simulate = false }: RidePageProps) => {
     const refInitialized = useRef(false);
     const [rideType, setRideType] = useState<RideType | null>(null);
+    const service = getRidePageService()
 
     const onRideTypeChange = useCallback((updated: RideType) => {
         setRideType(updated);
@@ -42,7 +47,7 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }, []);
 
     if (rideType === null) {
-        return <NotImplementedView />;
+        return <NotImplementedView onBack={()=>service.onEndRide()}/>;
     }
 
     if (rideType === 'Video') {
@@ -50,21 +55,21 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }
 
     // Default case for any other rideType not explicitly handled
-    return <NotImplementedView />;
+    return <NotImplementedView onBack={()=>service.onEndRide()}/>;
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 24,
-    },
-    message: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-    },
+container: {
+    flex: 1,
+},
+content: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 24,
+},
+message: {
+    color: colors.text,
+    fontSize: textSizes.noDataText,
+},
 });

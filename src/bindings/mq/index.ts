@@ -35,35 +35,58 @@ export class MessageQueue extends EventEmitter  {
     }
 
 
+
+
     enabled(): boolean {
         return true
     }
 
     subscribe(topic: string) {
+        try {
+            if (!this.client)
+                return;
 
-        // QoS is usually required by this lib (0, 1, or 2)
-        this.client.subscribe([topic], [0]); 
-        this.emit('mq-subscribed',topic)
+            // QoS is usually required by this lib (0, 1, or 2)
+            this.client.subscribe([topic], [0]); 
+            this.emit('mq-subscribed',topic)
+        }
+        catch(err) {
+            this.logError(err,'subscribe')
+        }
     }
 
     unsubscribe(topic: string) {
-        this.client.unsubscribe([topic]);
+        try {
+            if (!this.client)
+                return;
+
+            this.client.unsubscribe([topic]);
+        }
+        catch(err) {
+            this.logError(err,'subscribe')
+        }
     }
 
     publish(topic: string, payload: object) {
-        let message:string|undefined
         try {
-            message = JSON.stringify(payload);
-            if (!this.isConnected) {
-                this.queue.push( {topic,payload:message,ts:Date.now()})
-                return
-            }
+            let message:string|undefined
+            try {
+                message = JSON.stringify(payload);
+                if (!this.isConnected) {
+                    this.queue.push( {topic,payload:message,ts:Date.now()})
+                    return
+                }
 
-            this.send(topic,message)
+                this.send(topic,message)
+            }
+            catch {
+                if (message)
+                    this.queue.push( {topic,payload:message,ts:Date.now()})
+            
+            }
         }
-        catch {
-            if (message)
-                this.queue.push( {topic,payload:message,ts:Date.now()})
+        catch(err) {
+            this.logError(err,'publish')
         }
     }
 
@@ -202,6 +225,9 @@ export class MessageQueue extends EventEmitter  {
         }
     }
 
+    protected logError(err:any, fn:string) {
+        this.logger.logEvent({ message:'error', fn, error:err.message, stack:err.stack})
+    }
 
     protected getSecret(key:string) {
         return getSecretBinding().getSecret(key)

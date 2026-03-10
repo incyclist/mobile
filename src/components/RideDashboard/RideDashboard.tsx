@@ -12,6 +12,7 @@ export const RideDashboard = ({ layout  }: RideDashboardProps) => {
 
     const screenLayout = useScreenLayout()
     const compact = screenLayout === 'compact'
+    const confirmedLayout = items.length>7 ? 'icon-top' : layout
 
     const onData = useCallback(() => {
         const update = service.getDashboardDisplayProperties();
@@ -21,30 +22,35 @@ export const RideDashboard = ({ layout  }: RideDashboardProps) => {
     }, [service]);
 
     useEffect(() => {
-        if (refInitialized.current) {
+        if (refInitialized.current && refObserver.current) {
             return;
         }
+
         refInitialized.current = true;
 
         const observer = service.getObserver();
+        console.log('# [RideDashboard] init effect',{observer})
         if (!observer) {
             // no active ride — render nothing
+            refInitialized.current = false;
             return;
         }
         refObserver.current = observer;
         onData();
         observer.on('data', onData);
-    }, [onData, service]);
+    }, [items, onData, service]);
 
     useUnmountEffect(() => {
         refObserver.current?.off('data', onData);
         refObserver.current = null;
         refInitialized.current = false;
+        console.log('# [RideDashboard] unmount effect')
     });
 
     if (!items?.length) {
-        return null;
+        return false;
     }
 
-    return <RideDashboardView items={items} layout={layout} compact={compact} />;
+
+    return <RideDashboardView items={items} layout={confirmedLayout} compact={compact} />;
 };
