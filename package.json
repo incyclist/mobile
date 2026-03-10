@@ -1,12 +1,12 @@
 {
   "name": "incyclist",
-  "version": "0.0.6",
+  "version": "1.0.8",
   "private": true,
   "scripts": {
     "clean:android": "./scripts/clean.sh",
     "dist:android": "./scripts/build-release-android.sh",
-    "dev:android": "APP_VARIANT=dev   react-native run-android --mode dev",
-    "debug:android": "APP_VARIANT=debug  react-native run-android --mode debug",
+    "dev:android": "APP_VARIANT=dev   react-native run-android --mode dev  --active-arch-only",
+    "debug:android": "APP_VARIANT=debug  react-native run-android --mode debug --active-arch-only",
     "release:android": "APP_VARIANT=release  react-native run-android --mode release",
     "ios": "react-native run-ios",
     "lint": "eslint .",
@@ -30,7 +30,7 @@
     "@sinonjs/text-encoding": "^0.7.3",
     "events": "^3.3.0",
     "gd-eventlog": "^0.1.27",
-    "incyclist-services": "^1.7.26",
+    "incyclist-services": "^1.7.27",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "react": "^19.2.4",
@@ -45,7 +45,7 @@
     "react-native-get-random-values": "^2.0.0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-localize": "^3.7.0",
-    "react-native-mmkv": "^4.2.0",
+    "react-native-mmkv": "^4.1.2",
     "react-native-orientation-locker": "^1.7.0",
     "react-native-permissions": "^5.5.1",
     "react-native-quick-crypto": "^1.0.16",
@@ -105,5 +105,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "codegenConfig": {
+    "name": "AppSpecs",
+    "type": "all",
+    "jsSrcsDir": "src"
   }
 }
