@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback,  useRef, memo } from 'react';
+import React, { useEffect, useState, useCallback,  useRef, memo, useMemo } from 'react';
 import { getDevicesPageService,  Observer } from 'incyclist-services';
 import { BleInterfaceSettingsView } from './BleInterfaceSettingsView';
 import { BleInterfaceSettingsProps } from './types';
@@ -10,7 +10,7 @@ import { getBleBinding } from '../../bindings/ble';
 export const BleInterfaceSettings = memo(({   }: BleInterfaceSettingsProps) => {
 
     const pairingService = getDevicesPageService();
-    const permissionService = new PermissionService()
+    const permissionService = useMemo( ()=> new PermissionService(),[])
 
     const [displayProps, setDisplayProps] = useState(pairingService.getInterfaceSettingsDisplayProps());
     const [hasPermissions, setHasPermissions] = useState<boolean|undefined>(undefined);
@@ -24,7 +24,7 @@ export const BleInterfaceSettings = memo(({   }: BleInterfaceSettingsProps) => {
     const checkPermissions = useCallback(async () => {
         const granted = await permissionService.hasBlePermission();
         setHasPermissions(granted);
-    }, []);
+    }, [permissionService]);
 
     useEffect(() => {
         if (hasPermissions!==undefined)
@@ -49,6 +49,7 @@ export const BleInterfaceSettings = memo(({   }: BleInterfaceSettingsProps) => {
         setHasPermissions(granted);
         if (granted) {
             pairingService.refreshInterface();
+            pairingService.closeInterfaceSettings();
         }
     };
 

@@ -59,7 +59,8 @@ export class PermissionService {
         if (Number(Platform.Version) >= 31) {
             return [
                 PERMISSIONS.ANDROID.BLUETOOTH_SCAN,
-                PERMISSIONS.ANDROID.BLUETOOTH_CONNECT
+                PERMISSIONS.ANDROID.BLUETOOTH_CONNECT,
+                PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
             ]
         }
 
