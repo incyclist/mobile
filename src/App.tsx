@@ -12,24 +12,34 @@ import { RootNavigator } from './pages/RootNavigator';
 import { LogBox } from 'react-native';
 import { getUIBinding } from './bindings/ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState
 
 
-const SizeLogger =({ children }: PropsWithChildren<{}>): ReactElement =>{
-
+const DeviceInfoLogger =({ children }: PropsWithChildren<{}>): ReactElement =>{
+    const refLogged = useRef(false);
     let {width,height,scale,fontScale} = useWindowDimensions()
 
     width = Math.floor(width)
-    height = Math.floor(width)
+    height = Math.floor(height)
     scale = Math.round(scale*10)/10
     fontScale = Math.round(fontScale*10)/10
     
 
-    const {logEvent} = useLogging('Incyclist')
-    logEvent({message:'display size', width, height, scale, fontScale})
+    useEffect(() => {
+        if (refLogged.current)
+            return
+
+        if (width!==undefined && height!==undefined) {
+            logDeviceInfo({width, height, scale, fontScale});
+            refLogged.current = true
+        }
+    }, [fontScale, height, scale, width]);
+    
+
     return (
         <>
         {children}
@@ -133,10 +143,10 @@ export const  App =() => {
         <SafeAreaProvider>
         <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         {initialized ? 
-            <SizeLogger>
+            <DeviceInfoLogger>
                 <RootNavigator />
             
-            </SizeLogger>
+            </DeviceInfoLogger>
             : <MainPage/>}
         </SafeAreaProvider>
     </GestureHandlerRootView>
