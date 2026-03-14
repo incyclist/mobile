@@ -1,17 +1,18 @@
 import { InterfaceSettingsDisplayProps } from 'incyclist-services';
 
-export type BleInterfaceSettingsProps = InterfaceSettingsDisplayProps &  {
+export type BleInterfaceSettingsProps = InterfaceSettingsDisplayProps & {
     visible: boolean;
-    onClose: () => void;    
-}
+    onClose: () => void;
+};
 
 export interface BleInterfaceSettingsViewProps extends InterfaceSettingsDisplayProps {
-    
     onClose: () => void;
     onEnable: () => void;
     onDisable: () => void;
     onReconnect: () => void;
     onRequestPermissions: () => void;
+    onOpenLocationSettings?: () => void;
     needsPermissions: boolean;
-    loading?: boolean
+    locationServicesDisabled?: boolean;
+    loading?: boolean;
 }

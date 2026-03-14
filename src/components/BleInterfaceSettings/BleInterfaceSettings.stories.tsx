@@ -11,6 +11,7 @@ const meta: Meta<typeof BleInterfaceSettingsView> = {
         onDisable: fn(),
         onReconnect: fn(),
         onRequestPermissions: fn(),
+        onOpenLocationSettings: fn(),
     },
 };
 
@@ -47,6 +48,16 @@ export const PermissionError: StoryObj<typeof BleInterfaceSettingsView> = {
         enabled: true,
     },
 };
+
+export const LocationServicesDisabled: StoryObj<typeof BleInterfaceSettingsView> = {
+    args: {
+        state: 'error',
+        needsPermissions: false,
+        locationServicesDisabled: true,
+        enabled: true,
+    },
+};
+
 export const Loading: StoryObj<typeof BleInterfaceSettingsView> = {
     args: {
         state: 'error',

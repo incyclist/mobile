@@ -6,6 +6,8 @@ import {
     RESULTS,
     Permission
 } from 'react-native-permissions'
+import DeviceInfo from 'react-native-device-info'
+
 
 export class PermissionService {
 
@@ -43,6 +45,12 @@ export class PermissionService {
 
         return true
     }
+
+    async hasLocationServicesEnabled(): Promise<boolean> {
+        if (Platform.OS !== 'android') return true
+        if (Number(Platform.Version) >= 31) return true
+        return await DeviceInfo.isLocationEnabled()
+    }    
 
     async requestStoragePermission() {
         if (Platform.OS === 'android') {
