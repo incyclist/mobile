@@ -90,3 +90,4 @@ prompt.md
 agent.config.json
 .agent-history/
 .agent-data/
+.agent-debug/
