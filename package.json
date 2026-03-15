@@ -15,7 +15,8 @@
     "test": "jest",
     "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output ~/dist/index.android.bundle --assets-dest ~/dist",
     "postinstall": "patch-package",
-    "storybook": "storybook dev -p 6006"
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build"
   },
   "dependencies": {
     "@fdfedin/react-native-native-mqtt": "^0.1.12",
