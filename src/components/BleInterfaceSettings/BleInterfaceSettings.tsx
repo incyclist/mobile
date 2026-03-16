@@ -6,7 +6,7 @@ import { BleInterfaceSettingsProps } from './types';
 import { PermissionService } from '../../services/PermissionsService';
 import { getBleBinding } from '../../bindings/ble';
 
-export const BleInterfaceSettings = memo(({ }: BleInterfaceSettingsProps) => {
+export const BleInterfaceSettings = memo(() => {
     const pairingService = getDevicesPageService();
     const permissionService = useMemo(() => new PermissionService(), []);
 

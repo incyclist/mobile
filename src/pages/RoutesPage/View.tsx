@@ -91,7 +91,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                     <View style={styles.filterArea}>
                         <FilterPanel
                             filters={filters}
-                            options={filterOptions}
+                            options={filterOptions!}
                             visible={filterVisible}
                             compact={compact}
                             onFilterChanged={onFilterChanged}

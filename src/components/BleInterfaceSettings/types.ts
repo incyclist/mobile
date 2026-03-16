@@ -1,6 +1,6 @@
 import { InterfaceSettingsDisplayProps } from 'incyclist-services';
 
-export type BleInterfaceSettingsProps = InterfaceSettingsDisplayProps & {
+export type BleInterfaceSettingsProps = {
     visible: boolean;
     onClose: () => void;
 };
