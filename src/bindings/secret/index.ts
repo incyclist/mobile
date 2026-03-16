@@ -10,7 +10,7 @@ class SecretBinding  {
     }
 
     getSecret(key:string):string {
-        return defSettings[key]??getUserSettingsBinding().getValue(key,null)
+        return (defSettings as Record<string, string>)[key] ?? getUserSettingsBinding().getValue(key, null)
 
     }
     async init():Promise<void> {

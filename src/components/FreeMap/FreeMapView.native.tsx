@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, StyleSheet, Text, View, DimensionValue } from 'react-native';
 import MapLibreRN, { 
     MapView, 
     Camera, 
@@ -10,7 +10,7 @@ import MapLibreRN, {
     setAccessToken 
 } from '@maplibre/maplibre-react-native';
 import { FreeMapViewProps } from './types';
-import { OSM_STYLE_JSON, OSM_STYLE_URL, fromMapCoord } from './utils';
+import { fromMapCoord } from './utils';
 
 // MapLibre needs to be initialized
 if (Platform.OS !== 'web') {
@@ -34,7 +34,7 @@ export const FreeMapView = ({
    // Web Fallback for Storybook-Vite
     if (Platform.OS === 'web') {
         return (
-            <View style={[styles.container, { width, height, backgroundColor: '#e0e0e0' }, style]}>
+            <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue, backgroundColor: '#e0e0e0' }, style]}>
                 <Text style={styles.webPlaceholder}>
                     MapLibre Native Component (Not available on Web)
                 </Text>
@@ -65,8 +65,8 @@ export const FreeMapView = ({
             MapLibreRN.setConnected(true); 
 
             Logger.setLogCallback(log => {
-            if (log.message.includes('Canceled')) return true;
-            return false;
+                if (log.message.includes('Canceled')) return true;
+                return false;
             });            
             setMapStyle(style);
         };
@@ -79,11 +79,10 @@ export const FreeMapView = ({
     
 
     return (
-        <View style={[styles.container, { width, height }, style]}>
+        <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
             <MapView
                 style={styles.map}
-                // styleJSON={JSON.stringify(mapStyle)}
-                styleURL="https://tiles.openfreemap.org/styles/bright"
+                styleJSON={JSON.stringify(mapStyle)}
                 scrollEnabled={scrollWheelZoom}
                 logoEnabled={false}
                 attributionEnabled={true}
