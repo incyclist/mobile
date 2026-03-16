@@ -1,0 +1,210 @@
+name: Architect Review Package
+
+on:
+    issue_comment:
+        types: [created]
+
+jobs:
+    generate-review-package:
+        # Only run on PR comments (not issue comments) containing /review
+        if: |
+            github.event.issue.pull_request &&
+            contains(github.event.comment.body, '/review')
+
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            pull-requests: write
+            issues: read
+            actions: read
+
+        steps:
+            - name: Get PR details
+              id: pr
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  PR_NUMBER=${{ github.event.issue.number }}
+                  echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+                  gh pr view $PR_NUMBER \
+                    --repo ${{ github.repository }} \
+                    --json number,title,body,headRefName,baseRefName \
+                    > pr_meta.json
+
+                  echo "branch=$(jq -r '.headRefName' pr_meta.json)" >> $GITHUB_OUTPUT
+                  echo "title=$(jq -r '.title' pr_meta.json)" >> $GITHUB_OUTPUT
+
+                  # Extract issue number before checkout wipes the workspace
+                  PR_BODY=$(jq -r '.body' pr_meta.json)
+                  PR_TITLE=$(jq -r '.title' pr_meta.json)
+                  ISSUE_NUMBER=$(echo "$PR_TITLE $PR_BODY" | grep -oP '(?<=#)\d+' | head -1)
+                  echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+
+            - name: Checkout PR branch
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ steps.pr.outputs.branch }}
+                  fetch-depth: 0
+
+            - name: Get linked issue body
+              id: issue
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  ISSUE_NUMBER=${{ steps.pr.outputs.issue_number }}
+
+                  if [ -n "$ISSUE_NUMBER" ]; then
+                    gh issue view $ISSUE_NUMBER \
+                      --repo ${{ github.repository }} \
+                      --json number,title,body \
+                      > issue_meta.json
+                    echo "found=true" >> $GITHUB_OUTPUT
+                    echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+                  else
+                    echo "found=false" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Get diff and changed files
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  PR_NUMBER=${{ steps.pr.outputs.number }}
+
+                  gh pr diff $PR_NUMBER \
+                    --repo ${{ github.repository }} \
+                    --name-only \
+                    > changed_files.txt
+
+                  gh pr diff $PR_NUMBER \
+                    --repo ${{ github.repository }} \
+                    > pr_diff.txt
+
+            - name: Fetch CI results
+              id: ci_results_fetch
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  HEAD_SHA=$(git rev-parse HEAD)
+                  CI_RESULTS_FOUND="false"
+
+                  RUN_ID=$(gh api \
+                    "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${HEAD_SHA}&per_page=1" \
+                    --jq '.workflow_runs[0].id // empty')
+
+                  if [ -n "$RUN_ID" ]; then
+                    echo "Attempting to download CI results artifact for run ID: $RUN_ID"
+                    if gh run download "$RUN_ID" \
+                         --repo ${{ github.repository }} \
+                         --name ci-results \
+                         --dir ci-results-artifact-download; then
+                      echo "Artifact download command successful."
+                      if [ -f "ci-results-artifact-download/ci-results.md" ]; then
+                        cp ci-results-artifact-download/ci-results.md ci-results.md
+                        CI_RESULTS_FOUND="true"
+                        echo "CI results artifact 'ci-results.md' found and copied."
+                      else
+                        echo "⚠️ Downloaded artifact 'ci-results' did not contain 'ci-results.md'."
+                      fi
+                    else
+                      echo "⚠️ Failed to download CI results artifact from run ID: $RUN_ID."
+                    fi
+                  else
+                    echo "⚠️ No CI run found for commit ${HEAD_SHA}."
+                  fi
+                  echo "ci_results_found=$CI_RESULTS_FOUND" >> "$GITHUB_OUTPUT"
+
+            - name: Build review package
+              run: |
+                  PR_NUMBER=${{ steps.pr.outputs.number }}
+                  PR_TITLE="${{ steps.pr.outputs.title }}"
+                  BRANCH="${{ steps.pr.outputs.branch }}"
+
+                  {
+                    echo "# Architect Review Package"
+                    echo ""
+                    echo "**PR**: #${PR_NUMBER} — ${PR_TITLE}"
+                    echo "**Branch**: \`${BRANCH}\`"
+                    echo "**Repo**: ${{ github.repository }}"
+                    echo ""
+
+                    if [ "${{ steps.issue.outputs.found }}" = "true" ]; then
+                      ISSUE_NUMBER=${{ steps.issue.outputs.number }}
+                      echo "---"
+                      echo ""
+                      echo "## Linked Issue #${ISSUE_NUMBER}"
+                      echo ""
+                      jq -r '.body' issue_meta.json
+                      echo ""
+                    fi
+
+                    if [ "${{ steps.ci_results_fetch.outputs.ci_results_found }}" = "true" ]; then
+                      echo "---"
+                      echo ""
+                      echo "## CI Run Results"
+                      echo ""
+                      cat ci-results.md
+                      echo ""
+                    fi
+
+                    echo "---"
+                    echo ""
+                    echo "## Diff"
+                    echo ""
+                    echo '```diff'
+                    cat pr_diff.txt
+                    echo '```'
+                    echo ""
+
+                    echo "---"
+                    echo ""
+                    echo "## Changed Files"
+                    echo ""
+
+                    while IFS= read -r filepath; do
+                      if [ -f "$filepath" ]; then
+                        EXT="${filepath##*.}"
+                        case "$EXT" in
+                          ts|tsx) LANG="typescript" ;;
+                          js|jsx) LANG="javascript" ;;
+                          json)   LANG="json" ;;
+                          md)     LANG="markdown" ;;
+                          yml|yaml) LANG="yaml" ;;
+                          *)      LANG="" ;;
+                        esac
+
+                        echo "### \`$filepath\`"
+                        echo ""
+                        echo "\`\`\`${LANG}"
+                        cat "$filepath"
+                        echo ""
+                        echo "\`\`\`"
+                        echo ""
+                      else
+                        echo "### \`$filepath\` _(deleted)_"
+                        echo ""
+                      fi
+                    done < changed_files.txt
+
+                  } > review-package.md
+
+            - name: Upload review package as artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: architect-review-pr-${{ steps.pr.outputs.number }}
+                  path: review-package.md
+                  retention-days: 7
+
+            - name: Post confirmation comment on PR
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+                  gh pr comment ${{ steps.pr.outputs.number }} \
+                    --repo ${{ github.repository }} \
+                    --body "<!-- architect-review-bot -->
+                  ✅ **Architect review package ready** — [Download review-package.md](${RUN_URL})
+
+                  _Paste the file contents into your Architect session to begin review. This comment is automatically filtered from Amos correction context._"

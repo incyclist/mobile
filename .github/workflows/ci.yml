@@ -1,0 +1,100 @@
+name: CI
+
+on:
+    pull_request:
+        branches:
+            - main
+
+jobs:
+    verify:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Type check
+              id: typecheck
+              continue-on-error: true
+              run: npx tsc --noEmit 2>&1 | tee typecheck-output.txt; exit ${PIPESTATUS[0]}
+
+            - name: Lint
+              id: lint
+              continue-on-error: true
+              run: npm run lint 2>&1 | tee lint-output.txt; exit ${PIPESTATUS[0]}
+
+            - name: Test
+              id: test
+              continue-on-error: true
+              run: npm test -- --forceExit 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}
+
+            - name: Write CI results
+              if: always()
+              run: |
+                  {
+                    echo "## CI Results"
+                    echo ""
+
+                    echo "### Type Check (\`tsc --noEmit\`)"
+                    if [ "${{ steps.typecheck.outcome }}" = "success" ]; then
+                      echo "✅ Passed"
+                    else
+                      echo "❌ Failed"
+                      echo '```'
+                      cat typecheck-output.txt
+                      echo '```'
+                    fi
+                    echo ""
+
+                    echo "### Lint (\`eslint\`)"
+                    if [ "${{ steps.lint.outcome }}" = "success" ]; then
+                      echo "✅ Passed"
+                    else
+                      echo "❌ Failed"
+                      echo '```'
+                      cat lint-output.txt
+                      echo '```'
+                    fi
+                    echo ""
+
+                    echo "### Tests (\`jest\`)"
+                    if [ "${{ steps.test.outcome }}" = "success" ]; then
+                      echo "✅ Passed"
+                    else
+                      echo "❌ Failed"
+                      echo '```'
+                      cat test-output.txt
+                      echo '```'
+                    fi
+                    echo ""
+
+                  } > ci-results.md
+
+            - name: Upload CI results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ci-results
+                  path: ci-results.md
+                  retention-days: 7
+
+            - name: Check status
+              if: |
+                  steps.typecheck.outcome != 'success' ||
+                  steps.lint.outcome != 'success' ||
+                  steps.test.outcome != 'success'
+              run: |
+                  echo "❌ Some checks failed:"
+                  [ "${{ steps.typecheck.outcome }}" != "success" ] && echo "  - Type check"
+                  [ "${{ steps.lint.outcome }}"      != "success" ] && echo "  - Lint"
+                  [ "${{ steps.test.outcome }}"      != "success" ] && echo "  - Tests"
+                  exit 1

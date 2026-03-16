@@ -5,12 +5,13 @@
     "jsx": "react-native", 
     // OR "jsx": "react-jsx" for the modern transform
     "allowJs": true,
-    "esModuleInterop": true    ,
+    "esModuleInterop": true,
     "types": ["jest"],
     "paths": {
-      "@assets/*": ["src/assets/*"]
+      "@assets/*": ["src/assets/*"],
+      "@settings": ["polyfill/settings.ts"]
     }    
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "src/types/**/*.d.ts"],
   "exclude": ["**/node_modules", "**/Pods"]
 }
