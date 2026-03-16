@@ -4,7 +4,7 @@ import BleIcon from  '../../assets/icons/ble.svg';
 import WifiIcon from '../../assets/icons/wifi.svg';
 
 import {InterfaceDisplayState,InterfaceDisplayProps} from 'incyclist-services'
-export { InterfaceDisplayProps } from 'incyclist-services'; // Re-export for storybook
+export type { InterfaceDisplayProps } from 'incyclist-services'; // Re-export for storybook
 import { Wave } from './Wave';
 
 const STATE_COLORS: Record<InterfaceDisplayState, string> = {
