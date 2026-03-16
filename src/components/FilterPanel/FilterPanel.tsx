@@ -10,6 +10,10 @@ import { FilterPanelProps, SearchFilter } from './types';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
 import { Icon } from '../Icon';
+import { FormattedNumber } from 'incyclist-services'; // Added FormattedNumber import
+
+const isFormattedNumber = (v: unknown): v is FormattedNumber =>
+    typeof v === 'object' && v !== null && 'value' in v;
 
 /**
  * Helper to generate descriptive text for active filters
@@ -200,7 +204,9 @@ export const FilterPanel = (props: FilterPanelProps) => {
     };
 
     const updateMinMax = (key: 'distance' | 'elevation', type: 'min' | 'max', val: number | undefined) => {
-        const defaultUnit = key === 'distance' ? (maxDistance?.unit ?? 'km') : (maxElevation?.unit ?? 'm');
+        const defaultUnit = key === 'distance'
+            ? (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km' // Applied type guard
+            : (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'; // Applied type guard
         const current = localFilters[key] || {};
         
         const unit = typeof current[type]==='number' ? defaultUnit : current[type]?.unit || defaultUnit
@@ -255,17 +261,17 @@ export const FilterPanel = (props: FilterPanelProps) => {
                     <View style={styles.fullWidth}>
                         <View style={styles.row}>
                             <View style={styles.minMaxGroup}>
-                                <Text style={styles.groupLabel}>Dist ({maxDistance?.unit ?? 'km'})</Text>
+                                <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text> {/* Applied type guard */}
                                 <View style={styles.minMaxRow}>
                                     <FilterInput 
-                                        compact={compact} max={maxDistance?.value} fieldName="distance_min"
+                                        compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min" // Applied type guard
                                         value={localFilters?.distance?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
                                         onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
-                                        compact={compact} max={maxDistance?.value} fieldName="distance_max"
+                                        compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max" // Applied type guard
                                         value={localFilters?.distance?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
                                         onFocus={closeDropdown}
@@ -273,17 +279,17 @@ export const FilterPanel = (props: FilterPanelProps) => {
                                 </View>
                             </View>
                             <View style={styles.minMaxGroup}>
-                                <Text style={styles.groupLabel}>Elev ({maxElevation?.unit ?? 'm'})</Text>
+                                <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text> {/* Applied type guard */}
                                 <View style={styles.minMaxRow}>
                                     <FilterInput 
-                                        compact={compact} max={maxElevation?.value} fieldName="elevation_min"
+                                        compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min" // Applied type guard
                                         value={localFilters?.elevation?.min?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
                                         onFocus={closeDropdown}
                                     />
                                     <Text style={styles.separator}>-</Text>
                                     <FilterInput 
-                                        compact={compact} max={maxElevation?.value} fieldName="elevation_max"
+                                        compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max" // Applied type guard
                                         value={localFilters?.elevation?.max?.value} logEvent={logEvent}
                                         onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
                                         onFocus={closeDropdown}
