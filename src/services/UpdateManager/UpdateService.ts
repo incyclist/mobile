@@ -19,11 +19,10 @@ interface IAppBundleResponse {
 }
 
 
-const getBaseUrl = async  ():Promise<string> =>  {
-
+const getBaseUrl = async (): Promise<string> => {
     let baseUrl = BASE_URL_PROD;
-    const s = settings??{}
-    baseUrl = s.UPDATE_SERVER_URL??BASE_URL_PROD
+    const s = (settings ?? {}) as Record<string, string>
+    baseUrl = s.UPDATE_SERVER_URL ?? BASE_URL_PROD
     return baseUrl
 }
 
