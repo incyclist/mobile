@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { CapabilityTile } from './CapabilityTile';
 import { fn } from 'storybook/test';
-import { View } from 'react-native';
+import { View, DimensionValue } from 'react-native';
 
 const meta:Meta<typeof CapabilityTile> = {
   title: 'Components/CapabilityTile',
@@ -15,7 +15,7 @@ const meta:Meta<typeof CapabilityTile> = {
          This View ensures the 'middle' flex: 1 component has 
          a parent with a defined height to expand into. 
       */
-      <View style={{ height: '100vh', width: '100vw', justifyContent:'center', alignItems:'center' }}>
+      <View style={{ height: '100vh' as DimensionValue, width: '100vw' as DimensionValue, justifyContent:'center', alignItems:'center' }}>
         <Story />
       </View>
     ),
