@@ -54,3 +54,5 @@ export const getAppInfoBinding = async () => {
     }
 
 }
+
+export const isDevVariant = __DEV__;
