@@ -30,7 +30,7 @@ type Story = StoryObj<DeviceSelectionItemProps>;
 export const Disconnected: Story = {
     args: {
         ...meta.args,
-        connectState: 'disconnected',
+        connectState: 'idle',
         interface: 'wifi',
     },
 };
@@ -63,7 +63,7 @@ export const Selected: Story = {
     args: {
         ...meta.args,
         isSelected: true,
-        connectState: 'disconnected',
+        connectState: 'idle',
         interface: 'wifi',
     },
 };
