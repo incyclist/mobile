@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RoutesPageView } from './View';
 import { MainBackground } from '../../components';
-import { RouteItemProps } from 'incyclist-services';
+import { RouteItemProps, Unit } from 'incyclist-services';
 
 const generateMockRoutes = (count: number): RouteItemProps[] => {
     return Array.from({ length: count }).map((_, i) => ({
@@ -19,16 +19,23 @@ const generateMockRoutes = (count: number): RouteItemProps[] => {
         isDemo: i === 0,
         cntActive: i % 5,
         loaded: true,
-    })) as RouteItemProps[];
+    })) as unknown as RouteItemProps[];
 };
 
-const mockFilterOptions = {
+const mockFilterOptions: {
+    countries: string[];
+    contentTypes: string[];
+    routeTypes: string[];
+    routeSources: string[];
+    maxDistance: { value: number; unit: Unit };
+    maxElevation: { value: number; unit: Unit };
+} = {
     countries: ['FR', 'IT', 'DE', 'ES', 'CH', 'AU', 'BE'],
     contentTypes: ['Video', 'GPX'],
     routeTypes: ['Loop', 'Point to Point'],
     routeSources: ['Incyclist', 'Local'],
-    maxDistance: { value: 200, unit: 'km' },
-    maxElevation: { value: 5000, unit: 'm' },
+    maxDistance: { value: 200, unit: 'km' as Unit },
+    maxElevation: { value: 5000, unit: 'm' as Unit },
 };
 
 const meta: Meta<typeof RoutesPageView> = {
@@ -106,4 +113,3 @@ export const Compact: Story = {
         compact: true,
     },
 };
-
