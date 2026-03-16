@@ -82,7 +82,7 @@ export const FreeMapView = ({
         <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
             <MapView
                 style={styles.map}
-                styleJSON={JSON.stringify(mapStyle)}
+                mapStyle={JSON.stringify(mapStyle)} // Replaced styleJSON with mapStyle
                 scrollEnabled={scrollWheelZoom}
                 logoEnabled={false}
                 attributionEnabled={true}
