@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from '
 import { Platform, Linking } from 'react-native';
 import { getDevicesPageService, Observer } from 'incyclist-services';
 import { BleInterfaceSettingsView } from './BleInterfaceSettingsView';
-import { BleInterfaceSettingsProps } from './types';
 import { PermissionService } from '../../services/PermissionsService';
 import { getBleBinding } from '../../bindings/ble';
 
