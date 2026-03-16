@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { getRidePageService, RideType } from 'incyclist-services';
 import { MainBackground, Button } from '../../components';
 import { VideoRidePage } from './Video';
