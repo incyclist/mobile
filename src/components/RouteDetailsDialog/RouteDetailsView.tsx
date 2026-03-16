@@ -11,13 +11,12 @@ import {
     Switch,
     Platform,
 } from 'react-native';
-import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
+import type { UIRouteSettings, FormattedNumber } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
-import { FormattedNumber } from '../RouteItem';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -61,22 +60,24 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const [initialized, setInitialized] = useState(false);
 
 
-    const val = ( (v:number|FormattedNumber, defValue?:number)=> {
+    const val = useCallback(( (v:number|FormattedNumber|undefined, defValue?:number)=> {
 
 
         const getVal = ()=> {
         if (typeof v==='number' )
             return v.toString()
-        if (typeof v==='undefined' || v.value===undefined)
+        if (typeof v==='object' && v !== null && 'value' in v && v.value!==undefined)
+            return v.value.toString()
+        if (v === undefined || v === null || (typeof v === 'object' && !('value' in v)))
             return (defValue!==undefined) ? defValue.toString(): ''
-         return v.value.toString()
+         return ''
         }
 
         const res = getVal() 
         console.log('# val', v, defValue, '->' ,res)
 
         return res
-    })
+    }),[]);
 
     // Input and Dropdown States
     const [startPosInput, setStartPosInput] = useState(val(initialSettings?.startPos,0));
@@ -93,7 +94,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             setStartPosInput(val(initialSettings?.startPos,0));
             setRealityInput(val(initialSettings?.realityFactor,100));
         }
-    }, [initialized, initialSettings]);
+    }, [initialized, initialSettings, val]);
 
     useEffect(() => {
         setData(prev => ({ ...prev, prevRides, showPrev: initialShowPrev }));
@@ -101,11 +102,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     useEffect(() => {
         setStartPosInput( val(data?.startPos,0));
-    }, [data?.startPos]);
+    }, [data?.startPos, val]);
 
     useEffect(() => {
         setRealityInput( val(data?.realityFactor,100));
-    }, [data.realityFactor]);
+    }, [data.realityFactor, val]);
 
     const handleApplySettings = useCallback((updated: UIRouteSettings) => {
         setData(updated);
@@ -119,7 +120,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: undefined,
-                startPos: { value: 0, unit: data.startPos?.unit },
+                startPos: { value: 0, unit: data.startPos?.unit ?? 'm' },
                 endPos: undefined
             });
             return;
@@ -129,26 +130,26 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: segName,
-                startPos: { value: Number(seg.start), unit: data.startPos?.unit },
-                endPos: { value: Number(seg.end), unit: data.startPos?.unit }
+                startPos: { value: Number(seg.start), unit: data.startPos?.unit ?? 'm' },
+                endPos: { value: Number(seg.end), unit: data.startPos?.unit ?? 'm' }
             });
         }
     };
 
     const handleStartPosBlur = (valStr: string) => {
-        const val = parseFloat(valStr.replace(/[^0-9.]/g, ''));
-        if (!isNaN(val)) {
-            logEvent({ message: 'text entered', field: 'startPos', value: val, eventSource: 'user' });
-            const result = onUpdateStartPos(val??0);
+        const parsed = parseFloat(valStr.replace(/[^0-9.]/g, ''));
+        if (!isNaN(parsed)) {
+            logEvent({ message: 'text entered', field: 'startPos', value: parsed, eventSource: 'user' });
+            const result = onUpdateStartPos(parsed??0);
             if (result) handleApplySettings({ ...data, ...result });
         }
     };
 
     const handleRealityBlur = (valStr: string) => {
-        const val = Math.min(100, Math.max(0, parseFloat(valStr.replace(/[^0-9.]/g, ''))));
-        if (!isNaN(val)) {
-            logEvent({ message: 'text entered', field: 'realityFactor', value: val, eventSource: 'user' });
-            handleApplySettings({ ...data, realityFactor: val??100 });
+        const parsed = Math.min(100, Math.max(0, parseFloat(valStr.replace(/[^0-9.]/g, ''))));
+        if (!isNaN(parsed)) {
+            logEvent({ message: 'text entered', field: 'realityFactor', value: parsed, eventSource: 'user' });
+            handleApplySettings({ ...data, realityFactor: parsed??100 });
         }
     };
 
@@ -227,7 +228,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 )}
                 <View style={styles.inputRow}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Start at ({data.startPos.unit}):</Text>
+                        <Text style={styles.inputLabel}>Start at ({data.startPos?.unit ?? 'm'}):</Text>
                         <TextInput 
                             style={styles.textInput} 
                             keyboardType="numeric"
