@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, DimensionValue } from 'react-native';
 import { FreeMapViewProps } from './types';
 
 export const FreeMapView = ({
@@ -9,7 +9,7 @@ export const FreeMapView = ({
     children,
 }: FreeMapViewProps) => {
     return (
-        <View style={[styles.container, { width, height }, style]}>
+        <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
             <View style={styles.placeholder}>
                 <Text style={styles.text}>
                     MapLibre Native Component

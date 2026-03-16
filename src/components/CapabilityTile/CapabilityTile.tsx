@@ -107,7 +107,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
     if ( deviceName && !disabled) {
         return (
-            <View style= {styles.container}>
+            <View style= {styles.container.view}>
             
                 { (title ) &&
                     <View style={styles.rows.fixed}>
@@ -156,7 +156,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     }
     
     return (
-            <View style= {styles.container}>
+            <View style= {styles.container.view}>
             {/* {data.header.icon &&
                 <Image source={iconMap[data.header.icon]} style={styles.icon} /> } */}
             {title &&
@@ -186,16 +186,17 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
 
 const styles = {
-    container: {
-        display:'flex',
-        flexDirection:'column',
-        height: '100%',
-        width: '100%',
-        flex:1,
-        alignItems: 'center',
-        justifyContent: 'center',
-
-    },
+    container: StyleSheet.create({
+        view: {
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            width: '100%',
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+        }
+    }),
     rows: StyleSheet.create({
         container: {
             flex:1,
@@ -351,4 +352,3 @@ const styles = {
 
 
 }
-
