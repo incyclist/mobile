@@ -17,7 +17,7 @@ export const defaultArgs: DeviceSelectionProps = {
             onClick: fn(),
             onDelete: () => {},
         },
-        { connectState: 'idle', deviceName: 'Ant+FE 50040', value: 2, interface: 'ble', onClick: fn(), onDelete: () => {}, isSelected: false },
+        { deviceName: 'Ant+FE 50040', value: 2, interface: 'ble', onClick: fn(), onDelete: () => {}, isSelected: false },
         { connectState: 'connecting', deviceName: 'Simulator', value: 3, interface: 'wifi', onClick: fn(), onDelete: () => {}, isSelected: false },
         { connectState: 'failed', deviceName: 'Wahoo KICKR 0000', value: 4, interface: 'ble', onClick: fn(), onDelete: () => {}, isSelected: false },
     ],
