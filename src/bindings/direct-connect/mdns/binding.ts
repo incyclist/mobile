@@ -38,7 +38,7 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
                 this.logger.logEvent( {message:'Disconnect from bonjour '})
                 this.bonjour.stop()
                 this.bonjour.removeAllListeners()
-                this.bonjour = null
+                this.bonjour = undefined
             }
         }
         catch(err:any) {
