@@ -1,14 +1,14 @@
 import { NavigationBar } from './NavigationBar';
 import { fn } from 'storybook/test';
 import { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { View } from 'react-native';
+import { View, DimensionValue } from 'react-native';
 
 const meta = {
     title: 'Components/NavigationBar',
     component: NavigationBar,
     decorators: [
         (Story) => (
-            <View style={{ height: '100vh', width: '100vw', justifyContent:'center', alignItems:'center' }}>
+            <View style={{ height: '100vh' as DimensionValue, width: '100vw' as DimensionValue, justifyContent:'center', alignItems:'center' }}>
                 <Story />
             </View>
         )
@@ -36,4 +36,3 @@ export const Top: Story = {
         selected: 'exit',
     }    
 };
-
