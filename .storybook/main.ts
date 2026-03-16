@@ -43,18 +43,40 @@ const config: StorybookConfig = {
                     enforce: 'pre' as const,
                     transform(code: string, id: string) {
                         if (!id.match(/\.[jt]sx?$/)) return null;
+                        if (id.includes('node_modules/buffer')) return null;
+                        if (id.includes('node_modules/safe-buffer')) return null;
                         if (code.includes("from 'buffer'")) return null;
                         if (code.includes('from "buffer"')) return null;
                         if (code.includes("require('buffer')")) return null;
                         if (code.includes('require("buffer")')) return null;
+                        if (code.includes("require('safe-buffer')")) return null;
+                        if (code.includes('require("safe-buffer")')) return null;
                         if (code.includes('globalThis.Buffer')) return null;
+                        // Skip any file that declares its own Buffer variable
+                        if (/var\s+Buffer\b/.test(code)) return null;
                         return {
                             code: `import { Buffer } from 'buffer';\nif (typeof globalThis.Buffer === 'undefined') globalThis.Buffer = Buffer;\n${code}`,
                             map: null,
                         };
                     },
                 },
-
+                {
+                    name: 'resolve-test-assets',
+                    enforce: 'pre' as const,
+                    resolveId(id: string, importer: string | undefined) {
+                        if (id.includes('__tests__') && importer) {
+                            return path.resolve(path.dirname(importer), id);
+                        }
+                        return null;
+                    },
+                    load(id: string) {
+                        if (id.includes('__tests__') && id.endsWith('.jpg')) {
+                            const absolute = path.resolve(dirname, '..', id.replace(/^.*__tests__/, '__tests__'));
+                            return `export default ${JSON.stringify(absolute)}`;
+                        }
+                        return null;
+                    },
+                },                
                 // nodePolyfills() is intentionally omitted.
                 // It pulls in crypto-browserify -> browserify-sign, which vendors
                 // its own readable-stream and crashes at module init time in Vite
