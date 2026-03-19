@@ -32,7 +32,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <EditText
                             label="Name"
                             labelWidth={LABEL_WIDTH}
-                            length={20} // Explicit length for user name
+                            length={20}
                             value={displayProps.username}
                             onValueChange={displayProps.onChangeName}
                         />
@@ -40,7 +40,8 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                             label="FTP"
                             labelWidth={LABEL_WIDTH}
                             min={0}
-                            max={999} // min/max help derive length automatically
+                            max={999}
+                            value={displayProps.ftp}
                             unit="W"
                             digits={0}
                             onValueChange={(v) => { if (v !== undefined) displayProps.onChangeFtp(v); }}
@@ -49,7 +50,8 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                             label="Weight"
                             labelWidth={LABEL_WIDTH}
                             min={0}
-                            max={999} // min/max help derive length automatically
+                            max={999}
+                            value={displayProps.weight?.value}
                             unit={displayProps.weight?.unit}
                             digits={1}
                             onValueChange={(v) => { if (v !== undefined) displayProps.onChangeWeight(v); }}
@@ -57,7 +59,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <SingleSelect
                             label="Units"
                             labelWidth={LABEL_WIDTH}
-                            options={displayProps.unitsOptions} // options help derive length automatically
+                            options={displayProps.unitsOptions}
                             selected={displayProps.units}
                             onValueChange={displayProps.onChangeUnits}
                         />

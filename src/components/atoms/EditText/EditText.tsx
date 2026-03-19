@@ -48,13 +48,9 @@ export const EditText = ({
     const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };
 
     // Determine input width based on length prop or flex: 1
-    const inputWidth = length !== undefined
-        ? length * CHAR_WIDTH_MULTIPLIER
-        : undefined;
-
-    const inputContainerStyle = inputWidth !== undefined
-        ? [styles.input, { width: inputWidth }]
-        : [styles.input, styles.inputFull];
+    const inputWidthStyle = length !== undefined
+        ? { width: length * CHAR_WIDTH_MULTIPLIER }
+        : styles.inputFull; // Use flex: 1 if no length specified
 
     return (
         <View style={styles.container}>
@@ -62,7 +58,8 @@ export const EditText = ({
                 <Text style={[styles.label, labelStyle]}>{label}</Text>
                 <TextInput
                     style={[
-                        inputContainerStyle, // Apply dynamic width here
+                        styles.input,
+                        inputWidthStyle, // Apply dynamic width here
                         disabled && styles.disabledInput,
                         error !== null && styles.errorBorder,
                     ]}
