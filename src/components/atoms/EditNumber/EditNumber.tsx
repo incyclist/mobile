@@ -4,6 +4,8 @@ import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { EditNumberProps } from './types';
 
+const LABEL_MARGIN = 8;
+
 export const EditNumber = ({
     label,
     value,
@@ -92,7 +94,11 @@ export const EditNumber = ({
                 />
                 {unit && <Text style={styles.unit}>{unit}</Text>}
             </View>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && (
+                <Text style={[styles.errorText, { marginLeft: labelWidth + LABEL_MARGIN }]}>
+                    {error}
+                </Text>
+            )}
         </View>
     );
 };
@@ -109,7 +115,7 @@ const styles = StyleSheet.create({
     label: {
         color: colors.text,
         fontSize: textSizes.normalText,
-        marginRight: 8,
+        marginRight: LABEL_MARGIN,
     },
     input: {
         flex: 1,
@@ -134,8 +140,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: colors.error,
-        fontSize: 12,
+        fontSize: textSizes.smallText,
         marginTop: 4,
-        marginLeft: 108,
     },
 });

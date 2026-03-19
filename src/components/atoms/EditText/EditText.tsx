@@ -4,6 +4,8 @@ import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { EditTextProps } from './types';
 
+const LABEL_MARGIN = 8;
+
 export const EditText = ({
     label,
     value = '',
@@ -59,7 +61,11 @@ export const EditText = ({
                     editable={!disabled}
                 />
             </View>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && (
+                <Text style={[styles.errorText, { marginLeft: labelWidth + LABEL_MARGIN }]}>
+                    {error}
+                </Text>
+            )}
         </View>
     );
 };
@@ -76,7 +82,7 @@ const styles = StyleSheet.create({
     label: {
         color: colors.text,
         fontSize: textSizes.normalText,
-        marginRight: 8,
+        marginRight: LABEL_MARGIN,
     },
     input: {
         flex: 1,
@@ -96,8 +102,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: colors.error,
-        fontSize: 12,
+        fontSize: textSizes.smallText,
         marginTop: 4,
-        marginLeft: 108, // Default labelWidth (100) + marginRight (8)
     },
 });
