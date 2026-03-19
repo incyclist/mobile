@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { SingleSelectProps } from './types';
@@ -24,43 +23,63 @@ export const SingleSelect = ({
     onValueChange,
 }: SingleSelectProps) => {
     const [selectedValue, setSelectedValue] = useState(selected);
+    const [isOpen, setIsOpen] = useState(false);
+    const [triggerHeight, setTriggerHeight] = useState(0);
 
     useEffect(() => {
         setSelectedValue(selected);
     }, [selected]);
 
-    const handleValueChange = useCallback((itemValue: string) => {
+    const handleToggle = useCallback(() => {
+        if (!disabled) {
+            setIsOpen(prev => !prev);
+        }
+    }, [disabled]);
+
+    const handleSelect = useCallback((itemValue: string) => {
         setSelectedValue(itemValue);
+        setIsOpen(false);
         onValueChange?.(itemValue);
     }, [onValueChange]);
 
     const labelStyle = { width: labelWidth };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, isOpen && styles.activeZIndex]}>
             <View style={styles.row}>
                 <Text style={[styles.label, labelStyle]}>{label}</Text>
-                <View style={styles.pickerContainer}>
-                    <Picker
-                        selectedValue={selectedValue}
-                        onValueChange={handleValueChange}
-                        enabled={!disabled}
-                        dropdownIconColor={disabled ? colors.disabled : colors.text}
+                <View style={styles.dropdownContainer}>
+                    <TouchableOpacity
                         style={[
-                            styles.picker,
-                            disabled && styles.disabledPicker,
+                            styles.trigger,
+                            disabled && styles.disabledTrigger,
                         ]}
+                        onPress={handleToggle}
+                        disabled={disabled}
+                        onLayout={(e) => setTriggerHeight(e.nativeEvent.layout.height)}
                     >
-                        {options.map((option) => (
-                            <Picker.Item
-                                key={option}
-                                label={option}
-                                value={option}
-                                color={disabled ? colors.disabled : colors.text}
-                                style={styles.pickerItem}
-                            />
-                        ))}
-                    </Picker>
+                        <Text style={[styles.valueText, disabled && styles.disabledText]}>
+                            {selectedValue || 'Select...'}
+                        </Text>
+                        <Text style={[styles.arrow, disabled && styles.disabledText]}>
+                            {isOpen ? '▲' : '▼'}
+                        </Text>
+                    </TouchableOpacity>
+                    {isOpen && (
+                        <View style={[styles.list, { top: triggerHeight }]}>
+                            <ScrollView style={styles.scroll} nestedScrollEnabled>
+                                {options.map((option) => (
+                                    <TouchableOpacity
+                                        key={option}
+                                        style={styles.item}
+                                        onPress={() => handleSelect(option)}
+                                    >
+                                        <Text style={styles.itemText}>{option}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
                 </View>
             </View>
         </View>
@@ -71,6 +90,10 @@ const styles = StyleSheet.create({
     container: {
         marginVertical: 8,
         width: '100%',
+        zIndex: 1,
+    },
+    activeZIndex: {
+        zIndex: 1000,
     },
     row: {
         flexDirection: 'row',
@@ -81,19 +104,55 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         marginRight: LABEL_MARGIN,
     },
-    pickerContainer: {
+    dropdownContainer: {
         flex: 1,
+        position: 'relative',
+    },
+    trigger: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
-    picker: {
+    disabledTrigger: {
+        borderBottomColor: 'transparent',
+    },
+    valueText: {
         color: colors.text,
-        width: '100%',
+        fontSize: textSizes.normalText,
     },
-    disabledPicker: {
+    disabledText: {
         color: colors.disabled,
     },
-    pickerItem: {
+    arrow: {
+        color: colors.text,
+        fontSize: 12,
+    },
+    list: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        backgroundColor: '#2a2a2a',
+        borderWidth: 1,
+        borderColor: '#555',
+        borderRadius: 4,
+        zIndex: 1000,
+        elevation: 10,
+    },
+    scroll: {
+        maxHeight: 200,
+    },
+    item: {
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    itemText: {
+        color: colors.text,
         fontSize: textSizes.normalText,
     },
 });
