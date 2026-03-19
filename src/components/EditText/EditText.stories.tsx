@@ -3,7 +3,7 @@ import { fn } from 'storybook/test';
 import { EditText } from './EditText';
 
 const meta: Meta<typeof EditText> = {
-    title: 'Atoms/EditText',
+    title: 'Components/EditText',
     component: EditText,
     args: {
         onValueChange: fn(),

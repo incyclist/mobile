@@ -3,7 +3,7 @@ import { fn } from 'storybook/test';
 import { EditNumber } from './EditNumber';
 
 const meta: Meta<typeof EditNumber> = {
-    title: 'Atoms/EditNumber',
+    title: 'Components/EditNumber',
     component: EditNumber,
     args: {
         onValueChange: fn(),

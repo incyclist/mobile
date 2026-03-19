@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { colors } from '../../../theme/colors';
-import { textSizes } from '../../../theme/textSizes';
+import { colors } from '../../theme/colors';
+import { textSizes } from '../../theme/textSizes';
 import { EditNumberProps } from './types';
-import { CHAR_WIDTH_MULTIPLIER } from '../../../utils/ui'; // Import shared constant
+import { CHAR_WIDTH_MULTIPLIER } from '../../utils/ui'; // Import shared constant
 
 const LABEL_MARGIN = 8;
 

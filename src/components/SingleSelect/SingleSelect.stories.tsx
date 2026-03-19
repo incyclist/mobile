@@ -3,7 +3,7 @@ import { fn } from 'storybook/test';
 import { SingleSelect } from './SingleSelect';
 
 const meta: Meta<typeof SingleSelect> = {
-    title: 'Components/Atoms/SingleSelect',
+    title: 'Components/SingleSelect',
     component: SingleSelect,
     args: {
         onValueChange: fn(),

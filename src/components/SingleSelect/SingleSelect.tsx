@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { colors } from '../../../theme/colors';
-import { textSizes } from '../../../theme/textSizes';
+import { colors } from '../../theme/colors';
+import { textSizes } from '../../theme/textSizes';
 import { SingleSelectProps } from './types';
-import { CHAR_WIDTH_MULTIPLIER, SINGLE_SELECT_ARROW_BUFFER } from '../../../utils/ui'; // Import shared constants
+import { CHAR_WIDTH_MULTIPLIER, SINGLE_SELECT_ARROW_BUFFER } from '../../utils/ui'; // Import shared constants
 
 const LABEL_MARGIN = 8;
 

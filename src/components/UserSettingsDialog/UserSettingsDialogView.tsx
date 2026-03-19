@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { UserSettingsDisplayProps } from 'incyclist-services';
-import { Dialog } from '../Dialog/Dialog';
-import { EditText, EditNumber, SingleSelect } from '../atoms';
+import { Dialog } from '../Dialog';
+import { EditText } from '../EditText';
+import { EditNumber } from '../EditNumber';
+import { SingleSelect } from '../SingleSelect';
 
 export type UserSettingsDialogViewProps = {
     displayProps: UserSettingsDisplayProps | null;

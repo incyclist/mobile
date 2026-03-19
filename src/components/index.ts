@@ -21,3 +21,7 @@ export * from './Video'
 export * from './StartRideDisplay'
 export * from './InfoText'
 export * from './RideMenu'
+export * from './Dialog';
+export * from './EditText';
+export * from './EditNumber';
+export * from './SingleSelect';
