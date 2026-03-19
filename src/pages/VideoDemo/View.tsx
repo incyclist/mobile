@@ -176,7 +176,7 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
             )}
 
             <View style={styles.navColumn}>
-                <NavigationBar position='left' onClick={onClick} />
+                <NavigationBar onClick={onClick} />
             </View>
 
             <View style={styles.controlPanel}>

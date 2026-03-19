@@ -1,11 +1,11 @@
-import { NavigationBar } from './NavigationBar';
+import { NavigationBarView } from './NavigationBarView';
 import { fn } from 'storybook/test';
 import { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { View, DimensionValue } from 'react-native';
 
 const meta = {
     title: 'Components/NavigationBar',
-    component: NavigationBar,
+    component: NavigationBarView,
     decorators: [
         (Story) => (
             <View style={{ height: '100vh' as DimensionValue, width: '100vw' as DimensionValue, justifyContent:'center', alignItems:'center' }}>
@@ -14,25 +14,28 @@ const meta = {
         )
     ],  
     args:{
-        onClick:fn()
+        onClick: fn(),
+        iconSize: 40,
+        navWidth: 150,
+        showExit: true,
     }
-} satisfies Meta<typeof NavigationBar>
+} satisfies Meta<typeof NavigationBarView>;
 
-export default meta
+export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Left: Story = {
+export const Default: Story = {
     args: {
-        position: 'left',
-        selected: 'exit',
+        selected: 'routes',
     }
-    
 };
 
-export const Top: Story = {
+export const Compact: Story = {
     args: {
-        position: 'top',
-        selected: 'exit',
-    }    
+        compact: true,
+        iconSize: 32,
+        navWidth: 70,
+        selected: 'activities',
+    }
 };

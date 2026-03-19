@@ -52,7 +52,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                 <View style={[styles.navColumn, { width: compact ? 70 : 150 }]}>
                     <NavigationBar
                         compact={compact}
-                        position="left"
                         selected="routes"
                         onClick={onNavigate}
                     />
