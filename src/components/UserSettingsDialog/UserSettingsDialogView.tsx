@@ -2,7 +2,6 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { UserSettingsDisplayProps } from 'incyclist-services';
 import { Dialog } from '../Dialog/Dialog';
-import { ButtonBar } from '../ButtonBar/ButtonBar';
 import { EditText, EditNumber, SingleSelect } from '../atoms';
 
 export type UserSettingsDialogViewProps = {
@@ -22,9 +21,10 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
     return (
         <Dialog
             title="User Settings"
-            variant="info"
+            variant="details"
             visible={true}
             onOutsideClick={onClose}
+            buttons={[{ label: 'OK', primary: true, onClick: onClose }]}
         >
             <View style={styles.container}>
                 {displayProps && (
@@ -60,13 +60,6 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         />
                     </View>
                 )}
-                <View style={styles.footer}>
-                    <ButtonBar
-                        buttons={[
-                            { label: 'OK', primary: true, onClick: onClose },
-                        ]}
-                    />
-                </View>
             </View>
         </Dialog>
     );
@@ -79,9 +72,5 @@ const styles = StyleSheet.create({
     },
     fields: {
         marginBottom: 16,
-    },
-    footer: {
-        marginTop: 8,
-        alignItems: 'flex-end',
     },
 });
