@@ -11,7 +11,7 @@ const LABEL_MARGIN = 8;
  * SingleSelect component
  * 
  * Rules confirmations:
- * - Storybook imports: Meta/StoryObj from '@storybook/react' (Rule 7)
+ * - Storybook imports: Meta/StoryObj from '@storybook/react-native-web-vite' (Rule 7)
  * - Inline styles: None used. StyleSheet.create() used (Rule 4)
  * - Component export pattern: Folder-based with index.ts barrel (Rule 2)
  */
