@@ -75,10 +75,13 @@ export const EditNumber = ({
         setInternalValue(formatValue(numericValue));
     }, [internalValue, allowEmpty, min, max, onValueChange, formatValue]);
 
+    const labelStyle = { width: labelWidth };
+    const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };
+
     return (
         <View style={styles.container}>
             <View style={styles.row}>
-                <Text style={[styles.label, { width: labelWidth }]}>{label}</Text>
+                <Text style={[styles.label, labelStyle]}>{label}</Text>
                 <TextInput
                     style={[
                         styles.input,
@@ -95,7 +98,7 @@ export const EditNumber = ({
                 {unit && <Text style={styles.unit}>{unit}</Text>}
             </View>
             {error && (
-                <Text style={[styles.errorText, { marginLeft: labelWidth + LABEL_MARGIN }]}>
+                <Text style={[styles.errorText, errorStyle]}>
                     {error}
                 </Text>
             )}

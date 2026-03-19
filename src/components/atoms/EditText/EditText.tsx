@@ -42,10 +42,13 @@ export const EditText = ({
         onValueChange?.(internalValue);
     }, [internalValue, validate, onValueChange]);
 
+    const labelStyle = { width: labelWidth };
+    const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };
+
     return (
         <View style={styles.container}>
             <View style={styles.row}>
-                <Text style={[styles.label, { width: labelWidth }]}>{label}</Text>
+                <Text style={[styles.label, labelStyle]}>{label}</Text>
                 <TextInput
                     style={[
                         styles.input,
@@ -62,7 +65,7 @@ export const EditText = ({
                 />
             </View>
             {error && (
-                <Text style={[styles.errorText, { marginLeft: labelWidth + LABEL_MARGIN }]}>
+                <Text style={[styles.errorText, errorStyle]}>
                     {error}
                 </Text>
             )}
