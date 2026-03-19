@@ -1,0 +1,2 @@
+export const CHAR_WIDTH_MULTIPLIER = 10; // Visually tuned for normalText (16px)
+export const SINGLE_SELECT_ARROW_BUFFER = 4; // Buffer for dropdown arrow and padding (e.g., '▲' / '▼' and some padding)

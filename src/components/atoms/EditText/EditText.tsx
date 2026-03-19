@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { EditTextProps } from './types';
+import { CHAR_WIDTH_MULTIPLIER } from '../../../utils/ui'; // Import shared constant
 
 const LABEL_MARGIN = 8;
 
@@ -14,6 +15,7 @@ export const EditText = ({
     disabled = false,
     validate,
     onValueChange,
+    length, // Added length prop
 }: EditTextProps) => {
     const [internalValue, setInternalValue] = useState(value);
     const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,11 @@ export const EditText = ({
     const labelStyle = { width: labelWidth };
     const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };
 
+    // Determine input width based on length prop or flex: 1
+    const inputWidthStyle = length !== undefined
+        ? { width: length * CHAR_WIDTH_MULTIPLIER }
+        : styles.inputFull; // Use flex: 1 if no length specified
+
     return (
         <View style={styles.container}>
             <View style={styles.row}>
@@ -52,6 +59,7 @@ export const EditText = ({
                 <TextInput
                     style={[
                         styles.input,
+                        inputWidthStyle, // Apply dynamic width here
                         disabled && styles.disabledInput,
                         error !== null && styles.errorBorder,
                     ]}
@@ -88,13 +96,15 @@ const styles = StyleSheet.create({
         marginRight: LABEL_MARGIN,
     },
     input: {
-        flex: 1,
         color: colors.text,
         fontSize: textSizes.normalText,
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
         paddingVertical: 4,
         paddingHorizontal: 4,
+    },
+    inputFull: { // Style for full width when length is not specified
+        flex: 1,
     },
     disabledInput: {
         color: colors.disabled,

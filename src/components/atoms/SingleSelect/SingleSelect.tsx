@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { SingleSelectProps } from './types';
+import { CHAR_WIDTH_MULTIPLIER, SINGLE_SELECT_ARROW_BUFFER } from '../../../utils/ui'; // Import shared constants
 
 const LABEL_MARGIN = 8;
 
@@ -21,6 +22,7 @@ export const SingleSelect = ({
     labelWidth = 100,
     disabled = false,
     onValueChange,
+    length, // Added length prop
 }: SingleSelectProps) => {
     const [selectedValue, setSelectedValue] = useState(selected);
     const [isOpen, setIsOpen] = useState(false);
@@ -42,13 +44,25 @@ export const SingleSelect = ({
         onValueChange?.(itemValue);
     }, [onValueChange]);
 
+    const deriveLength = useCallback((): number | undefined => {
+        if (length !== undefined) return length; // Explicit length takes precedence
+        if (!options || options.length === 0) return undefined; // No options to derive from
+
+        const longestOptionLength = Math.max(...options.map(o => o.length));
+        return longestOptionLength + SINGLE_SELECT_ARROW_BUFFER; // Add buffer for arrow and padding
+    }, [length, options]);
+
     const labelStyle = { width: labelWidth };
+    const triggerCalculatedLength = deriveLength();
+    const triggerWidthStyle = triggerCalculatedLength !== undefined
+        ? { width: triggerCalculatedLength * CHAR_WIDTH_MULTIPLIER }
+        : styles.triggerFull; // Use flex: 1 if no length derived
 
     return (
         <View style={[styles.container, isOpen && styles.activeZIndex]}>
             <View style={styles.row}>
                 <Text style={[styles.label, labelStyle]}>{label}</Text>
-                <View style={styles.dropdownContainer}>
+                <View style={[styles.dropdownContainer, triggerWidthStyle]}> {/* Apply dynamic width here */}
                     <TouchableOpacity
                         style={[
                             styles.trigger,
@@ -105,7 +119,6 @@ const styles = StyleSheet.create({
         marginRight: LABEL_MARGIN,
     },
     dropdownContainer: {
-        flex: 1,
         position: 'relative',
     },
     trigger: {
@@ -116,6 +129,9 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.listSeparator,
         paddingVertical: 4,
         paddingHorizontal: 4,
+    },
+    triggerFull: { // Style for full width when length is not specified
+        flex: 1,
     },
     disabledTrigger: {
         borderBottomColor: 'transparent',

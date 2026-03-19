@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { colors } from '../../../theme/colors';
 import { textSizes } from '../../../theme/textSizes';
 import { EditNumberProps } from './types';
+import { CHAR_WIDTH_MULTIPLIER } from '../../../utils/ui'; // Import shared constant
 
 const LABEL_MARGIN = 8;
 
@@ -17,6 +18,7 @@ export const EditNumber = ({
     unit,
     disabled = false,
     onValueChange,
+    length, // Added length prop
 }: EditNumberProps) => {
     const formatValue = useCallback(
         (val?: number) => {
@@ -75,8 +77,25 @@ export const EditNumber = ({
         setInternalValue(formatValue(numericValue));
     }, [internalValue, allowEmpty, min, max, onValueChange, formatValue]);
 
+    const deriveLength = useCallback((): number | undefined => {
+        if (length !== undefined) return length; // Explicit length takes precedence
+        if (min === undefined && max === undefined) return undefined; // No min/max to derive from
+
+        const minStr = min !== undefined ? min.toString() : '';
+        const maxStr = max !== undefined ? max.toString() : '';
+        const longestLen = Math.max(minStr.length, maxStr.length);
+
+        // Add 3 characters as buffer for potential negative sign, decimal point, and extra digits
+        return longestLen + 3;
+    }, [length, min, max]);
+
     const labelStyle = { width: labelWidth };
     const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };
+
+    const inputCalculatedLength = deriveLength();
+    const inputWidthStyle = inputCalculatedLength !== undefined
+        ? { width: inputCalculatedLength * CHAR_WIDTH_MULTIPLIER }
+        : styles.inputFull; // Use flex: 1 if no length derived
 
     return (
         <View style={styles.container}>
@@ -85,6 +104,7 @@ export const EditNumber = ({
                 <TextInput
                     style={[
                         styles.input,
+                        inputWidthStyle, // Apply dynamic width here
                         disabled && styles.disabledInput,
                         error !== null && styles.errorBorder,
                     ]}
@@ -121,13 +141,15 @@ const styles = StyleSheet.create({
         marginRight: LABEL_MARGIN,
     },
     input: {
-        flex: 1,
         color: colors.text,
         fontSize: textSizes.normalText,
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
         paddingVertical: 4,
         paddingHorizontal: 4,
+    },
+    inputFull: { // Style for full width when length is not specified
+        flex: 1,
     },
     disabledInput: {
         color: colors.disabled,

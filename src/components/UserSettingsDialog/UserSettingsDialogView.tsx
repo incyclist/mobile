@@ -32,12 +32,15 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <EditText
                             label="Name"
                             labelWidth={LABEL_WIDTH}
+                            length={20}
                             value={displayProps.username}
                             onValueChange={displayProps.onChangeName}
                         />
                         <EditNumber
                             label="FTP"
                             labelWidth={LABEL_WIDTH}
+                            min={0}
+                            max={999}
                             value={displayProps.ftp}
                             unit="W"
                             digits={0}
@@ -46,6 +49,8 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <EditNumber
                             label="Weight"
                             labelWidth={LABEL_WIDTH}
+                            min={0}
+                            max={999}
                             value={displayProps.weight?.value}
                             unit={displayProps.weight?.unit}
                             digits={1}
