@@ -103,8 +103,12 @@ Check `package.json` first (~35 deps). Do not add without alignment.
 Use `src/components/Icon`: `<Icon name="funnel" size={20} color={colors.text} />`
 Available: `funnel, chevron-up, chevron-down, plus, import-route`
 
-
-## 11. Agent rules
-Output complete files only — no diffs, full content in backtick blocks.
-Output only files that were changed
-
+## 11. Dialog component rules
+- Always pass action buttons via the `buttons` prop on `Dialog` — never
+  render `ButtonBar` inside dialog children
+- Use `variant='details'` for any dialog containing a form or list
+- Use `variant='info'` only for short confirmations that will never scroll
+- `Dialog` automatically logs `'dialog shown'` and `'dialog closed'` —
+  never add these log events manually inside a dialog component
+- `ButtonBar` inside `Dialog.buttons` automatically logs `'button clicked'` —
+  never add button click logging manually
