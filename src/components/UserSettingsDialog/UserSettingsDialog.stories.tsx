@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 import { UserSettingsDialogView } from './UserSettingsDialogView';
 
 const meta: Meta<typeof UserSettingsDialogView> = {
@@ -38,7 +38,7 @@ export const Imperial: Story = {
         displayProps: {
             username: 'Guido Doumen',
             ftp: 224,
-            weight: { value: 165.0, unit: 'lb' },
+            weight: { value: 165.0, unit: 'lbs' },
             units: 'Imperial',
             unitsOptions: ['Metric', 'Imperial'],
             onChangeWeight: fn(),

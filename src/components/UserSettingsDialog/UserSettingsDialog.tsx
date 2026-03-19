@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserSettingsDisplayProps, useUserSettingsDisplay } from 'incyclist-services';
-import { useUnmountEffect } from '../../hooks/useUnmountEffect';
+import { useUnmountEffect } from '../../hooks';
 import { UserSettingsDialogView } from './UserSettingsDialogView';
 
 /**

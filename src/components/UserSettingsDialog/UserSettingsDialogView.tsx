@@ -41,7 +41,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                             value={displayProps.ftp}
                             unit="W"
                             digits={0}
-                            onValueChange={displayProps.onChangeFtp}
+                            onValueChange={(v) => { if (v !== undefined) displayProps.onChangeFtp(v); }}
                         />
                         <EditNumber
                             label="Weight"
@@ -49,7 +49,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                             value={displayProps.weight?.value}
                             unit={displayProps.weight?.unit}
                             digits={1}
-                            onValueChange={displayProps.onChangeWeight}
+                            onValueChange={(v) => { if (v !== undefined) displayProps.onChangeWeight(v); }}
                         />
                         <SingleSelect
                             label="Units"
