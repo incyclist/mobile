@@ -80,7 +80,7 @@ export const MainPageView = ({ onClick }: MainPageViewProps) => {
         <MainBackground>
             <View style={styles.layout}>
                 <View style={styles.navColumn}>
-                    <NavigationBar position="left" onClick={onClick} />
+                    <NavigationBar onClick={onClick} />
                 </View>
 
                 <ScrollView style={styles.contentColumn} contentContainerStyle={styles.scrollContent}>

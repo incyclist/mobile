@@ -16,7 +16,7 @@ export const NotImplementedView = ( {onClick,selected}:NotImplementedViewProps) 
         <MainBackground>
             <View style={styles.layout}>
                 <View style={styles.navColumn}>
-                    <NavigationBar position="left" selected={selected} onClick={onClick} />
+                    <NavigationBar selected={selected} onClick={onClick} />
                 </View>
                 
                 <View style={styles.content}>
