@@ -88,12 +88,6 @@ New screens must be registered in `RootNavigator.tsx`.
 - Has service observer → `ComponentName.tsx` (smart) + `View.tsx` (pure)
 - Pure props-in/render-out → single file
 
-## 7. Storybook
-- Every component needs to have a storybook demonstrating the use of its properties
-- Stories always against the **View** variant
-- Event handlers use `fn()` from `'storybook/test'`
-- Import: `import type { Meta, StoryObj } from '@storybook/react'`
-
 ## 8. Logging
 ```tsx
 const { logError, logEvent } = useLogging('ComponentName')
