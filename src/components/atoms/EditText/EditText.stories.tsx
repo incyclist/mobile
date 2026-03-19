@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from '@storybook/react-native-web-vite';
+import { fn } from 'storybook/test';
 import { EditText } from './EditText';
 
 const meta: Meta<typeof EditText> = {
