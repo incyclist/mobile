@@ -5,4 +5,5 @@ export type SingleSelectProps = {
     labelWidth?: number;
     disabled?: boolean;
     onValueChange?: (value: string) => void;
+    length?: number; // Added for input width control
 };

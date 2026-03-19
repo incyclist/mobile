@@ -56,3 +56,29 @@ export const Disabled: Story = {
         disabled: true,
     },
 };
+
+export const WithLength: Story = {
+    args: {
+        label: 'FTP',
+        value: 224,
+        unit: 'W',
+        digits: 0,
+        length: 5, // Explicitly set length
+    },
+};
+
+export const WithMinMaxDerivedLength: Story = {
+    args: {
+        label: 'Weight Range',
+        value: 123.45,
+        min: -999.99,
+        max: 9999.99,
+        digits: 2,
+        unit: 'kg',
+        // length is not specified, will be derived from min/max
+        // minStr: '-999.99' (length 7) -> this doesn't happen, it's min.toString() -> '-999' (4 chars)
+        // maxStr: '9999.99' (length 7) -> this doesn't happen, it's max.toString() -> '9999' (4 chars)
+        // longestLen = 4. Derived: 4 + 3 = 7.
+        // It will accommodate `999.99` (6 chars) or `-99.99` (6 chars).
+    },
+};

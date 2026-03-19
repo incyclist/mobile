@@ -41,3 +41,11 @@ export const WithValidation: Story = {
         validate: (v) => (v.trim() === '' ? 'Name is required' : null),
     },
 };
+
+export const WithLength: Story = {
+    args: {
+        label: 'Name',
+        value: 'Guido Doumen',
+        length: 20, // Explicitly set length
+    },
+};

@@ -9,4 +9,5 @@ export type EditNumberProps = {
     unit?: string;
     disabled?: boolean;
     onValueChange?: (value: number | undefined) => void;
+    length?: number; // Added for input width control
 };

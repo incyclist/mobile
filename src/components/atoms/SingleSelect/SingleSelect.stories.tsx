@@ -44,3 +44,22 @@ export const Disabled: Story = {
         disabled: true,
     },
 };
+
+export const WithLength: Story = {
+    args: {
+        label: 'Units',
+        options: ['Metric', 'Imperial'],
+        selected: 'Metric',
+        length: 12, // Explicitly set length
+    },
+};
+
+export const WithAutoDerivedLength: Story = {
+    args: {
+        label: 'Lengthy Options',
+        options: ['Short', 'Medium Length', 'Very Very Long Option'],
+        selected: 'Medium Length',
+        // length is not specified, will be derived from longest option
+        // 'Very Very Long Option' is 22 chars. Derived: 22 + 4 = 26.
+    },
+};

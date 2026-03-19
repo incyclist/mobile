@@ -32,13 +32,15 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <EditText
                             label="Name"
                             labelWidth={LABEL_WIDTH}
+                            length={20} // Explicit length for user name
                             value={displayProps.username}
                             onValueChange={displayProps.onChangeName}
                         />
                         <EditNumber
                             label="FTP"
                             labelWidth={LABEL_WIDTH}
-                            value={displayProps.ftp}
+                            min={0}
+                            max={999} // min/max help derive length automatically
                             unit="W"
                             digits={0}
                             onValueChange={(v) => { if (v !== undefined) displayProps.onChangeFtp(v); }}
@@ -46,7 +48,8 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <EditNumber
                             label="Weight"
                             labelWidth={LABEL_WIDTH}
-                            value={displayProps.weight?.value}
+                            min={0}
+                            max={999} // min/max help derive length automatically
                             unit={displayProps.weight?.unit}
                             digits={1}
                             onValueChange={(v) => { if (v !== undefined) displayProps.onChangeWeight(v); }}
@@ -54,7 +57,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                         <SingleSelect
                             label="Units"
                             labelWidth={LABEL_WIDTH}
-                            options={displayProps.unitsOptions}
+                            options={displayProps.unitsOptions} // options help derive length automatically
                             selected={displayProps.units}
                             onValueChange={displayProps.onChangeUnits}
                         />
