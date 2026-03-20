@@ -4,6 +4,7 @@ import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { SingleSelectProps } from './types';
 import { CHAR_WIDTH_MULTIPLIER, SINGLE_SELECT_ARROW_BUFFER } from '../../utils/ui'; // Import shared constants
+import { useLogging } from '../../hooks';
 
 const LABEL_MARGIN = 8;
 
@@ -27,6 +28,7 @@ export const SingleSelect = ({
     const [selectedValue, setSelectedValue] = useState(selected);
     const [isOpen, setIsOpen] = useState(false);
     const [triggerHeight, setTriggerHeight] = useState(0);
+    const {logEvent} = useLogging('Incyclist')
 
     useEffect(() => {
         setSelectedValue(selected);
@@ -41,8 +43,9 @@ export const SingleSelect = ({
     const handleSelect = useCallback((itemValue: string) => {
         setSelectedValue(itemValue);
         setIsOpen(false);
+        logEvent( {message:'option selected', field:label, option:itemValue, eventSource:'user'})
         onValueChange?.(itemValue);
-    }, [onValueChange]);
+    }, [label, logEvent, onValueChange]);
 
     const deriveLength = useCallback((): number | undefined => {
         if (length !== undefined) return length; // Explicit length takes precedence

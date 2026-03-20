@@ -4,6 +4,7 @@ import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { EditTextProps } from './types';
 import { CHAR_WIDTH_MULTIPLIER } from '../../utils/ui'; // Import shared constant
+import { useLogging } from '../../hooks';
 
 const LABEL_MARGIN = 8;
 
@@ -20,6 +21,7 @@ export const EditText = ({
     const [internalValue, setInternalValue] = useState(value);
     const [error, setError] = useState<string | null>(null);
     const refLastValue = useRef(value);
+    const {logEvent} = useLogging('Incyclist')
 
     useEffect(() => {
         setInternalValue(value);
@@ -41,8 +43,9 @@ export const EditText = ({
         }
 
         refLastValue.current = internalValue;
+        logEvent( {message: 'text entered',field:label,value: internalValue, eventSource:'user' })
         onValueChange?.(internalValue);
-    }, [internalValue, validate, onValueChange]);
+    }, [internalValue, validate, logEvent, label, onValueChange]);
 
     const labelStyle = { width: labelWidth };
     const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };

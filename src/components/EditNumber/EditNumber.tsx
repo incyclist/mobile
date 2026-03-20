@@ -4,6 +4,7 @@ import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { EditNumberProps } from './types';
 import { CHAR_WIDTH_MULTIPLIER } from '../../utils/ui'; // Import shared constant
+import { useLogging } from '../../hooks';
 
 const LABEL_MARGIN = 8;
 
@@ -31,6 +32,7 @@ export const EditNumber = ({
     const [internalValue, setInternalValue] = useState(formatValue(value));
     const [error, setError] = useState<string | null>(null);
     const refLastCommitted = useRef(value);
+    const {logEvent} = useLogging('Incyclist')
 
     useEffect(() => {
         setInternalValue(formatValue(value));
@@ -72,10 +74,12 @@ export const EditNumber = ({
         }
 
         refLastCommitted.current = numericValue;
+
+        logEvent({message:'Number edited', field:label, value:numericValue, eventSource:'user'})
         onValueChange?.(numericValue);
         // Sync display to precision
         setInternalValue(formatValue(numericValue));
-    }, [internalValue, allowEmpty, min, max, onValueChange, formatValue]);
+    }, [internalValue, formatValue, min, max, logEvent, label, onValueChange, allowEmpty]);
 
     const deriveLength = useCallback((): number | undefined => {
         if (length !== undefined) return length; // Explicit length takes precedence
@@ -147,6 +151,7 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.listSeparator,
         paddingVertical: 4,
         paddingHorizontal: 4,
+        textAlign: 'right'
     },
     inputFull: { // Style for full width when length is not specified
         flex: 1,
