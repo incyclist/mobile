@@ -25,6 +25,7 @@ interface VideoRidePageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
+    onSettings: () => void;
 }
 
 const noop = () => {};
@@ -44,7 +45,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         onEndRide, 
         onRetryStart, 
         onIgnoreStart, 
-        onCancelStart 
+        onCancelStart,
+        onSettings
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
@@ -161,6 +163,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         onPause={onPause}
                         onResume={onResume}
                         onEndRide={onEndRide}
+                        onSettings={onSettings}
                     />
                 )}
             </View>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, AppState } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { 
     getRidePageService, 
     IObserver, 
@@ -19,6 +20,7 @@ interface VideoRidePageProps {
 
 export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
+    const navigation = useNavigation();
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
@@ -85,6 +87,11 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
     const onCancelStart = useCallback(() => refService.current?.onCancelStart(), []);
+    
+    const onSettings = useCallback(() => {
+        navigation.navigate('settings' as never);
+    }, [navigation]);
+
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
         return (
@@ -106,6 +113,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
             onRetryStart={onRetryStart}
             onIgnoreStart={onIgnoreStart}
             onCancelStart={onCancelStart}
+            onSettings={onSettings}
         />
     );
 };
