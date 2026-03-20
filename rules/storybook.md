@@ -35,5 +35,14 @@ const meta: Meta<typeof FooView> = {
 Use PascalCase for all story export names (`Default`, `Compact`, `WithError`).
 Never use camelCase (`defaultArgs`, `withError`).
 
+## Story title
+Always set an explicit `title` in the `meta` object. Never rely on Storybook auto-generation.
+Use the following conventions:
+- Components: `'Components/<ComponentName>'`
+- Pages: `'Pages/<PageName>'`
+
 ## One story file per component
 `ComponentName.stories.tsx` lives in the same folder as the component.
+
+
+
