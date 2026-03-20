@@ -33,8 +33,8 @@ export const SupportSettingsPage = () => {
         logEvent({ message: 'button clicked', button: 'share uuid', eventSource: 'user' });
         try {
             await Share.share({ message: displayProps.uuid });
-        } catch (e) {
-            // share cancelled or failed - ignore
+        } catch (err:any) {
+            logEvent({message:'sharing cancelled or failed', reason:err.message})
         }
     }, [displayProps, logEvent]);
 

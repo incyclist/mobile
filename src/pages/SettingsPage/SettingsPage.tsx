@@ -16,9 +16,9 @@ export const SettingsPage = () => {
     const handleSectionPress = useCallback((label: string) => {
         logEvent({ message: 'menu item clicked', item: label, eventSource: 'user' });
         if (label === 'Support') {
-            navigation.navigate('settingsSupport' as any);
+            navigation.navigate('settingsSupport' as any as never);
         } else {
-            navigation.navigate('settingsPlaceholder' as any);
+            navigation.navigate('settingsPlaceholder' as any as never);
         }
     }, [navigation, logEvent]);
 
