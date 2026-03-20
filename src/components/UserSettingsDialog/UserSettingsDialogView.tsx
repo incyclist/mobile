@@ -4,7 +4,7 @@ import { UserSettingsDisplayProps } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { EditText } from '../EditText';
 import { EditNumber } from '../EditNumber';
-import { SingleSelect } from '../SingleSelect';
+import { ChipSelect } from '../ChipSelect';
 
 export type UserSettingsDialogViewProps = {
     displayProps: UserSettingsDisplayProps | null;
@@ -58,7 +58,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
                             digits={1}
                             onValueChange={(v) => { if (v !== undefined) displayProps.onChangeWeight(v); }}
                         />
-                        <SingleSelect
+                        <ChipSelect
                             label="Units"
                             labelWidth={LABEL_WIDTH}
                             options={displayProps.unitsOptions}
@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         paddingTop: 8,
+        paddingHorizontal: 16,
     },
     fields: {
         marginBottom: 16,
