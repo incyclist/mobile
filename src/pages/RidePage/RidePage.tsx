@@ -62,7 +62,7 @@ container: {
     flex: 1,
 },
 content: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 24,
