@@ -14,7 +14,7 @@ export const SettingsPage = () => {
     }, [navigation, logEvent]);
 
     const handleSectionPress = useCallback((label: string) => {
-        logEvent({ message: 'button clicked', button: label, eventSource: 'user' });
+        logEvent({ message: 'menu item clicked', item: label, eventSource: 'user' });
         navigation.navigate('settingsPlaceholder' as never);
     }, [navigation, logEvent]);
 

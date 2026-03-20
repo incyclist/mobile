@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
     },
     message: {
         color: colors.text,
-        fontSize: textSizes.pageTitle,
+        fontSize: textSizes.noDataText,
     },
 });
