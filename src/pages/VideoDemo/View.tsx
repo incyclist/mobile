@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background, // Fallback background
     },
     videoBackground: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         zIndex: 0, // Ensure video is behind other overlays
     },
     navColumn: {

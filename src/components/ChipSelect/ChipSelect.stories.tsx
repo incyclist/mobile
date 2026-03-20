@@ -3,6 +3,7 @@ import { fn } from 'storybook/test';
 import { ChipSelect } from './ChipSelect';
 
 const meta: Meta<typeof ChipSelect> = {
+    title: 'Components/DeviceEntry',
     component: ChipSelect,
     args: {
         onValueChange: fn(),
