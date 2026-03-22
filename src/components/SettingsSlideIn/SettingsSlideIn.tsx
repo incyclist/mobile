@@ -7,11 +7,18 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     useWindowDimensions,
-    LayoutChangeEvent
+    Platform
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
+
+const gradientColors = colors.dialogBackground as string[];
+const BackgroundContainer = Platform.OS === 'web' ? View : LinearGradient;
+const panelBackgroundStyle = Platform.OS === 'web'
+    ? { backgroundColor: gradientColors[gradientColors.length - 1] }
+    : { flex: 1 };
 
 export const SettingsSlideIn = ({
     visible,
@@ -91,19 +98,24 @@ export const SettingsSlideIn = ({
                     },
                 ]}
             >
-                <View style={styles.content}>
-                    {sections.map((section) => (
-                        <TouchableOpacity 
-                            key={section.label}
-                            style={styles.row} 
-                            onPress={() => handleSectionPress(section.label)}
-                            testID={`section-${section.label}`}
-                        >
-                            <Text style={styles.label}>{section.label}</Text>
-                            <Text style={styles.chevron}>›</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                <BackgroundContainer
+                    {...(Platform.OS !== 'web' ? { colors: gradientColors } : {})}
+                    style={panelBackgroundStyle}
+                >
+                    <View style={styles.content}>
+                        {sections.map((section) => (
+                            <TouchableOpacity 
+                                key={section.label}
+                                style={styles.row} 
+                                onPress={() => handleSectionPress(section.label)}
+                                testID={`section-${section.label}`}
+                            >
+                                <Text style={styles.label}>{section.label}</Text>
+                                <Text style={styles.chevron}>›</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </BackgroundContainer>
             </Animated.View>
         </View>
     );
@@ -119,7 +131,6 @@ const styles = StyleSheet.create({
         left: 0,
         top: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.88)',
         zIndex: 1000,
     },
     content: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { SettingsSlideIn } from './SettingsSlideIn';
@@ -10,8 +10,9 @@ const meta: Meta<typeof SettingsSlideIn> = {
     decorators: [
         (Story) => {
             const { width, height } = useWindowDimensions();
+            const containerStyle = { width, height };
             return (
-                <View style={{ width, height, position: 'relative', backgroundColor: '#333' }}>
+                <View style={[styles.storyContainer, containerStyle]}>
                     <Story />
                 </View>
             );
@@ -47,3 +48,10 @@ export const Closed: Story = {
         sections: MOCK_SECTIONS,
     },
 };
+
+const styles = StyleSheet.create({
+    storyContainer: {
+        position: 'relative',
+        backgroundColor: '#333',
+    },
+});

@@ -12,7 +12,7 @@ const MOCK_SECTIONS: SettingsSectionItem[] = [
 
 describe('SettingsSlideIn', () => {
     it('renders null when visible=false and animation complete', () => {
-        const { queryByTestID } = render(
+        const { queryByTestId } = render(
             <SettingsSlideIn 
                 visible={false} 
                 sections={MOCK_SECTIONS} 
@@ -20,7 +20,7 @@ describe('SettingsSlideIn', () => {
                 onSectionPress={jest.fn()} 
             />
         );
-        expect(queryByTestID('settings-slide-in')).toBeNull();
+        expect(queryByTestId('settings-slide-in')).toBeNull();
     });
 
     it('renders section rows when visible=true', () => {
@@ -41,7 +41,7 @@ describe('SettingsSlideIn', () => {
 
     it('tapping a section row calls onSectionPress with the correct label', () => {
         const onSectionPress = jest.fn();
-        const { getByTestID } = render(
+        const { getByTestId } = render(
             <SettingsSlideIn 
                 visible={true} 
                 sections={MOCK_SECTIONS} 
@@ -50,13 +50,13 @@ describe('SettingsSlideIn', () => {
             />
         );
 
-        fireEvent.press(getByTestID('section-Gear'));
+        fireEvent.press(getByTestId('section-Gear'));
         expect(onSectionPress).toHaveBeenCalledWith('Gear');
     });
 
     it('tapping the backdrop calls onClose', () => {
         const onClose = jest.fn();
-        const { getByTestID } = render(
+        const { getByTestId } = render(
             <SettingsSlideIn 
                 visible={true} 
                 sections={MOCK_SECTIONS} 
@@ -65,7 +65,7 @@ describe('SettingsSlideIn', () => {
             />
         );
 
-        fireEvent.press(getByTestID('settings-backdrop'));
+        fireEvent.press(getByTestId('settings-backdrop'));
         expect(onClose).toHaveBeenCalled();
     });
 });
