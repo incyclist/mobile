@@ -9,12 +9,14 @@ import {
     TouchableWithoutFeedback, 
     Platform,
     ScrollView,
-    DimensionValue
+    DimensionValue,
+    TouchableOpacity
 } from 'react-native';
 import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
 import { EventLogger } from 'gd-eventlog';
+import { MainBackground } from '../MainBackground';
 
 export const Dialog = ({ 
     title, 
@@ -29,6 +31,7 @@ export const Dialog = ({
 
     const { logEvent } = useLogging('Incyclist');
     const refInitialized = useRef<boolean>(false);
+    const layout = useScreenLayout();
 
     useEffect(() => {
         if (refInitialized.current) return;
@@ -53,6 +56,57 @@ export const Dialog = ({
     const backgroundStyle = Platform.OS === 'web' 
         ? [styles.container, { backgroundColor: gradientColors[gradientColors.length - 1] }] 
         : styles.container;
+
+    const isCompact = layout === 'compact';
+    const stripWidth = isCompact ? 70 : 150;
+    const stripWidthStyle = { width: stripWidth };
+    const stripColorStyle = { backgroundColor: 'rgba(0,0,0,0.2)' };
+
+    if (variant === 'full') {
+        return (
+            <Modal
+                transparent={false}
+                visible={visible}
+                animationType="slide"
+                onRequestClose={onOutsideClick}
+            >
+                <View style={styles.fullScreenWrapper}>
+                    <View style={StyleSheet.absoluteFill}>
+                        <MainBackground />
+                    </View>
+                    <View style={styles.fullLayout}>
+                        <View style={[styles.strip, stripWidthStyle, stripColorStyle]}>
+                            <TouchableOpacity onPress={onOutsideClick} style={styles.backButton}>
+                                <Text style={styles.backIcon}>{'\u2039'}</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <BackgroundContainer 
+                            colors={gradientColors} 
+                            style={[backgroundStyle, styles.fullContentArea, style]}
+                        >
+                            <View style={styles.header}>
+                                <Text style={[styles.title, titleStyle]}>{title}</Text>
+                            </View>
+                            
+                            <ScrollView 
+                                style={styles.scrollArea}
+                                contentContainerStyle={styles.content}
+                                bounces={false}
+                            >
+                                {children}
+                            </ScrollView>                                
+
+                            {buttons?.length ? (
+                                <View style={styles.footer}>
+                                    <ButtonBar buttons={buttons} />
+                                </View>
+                            ) : <></>}
+                        </BackgroundContainer>
+                    </View>
+                </View>
+            </Modal>
+        );
+    }
 
     return (
         <Modal
@@ -114,8 +168,8 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
             minHeight: minHeight ?? (variant === 'details' ? '80%' : undefined),
             width,
             height,
-            maxHeight: '80%',
-            borderRadius: 8,
+            maxHeight: variant === 'full' ? '100%' : '80%',
+            borderRadius: variant === 'full' ? 0 : 8,
             overflow: 'hidden',
             color: colors.text
         },
@@ -133,13 +187,39 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
             flexShrink: 1,
         },    
         content: {
-            flexGrow: variant === 'details' ? 1 : 0,
+            flexGrow: variant === 'details' || variant === 'full' ? 1 : 0,
             padding: 2,
             color: colors.text,
         },
         footer: {
             borderTopWidth: 1,
             borderTopColor: colors.dialogBorder ?? '#ccc',
+        },
+        fullScreenWrapper: {
+            flex: 1,
+        },
+        fullLayout: {
+            flex: 1,
+            flexDirection: 'row',
+        },
+        strip: {
+            height: '100%',
+            alignItems: 'center',
+            paddingTop: Platform.OS === 'ios' ? 40 : 10,
+        },
+        backButton: {
+            padding: 15,
+        },
+        backIcon: {
+            color: colors.text,
+            fontSize: 48,
+            fontWeight: '300',
+        },
+        fullContentArea: {
+            flex: 1,
+            height: '100%',
+            borderRadius: 0,
+            maxHeight: '100%',
         },
     });
 };
