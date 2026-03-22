@@ -21,6 +21,5 @@ export interface NavigationBarViewProps {
     iconSize: number;
     navWidth: number;
     showExit: boolean;
-    showBackOnly?: boolean;
-    onBack?: () => void;
+    // showBackOnly and onBack props are removed as the feature is no longer supported.
 }

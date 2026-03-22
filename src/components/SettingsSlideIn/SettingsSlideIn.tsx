@@ -12,7 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
 import { colors, textSizes } from '../../theme';
-import { useLogging } from '../../hooks';
+import { useLogging, useScreenLayout } from '../../hooks'; // Add useScreenLayout
 
 const gradientColors = colors.dialogBackground;
 const BackgroundContainer = Platform.OS === 'web' ? View : (LinearGradient as any);
@@ -28,11 +28,16 @@ export const SettingsSlideIn = ({
 }: SettingsSlideInProps) => {
     const { width: screenWidth } = useWindowDimensions();
     const { logEvent } = useLogging('SettingsSlideIn');
+    const layout = useScreenLayout(); // Get screen layout
+    const isCompact = layout === 'compact'; // Determine if compact
 
-    const panelWidth = screenWidth * 0.35;
+    // Calculate widths as per instructions
+    const stripWidth = isCompact ? 70 : 150;
+    const panelWidth = screenWidth * 0.35; // Unchanged fixed panel width
+    const totalWidth = stripWidth + panelWidth; // Total width of the sliding unit
     
     // Start off-screen (left)
-    const animTranslateX = useRef(new Animated.Value(-panelWidth)).current;
+    const animTranslateX = useRef(new Animated.Value(-totalWidth)).current; // Use totalWidth for initial position
     
     // Track animation state to handle backdrop visibility and pointer events
     const [isAnimating, setIsAnimating] = useState(false);
@@ -47,7 +52,7 @@ export const SettingsSlideIn = ({
             }
         }
 
-        const targetValue = visible ? 0 : -panelWidth;
+        const targetValue = visible ? 0 : -totalWidth; // Use totalWidth for target
         
         if (visible) {
             setIsFullyClosed(false);
@@ -64,7 +69,7 @@ export const SettingsSlideIn = ({
                 setIsFullyClosed(true);
             }
         });
-    }, [visible, animTranslateX, panelWidth]);
+    }, [visible, animTranslateX, totalWidth]); // Add totalWidth to deps
 
     const handleSectionPress = (label: string) => {
         logEvent({ message: 'menu item clicked', item: label, eventSource: 'user' });
@@ -94,19 +99,25 @@ export const SettingsSlideIn = ({
                 />
             </TouchableWithoutFeedback>
 
-            {/* Side Panel */}
+            {/* Sliding Unit (Strip + Panel) */}
             <Animated.View
                 style={[
-                    styles.panel,
-                    { 
-                        width: panelWidth, 
-                        transform: [{ translateX: animTranslateX }] 
-                    },
+                    styles.panelContainer, // Container for both strip and panel
+                    { width: totalWidth }, // Apply total width to the animated unit
+                    { transform: [{ translateX: animTranslateX }] }
                 ]}
             >
+                {/* Strip Column */}
+                <View style={[styles.strip, { width: stripWidth }]}> {/* Explicit strip width */}
+                    <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                        <Text style={styles.backIcon}>‹</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Sections Panel */}
                 <BackgroundContainer
                     colors={gradientColors}
-                    style={panelBackgroundStyle}
+                    style={[panelBackgroundStyle, { width: panelWidth }]} // Explicit panel width
                 >
                     <View style={styles.content}>
                         {sections.map((section) => (
@@ -132,15 +143,32 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFill,
         backgroundColor: 'rgba(0,0,0,0.4)',
     },
-    panel: {
+    panelContainer: { // New style for the sliding unit wrapper
         position: 'absolute',
         left: 0,
         top: 0,
         bottom: 0,
         zIndex: 1000,
+        flexDirection: 'row', // Arrange strip and panel side-by-side
+    },
+    strip: {
+        backgroundColor: 'rgba(200,200,200,0.15)',
+        alignSelf: 'stretch', // Ensures it takes full height of panelContainer
+        paddingTop: Platform.OS === 'ios' ? 40 : 10, // Adjust for iOS status bar, similar to Dialog
+    },
+    backButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        paddingVertical: 10,
+    },
+    backIcon: {
+        fontSize: 32,
+        lineHeight: 36,
+        color: colors.text,
     },
     content: {
-        flex: 1,
+        flex: 1, // Content needs to flex within its parent BackgroundContainer
         paddingTop: 20,
     },
     row: {

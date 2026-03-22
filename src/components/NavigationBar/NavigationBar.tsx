@@ -55,8 +55,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 iconSize={iconSize}
                 navWidth={navWidth}
                 showExit={showExit}
-                showBackOnly={showSettings}
-                onBack={() => setShowSettings(false)}
+                // showBackOnly and onBack props are removed as the feature is no longer supported by NavigationBarView.
             />
             {showUserSettings && (
                 <UserSettingsDialog onClose={() => setShowUserSettings(false)} />
