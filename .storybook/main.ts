@@ -88,16 +88,17 @@ const config: StorybookConfig = {
                 alias: {
                     // ── React Native web shims ────────────────────────────────────
                     'react-native-safe-area-context': 'react-native-web-safe-area-context',
-                    'react-native-permissions':      'react-native-web/dist/exports/View',
                     'react-native-ble-manager':      'react-native-web/dist/exports/View',
                     'react-native-linear-gradient':  'react-native-web/dist/exports/View',
                     'react-native-zip-archive':      'react-native-web/dist/exports/View',
                     '@react-native-documents/picker': path.resolve(dirname, './documentPickerStub.ts'),
                     'react-native-video': path.resolve(dirname, './mocks/react-native-video.tsx'),
                     'react-native-device-info': path.resolve(dirname, 'mocks/react-native-device-info.ts'),                    
+                    'react-native-permissions': path.resolve(dirname, 'mocks/react-native-permissions.ts'),
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
+
 
                     // ── crypto: stub (never use crypto-browserify) ────────────────
                     // crypto-browserify -> browserify-sign -> vendored readable-stream
