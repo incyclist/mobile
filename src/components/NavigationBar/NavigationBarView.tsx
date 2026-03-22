@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { NavigationBarViewProps, TNavigationItem } from './types';
 import { NavigationItem } from './NavigationItem';
 import { navigationItemsMiddle } from './utils';
@@ -23,22 +23,10 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
         compact, 
         iconSize, 
         navWidth, 
-        showExit,
-        showBackOnly,
-        onBack 
+        showExit
     } = props;
 
-    if (showBackOnly) {
-        return (
-            <View style={[styles.container, { width: navWidth }]}>
-                <View style={styles.top}>
-                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Text style={styles.backIcon}>‹</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
+    // The showBackOnly mode and associated rendering logic have been removed.
 
     const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
         const color = isSelected ? colors.iconSelected : colors.icon;
@@ -125,15 +113,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
     },
-    backButton: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        paddingVertical: 10,
-    },
-    backIcon: {
-        fontSize: 32,
-        lineHeight: 36,
-        color: colors.text,
-    },
+    // The backButton and backIcon styles have been removed as showBackOnly mode is no longer supported.
 });
