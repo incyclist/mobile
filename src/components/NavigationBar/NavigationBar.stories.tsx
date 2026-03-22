@@ -39,3 +39,13 @@ export const Compact: Story = {
         selected: 'activities',
     }
 };
+
+export const SettingsOpen: Story = {
+    args: {
+        showBackOnly: true,
+        compact: false,
+        iconSize: 40,
+        navWidth: 150,
+        showExit: false,
+    }
+};

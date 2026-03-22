@@ -27,4 +27,18 @@ describe('NavigationBarView', () => {
         );
         expect(toJSON()).toBeDefined();
     });
+
+    it('renders in back-only mode', () => {
+        const { getByText } = render(
+            <NavigationBarView 
+                onClick={jest.fn()} 
+                iconSize={32} 
+                navWidth={70} 
+                showExit={true}
+                showBackOnly={true}
+                onBack={jest.fn()}
+            />
+        );
+        expect(getByText('‹')).toBeDefined();
+    });
 });
