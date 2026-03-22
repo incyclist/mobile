@@ -14,8 +14,8 @@ import { SettingsSlideInProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
 
-const gradientColors = colors.dialogBackground as string[];
-const BackgroundContainer = Platform.OS === 'web' ? View : LinearGradient;
+const gradientColors = colors.dialogBackground;
+const BackgroundContainer = Platform.OS === 'web' ? View : (LinearGradient as any);
 const panelBackgroundStyle = Platform.OS === 'web'
     ? { backgroundColor: gradientColors[gradientColors.length - 1] }
     : { flex: 1 };
@@ -37,16 +37,22 @@ export const SettingsSlideIn = ({
     // Track animation state to handle backdrop visibility and pointer events
     const [isAnimating, setIsAnimating] = useState(false);
     const [isFullyClosed, setIsFullyClosed] = useState(!visible);
+    const hasMountedRef = useRef(false);
 
     useEffect(() => {
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            if (!visible) {
+                return;
+            }
+        }
+
         const targetValue = visible ? 0 : -panelWidth;
         
         if (visible) {
             setIsFullyClosed(false);
-            setIsAnimating(true);
-        } else {
-            setIsAnimating(true);
         }
+        setIsAnimating(true);
 
         Animated.timing(animTranslateX, {
             toValue: targetValue,
@@ -99,7 +105,7 @@ export const SettingsSlideIn = ({
                 ]}
             >
                 <BackgroundContainer
-                    {...(Platform.OS !== 'web' ? { colors: gradientColors } : {})}
+                    colors={gradientColors}
                     style={panelBackgroundStyle}
                 >
                     <View style={styles.content}>
