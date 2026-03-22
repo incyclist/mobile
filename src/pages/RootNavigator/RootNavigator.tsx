@@ -8,7 +8,6 @@ import { RoutesPage } from '../RoutesPage/RoutesPage';
 import { RidePage } from '../RidePage'; // New import
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
-import { SettingsPage } from '../SettingsPage';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { SupportSettingsPage } from '../SupportSettingsPage';
 
@@ -27,11 +26,6 @@ export const RootNavigator = () => {
                 }}>
                 <Stack.Screen name="main" component={NotImplementedPage} />
                 <Stack.Screen name="user" component={NotImplementedPage} />
-                <Stack.Screen
-                    name="settings"
-                    component={SettingsPage}
-                    options={{ presentation: 'modal' }}
-                />
                 <Stack.Screen name="settingsPlaceholder" component={SettingsPlaceholder} />
                 <Stack.Screen name="settingsSupport" component={SupportSettingsPage} />
                 <Stack.Screen name="search" component={RoutesPage} />
