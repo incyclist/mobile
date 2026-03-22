@@ -114,3 +114,23 @@ export const NoButtons: Story = {
     },
 };
 
+export const FullVariant: Story = {
+    args: {
+        variant: 'full',
+        visible: true,
+        title: 'Settings',
+        buttons: [
+            { 
+                label: 'OK', 
+                onClick: fn(), 
+                primary: true
+            },
+        ],
+        children: (
+            <View style={{ padding: 10 }}>
+                <Text style={styles.text}>This is a full screen dialog variant.</Text>
+                <Text style={styles.text}>It features a side strip and a content area.</Text>
+            </View>
+        ),
+    },
+};
