@@ -33,7 +33,7 @@ const meta: Meta<typeof SupportSettingsView> = {
         },
     ],
     args: {
-        onBack: fn(),
+        onClose: fn(),
         onShareUuid: fn(),
         onOpenUrl: fn(),
     },

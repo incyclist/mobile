@@ -23,7 +23,7 @@ export const SupportSettingsPage = () => {
         service.close();
     });
 
-    const onBack = useCallback(() => {
+    const onClose = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'back', eventSource: 'user' });
         navigation.goBack();
     }, [navigation, logEvent]);
@@ -33,8 +33,8 @@ export const SupportSettingsPage = () => {
         logEvent({ message: 'button clicked', button: 'share uuid', eventSource: 'user' });
         try {
             await Share.share({ message: displayProps.uuid });
-        } catch (err:any) {
-            logEvent({message:'sharing cancelled or failed', reason:err.message})
+        } catch (err: any) {
+            logEvent({ message: 'sharing cancelled or failed', reason: err.message });
         }
     }, [displayProps, logEvent]);
 
@@ -46,7 +46,7 @@ export const SupportSettingsPage = () => {
     return (
         <SupportSettingsView
             displayProps={displayProps}
-            onBack={onBack}
+            onClose={onClose}
             onShareUuid={onShareUuid}
             onOpenUrl={onOpenUrl}
         />

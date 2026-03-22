@@ -18,7 +18,7 @@ const MOCK_DISPLAY_PROPS: SupportSettingsDisplayProps = {
 describe('SupportSettingsView', () => {
     const defaultProps = {
         displayProps: MOCK_DISPLAY_PROPS,
-        onBack: jest.fn(),
+        onClose: jest.fn(),
         onShareUuid: jest.fn(),
         onOpenUrl: jest.fn(),
     };
@@ -36,10 +36,10 @@ describe('SupportSettingsView', () => {
         expect(getByText('Support')).toBeTruthy();
     });
 
-    it('tapping back calls onBack', () => {
+    it('tapping back calls onClose', () => {
         const { getByText } = render(<SupportSettingsView {...defaultProps} />);
         fireEvent.press(getByText('‹'));
-        expect(defaultProps.onBack).toHaveBeenCalled();
+        expect(defaultProps.onClose).toHaveBeenCalled();
     });
 
     it('tapping Share UUID calls onShareUuid', () => {
