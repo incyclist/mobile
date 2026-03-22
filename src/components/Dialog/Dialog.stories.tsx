@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import {Dialog} from './Dialog';
+import { Dialog } from './Dialog';
 
 const styles = StyleSheet.create({
-    text: { color:'white',fontSize:16},
-    longText: { color:'white',fontSize:16, marginBottom: 15 },
-    container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' }
-})
-
+    text: { color: 'white', fontSize: 16 },
+    longText: { color: 'white', fontSize: 16, marginBottom: 15 },
+    container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
+    fullVariantContent: { padding: 10 },
+});
 
 const meta = {
     title: 'Components/Dialog',
@@ -31,15 +31,13 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-
-
 export const Basic: Story = {
     args: {
         visible: true,
         title: 'Basic Dialog',
         children: (
             <View>
-                <Text  style={styles.text}>This is a standard dialog with simple content.</Text>
+                <Text style={styles.text}>This is a standard dialog with simple content.</Text>
             </View>
         ),
     },
@@ -52,13 +50,11 @@ export const TitleStyle: Story = {
         titleStyle: { color: 'red' },
         children: (
             <View>
-                <Text  style={styles.text}>This is a standard dialog with simple content.</Text>
+                <Text style={styles.text}>This is a standard dialog with simple content.</Text>
             </View>
         ),
     },
 };
-
- 
 
 export const WithButtons: Story = {
     args: {
@@ -77,7 +73,7 @@ export const WithButtons: Story = {
         ],
         children: (
             <View>
-                <Text  style={styles.text}>Do you want to save the changes you made to your profile?</Text>
+                <Text style={styles.text}>Do you want to save the changes you made to your profile?</Text>
             </View>
         ),
     },
@@ -87,7 +83,7 @@ export const LongContent: Story = {
     args: {
         visible: true,
         title: 'Terms of Service',
-        buttons: [{ label: 'I Agree', onClick: fn(), primary:true }],
+        buttons: [{ label: 'I Agree', onClick: fn(), primary: true }],
         children: (
             <View>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -108,7 +104,7 @@ export const NoButtons: Story = {
         title: 'Information Only',
         children: (
             <View>
-                <Text  style={styles.text}>The button bar is automatically hidden because the buttons prop is undefined.</Text>
+                <Text style={styles.text}>The button bar is automatically hidden because the buttons prop is undefined.</Text>
             </View>
         ),
     },
@@ -127,7 +123,7 @@ export const FullVariant: Story = {
             },
         ],
         children: (
-            <View style={{ padding: 10 }}>
+            <View style={styles.fullVariantContent}>
                 <Text style={styles.text}>This is a full screen dialog variant.</Text>
                 <Text style={styles.text}>It features a side strip and a content area.</Text>
             </View>

@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useEffect, useRef, useCallback } from 'react';
+import React, { PropsWithChildren, useEffect, useRef } from 'react';
 import { DialogProps, DialogVariant } from './types';
 import LinearGradient from 'react-native-linear-gradient';
 import { 
