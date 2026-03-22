@@ -15,4 +15,5 @@ export interface DialogProps {
     buttons?: Array<ButtonProps>;
     style?: StyleProp<ViewStyle>;
     titleStyle?: StyleProp<TextStyle>;
+    slideFrom?: 'left'; // only applies to variant='full'
 }

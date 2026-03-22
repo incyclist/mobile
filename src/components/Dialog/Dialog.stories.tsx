@@ -61,13 +61,13 @@ export const WithButtons: Story = {
         visible: true,
         title: 'Save Changes?',
         buttons: [
-            { 
-                label: 'Cancel', 
+            {
+                label: 'Cancel',
                 onClick: fn(), // Specifically spy on this button's action
             },
-            { 
-                label: 'Save', 
-                onClick: fn(), 
+            {
+                label: 'Save',
+                onClick: fn(),
                 primary: true
             },
         ],
@@ -88,8 +88,8 @@ export const LongContent: Story = {
             <View>
                 {Array.from({ length: 5 }).map((_, i) => (
                     <Text key={i} style={styles.longText}>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                         Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
                     </Text>
                 ))}
@@ -115,10 +115,11 @@ export const FullVariant: Story = {
         variant: 'full',
         visible: true,
         title: 'Settings',
+        slideFrom: 'left', // Explicitly set slideFrom for confirmation
         buttons: [
-            { 
-                label: 'OK', 
-                onClick: fn(), 
+            {
+                label: 'OK',
+                onClick: fn(),
                 primary: true
             },
         ],
