@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { NavigationBarViewProps, TNavigationItem } from './types';
 import { NavigationItem } from './NavigationItem';
 import { navigationItemsMiddle } from './utils';
@@ -17,7 +17,28 @@ import {
 import { colors } from '../../theme';
 
 export const NavigationBarView = (props: NavigationBarViewProps) => {
-    const { selected, onClick, compact, iconSize, navWidth, showExit } = props;
+    const { 
+        selected, 
+        onClick, 
+        compact, 
+        iconSize, 
+        navWidth, 
+        showExit,
+        showBackOnly,
+        onBack 
+    } = props;
+
+    if (showBackOnly) {
+        return (
+            <View style={[styles.container, { width: navWidth }]}>
+                <View style={styles.top}>
+                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                        <Text style={styles.backIcon}>‹</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
         const color = isSelected ? colors.iconSelected : colors.icon;
@@ -103,5 +124,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
+    },
+    backButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        paddingVertical: 10,
+    },
+    backIcon: {
+        fontSize: 32,
+        lineHeight: 36,
+        color: colors.text,
     },
 });
