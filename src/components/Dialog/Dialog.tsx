@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useEffect, useRef } from 'react';
+import React, { PropsWithChildren, useEffect, useRef, useCallback } from 'react';
 import { DialogProps, DialogVariant } from './types';
 import LinearGradient from 'react-native-linear-gradient';
 import { 
@@ -9,11 +9,12 @@ import {
     TouchableWithoutFeedback, 
     Platform,
     ScrollView,
-    DimensionValue
+    DimensionValue,
+    TouchableOpacity
 } from 'react-native';
 import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
 import { EventLogger } from 'gd-eventlog';
 
 export const Dialog = ({ 
@@ -29,6 +30,10 @@ export const Dialog = ({
 
     const { logEvent } = useLogging('Incyclist');
     const refInitialized = useRef<boolean>(false);
+    const screenLayout = useScreenLayout();
+    const isCompact = screenLayout === 'compact';
+    const stripWidth = isCompact ? 70 : 150;
+    const currentVariant = variant ?? 'details';
 
     useEffect(() => {
         if (refInitialized.current) return;
@@ -44,12 +49,62 @@ export const Dialog = ({
         logEvent({ message: 'dialog closed', dialog: title });
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant });
+    const styles = getStyles({ width, height, minWidth, minHeight, variant: currentVariant });
     
     const gradientColors = colors.dialogBackground;
 
     // Mock behavior for Web/Storybook Vite
     const BackgroundContainer = Platform.OS === 'web' ? View : LinearGradient;
+
+    if (currentVariant === 'details') {
+        const stripStyle = { width: stripWidth };
+        const backgroundStyle = Platform.OS === 'web' 
+            ? [styles.fullScreen, { backgroundColor: gradientColors[gradientColors.length - 1] }] 
+            : styles.fullScreen;
+
+        return (
+            <Modal
+                transparent={false}
+                visible={visible}
+                animationType="slide"
+                onRequestClose={onOutsideClick}
+            >
+                <BackgroundContainer 
+                    colors={gradientColors} 
+                    style={[backgroundStyle, style]}
+                >
+                    <View style={styles.mainRow}>
+                        <View style={[styles.strip, stripStyle]}>
+                            <TouchableOpacity onPress={onOutsideClick} style={styles.backButton}>
+                                <Text style={styles.backButtonText}>‹</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.contentArea}>
+                            <View style={styles.header}>
+                                <Text style={[styles.title, titleStyle]}>{title}</Text>
+                            </View>
+                            
+                            <ScrollView 
+                                style={styles.scrollArea}
+                                contentContainerStyle={styles.content}
+                                bounces={false}
+                            >
+                                {children}
+                            </ScrollView>                                
+
+                            {buttons?.length ? (
+                                <View style={styles.footer}>
+                                    <ButtonBar buttons={buttons} />
+                                </View>
+                            ) : <></>}
+                        </View>
+                    </View>
+                </BackgroundContainer>
+            </Modal>
+        );
+    }
+
+    // Default info variant path (floating modal)
     const backgroundStyle = Platform.OS === 'web' 
         ? [styles.container, { backgroundColor: gradientColors[gradientColors.length - 1] }] 
         : styles.container;
@@ -114,10 +169,33 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
             minHeight: minHeight ?? (variant === 'details' ? '80%' : undefined),
             width,
             height,
-            maxHeight: '80%',
+            maxHeight: variant === 'details' ? '100%' : '80%',
             borderRadius: 8,
             overflow: 'hidden',
             color: colors.text
+        },
+        fullScreen: {
+            flex: 1,
+            overflow: 'hidden',
+        },
+        mainRow: {
+            flex: 1,
+            flexDirection: 'row',
+        },
+        strip: {
+            alignItems: 'center',
+            paddingTop: 8,
+        },
+        backButton: {
+            padding: 8,
+        },
+        backButtonText: {
+            fontSize: 40,
+            color: colors.text,
+            fontWeight: '300',
+        },
+        contentArea: {
+            flex: 1,
         },
         header: {
             padding: 16,

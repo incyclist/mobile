@@ -114,3 +114,29 @@ export const NoButtons: Story = {
     },
 };
 
+export const InfoVariant: Story = {
+    args: {
+        variant: 'info',
+        visible: true,
+        title: 'Information Dialog',
+        children: (
+            <View>
+                <Text style={styles.text}>This is the info variant. It renders as a floating modal with a fade animation.</Text>
+            </View>
+        ),
+    },
+};
+
+export const DetailsVariant: Story = {
+    args: {
+        variant: 'details',
+        visible: true,
+        title: 'Details Dialog',
+        buttons: [{ label: 'Accept', onClick: fn(), primary: true }],
+        children: (
+            <View>
+                <Text style={styles.text}>This is the details variant. It renders full-screen with a back navigation strip.</Text>
+            </View>
+        ),
+    },
+};
