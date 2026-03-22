@@ -23,7 +23,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
     return (
         <Dialog
             title="User Settings"
-            variant="details"
+            variant="full"
             visible={true}
             onOutsideClick={onClose}
             buttons={[{ label: 'OK', primary: true, onClick: onClose }]}

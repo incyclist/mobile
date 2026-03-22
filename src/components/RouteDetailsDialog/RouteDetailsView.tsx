@@ -269,7 +269,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
 
         return (
-            <Dialog title={title} buttons={dialogButtons} onOutsideClick={onCancel}>
+            <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         {renderForm()}
@@ -291,7 +291,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }
 
     return (
-        <Dialog title={title} buttons={dialogButtons} onOutsideClick={onCancel}>
+        <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
             <View style={styles.mediaRow}>
                 <View style={styles.mediaContainer}>{renderMedia()}</View>
                 <View style={styles.mediaContainer}>{renderPreview()}</View>
