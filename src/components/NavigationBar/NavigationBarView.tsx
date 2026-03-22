@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { NavigationBarViewProps, TNavigationItem } from './types';
 import { NavigationItem } from './NavigationItem';
 import { navigationItemsMiddle } from './utils';
