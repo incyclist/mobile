@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { GearSettingsView } from './GearSettingsView';
 import { GearSettingsViewProps } from './types';
 import { CyclingModeProperyType, CyclingModeProperty } from 'incyclist-services';
-import type {ICyclingMode} from 'incyclist-services';
+import type { ICyclingMode } from 'incyclist-services';
 
 // Mock ICyclingMode helper
 const createMockICyclingMode = (name: string, properties: CyclingModeProperty[]): ICyclingMode =>
@@ -18,6 +18,7 @@ describe('GearSettingsView', () => {
         {
             key: 'power',
             name: 'Power',
+            description: '',
             type: CyclingModeProperyType.Integer,
             min: 0,
             max: 400,
@@ -26,6 +27,7 @@ describe('GearSettingsView', () => {
         {
             key: 'cadence',
             name: 'Cadence',
+            description: '',
             type: CyclingModeProperyType.Integer,
             min: 40,
             max: 120,
@@ -59,10 +61,11 @@ describe('GearSettingsView', () => {
 
     it('hides conditional property when condition returns false', () => {
         const conditionalMode = createMockICyclingMode('Conditional', [
-            { key: 'show', name: 'Show it', type: CyclingModeProperyType.Boolean, default: false },
+            { key: 'show', name: 'Show it', description: '', type: CyclingModeProperyType.Boolean, default: false },
             {
                 key: 'secret',
                 name: 'Secret',
+                description: '',
                 type: CyclingModeProperyType.String,
                 condition: (s: any) => s.show === true,
             },

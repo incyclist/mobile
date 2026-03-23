@@ -4,7 +4,7 @@ import { GearSettingsView } from './GearSettingsView';
 import { CyclingModeProperyType } from 'incyclist-services';
 
 const meta: Meta<typeof GearSettingsView> = {
-    title: 'Components/GearSettings',
+    title: 'Components/Settings/Gear',
     component: GearSettingsView,
     args: {
         onClose: fn(),
@@ -16,49 +16,74 @@ const meta: Meta<typeof GearSettingsView> = {
 export default meta;
 type Story = StoryObj<typeof GearSettingsView>;
 
+const ALL_PROPS = [
+    { key: 'i', name: 'Integer', description: '', type: CyclingModeProperyType.Integer, default: 10 },
+    { key: 'f', name: 'Float', description: '', type: CyclingModeProperyType.Float, default: 1.5 },
+    { key: 's', name: 'String', description: '', type: CyclingModeProperyType.String, default: 'text' },
+    { key: 'b', name: 'Boolean', description: '', type: CyclingModeProperyType.Boolean, default: true },
+    { key: 'ss', name: 'Small Select', description: '', type: CyclingModeProperyType.SingleSelect, options: ['A', 'B'], default: 'A' },
+    { key: 'ls', name: 'Large Select', description: '', type: CyclingModeProperyType.SingleSelect, options: ['1', '2', '3', '4', '5'], default: '1' },
+];
+
 const mockModes = [
     {
-        getName: () => 'ERG',
-        getProperties: () => [
-            {
-                key: 'power',
-                name: 'Power',
-                type: CyclingModeProperyType.Integer,
-                min: 0,
-                max: 400,
-                default: 150,
-            },
-        ],
+        getName: () => 'Mode A',
+        getProperties: () => ALL_PROPS,
     },
     {
-        getName: () => 'SIM',
-        getProperties: () => [
-            {
-                key: 'weight',
-                name: 'Weight',
-                type: CyclingModeProperyType.Float,
-                min: 0,
-                max: 200,
-                default: 75,
-            },
-        ],
+        getName: () => 'Mode B',
+        getProperties: () => [],
+    },
+    {
+        getName: () => 'Mode C',
+        getProperties: () => [],
     },
 ];
 
-export const Default: Story = {
+export const AllTypes: Story = {
     args: {
-        mode: 'ERG',
+        mode: 'Mode A',
         options: mockModes as any,
-        settings: { power: 200 },
-        properties: mockModes[0].getProperties() as any,
+        settings: { i: 20, f: 2.5, s: 'hello', b: false, ss: 'B', ls: '3' },
+        properties: ALL_PROPS as any,
     },
 };
 
-export const SimMode: Story = {
+export const SmallSelect: Story = {
     args: {
-        mode: 'SIM',
+        mode: 'Mode A',
+        options: [mockModes[0]] as any,
+        settings: { ss: 'A' },
+        properties: [ALL_PROPS[4]] as any,
+    },
+};
+
+export const LargeSelect: Story = {
+    args: {
+        mode: 'Mode A',
+        options: [mockModes[0]] as any,
+        settings: { ls: '1' },
+        properties: [ALL_PROPS[5]] as any,
+    },
+};
+
+export const ConditionalProperty: Story = {
+    args: {
+        mode: 'Mode A',
+        options: [mockModes[0]] as any,
+        settings: { b: false },
+        properties: [
+            ALL_PROPS[3],
+            { key: 'cond', name: 'Conditional', description: '', type: CyclingModeProperyType.String, condition: (s: any) => s.b === true },
+        ] as any,
+    },
+};
+
+export const MultiMode: Story = {
+    args: {
+        mode: 'Mode A',
         options: mockModes as any,
-        settings: { weight: 80.5 },
-        properties: mockModes[1].getProperties() as any,
+        settings: {},
+        properties: [],
     },
 };

@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     useDeviceConfiguration,
     DeviceModeInfo,
-    CyclingModeProperty,
-    Settings,
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { GearSettingsProps } from './types';

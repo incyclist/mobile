@@ -1,5 +1,4 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { CyclingModeProperty, CyclingModeProperyType, Settings } from 'incyclist-services';
 import { GearSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
@@ -21,11 +20,12 @@ export const GearSettingsView = ({
     onChangeSetting,
 }: GearSettingsViewProps) => {
     const modeOptions = options.map((m) => m.getName());
+    const ModeInput = modeOptions.length <= 3 ? ChipSelect : SingleSelect;
     const visibleProperties = properties.filter((p) => !p.condition || p.condition(settings));
 
     return (
         <Dialog title="Bike Preferences" variant="full" visible={true} onOutsideClick={onClose}>
-            <SingleSelect
+            <ModeInput
                 label="Mode"
                 options={modeOptions}
                 selected={mode}
@@ -91,8 +91,9 @@ const renderProperty = (
             const selectOptions = (p.options ?? []).map((o) =>
                 typeof o === 'string' ? o : o.label ?? o.key ?? o.toString()
             );
+            const Input = selectOptions.length <= 3 ? ChipSelect : SingleSelect;
             return (
-                <SingleSelect
+                <Input
                     key={p.key}
                     label={p.name}
                     options={selectOptions}
@@ -105,8 +106,9 @@ const renderProperty = (
             const chipOptions = (p.options ?? []).map((o) =>
                 typeof o === 'string' ? o : o.label ?? o.key ?? o.toString()
             );
+            const Input = chipOptions.length <= 3 ? ChipSelect : SingleSelect;
             return (
-                <ChipSelect
+                <Input
                     key={p.key}
                     label={p.name}
                     options={chipOptions}
@@ -119,5 +121,3 @@ const renderProperty = (
             return null;
     }
 };
-
-const styles = StyleSheet.create({});
