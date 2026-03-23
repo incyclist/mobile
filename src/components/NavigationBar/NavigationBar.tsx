@@ -4,14 +4,17 @@ import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
 import { UserSettingsDialog } from '../UserSettingsDialog';
 import { SettingsSlideIn } from '../SettingsSlideIn';
-import { navigate } from '../../services';
 import { SettingsSectionItem } from '../../pages/SettingsPage/types';
+import { SupportSettingsPage } from '../../pages/SupportSettingsPage';
+import { SettingsPlaceholder } from '../../pages/SettingsPlaceholder';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact } = props;
     const { height } = useWindowDimensions();
     const [showUserSettings, setShowUserSettings] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showSupport, setShowSupport] = useState(false);
+    const [showPlaceholder, setShowPlaceholder] = useState(false);
 
     const iconSize = compact ? 32 : Math.min(height / 16, 64);
     const navWidth = compact ? 70 : 150;
@@ -31,10 +34,10 @@ export const NavigationBar = (props: NavigationBarProps) => {
         setShowSettings(false);
         switch (label) {
             case 'Support':
-                navigate('settingsSupport');
+                setShowSupport(true);
                 break;
             default:
-                navigate('settingsPlaceholder');
+                setShowPlaceholder(true);
                 break;
         }
     }, []);
@@ -66,6 +69,12 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 onClose={() => setShowSettings(false)}
                 onSectionPress={handleSectionPress}
             />
+            {showSupport && (
+                <SupportSettingsPage onClose={() => setShowSupport(false)} />
+            )}
+            {showPlaceholder && (
+                <SettingsPlaceholder onClose={() => setShowPlaceholder(false)} />
+            )}
         </>
     );
 };

@@ -8,8 +8,6 @@ import { RoutesPage } from '../RoutesPage/RoutesPage';
 import { RidePage } from '../RidePage'; // New import
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
-import { SettingsPlaceholder } from '../SettingsPlaceholder';
-import { SupportSettingsPage } from '../SupportSettingsPage';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,8 +24,6 @@ export const RootNavigator = () => {
                 }}>
                 <Stack.Screen name="main" component={NotImplementedPage} />
                 <Stack.Screen name="user" component={NotImplementedPage} />
-                <Stack.Screen name="settingsPlaceholder" component={SettingsPlaceholder} />
-                <Stack.Screen name="settingsSupport" component={SupportSettingsPage} />
                 <Stack.Screen name="search" component={RoutesPage} />
                 <Stack.Screen name="routes" component={RoutesPage} />
                 <Stack.Screen name="activities" component={ActivitiesPage} />
