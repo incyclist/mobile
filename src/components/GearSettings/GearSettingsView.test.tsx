@@ -1,9 +1,20 @@
+jest.mock('incyclist-services', () => ({
+    CyclingModeProperyType: {
+        Integer: 'Integer',
+        Float: 'Float',
+        String: 'String',
+        Boolean: 'Boolean',
+        SingleSelect: 'SingleSelect',
+        MultiSelect: 'MultiSelect',
+    },
+}));
+
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { GearSettingsView } from './GearSettingsView';
 import { GearSettingsViewProps } from './types';
-import { CyclingModeProperyType, CyclingModeProperty } from 'incyclist-services';
-import type { ICyclingMode } from 'incyclist-services';
+import type { CyclingModeProperty, ICyclingMode } from 'incyclist-services';
+import { CyclingModeProperyType } from 'incyclist-services';
 
 // Mock ICyclingMode helper
 const createMockICyclingMode = (name: string, properties: CyclingModeProperty[]): ICyclingMode =>

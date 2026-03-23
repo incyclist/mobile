@@ -1,5 +1,4 @@
-import type {ICyclingMode} from 'incyclist-services';
-import { CyclingModeProperty, Settings } from 'incyclist-services';
+import type { ICyclingMode, CyclingModeProperty, Settings } from 'incyclist-services';
 
 export interface GearSettingsProps {
     onClose: () => void;

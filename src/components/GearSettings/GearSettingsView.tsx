@@ -1,5 +1,6 @@
 import React from 'react';
-import { CyclingModeProperty, CyclingModeProperyType, Settings } from 'incyclist-services';
+import type { CyclingModeProperty, Settings } from 'incyclist-services';
+import { CyclingModeProperyType } from 'incyclist-services';
 import { GearSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { SingleSelect } from '../SingleSelect';

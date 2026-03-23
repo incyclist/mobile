@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-    useDeviceConfiguration,
-    DeviceModeInfo,
-} from 'incyclist-services';
+import { useDeviceConfiguration } from 'incyclist-services';
+import type { DeviceModeInfo } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { GearSettingsProps } from './types';
 import { GearSettingsView } from './GearSettingsView';
