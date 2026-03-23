@@ -36,9 +36,9 @@ describe('SupportSettingsView', () => {
         expect(getByText('Support')).toBeTruthy();
     });
 
-    it('tapping back calls onClose', () => {
+    it('tapping Close calls onClose', () => {
         const { getByText } = render(<SupportSettingsView {...defaultProps} />);
-        fireEvent.press(getByText('‹'));
+        fireEvent.press(getByText('Close'));
         expect(defaultProps.onClose).toHaveBeenCalled();
     });
 
