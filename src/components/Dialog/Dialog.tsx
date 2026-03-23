@@ -18,7 +18,6 @@ import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
 import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
 import { EventLogger } from 'gd-eventlog';
-import { MainBackground } from '../MainBackground';
 
 export const Dialog = ({
     title,
@@ -146,9 +145,6 @@ export const Dialog = ({
                     styles.fullScreenWrapper,
                     { transform: [{ translateX: animTranslateX }] } // Apply animation here
                 ]}>
-                    <View style={StyleSheet.absoluteFill}>
-                        <MainBackground />
-                    </View>
                     <View style={styles.fullLayout}>
                         <View style={[styles.strip, stripWidthStyle, stripColorStyle]}>
                             <TouchableOpacity onPress={onOutsideClick} style={styles.backButton}>
@@ -282,6 +278,8 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
             height: '100%',
             alignItems: 'center',
             paddingTop: Platform.OS === 'ios' ? 40 : 10,
+            backgroundColor: 'lightgrey'
+
         },
         backButton: {
             padding: 15,

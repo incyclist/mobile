@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', // Arrange strip and panel side-by-side
     },
     strip: {
-        backgroundColor: 'rgba(200,200,200,0.15)',
+        backgroundColor: 'lightgrey',
         alignSelf: 'stretch', // Ensures it takes full height of panelContainer
         paddingTop: Platform.OS === 'ios' ? 40 : 10, // Adjust for iOS status bar, similar to Dialog
     },
