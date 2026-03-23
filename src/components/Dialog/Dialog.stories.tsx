@@ -14,7 +14,6 @@ const styles = StyleSheet.create({
 const meta = {
     title: 'Components/Dialog',
     component: Dialog,
-    // Initialize standard event handlers with fn() at the meta level
     args: {
         onOutsideClick: fn(),
     },
@@ -63,12 +62,12 @@ export const WithButtons: Story = {
         buttons: [
             {
                 label: 'Cancel',
-                onClick: fn(), // Specifically spy on this button's action
+                onClick: fn(),
             },
             {
                 label: 'Save',
                 onClick: fn(),
-                primary: true
+                primary: true,
             },
         ],
         children: (
@@ -115,18 +114,17 @@ export const FullVariant: Story = {
         variant: 'full',
         visible: true,
         title: 'Settings',
-        slideFrom: 'left', // Explicitly set slideFrom for confirmation
+        slideFrom: 'left',
         buttons: [
             {
-                label: 'OK',
+                label: 'Close',
                 onClick: fn(),
-                primary: true
             },
         ],
         children: (
             <View style={styles.fullVariantContent}>
                 <Text style={styles.text}>This is a full screen dialog variant.</Text>
-                <Text style={styles.text}>It features a side strip and a content area.</Text>
+                <Text style={styles.text}>Tapping the transparent strip on the left calls onOutsideClick.</Text>
             </View>
         ),
     },

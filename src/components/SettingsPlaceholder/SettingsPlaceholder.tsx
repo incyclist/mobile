@@ -22,6 +22,7 @@ export const SettingsPlaceholder = ({ onClose }: SettingsPlaceholderProps) => {
             variant="full"
             visible={true}
             onOutsideClick={handleClose}
+            buttons={[{ label: 'Close', onClick: handleClose }]}
         >
             <Text style={styles.message}>Not yet implemented</Text>
         </Dialog>

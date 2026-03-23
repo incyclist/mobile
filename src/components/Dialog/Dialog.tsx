@@ -11,8 +11,8 @@ import {
     ScrollView,
     DimensionValue,
     TouchableOpacity,
-    Animated, // Import Animated
-    useWindowDimensions, // Import useWindowDimensions
+    Animated,
+    useWindowDimensions,
 } from 'react-native';
 import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
@@ -28,31 +28,26 @@ export const Dialog = ({
     children,
     visible = true,
     onOutsideClick,
-    slideFrom, // Add slideFrom prop
+    slideFrom,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
     const refInitialized = useRef<boolean>(false);
     const layout = useScreenLayout();
-    const { width: screenWidth } = useWindowDimensions(); // Get screen width
+    const { width: screenWidth } = useWindowDimensions();
 
-    // Internal state for Modal visibility and animation for 'full' variant
-    const [isModalActive, setIsModalActive] = useState(false); // Controls actual Modal `visible`
-    const [isAnimating, setIsAnimating] = useState(false); // Controls if animation is running
+    const [isModalActive, setIsModalActive] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
 
-    // Determine slide direction and initial Animated.Value
     const defaultSlideFrom = 'left';
     const actualSlideFrom = variant === 'full' ? (slideFrom || defaultSlideFrom) : undefined;
-    const initialTranslateX = actualSlideFrom === 'left' ? -screenWidth : 0; // If not full, translateX isn't used. If full and left, start off screen left.
+    const initialTranslateX = actualSlideFrom === 'left' ? -screenWidth : 0;
     const animTranslateX = useRef(new Animated.Value(initialTranslateX)).current;
 
-    // Effect to manage modal visibility and animation
     useEffect(() => {
         if (variant !== 'full') {
-            // For info/details variants, just use the external 'visible' prop directly
-            // Sync internal state for non-full variants
             setIsModalActive(visible);
-            
+
             if (visible && !refInitialized.current) {
                 refInitialized.current = true;
                 logEvent({ message: 'dialog shown', dialog: title });
@@ -65,13 +60,10 @@ export const Dialog = ({
             return;
         }
 
-        // --- Logic for 'full' variant ---
         if (visible && !isModalActive) {
-            // OPENING 'full' dialog
-            setIsModalActive(true); // Show the Modal immediately
+            setIsModalActive(true);
 
-            // Start animation from off-screen
-            animTranslateX.setValue(actualSlideFrom === 'left' ? -screenWidth : screenWidth); // Re-initialize position before animation
+            animTranslateX.setValue(actualSlideFrom === 'left' ? -screenWidth : screenWidth);
             setIsAnimating(true);
             Animated.timing(animTranslateX, {
                 toValue: 0,
@@ -79,23 +71,22 @@ export const Dialog = ({
                 useNativeDriver: true,
             }).start(() => {
                 setIsAnimating(false);
-                if (!refInitialized.current) { // Ensure logging happens only once on mount
+                if (!refInitialized.current) {
                     refInitialized.current = true;
                     logEvent({ message: 'dialog shown', dialog: title });
                     EventLogger.setGlobalConfig('dialog', title);
                 }
             });
         } else if (!visible && isModalActive) {
-            // CLOSING 'full' dialog
             setIsAnimating(true);
             Animated.timing(animTranslateX, {
-                toValue: actualSlideFrom === 'left' ? -screenWidth : screenWidth, // Animate back off-screen
+                toValue: actualSlideFrom === 'left' ? -screenWidth : screenWidth,
                 duration: 220,
                 useNativeDriver: true,
             }).start(() => {
                 setIsAnimating(false);
-                setIsModalActive(false); // Hide the Modal only after animation completes
-                if (refInitialized.current) { // Ensure logging happens only once on unmount
+                setIsModalActive(false);
+                if (refInitialized.current) {
                     refInitialized.current = false;
                     EventLogger.setGlobalConfig('dialog', null);
                     logEvent({ message: 'dialog closed', dialog: title });
@@ -104,9 +95,8 @@ export const Dialog = ({
         }
     }, [visible, isModalActive, animTranslateX, screenWidth, actualSlideFrom, variant, logEvent, title]);
 
-    // useUnmountEffect to ensure logging on component unmount if it was active
     useUnmountEffect(() => {
-        if (refInitialized.current) { // If dialog was visible before component unmounts
+        if (refInitialized.current) {
             refInitialized.current = false;
             EventLogger.setGlobalConfig('dialog', null);
             logEvent({ message: 'dialog closed', dialog: title });
@@ -117,7 +107,6 @@ export const Dialog = ({
 
     const gradientColors = colors.dialogBackground;
 
-    // Mock behavior for Web/Storybook Vite
     const BackgroundContainer = Platform.OS === 'web' ? View : LinearGradient;
     const backgroundStyle = Platform.OS === 'web'
         ? [styles.container, { backgroundColor: gradientColors[gradientColors.length - 1] }]
@@ -126,9 +115,7 @@ export const Dialog = ({
     const isCompact = layout === 'compact';
     const stripWidth = isCompact ? 70 : 150;
     const stripWidthStyle = { width: stripWidth };
-    const stripColorStyle = { backgroundColor: 'rgba(0,0,0,0.2)' };
 
-    // Don't render the Modal at all if it's not active and not animating for performance
     if (variant === 'full' && !isModalActive && !isAnimating) {
         return null;
     }
@@ -136,21 +123,21 @@ export const Dialog = ({
     if (variant === 'full') {
         return (
             <Modal
-                transparent={true} // Changed from false
-                visible={isModalActive} // Use internal state
-                animationType="none" // Changed from slide
-                onRequestClose={onOutsideClick} // External handler, should set visible=false
+                transparent={true}
+                visible={isModalActive}
+                animationType="none"
+                onRequestClose={onOutsideClick}
             >
                 <Animated.View style={[
                     styles.fullScreenWrapper,
-                    { transform: [{ translateX: animTranslateX }] } // Apply animation here
+                    { transform: [{ translateX: animTranslateX }] },
                 ]}>
                     <View style={styles.fullLayout}>
-                        <View style={[styles.strip, stripWidthStyle, stripColorStyle]}>
-                            <TouchableOpacity onPress={onOutsideClick} style={styles.backButton}>
-                                <Text style={styles.backIcon}>{'\u2039'}</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                            style={[styles.strip, stripWidthStyle]}
+                            onPress={onOutsideClick}
+                            activeOpacity={1}
+                        />
                         <BackgroundContainer
                             colors={gradientColors}
                             style={[backgroundStyle, styles.fullContentArea, style]}
@@ -179,11 +166,10 @@ export const Dialog = ({
         );
     }
 
-    // This part for 'info' and 'details' variants
     return (
         <Modal
             transparent
-            visible={isModalActive} // Use internal state, which mirrors external 'visible' for these variants
+            visible={isModalActive}
             animationType="fade"
             onRequestClose={onOutsideClick}
         >
@@ -243,7 +229,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
             maxHeight: variant === 'full' ? '100%' : '80%',
             borderRadius: variant === 'full' ? 0 : 8,
             overflow: 'hidden',
-            color: colors.text
+            color: colors.text,
         },
         header: {
             padding: 16,
@@ -276,18 +262,6 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
         },
         strip: {
             height: '100%',
-            alignItems: 'center',
-            paddingTop: Platform.OS === 'ios' ? 40 : 10,
-            backgroundColor: 'lightgrey'
-
-        },
-        backButton: {
-            padding: 15,
-        },
-        backIcon: {
-            color: colors.text,
-            fontSize: 48,
-            fontWeight: '300',
         },
         fullContentArea: {
             flex: 1,
