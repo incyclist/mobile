@@ -1,57 +1,46 @@
 import React from 'react';
-import { View, useWindowDimensions, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { SettingsSlideIn } from './SettingsSlideIn';
 
 const meta: Meta<typeof SettingsSlideIn> = {
-    title: 'Components/Settings/SlideIn',
+    title: 'Components/SettingsSlideIn',
     component: SettingsSlideIn,
-    decorators: [
-        (Story) => {
-            const { width, height } = useWindowDimensions();
-            const containerStyle = { width, height };
-            return (
-                <View style={[styles.storyContainer, containerStyle]}>
-                    <Story />
-                </View>
-            );
-        },
-    ],
     args: {
+        isOpen: true,
         onClose: fn(),
-        onSectionPress: fn(),
     },
 };
 
 export default meta;
-
 type Story = StoryObj<typeof SettingsSlideIn>;
 
-const MOCK_SECTIONS = [
-    { label: 'Gear', onPress: () => {} },
-    { label: 'Ride', onPress: () => {} },
-    { label: 'Apps', onPress: () => {} },
-    { label: 'Support', onPress: () => {} },
-];
+const MockContent = () => (
+    <View style={{ padding: 20 }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '600' }}>
+            Settings Panel
+        </Text>
+        <Text style={{ color: '#9fa4a8', marginTop: 10, fontSize: 16 }}>
+            The area to the left is now fully transparent, allowing the 
+            main NavigationBar to be visible behind it.
+        </Text>
+        <Text style={{ color: '#9fa4a8', marginTop: 10, fontSize: 16 }}>
+            Tapping anywhere in that transparent zone will trigger onClose.
+        </Text>
+    </View>
+);
 
 export const Open: Story = {
     args: {
-        visible: true,
-        sections: MOCK_SECTIONS,
+        isOpen: true,
+        children: <MockContent />,
     },
 };
 
 export const Closed: Story = {
     args: {
-        visible: false,
-        sections: MOCK_SECTIONS,
+        isOpen: false,
+        children: <MockContent />,
     },
 };
-
-const styles = StyleSheet.create({
-    storyContainer: {
-        position: 'relative',
-        backgroundColor: '#333',
-    },
-});
