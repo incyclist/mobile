@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     Animated,
     TouchableOpacity,
     TouchableWithoutFeedback,
     useWindowDimensions,
-    Platform
+    Platform,
+    Text
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
@@ -99,7 +99,7 @@ export const SettingsSlideIn = ({
                 />
             </TouchableWithoutFeedback>
 
-            {/* Sliding Unit (Strip + Panel) */}
+            {/* Sliding Unit (Tap Zone + Panel) */}
             <Animated.View
                 style={[
                     styles.panelContainer, // Container for both strip and panel
@@ -107,12 +107,12 @@ export const SettingsSlideIn = ({
                     { transform: [{ translateX: animTranslateX }] }
                 ]}
             >
-                {/* Strip Column */}
-                <View style={[styles.strip, { width: stripWidth }]}> {/* Explicit strip width */}
-                    <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                        <Text style={styles.backIcon}>‹</Text>
-                    </TouchableOpacity>
-                </View>
+                {/* Transparent Tap Zone Column */}
+                <TouchableOpacity 
+                    onPress={onClose} 
+                    style={[styles.stripZone, { width: stripWidth }]} 
+                    testID="settings-slide-in-tap-zone"
+                />
 
                 {/* Sections Panel */}
                 <BackgroundContainer
@@ -151,21 +151,9 @@ const styles = StyleSheet.create({
         zIndex: 1000,
         flexDirection: 'row', // Arrange strip and panel side-by-side
     },
-    strip: {
-        backgroundColor: 'lightgrey',
+    stripZone: {
         alignSelf: 'stretch', // Ensures it takes full height of panelContainer
-        paddingTop: Platform.OS === 'ios' ? 40 : 10, // Adjust for iOS status bar, similar to Dialog
-    },
-    backButton: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        paddingVertical: 10,
-    },
-    backIcon: {
-        fontSize: 32,
-        lineHeight: 36,
-        color: colors.text,
+        // No background color, it should be transparent
     },
     content: {
         flex: 1, // Content needs to flex within its parent BackgroundContainer
