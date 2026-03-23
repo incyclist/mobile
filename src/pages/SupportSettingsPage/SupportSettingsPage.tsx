@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Share, Linking } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { SupportSettingsDisplayProps, useSupportSettingsDisplay } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { SupportSettingsView } from './View';
 
-export const SupportSettingsPage = () => {
+interface SupportSettingsPageProps {
+    onClose: () => void;
+}
+
+export const SupportSettingsPage = ({ onClose }: SupportSettingsPageProps) => {
     const [displayProps, setDisplayProps] = useState<SupportSettingsDisplayProps | null>(null);
     const refInitialized = useRef(false);
     const service = useSupportSettingsDisplay();
-    const navigation = useNavigation();
     const { logEvent } = useLogging('SupportSettingsPage');
 
     useEffect(() => {
@@ -23,10 +25,10 @@ export const SupportSettingsPage = () => {
         service.close();
     });
 
-    const onClose = useCallback(() => {
+    const handleClose = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'back', eventSource: 'user' });
-        navigation.goBack();
-    }, [navigation, logEvent]);
+        onClose();
+    }, [onClose, logEvent]);
 
     const onShareUuid = useCallback(async () => {
         if (!displayProps) return;
@@ -46,7 +48,7 @@ export const SupportSettingsPage = () => {
     return (
         <SupportSettingsView
             displayProps={displayProps}
-            onClose={onClose}
+            onClose={handleClose}
             onShareUuid={onShareUuid}
             onOpenUrl={onOpenUrl}
         />
