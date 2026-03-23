@@ -3,10 +3,9 @@ import { useWindowDimensions, Platform } from 'react-native';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
 import { UserSettingsDialog } from '../UserSettingsDialog';
-import { SettingsSlideIn } from '../SettingsSlideIn';
-import { SettingsSectionItem } from '../../pages/SettingsPage/types';
-import { SupportSettingsPage } from '../../pages/SupportSettingsPage';
-import { SettingsPlaceholder } from '../../pages/SettingsPlaceholder';
+import { SettingsSlideIn,SettingsSectionItem } from '../SettingsSlideIn';
+import { SupportSettingsPage } from '../SupportSettings';
+import { SettingsPlaceholder } from '../SettingsPlaceholder';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact } = props;

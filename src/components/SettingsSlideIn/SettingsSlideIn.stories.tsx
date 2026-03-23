@@ -5,7 +5,7 @@ import { fn } from 'storybook/test';
 import { SettingsSlideIn } from './SettingsSlideIn';
 
 const meta: Meta<typeof SettingsSlideIn> = {
-    title: 'Components/SettingsSlideIn',
+    title: 'Components/Settings/SlideIn',
     component: SettingsSlideIn,
     decorators: [
         (Story) => {

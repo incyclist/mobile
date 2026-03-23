@@ -20,7 +20,7 @@ const MOCK_DISPLAY_PROPS: SupportSettingsDisplayProps = {
 };
 
 const meta: Meta<typeof SupportSettingsView> = {
-    title: 'Pages/SupportSettingsPage',
+    title: 'Components/Settings/Support',
     component: SupportSettingsView,
     decorators: [
         (Story) => {
