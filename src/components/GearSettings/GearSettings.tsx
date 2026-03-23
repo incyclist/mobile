@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { useDeviceConfiguration } from 'incyclist-services';
 import type { DeviceModeInfo } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
