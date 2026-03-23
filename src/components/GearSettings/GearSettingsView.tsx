@@ -25,7 +25,13 @@ export const GearSettingsView = ({
     const visibleProperties = properties.filter((p) => !p.condition || p.condition(settings));
 
     return (
-        <Dialog title="Bike Preferences" variant="full" visible={true} onOutsideClick={onClose}>
+        <Dialog
+            title="Bike Preferences"
+            variant="full"
+            visible={true}
+            onOutsideClick={onClose}
+            buttons={[{ label: 'Close', onClick: onClose }]}
+        >
             <ModeInput
                 label="Mode"
                 options={modeOptions}

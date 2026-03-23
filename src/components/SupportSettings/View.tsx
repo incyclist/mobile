@@ -16,6 +16,7 @@ export const SupportSettingsView = ({
             variant="full"
             visible={true}
             onOutsideClick={onClose}
+            buttons={[{ label: 'Close', onClick: onClose }]}
         >
             {displayProps && (
                 <>
