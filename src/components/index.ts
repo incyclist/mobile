@@ -26,3 +26,5 @@ export * from './EditText';
 export * from './EditNumber';
 export * from './SingleSelect';
 export * from './ChipSelect';
+export * from './SupportSettings'
+export * from './SettingsPlaceholder'

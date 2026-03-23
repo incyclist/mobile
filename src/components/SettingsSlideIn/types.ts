@@ -1,4 +1,7 @@
-import { SettingsSectionItem } from '../../pages/SettingsPage/types';
+export interface SettingsSectionItem {
+    label: string;
+    onPress: () => void;
+}
 
 export interface SettingsSlideInProps {
     visible: boolean;
