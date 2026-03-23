@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { GearSettingsView } from './GearSettingsView';
 import { GearSettingsViewProps } from './types';
 import { CyclingModeProperyType, CyclingModeProperty } from 'incyclist-services';
-import type ICyclingMode from 'incyclist-services';
+import type {ICyclingMode} from 'incyclist-services';
 
 // Mock ICyclingMode helper
 const createMockICyclingMode = (name: string, properties: CyclingModeProperty[]): ICyclingMode =>
