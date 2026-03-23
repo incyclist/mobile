@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useDeviceConfiguration } from 'incyclist-services';
 import type { DeviceModeInfo } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { GearSettingsProps } from './types';
 import { GearSettingsView } from './GearSettingsView';
+import { colors, textSizes } from '../../theme';
+import { Dialog } from '../Dialog';
 
 /**
  * GearSettings smart component
@@ -69,7 +72,18 @@ export const GearSettings = ({ onClose }: GearSettingsProps) => {
     );
 
     if (!modeInfo) {
-        return null;
+        return (
+            <Dialog
+                title="Bike Preferences"
+                variant="full"
+                visible={true}
+                onOutsideClick={onClose}
+            >
+                <Text style={styles.emptyMessage}>
+                    No device paired. Go to Devices to set up your bike.
+                </Text>
+            </Dialog>
+        );
     }
 
     const selectedModeObj = modeInfo.options?.find((m) => m.getName() === modeInfo.mode);
@@ -87,3 +101,13 @@ export const GearSettings = ({ onClose }: GearSettingsProps) => {
         />
     );
 };
+
+const styles = StyleSheet.create({
+    emptyMessage: {
+        color: colors.text,
+        fontSize: textSizes.normalText,
+        textAlign: 'center',
+        marginTop: 40,
+        paddingHorizontal: 20,
+    },
+});
