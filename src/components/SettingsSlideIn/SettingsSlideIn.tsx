@@ -6,11 +6,12 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     useWindowDimensions,
-    Platform
+    Platform,
+    Text
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
-import { colors } from '../../theme';
+import { colors, textSizes } from '../../theme';
 import { useLogging, useScreenLayout } from '../../hooks'; // Add useScreenLayout
 
 const gradientColors = colors.dialogBackground;
