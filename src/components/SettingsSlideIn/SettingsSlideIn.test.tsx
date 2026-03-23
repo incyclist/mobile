@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { SettingsSlideIn } from './SettingsSlideIn';
-import { SettingsSectionItem } from '../../pages/SettingsPage/types';
+import { SettingsSectionItem } from './types';
 
 const MOCK_SECTIONS: SettingsSectionItem[] = [
     { label: 'Gear',    onPress: jest.fn() },

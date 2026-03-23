@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, textSizes } from '../../theme';
 import { SupportSettingsViewProps } from './types';
-import { Dialog } from '../../components/Dialog';
+import { Dialog } from '../Dialog';
 
 export const SupportSettingsView = ({
     displayProps,
