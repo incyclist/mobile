@@ -49,3 +49,13 @@ export interface ActivityGraphViewProps {
     units?: ActivityGraphUnits;
     style?: StyleProp<ViewStyle>;
 }
+
+export interface ActivityGraphProps {
+    activity?: ActivityDetailsUI;
+    ftp?: number;
+    style?: StyleProp<ViewStyle>;
+    showXAxis?: boolean;
+    showYAxis?: boolean;
+    axisFontSize?: number;
+    units?: ActivityGraphUnits;
+}

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { ActivityGraph } from './ActivityGraph';
 import { ActivityDetailsUI } from 'incyclist-services';
@@ -41,9 +40,7 @@ export const TimeAxis: Story = {
         showXAxis: true,
         showYAxis: true,
     },
-    // The component defaults to distance, but this story shows it can handle state.
-    // Since xMode is internal state, we can't easily pass it via props unless 
-    // the component supported it. Based on issue, Default arg/setup should verify time.
+    // The story currently renders identically to Default — xMode is internal state and cannot be set via args. This is acceptable as-is; do not add a new prop to solve it. Leave the story as a visual variant with a comment explaining the limitation, which is already present.
 };
 
 export const NoHeartrate: Story = {
