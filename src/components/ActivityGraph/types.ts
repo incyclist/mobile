@@ -33,6 +33,14 @@ export interface ActivityGraphPreviewProps {
     ftp?: number;
 }
 
+// Props for the smart ActivityGraph component
+export interface ActivityGraphProps {
+    activity?: ActivityDetailsUI;
+    ftp?: number;
+    units?: ActivityGraphUnits;
+    style?: StyleProp<ViewStyle>;
+}
+
 export interface ActivityGraphViewProps {
     width: number;
     height: number;
