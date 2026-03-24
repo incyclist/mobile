@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Svg, G, Path, Rect, Text as SvgText, Line } from 'react-native-svg';
-import { 
+import type { 
     ActivityGraphViewProps, 
     ActivityGraphSeries, 
     ActivityGraphPoint 
@@ -23,6 +23,7 @@ export const ActivityGraphView = ({
     showYAxis = false,
     axisFontSize = 10,
     units,
+    style,
 }: ActivityGraphViewProps) => {
     if (width <= 0 || height <= 0) return null;
 
@@ -43,7 +44,7 @@ export const ActivityGraphView = ({
             return null;
         }
 
-        const points = elevationPoints.map(p => ({
+        const points = elevationPoints.map((p: ActivityGraphPoint) => ({
             x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
             y: domainToPixel(p.y, elevationYMin, elevationYMax, plotHeight, 0),
         }));
@@ -65,7 +66,7 @@ export const ActivityGraphView = ({
 
         if (s.metric === 'power') {
             const barWidth = (plotWidth / s.points.length) + 0.5;
-            return s.points.map((p, i) => {
+            return s.points.map((p: ActivityGraphPoint, i: number) => {
                 const x = domainToPixel(p.x, xMin, xMax, 0, plotWidth);
                 const y = domainToPixel(p.y, s.yMin, s.yMax, plotHeight, 0);
                 const barHeight = Math.max(0, plotHeight - y);
@@ -82,7 +83,7 @@ export const ActivityGraphView = ({
             });
         }
 
-        const points = s.points.map(p => ({
+        const points = s.points.map((p: ActivityGraphPoint) => ({
             x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
             y: domainToPixel(p.y, s.yMin, s.yMax, plotHeight, 0),
         }));
@@ -197,10 +198,10 @@ export const ActivityGraphView = ({
     };
 
     return (
-        <Svg width={width} height={height} style={styles.svg}>
+        <Svg width={width} height={height} style={[styles.svg, style]}>
             <G translate={`${margins.left}, ${margins.top}`}>
                 {renderElevation()}
-                {series.map(s => renderSeries(s))}
+                {series.map((s: ActivityGraphSeries) => renderSeries(s))}
                 {renderXAxis()}
                 {series.length > 0 && renderYAxis(series[0], false)}
                 {series.length > 1 && renderYAxis(series[1], true)}
