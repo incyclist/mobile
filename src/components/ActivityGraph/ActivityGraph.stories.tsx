@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { ActivityGraph } from './ActivityGraph';
 import { ActivityDetailsUI, ActivityLogRecord } from 'incyclist-services';
 // Adjust path to testdata/ActivityLarge.json relative to the story file.
@@ -29,7 +28,7 @@ const removeHeartrateFromActivity = (activity: ActivityDetailsUI): ActivityDetai
 
 
 // Cast the imported JSON directly to ActivityDetailsUI
-const defaultActivity = ActivityLargeJson as ActivityDetailsUI;
+const defaultActivity = ActivityLargeJson as unknown as ActivityDetailsUI;
 const activityNoHeartrate = removeHeartrateFromActivity(defaultActivity);
 
 

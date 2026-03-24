@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Text, SafeAreaView, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, Text, LayoutChangeEvent } from 'react-native';
 import { ActivityDetailsUI } from 'incyclist-services';
 import { ActivityGraphView } from './ActivityGraphView';
 import { ActivityGraphProps, ActivityMetric, XAxisMode, ActivityGraphSeries } from './types';
@@ -124,7 +124,7 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
 
         const logs = activity.logs;
         // Use provided ftp or activity's user ftp
-        const effectiveFtp = ftp ?? (activity.user?.ftp ? parseFloat(activity.user.ftp) : undefined);
+        const effectiveFtp = ftp ?? activity.user?.ftp;
 
         // Compute all series for selected metrics
         const allSeries = computeActivitySeries(logs, selectedMetrics, xMode, containerLayout.width, effectiveFtp, units);
@@ -254,11 +254,11 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
 
             {/* Toast for error messages */}
             {showToast && (
-                <SafeAreaView style={styles.toastContainer} pointerEvents='none'>
+                <View style={styles.toastContainer} pointerEvents='none'>
                     <View style={styles.toast}>
                         <Text style={styles.toastText}>{toastMessage}</Text>
                     </View>
-                </SafeAreaView>
+                </View>
             )}
         </View>
     );
