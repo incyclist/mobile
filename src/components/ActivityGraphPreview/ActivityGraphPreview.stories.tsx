@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { ActivityGraphPreview } from './ActivityGraphPreview';
 import { colors } from '../../theme/colors';
 import ActivityLargeJson from '../../../__tests__/testdata/ActivityLarge.json';
@@ -19,9 +18,6 @@ const meta: Meta<typeof ActivityGraphPreview> = {
             </View>
         ),
     ],
-    args: {
-        // No callback props on this component, but fn() import is required by rules
-    },
 };
 
 export default meta;
