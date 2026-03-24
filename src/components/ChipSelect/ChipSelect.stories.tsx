@@ -3,7 +3,7 @@ import { fn } from 'storybook/test';
 import { ChipSelect } from './ChipSelect';
 
 const meta: Meta<typeof ChipSelect> = {
-    title: 'Components/DeviceEntry',
+    title: 'Components/ChipSelect',
     component: ChipSelect,
     args: {
         onValueChange: fn(),
@@ -51,5 +51,14 @@ export const Disabled: Story = {
         options: ['Metric', 'Imperial'],
         selected: 'Metric',
         disabled: true,
+    },
+};
+
+export const MultiSelect: Story = {
+    args: {
+        label: 'Sensors',
+        options: ['Power', 'HR', 'Speed', 'Cadence'],
+        selectedValues: ['Power', 'HR'],
+        multi: true,
     },
 };

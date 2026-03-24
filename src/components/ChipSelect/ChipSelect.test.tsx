@@ -17,6 +17,8 @@ const MOCK_CHIP_SELECT_PROPS: ChipSelectProps = {
     onValueChange: jest.fn(),
 };
 
+const MULTI_OPTIONS = ['Power', 'HR', 'Speed', 'Cadence'];
+
 describe('ChipSelect', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -60,5 +62,61 @@ describe('ChipSelect', () => {
         const { rerender } = render(<ChipSelect {...MOCK_CHIP_SELECT_PROPS} />);
         rerender(<ChipSelect {...MOCK_CHIP_SELECT_PROPS} selected="Imperial" />);
         // The sync effect runs on rerender
+    });
+
+    it('renders in multi mode with no initial selection', () => {
+        const onValueChange = jest.fn();
+        const { getByText } = render(
+            <ChipSelect label="Sensors" options={MULTI_OPTIONS} multi={true} onValueChange={onValueChange} />
+        );
+        expect(getByText('Power')).toBeTruthy();
+        expect(getByText('HR')).toBeTruthy();
+    });
+
+    it('renders in multi mode with initial selectedValues', () => {
+        const { getByText } = render(
+            <ChipSelect label="Sensors" options={MULTI_OPTIONS} multi={true} selectedValues={['Power', 'HR']} />
+        );
+        expect(getByText('Power')).toBeTruthy();
+        expect(getByText('HR')).toBeTruthy();
+    });
+
+    it('selecting a chip adds it to selection and calls onValueChange with updated array', () => {
+        const onValueChange = jest.fn();
+        const { getByText } = render(
+            <ChipSelect label="Sensors" options={MULTI_OPTIONS} multi={true} onValueChange={onValueChange} />
+        );
+        fireEvent.press(getByText('Power'));
+        expect(onValueChange).toHaveBeenCalledWith(['Power']);
+    });
+
+    it('selecting an already-selected chip removes it and calls onValueChange with updated array', () => {
+        const onValueChange = jest.fn();
+        const { getByText } = render(
+            <ChipSelect
+                label="Sensors"
+                options={MULTI_OPTIONS}
+                multi={true}
+                selectedValues={['Power', 'HR']}
+                onValueChange={onValueChange}
+            />
+        );
+        fireEvent.press(getByText('Power'));
+        expect(onValueChange).toHaveBeenCalledWith(['HR']);
+    });
+
+    it('disabled multi mode does not respond to press', () => {
+        const onValueChange = jest.fn();
+        const { getByText } = render(
+            <ChipSelect
+                label="Sensors"
+                options={MULTI_OPTIONS}
+                multi={true}
+                disabled={true}
+                onValueChange={onValueChange}
+            />
+        );
+        fireEvent.press(getByText('Power'));
+        expect(onValueChange).not.toHaveBeenCalled();
     });
 });

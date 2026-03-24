@@ -9,34 +9,58 @@ const LABEL_MARGIN = 8;
 
 /**
  * ChipSelect component
- * 
- * A reusable labelled row of chips for selecting one option from a small set.
+ *
+ * A reusable labelled row of chips for selecting one or more options from a small set.
  */
-export const ChipSelect = ({
-    label,
-    options,
-    selected,
-    labelWidth = 100,
-    disabled = false,
-    onValueChange,
-}: ChipSelectProps) => {
-    const [selectedValue, setSelectedValue] = useState(selected);
+export const ChipSelect = (props: ChipSelectProps) => {
+    const { label, options, labelWidth = 100, disabled = false } = props;
     const { logEvent } = useLogging('ChipSelect');
 
+    const [selectedValue, setSelectedValue] = useState<string | undefined>(
+        props.multi ? undefined : props.selected
+    );
+    const [selectedValues, setSelectedValues] = useState<string[]>(
+        props.multi ? (props.selectedValues ?? []) : []
+    );
+
     useEffect(() => {
-        setSelectedValue(selected);
-    }, [selected]);
+        if (!props.multi) {
+            setSelectedValue(props.selected);
+        }
+    }, [props.multi, !props.multi ? props.selected : undefined]);
+
+    useEffect(() => {
+        if (props.multi) {
+            setSelectedValues(props.selectedValues ?? []);
+        }
+    }, [props.multi, props.multi ? props.selectedValues : undefined]);
 
     const handleSelect = (option: string) => {
         if (disabled) return;
-        setSelectedValue(option);
-        logEvent({
-            message: 'option selected',
-            field: label,
-            value: option,
-            eventSource: 'user',
-        });
-        onValueChange?.(option);
+
+        if (props.multi) {
+            const updated = selectedValues.includes(option)
+                ? selectedValues.filter((v) => v !== option)
+                : [...selectedValues, option];
+
+            setSelectedValues(updated);
+            logEvent({
+                message: 'option selected',
+                field: label,
+                value: option,
+                eventSource: 'user',
+            });
+            props.onValueChange?.(updated);
+        } else {
+            setSelectedValue(option);
+            logEvent({
+                message: 'option selected',
+                field: label,
+                value: option,
+                eventSource: 'user',
+            });
+            props.onValueChange?.(option);
+        }
     };
 
     const labelStyle = { width: labelWidth };
@@ -47,7 +71,9 @@ export const ChipSelect = ({
                 <Text style={[styles.label, labelStyle]}>{label}</Text>
                 <View style={styles.chipsContainer}>
                     {options.map((option, index) => {
-                        const isSelected = selectedValue === option;
+                        const isSelected = props.multi
+                            ? selectedValues.includes(option)
+                            : selectedValue === option;
                         const isLast = index === options.length - 1;
 
                         return (
