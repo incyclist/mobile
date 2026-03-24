@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import { Rect } from 'react-native-svg';
 import { ActivityGraphPreview } from './ActivityGraphPreview';
 import { ActivityDetailsUI, ActivityLogRecord } from 'incyclist-services';
 
@@ -45,7 +46,7 @@ describe('ActivityGraphPreview', () => {
         );
         // computeActivitySeries will produce points based on buckets.
         // With width 100 and 5 logs, it should result in 5 points if they fall in different buckets.
-        const rects = UNSAFE_getAllByType('Rect');
+        const rects = UNSAFE_getAllByType(Rect);
         expect(rects.length).toBeGreaterThan(0);
     });
 
@@ -57,7 +58,7 @@ describe('ActivityGraphPreview', () => {
         const { UNSAFE_getAllByType } = render(
             <ActivityGraphPreview width={100} height={50} activity={activity} />
         );
-        const rects = UNSAFE_getAllByType('Rect');
+        const rects = UNSAFE_getAllByType(Rect);
         expect(rects.length).toBeGreaterThan(0);
     });
 
@@ -69,7 +70,7 @@ describe('ActivityGraphPreview', () => {
         const { UNSAFE_getAllByType } = render(
             <ActivityGraphPreview width={100} height={50} activity={activity} />
         );
-        const rects = UNSAFE_getAllByType('Rect');
+        const rects = UNSAFE_getAllByType(Rect);
         // Zone color for no FTP should be #7f7f7f
         expect(rects[0].props.fill).toBe('#7f7f7f');
     });
