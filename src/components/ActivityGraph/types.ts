@@ -1,4 +1,5 @@
 import { ActivityDetailsUI, ActivityLogRecord } from 'incyclist-services';
+import { StyleProp, ViewStyle } from 'react-native';
 
 export type { ActivityLogRecord };
 
@@ -30,4 +31,21 @@ export interface ActivityGraphPreviewProps {
     height: number;
     activity?: ActivityDetailsUI;
     ftp?: number;
+}
+
+export interface ActivityGraphViewProps {
+    width: number;
+    height: number;
+    series: ActivityGraphSeries[];
+    xMode: XAxisMode;
+    xMin: number;
+    xMax: number;
+    elevationPoints?: ActivityGraphPoint[] | null;
+    elevationYMin?: number;
+    elevationYMax?: number;
+    showXAxis?: boolean;
+    showYAxis?: boolean;
+    axisFontSize?: number;
+    units?: ActivityGraphUnits;
+    style?: StyleProp<ViewStyle>;
 }
