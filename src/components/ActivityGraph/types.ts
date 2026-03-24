@@ -33,6 +33,14 @@ export interface ActivityGraphPreviewProps {
     ftp?: number;
 }
 
+export interface ActivityGraphProps {
+    activity?: ActivityDetailsUI;
+    ftp?: number;
+    style?: StyleProp<ViewStyle>;
+    axisFontSize?: number;
+    units?: ActivityGraphUnits;
+}
+
 export interface ActivityGraphViewProps {
     width: number;
     height: number;

@@ -1,12 +1,10 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, LayoutChangeEvent, Text } from 'react-native';
-import { ActivityDetailsUI } from 'incyclist-services';
 import { 
     ActivityGraphProps, 
     ActivityMetric, 
-    XAxisMode, 
-    ActivityGraphSeries, 
-    ActivityGraphPoint 
+    XAxisMode,
+    ActivityLogRecord
 } from './types';
 import { ActivityGraphView } from './ActivityGraphView';
 import { ChipSelect } from '../ChipSelect/ChipSelect';
@@ -132,12 +130,20 @@ export const ActivityGraph = ({ activity, ftp, style, units }: ActivityGraphProp
         return { series, elevation, xMin, xMax };
     }, [activity, activeMetrics, xMode, containerLayout.width, ftp, units]);
 
-    const onContainerLayout = (e: LayoutChangeEvent) => {
+    const onContainerLayout = useCallback((e: LayoutChangeEvent) => {
         setContainerLayout({
             width: e.nativeEvent.layout.width,
             height: e.nativeEvent.layout.height,
         });
-    };
+    }, []);
+
+    const onTopRowLayout = useCallback((e: LayoutChangeEvent) => {
+        setTopRowHeight(e.nativeEvent.layout.height);
+    }, []);
+
+    const onBottomRowLayout = useCallback((e: LayoutChangeEvent) => {
+        setBottomRowHeight(e.nativeEvent.layout.height);
+    }, []);
 
     const graphHeight = Math.max(0, containerLayout.height - topRowHeight - bottomRowHeight);
 
@@ -147,7 +153,7 @@ export const ActivityGraph = ({ activity, ftp, style, units }: ActivityGraphProp
 
     return (
         <View style={[styles.container, style]} onLayout={onContainerLayout}>
-            <View onLayout={(e) => setTopRowHeight(e.nativeEvent.layout.height)}>
+            <View onLayout={onTopRowLayout}>
                 <ChipSelect
                     label="Y-Axis"
                     options={metricOptions}
@@ -165,15 +171,15 @@ export const ActivityGraph = ({ activity, ftp, style, units }: ActivityGraphProp
                 xMin={seriesData.xMin}
                 xMax={seriesData.xMax}
                 elevationPoints={seriesData.elevation}
-                elevationYMin={activity.logs.reduce((min, l) => Math.min(min, l.elevation ?? min), Infinity)}
-                elevationYMax={activity.logs.reduce((max, l) => Math.max(max, l.elevation ?? max), -Infinity)}
+                elevationYMin={activity.logs.reduce((min, l: ActivityLogRecord) => Math.min(min, l.elevation ?? min), Infinity)}
+                elevationYMax={activity.logs.reduce((max, l: ActivityLogRecord) => Math.max(max, l.elevation ?? max), -Infinity)}
                 showXAxis={true}
                 showYAxis={true}
                 axisFontSize={axisFontSize}
                 units={units}
             />
 
-            <View onLayout={(e) => setBottomRowHeight(e.nativeEvent.layout.height)}>
+            <View onLayout={onBottomRowLayout}>
                 <ChipSelect
                     label="X-Axis"
                     options={['Distance', 'Time']}
