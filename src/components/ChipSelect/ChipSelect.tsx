@@ -23,17 +23,20 @@ export const ChipSelect = (props: ChipSelectProps) => {
         props.multi ? (props.selectedValues ?? []) : []
     );
 
+    const singleSelected = !props.multi ? props.selected : undefined;
+    const multiSelectedValues = props.multi ? props.selectedValues : undefined;
+
     useEffect(() => {
         if (!props.multi) {
-            setSelectedValue(props.selected);
+            setSelectedValue(singleSelected);
         }
-    }, [props.multi, !props.multi ? props.selected : undefined]);
+    }, [props.multi, singleSelected]);
 
     useEffect(() => {
         if (props.multi) {
-            setSelectedValues(props.selectedValues ?? []);
+            setSelectedValues(multiSelectedValues ?? []);
         }
-    }, [props.multi, props.multi ? props.selectedValues : undefined]);
+    }, [props.multi, multiSelectedValues]);
 
     const handleSelect = (option: string) => {
         if (disabled) return;
