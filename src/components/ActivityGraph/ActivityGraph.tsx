@@ -31,10 +31,12 @@ const LABEL_TO_METRIC: Record<ActivityMetric, string> = {
     'cadence': 'Cadence',
 };
 
-export const ActivityGraph = ({ activity, ftp, style, units }: ActivityGraphProps) => {
+export const ActivityGraph = (props: ActivityGraphProps) => {
+    const { activity, ftp, style, units, axisFontSize: propAxisFontSize } = props;
     const { logEvent } = useLogging('ActivityGraph');
     const screenLayout = useScreenLayout();
-    const axisFontSize = screenLayout === 'compact' ? 9 : 11;
+    const derivedAxisFontSize = screenLayout === 'compact' ? 9 : 11;
+    const resolvedAxisFontSize = propAxisFontSize ?? derivedAxisFontSize;
 
     const [activeMetrics, setActiveMetrics] = useState<ActivityMetric[]>([]);
     const [xMode, setXMode] = useState<XAxisMode>('distance');
@@ -175,7 +177,7 @@ export const ActivityGraph = ({ activity, ftp, style, units }: ActivityGraphProp
                 elevationYMax={activity.logs.reduce((max, l: ActivityLogRecord) => Math.max(max, l.elevation ?? max), -Infinity)}
                 showXAxis={true}
                 showYAxis={true}
-                axisFontSize={axisFontSize}
+                axisFontSize={resolvedAxisFontSize}
                 units={units}
             />
 
