@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { UserSettingsDialogView } from './UserSettingsDialogView';
+import { UserSettingsView } from './UserSettingsView';
 import { UserSettingsDisplayProps } from 'incyclist-services';
 
 const MOCK_ON_CLOSE = jest.fn();
@@ -24,7 +24,7 @@ describe('UserSettingsDialogView', () => {
 
     it('renders with full display props (normal state)', () => {
         const { getByText, getByDisplayValue } = render(
-            <UserSettingsDialogView
+            <UserSettingsView
                 displayProps={MOCK_DISPLAY_PROPS}
                 onClose={MOCK_ON_CLOSE}
             />
@@ -35,12 +35,12 @@ describe('UserSettingsDialogView', () => {
         expect(getByDisplayValue('224')).toBeTruthy();
         expect(getByDisplayValue('75.0')).toBeTruthy();
         expect(getByText('Metric')).toBeTruthy();
-        expect(getByText('OK')).toBeTruthy();
+        expect(getByText('Close')).toBeTruthy();
     });
 
     it('renders with displayProps set to null (loading state) without crashing', () => {
         const { getByText, queryByDisplayValue } = render(
-            <UserSettingsDialogView
+            <UserSettingsView
                 displayProps={null}
                 onClose={MOCK_ON_CLOSE}
             />
@@ -48,18 +48,18 @@ describe('UserSettingsDialogView', () => {
 
         expect(getByText('User Settings')).toBeTruthy();
         expect(queryByDisplayValue('Guido Doumen')).toBeNull();
-        expect(getByText('OK')).toBeTruthy();
+        expect(getByText('Close')).toBeTruthy();
     });
 
-    it('calls onClose when OK button is tapped', () => {
+    it('calls onClose when Close button is tapped', () => {
         const { getByText } = render(
-            <UserSettingsDialogView
+            <UserSettingsView
                 displayProps={MOCK_DISPLAY_PROPS}
                 onClose={MOCK_ON_CLOSE}
             />
         );
 
-        fireEvent.press(getByText('OK'));
+        fireEvent.press(getByText('Close'));
         expect(MOCK_ON_CLOSE).toHaveBeenCalledTimes(1);
     });
 });

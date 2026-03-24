@@ -1,17 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { UserSettingsDialogView } from './UserSettingsDialogView';
+import { UserSettingsView } from './UserSettingsView';
 
-const meta: Meta<typeof UserSettingsDialogView> = {
-    title: 'Components/UserSettingsDialog',
-    component: UserSettingsDialogView,
+const meta: Meta<typeof UserSettingsView> = {
+    title: 'Components/UserSettings',
+    component: UserSettingsView,
     parameters: {
         layout: 'centered',
     },
 };
 
 export default meta;
-type Story = StoryObj<typeof UserSettingsDialogView>;
+type Story = StoryObj<typeof UserSettingsView>;
 
 const MOCK_ON_CLOSE = fn();
 

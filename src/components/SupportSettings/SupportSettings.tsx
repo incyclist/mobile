@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Share, Linking } from 'react-native';
 import { SupportSettingsDisplayProps, useSupportSettingsDisplay } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
-import { SupportSettingsView } from './View';
+import { SupportSettingsView } from './SupportSettingsView';
 
-interface SupportSettingsPageProps {
+interface SupportSettingsProps {
     onClose: () => void;
 }
 
-export const SupportSettingsPage = ({ onClose }: SupportSettingsPageProps) => {
+export const SupportSettings = ({ onClose }: SupportSettingsProps) => {
     const [displayProps, setDisplayProps] = useState<SupportSettingsDisplayProps | null>(null);
     const refInitialized = useRef(false);
     const service = useSupportSettingsDisplay();

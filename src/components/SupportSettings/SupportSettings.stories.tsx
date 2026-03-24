@@ -2,7 +2,7 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { SupportSettingsView } from './View';
+import { SupportSettingsView } from './SupportSettingsView';
 import { SupportSettingsDisplayProps } from 'incyclist-services';
 
 const MOCK_DISPLAY_PROPS: SupportSettingsDisplayProps = {

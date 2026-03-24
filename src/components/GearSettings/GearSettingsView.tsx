@@ -30,7 +30,7 @@ export const GearSettingsView = ({
             variant="full"
             visible={true}
             onOutsideClick={onClose}
-            buttons={[{ label: 'Close', onClick: onClose }]}
+            buttons={[{ label: 'Close', primary:true, onClick: onClose }]}
         >
             <ModeInput
                 label="Mode"

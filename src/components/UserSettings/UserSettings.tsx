@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserSettingsDisplayProps, useUserSettingsDisplay } from 'incyclist-services';
 import { useUnmountEffect } from '../../hooks';
-import { UserSettingsDialogView } from './UserSettingsDialogView';
+import { UserSettingsView } from './UserSettingsView';
 
 /**
  * UserSettingsDialog (Smart Component)
@@ -9,11 +9,11 @@ import { UserSettingsDialogView } from './UserSettingsDialogView';
  * Subscribes to UserSettingsDisplay service and manages the lifecycle 
  * of the user settings interaction.
  */
-export interface UserSettingsDialogProps {
+export interface UserSettingsProps {
     onClose: () => void;
 }
 
-export const UserSettingsDialog = ({ onClose }: UserSettingsDialogProps) => {
+export const UserSettings = ({ onClose }: UserSettingsProps) => {
     const [displayProps, setDisplayProps] = useState<UserSettingsDisplayProps | null>(null);
     const service = useUserSettingsDisplay();
     const refObserver = useRef<any>(null);
@@ -45,7 +45,7 @@ export const UserSettingsDialog = ({ onClose }: UserSettingsDialogProps) => {
     });
 
     return (
-        <UserSettingsDialogView
+        <UserSettingsView
             displayProps={displayProps}
             onClose={onClose}
         />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { SupportSettingsView } from './View';
+import { SupportSettingsView } from './SupportSettingsView';
 import { SupportSettingsDisplayProps } from 'incyclist-services';
 
 const MOCK_DISPLAY_PROPS: SupportSettingsDisplayProps = {
