@@ -243,6 +243,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
         },
         scrollArea: {
             flexShrink: 1,
+            padding:8,
         },
         content: {
             flexGrow: variant === 'details' || variant === 'full' ? 1 : 0,

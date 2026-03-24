@@ -2,9 +2,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useWindowDimensions, Platform } from 'react-native';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
-import { UserSettingsDialog } from '../UserSettingsDialog';
+import { UserSettings } from '../UserSettings';
 import { SettingsSlideIn, SettingsSectionItem } from '../SettingsSlideIn';
-import { SupportSettingsPage } from '../SupportSettings';
+import { SupportSettings } from '../SupportSettings';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
 
@@ -66,14 +66,14 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 navWidth={navWidth}
                 showExit={showExit}
             />
-            {showUserSettings && <UserSettingsDialog onClose={() => setShowUserSettings(false)} />}
+            {showUserSettings && <UserSettings onClose={() => setShowUserSettings(false)} />}
             <SettingsSlideIn
                 visible={showSettings}
                 sections={sections}
                 onClose={() => setShowSettings(false)}
                 onSectionPress={handleSectionPress}
             />
-            {showSupport && <SupportSettingsPage onClose={() => setShowSupport(false)} />}
+            {showSupport && <SupportSettings onClose={() => setShowSupport(false)} />}
             {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(false)} />}
             {showGear && <GearSettings onClose={() => setShowGear(false)} />}
         </>

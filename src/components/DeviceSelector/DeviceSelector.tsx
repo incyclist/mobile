@@ -29,10 +29,12 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     centeredView: {
         flex: 1,
         justifyContent: 'center',
-        minWidth: Math.min(screenWidth * 0.9, targetWidth)
+        minWidth: Math.min(screenWidth * 0.9, targetWidth),
     },
     modalView: {
         width: 'auto', // Width depends on content
+        flex:1,
+        height:'100%',
     },
     header: {
         padding: 4,
@@ -52,14 +54,21 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     },
     footer: {
         flexDirection:'row',
+        height:30,
+        width:'100%',
+        position: 'absolute',
+        left:0,
+        bottom:0,
         padding: 15,
         borderTopWidth: 1,
         borderTopColor: '#553388',
+        
     },
     checkboxContainer: {
+        flex:1,
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight:4
+        marginRight:4,
     },
     checkbox: {
         width: 20,

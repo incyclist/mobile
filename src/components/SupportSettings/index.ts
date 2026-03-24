@@ -1,1 +1,1 @@
-export * from './SupportSettingsPage';
+export * from './SupportSettings';

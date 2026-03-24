@@ -16,7 +16,7 @@ export const SupportSettingsView = ({
             variant="full"
             visible={true}
             onOutsideClick={onClose}
-            buttons={[{ label: 'Close', onClick: onClose }]}
+            buttons={[{ label: 'Close', primary:true, onClick: onClose }]}
         >
             {displayProps && (
                 <>
@@ -71,8 +71,8 @@ export const SupportSettingsView = ({
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.disclaimer}>
-                        Donation is 100% voluntarily. Incyclist remains a 100% free app regardless of donation.
-                        No freemium model is planned.
+                        Donation is 100% voluntarily. In case you donate, you will not have any benefit within the App. I.e. Incyclist remains to be a 100% free app, regardless if you donate or not. 
+                    I am also <b>not</b> planning to introduce a freemium model, where certain functionality is only available for paying users.
                     </Text>
                     <View style={styles.footerSpacer} />
                 </>

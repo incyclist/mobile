@@ -6,7 +6,7 @@ import { EditText } from '../EditText';
 import { EditNumber } from '../EditNumber';
 import { ChipSelect } from '../ChipSelect';
 
-export type UserSettingsDialogViewProps = {
+export type UserSettingsViewProps = {
     displayProps: UserSettingsDisplayProps | null;
     onClose: () => void;
 };
@@ -19,14 +19,14 @@ const LABEL_WIDTH = 80;
  * Renders the user profile editing form within a Dialog.
  * Uses atom components for input fields.
  */
-export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDialogViewProps) => {
+export const UserSettingsView = ({ displayProps, onClose }: UserSettingsViewProps) => {
     return (
         <Dialog
             title="User Settings"
             variant="full"
             visible={true}
             onOutsideClick={onClose}
-            buttons={[{ label: 'OK', primary: true, onClick: onClose }]}
+            buttons={[{ label: 'Close', primary: true, onClick: onClose }]}
         >
             <View style={styles.container}>
                 {displayProps && (
@@ -75,8 +75,7 @@ export const UserSettingsDialogView = ({ displayProps, onClose }: UserSettingsDi
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        paddingTop: 8,
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
     },
     fields: {
         marginBottom: 16,
