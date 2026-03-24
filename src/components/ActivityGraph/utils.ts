@@ -73,7 +73,8 @@ export const computeElevationPoints = (
     if (!hasElevation) return null;
 
     const xMin = 0;
-    const xMax = logs[logs.length - 1][xField];
+    const lastLog = logs[logs.length - 1];
+    const xMax = lastLog[xField] ?? 0;
     const range = xMax - xMin;
     if (range <= 0) return null;
 
@@ -81,7 +82,7 @@ export const computeElevationPoints = (
     const buckets = Array.from({ length: width }, () => ({ sumY: 0, cntY: 0, sumX: 0, cntX: 0 }));
 
     logs.forEach(log => {
-        const x = log[xField];
+        const x = log[xField] ?? 0;
         const y = log.elevation;
         let bIdx = Math.floor((x - xMin) / bucketWidth);
         if (bIdx >= width) bIdx = width - 1;
@@ -120,7 +121,8 @@ export const computeActivitySeries = (
 
     const xField = xMode === 'distance' ? 'distance' : 'time';
     const xMin = 0;
-    const xMax = logs[logs.length - 1][xField];
+    const lastLog = logs[logs.length - 1];
+    const xMax = lastLog[xField] ?? 0;
     const range = xMax - xMin;
 
     if (range <= 0) return [];
@@ -134,7 +136,7 @@ export const computeActivitySeries = (
     }));
 
     logs.forEach(log => {
-        const x = log[xField];
+        const x = log[xField] ?? 0;
         let bIdx = Math.floor((x - xMin) / bucketWidth);
         if (bIdx >= width) bIdx = width - 1;
         if (bIdx < 0) bIdx = 0;

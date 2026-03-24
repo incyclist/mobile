@@ -1,6 +1,6 @@
 import { ActivityDetailsUI, ActivityLogRecord } from 'incyclist-services';
 
-export { ActivityLogRecord };
+export type { ActivityLogRecord };
 
 export type ActivityMetric = 'power' | 'heartrate' | 'speed' | 'cadence';
 export type XAxisMode = 'distance' | 'time';
