@@ -1,156 +1,155 @@
-import { AppState, Platform, StatusBar, useColorScheme,BackHandler, useWindowDimensions} from 'react-native';
-import { SafeAreaProvider   } from 'react-native-safe-area-context';
-import { MainPage } from './pages/MainPage/MainPage';
+import {
+    AppState,
+    Platform,
+    StatusBar,
+    useColorScheme,
+    BackHandler,
+    useWindowDimensions,
+    LogBox,
+    StyleSheet,
+} from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
+import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
 import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
-import { PropsWithChildren, ReactElement, useEffect,  useRef,  useState } from 'react';
 import { initBindings } from './bindings/factory';
-import app from '../app.json'
+import app from '../app.json';
 import { useLogging, useUnmountEffect } from './hooks';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 import { getBleBinding } from './bindings/ble';
 import { RootNavigator } from './pages/RootNavigator';
-import { LogBox } from 'react-native';
 import { getUIBinding } from './bindings/ui';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
+import { MainPage } from './pages/MainPage/MainPage';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
-let lastState = AppState.currentState
+let lastState = AppState.currentState;
 
-
-const DeviceInfoLogger =({ children }: PropsWithChildren<{}>): ReactElement =>{
+const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => {
     const refLogged = useRef(false);
-    let {width,height,scale,fontScale} = useWindowDimensions()
+    let { width, height, scale, fontScale } = useWindowDimensions();
 
-    width = Math.floor(width)
-    height = Math.floor(height)
-    scale = Math.round(scale*10)/10
-    fontScale = Math.round(fontScale*10)/10
-    
+    width = Math.floor(width);
+    height = Math.floor(height);
+    scale = Math.round(scale * 10) / 10;
+    fontScale = Math.round(fontScale * 10) / 10;
 
     useEffect(() => {
-        if (refLogged.current)
-            return
+        if (refLogged.current) return;
 
-        if (width!==undefined && height!==undefined) {
-            logDeviceInfo({width, height, scale, fontScale});
-            refLogged.current = true
+        if (width !== undefined && height !== undefined) {
+            logDeviceInfo({ width, height, scale, fontScale });
+            refLogged.current = true;
         }
     }, [fontScale, height, scale, width]);
-    
 
-    return (
-        <>
-        {children}
-        </>
-    )
-    
-}
+    return <>{children}</>;
+};
 
-export const  App =() => {
+export const App = () => {
     const isDarkMode = useColorScheme() === 'dark';
-    const service = useIncyclist()    
-    const ble = getBleBinding()
-    const [initialized,setInitialized] = useState<boolean>(false)
+    const service = useIncyclist();
+    const ble = getBleBinding();
+    const [initialized, setInitialized] = useState<boolean>(false);
 
-    const {logError,logEvent} = useLogging('Incyclist')
+    const { logError, logEvent } = useLogging('Incyclist');
 
+    const { stopMonitoring } = useOnlineStatusMonitoringInit();
+    const refStopMonitoring = useRef<() => void>(stopMonitoring);
 
-    const {stopMonitoring} = useOnlineStatusMonitoringInit()
-    const refStopMonitoring = useRef<()=>void>(stopMonitoring)
-     
+    useEffect(() => {
+        if (Platform.OS !== 'android') return;
+        SystemNavigationBar.stickyImmersive();
+    }, []);
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
             if (lastState === 'active' && nextState !== 'active') {
-                service.onAppPause()
+                service.onAppPause();
             }
 
             if (lastState !== 'active' && nextState === 'active') {
-                ble.initializeAuthorization()
-                service.onAppResume()
+                ble.initializeAuthorization();
+                service.onAppResume();
+                if (Platform.OS === 'android') {
+                    SystemNavigationBar.stickyImmersive();
+                }
             }
 
-             
-            lastState = nextState
-        })
+            lastState = nextState;
+        });
 
-        return () => sub.remove()
-    }, [service,ble])    
+        return () => sub.remove();
+    }, [service, ble]);
 
     useEffect(() => {
-        if (Platform.OS !== 'android') return
-        const sub = BackHandler.addEventListener(
-            'hardwareBackPress',
-            () => {
-                service.onAppExit().then( ()=>{
-                    getUIBinding().quit()
-                } )
-                return false // allow default exit
-            }
-        )
+        if (Platform.OS !== 'android') return;
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            service.onAppExit().then(() => {
+                getUIBinding().quit();
+            });
+            return false; // allow default exit
+        });
 
-        return () => sub.remove()
-    }, [service])
+        return () => sub.remove();
+    }, [service]);
 
-    useEffect( ()=> {
+    useEffect(() => {
+        if (initialized) return;
 
-        if (initialized)
-            return;
+        logEvent({ message: 'Initializing App' });
 
-        logEvent({message:'Initializing App'})
-
-        const features:AppFeatures = {
-            interfaces: ['wifi','ble'],
+        const features: AppFeatures = {
+            interfaces: ['wifi', 'ble'],
             ble: '*',
-            wifi: '*'
-        }
+            wifi: '*',
+        };
 
-        const init = async()=> {
-
+        const init = async () => {
             try {
+                const bindings = await initBindings();
+                service.setBindings(bindings as IncyclistBindings);
 
-                const bindings = await initBindings()
-                service.setBindings(bindings as IncyclistBindings)            
-                
-
-                const uiVersion = bindings.appInfo?.getUIVersion()??app.bundleVersion
-                await service.onAppLaunch( 'mobile', uiVersion, features)               
-                logEvent({message:'Initializing App done'})
-                setInitialized(true)
+                const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
+                await service.onAppLaunch('mobile', uiVersion, features);
+                logEvent({ message: 'Initializing App done' });
+                setInitialized(true);
+            } catch (err: any) {
+                logError(err, 'App.init');
             }
-            catch(err:any) {
-                logError(err,'App.init')
-            }
-        }
+        };
 
-        init()      
+        init();
+    }, [initialized, logError, logEvent, service]);
 
-    },[initialized, logError, logEvent, service])
-
-    useUnmountEffect( ()=> {
-        refStopMonitoring?.current()
-    })
-
+    useUnmountEffect(() => {
+        refStopMonitoring?.current();
+    });
 
     if (!initialized) {
-        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion}/>
+        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion} />;
     }
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-        <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        {initialized ? 
-            <DeviceInfoLogger>
-                <RootNavigator />
-            
-            </DeviceInfoLogger>
-            : <MainPage/>}
-        </SafeAreaProvider>
-    </GestureHandlerRootView>
-  );
-}
+    return (
+        <GestureHandlerRootView style={styles.container}>
+            <SafeAreaProvider>
+                <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+                {initialized ? (
+                    <DeviceInfoLogger>
+                        <RootNavigator />
+                    </DeviceInfoLogger>
+                ) : (
+                    <MainPage />
+                )}
+            </SafeAreaProvider>
+        </GestureHandlerRootView>
+    );
+};
 
-
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+});
