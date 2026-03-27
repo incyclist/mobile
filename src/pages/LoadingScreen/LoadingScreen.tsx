@@ -1,14 +1,19 @@
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, Image, StatusBar, StyleSheet, Text, useColorScheme, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 
 interface LoadingScreenProps  {
     appVersion: string
     bundleVersion: string
 }
 export const LoadingScreen = ( {appVersion, bundleVersion}:LoadingScreenProps)=> {
+    const isDarkMode = useColorScheme() === 'dark';
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            <NavigationBar hidden={true} />
+
             <View style={styles.content}>
                 <Image
                 source={require('../../assets/logo.png')} 

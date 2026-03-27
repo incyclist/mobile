@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import SystemNavigationBar from 'react-native-system-navigation-bar';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
 import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
 import { initBindings } from './bindings/factory';
@@ -23,6 +22,7 @@ import { getUIBinding } from './bindings/ui';
 import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
 import { MainPage } from './pages/MainPage/MainPage';
+import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
@@ -59,11 +59,7 @@ export const App = () => {
     const { stopMonitoring } = useOnlineStatusMonitoringInit();
     const refStopMonitoring = useRef<() => void>(stopMonitoring);
 
-    useEffect(() => {
-        if (Platform.OS !== 'android') return;
-        SystemNavigationBar.stickyImmersive();
-    }, []);
-
+    
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
             if (lastState === 'active' && nextState !== 'active') {
@@ -73,9 +69,6 @@ export const App = () => {
             if (lastState !== 'active' && nextState === 'active') {
                 ble.initializeAuthorization();
                 service.onAppResume();
-                if (Platform.OS === 'android') {
-                    SystemNavigationBar.stickyImmersive();
-                }
             }
 
             lastState = nextState;
@@ -136,6 +129,7 @@ export const App = () => {
         <GestureHandlerRootView style={styles.container}>
             <SafeAreaProvider>
                 <StatusBar hidden={true} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+                <NavigationBar hidden={true} />
                 {initialized ? (
                     <DeviceInfoLogger>
                         <RootNavigator />
