@@ -91,3 +91,8 @@ agent.config.json
 .agent-history/
 .agent-data/
 .agent-debug/
+
+ios/*.xcworkspace/contents.xcworkspacedata
+ios/*.xcworkspace/xcshareddata/SwiftPM/Package.resolved
+ios/*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+ios/*.xcodeproj/project.xcworkspace/xcshareddata/SwiftPM/Package.resolved

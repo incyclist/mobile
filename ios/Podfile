@@ -5,6 +5,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+min_ios_version_supported = '15.5'  
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
@@ -31,5 +32,24 @@ target 'Incyclist' do
       # :ccache_enabled => true
     )
     $MLRN.post_install(installer)
+    
+    # Add this inside your existing post_install do |installer| block
+    installer.pods_project.targets.each do |target|
+      if target.name == 'react-native-native-mqtt'
+        target.build_configurations.each do |config|
+          # This tells Xcode to ignore the bundled files that cause duplicates
+          config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = 'GCDAsyncSocket.m GCDAsyncUdpSocket.m'
+        end
+      end
+    end
+    
+    installer.pods_project.build_configurations.each do |config|
+      if cpu_arch == 'x86_64'
+        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+      else
+        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "x86_64"
+      end
+    end
+    
   end
 end
