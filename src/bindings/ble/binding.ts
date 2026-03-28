@@ -52,7 +52,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             this.setAuthorized(false)
         }
         this.initializeAuthorization()
-        this.start()
        
     }
 
