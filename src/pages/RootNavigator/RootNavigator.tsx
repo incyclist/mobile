@@ -19,6 +19,7 @@ export const RootNavigator = () => {
         <NavigationContainer ref={navigationRef}>
             <Stack.Navigator initialRouteName="devices"                 
                 screenOptions={{
+                    gestureEnabled: false, // Disables iOS swipe-back gesture and default back button behavior
                     headerShown: false,
                     //contentStyle: { backgroundColor: 'black' } // Optional: ensure full-screen look
                 }}>
