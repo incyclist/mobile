@@ -94,7 +94,7 @@ const config: StorybookConfig = {
                     '@react-native-documents/picker': path.resolve(dirname, './documentPickerStub.ts'),
                     'react-native-video': path.resolve(dirname, './mocks/react-native-video.tsx'),
                     'react-native-device-info': path.resolve(dirname, 'mocks/react-native-device-info.ts'),
-                    'react-native-system-navigation-bar': path.resolve(dirname, 'mocks/react-native-system-navigation-bar.ts'),
+                    '@zoontek/react-native-navigation-bar': path.resolve(dirname, 'mocks/react-native-navigation-bar.tsx'),
                     'react-native-permissions': path.resolve(dirname, 'mocks/react-native-permissions.ts'),
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
