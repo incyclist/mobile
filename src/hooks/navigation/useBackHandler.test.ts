@@ -1,37 +1,45 @@
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react-native'; // Correct import
 import { useBackHandler } from './useBackHandler';
-import { NavigationAction } from '@react-navigation/native'; // Required for mock event type
 
 // Mock useLogging
 const mockLogEvent = jest.fn();
-jest.mock('../../hooks/logging', () => ({ // Path adjusted relative to test file
+jest.mock('../../hooks/logging', () => ({
     useLogging: () => ({ logEvent: mockLogEvent }),
 }));
 
-// Mock useNavigation
-const mockAddListener = jest.fn();
-const mockNavigation = {
-    addListener: mockAddListener,
-};
-jest.mock('@react-navigation/native', () => ({
-    useNavigation: () => mockNavigation,
-}));
+// The global mock in jest.config.js handles '@react-navigation/native', so local mock is removed.
 
 describe('useBackHandler', () => {
+    // We need to re-mock useNavigation for each test to ensure a fresh listener mock
+    // if tests modify it, or we rely on the global mock from jest.config.js for setup
+    // and clear its internal state with jest.clearAllMocks().
+    // Assuming the global mock setup in jest.config.js is sufficient,
+    // we will rely on it and clear mocks.
+
+    // Access the globally mocked useNavigation to retrieve its addListener method
+    // when needed for tests, e.g., to get the listener function.
+    let navigation;
+    let addListenerSpy;
+
     beforeEach(() => {
         jest.clearAllMocks();
+        // Dynamically import useNavigation after mocks are setup
+        const { useNavigation: actualUseNavigation } = require('@react-navigation/native');
+        navigation = actualUseNavigation();
+        addListenerSpy = navigation.addListener;
     });
+
 
     it('logs back navigation pressed in all cases', () => {
         const mockService = { onBack: () => true };
         renderHook(() => useBackHandler(mockService));
 
         // Get the listener function that was passed to navigation.addListener
-        const listener = mockAddListener.mock.calls[0][1];
+        const listener = addListenerSpy.mock.calls[0][1];
         const mockEvent = {
             preventDefault: jest.fn(),
             data: {
-                action: { type: 'GO_BACK' } as NavigationAction,
+                action: { type: 'GO_BACK' },
             },
             target: undefined,
         };
@@ -45,7 +53,12 @@ describe('useBackHandler', () => {
         // Test case where onBack is absent (ensure logging still fires)
         mockLogEvent.mockClear();
         renderHook(() => useBackHandler({}));
-        const listenerNoOnBack = mockAddListener.mock.calls[1][1]; // Get the new listener
+        // Since each renderHook in a new test uses a fresh call to useNavigation,
+        // addListenerSpy needs to be updated.
+        const { useNavigation: actualUseNavigation } = require('@react-navigation/native');
+        navigation = actualUseNavigation();
+        addListenerSpy = navigation.addListener;
+        const listenerNoOnBack = addListenerSpy.mock.calls[0][1]; // Get the new listener
         listenerNoOnBack(mockEvent);
         expect(mockLogEvent).toHaveBeenCalledWith({
             message: 'back navigation pressed',
@@ -57,12 +70,12 @@ describe('useBackHandler', () => {
         const mockService = { onBack: jest.fn(() => true) };
         const { unmount } = renderHook(() => useBackHandler(mockService));
 
-        const listener = mockAddListener.mock.calls[0][1];
+        const listener = addListenerSpy.mock.calls[0][1];
         const mockPreventDefault = jest.fn();
         const mockEvent = {
             preventDefault: mockPreventDefault,
             data: {
-                action: { type: 'GO_BACK' } as NavigationAction,
+                action: { type: 'GO_BACK' },
             },
             target: undefined,
         };
@@ -77,12 +90,12 @@ describe('useBackHandler', () => {
         const mockService = { onBack: jest.fn(() => false) };
         const { unmount } = renderHook(() => useBackHandler(mockService));
 
-        const listener = mockAddListener.mock.calls[0][1];
+        const listener = addListenerSpy.mock.calls[0][1];
         const mockPreventDefault = jest.fn();
         const mockEvent = {
             preventDefault: mockPreventDefault,
             data: {
-                action: { type: 'GO_BACK' } as NavigationAction,
+                action: { type: 'GO_BACK' },
             },
             target: undefined,
         };
@@ -97,12 +110,12 @@ describe('useBackHandler', () => {
         const mockService = {}; // onBack is absent
         const { unmount } = renderHook(() => useBackHandler(mockService));
 
-        const listener = mockAddListener.mock.calls[0][1];
+        const listener = addListenerSpy.mock.calls[0][1];
         const mockPreventDefault = jest.fn();
         const mockEvent = {
             preventDefault: mockPreventDefault,
             data: {
-                action: { type: 'GO_BACK' } as NavigationAction,
+                action: { type: 'GO_BACK' },
             },
             target: undefined,
         };

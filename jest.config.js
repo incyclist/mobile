@@ -3,5 +3,6 @@ module.exports = {
   moduleNameMapper: {
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
+    '@react-navigation/native': '<rootDir>/src/__mocks__/@react-navigation/native.ts', // Added for ESM module support
   },
 };
