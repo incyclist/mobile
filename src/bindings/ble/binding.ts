@@ -7,7 +7,8 @@ import {
     StatScanningCallback,
 } from './types'
 
-import { BlePeripheralRN } from './peripheral'
+import { BlePeripheralRN }
+ from './peripheral'
 import { EventLogger } from 'gd-eventlog'
 import { PermissionService } from '../../services'
 
@@ -52,7 +53,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
             this.setAuthorized(false)
         }
         this.initializeAuthorization()
-        this.start()
        
     }
 
