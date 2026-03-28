@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react-native'; // Correct import
 import { useBackHandler } from './useBackHandler';
+import { useNavigation } from '@react-navigation/native'; // Import for typing
 
 // Mock useLogging
 const mockLogEvent = jest.fn();
@@ -7,26 +8,17 @@ jest.mock('../../hooks/logging', () => ({
     useLogging: () => ({ logEvent: mockLogEvent }),
 }));
 
-// The global mock in jest.config.js handles '@react-navigation/native', so local mock is removed.
-
 describe('useBackHandler', () => {
-    // We need to re-mock useNavigation for each test to ensure a fresh listener mock
-    // if tests modify it, or we rely on the global mock from jest.config.js for setup
-    // and clear its internal state with jest.clearAllMocks().
-    // Assuming the global mock setup in jest.config.js is sufficient,
-    // we will rely on it and clear mocks.
-
-    // Access the globally mocked useNavigation to retrieve its addListener method
-    // when needed for tests, e.g., to get the listener function.
-    let navigation;
-    let addListenerSpy;
+    let navigation: ReturnType<typeof useNavigation>;
+    let addListenerSpy: jest.Mock; // Declare with explicit type
 
     beforeEach(() => {
         jest.clearAllMocks();
         // Dynamically import useNavigation after mocks are setup
         const { useNavigation: actualUseNavigation } = require('@react-navigation/native');
         navigation = actualUseNavigation();
-        addListenerSpy = navigation.addListener;
+        addListenerSpy = navigation.addListener as jest.Mock; // Cast to jest.Mock
+        addListenerSpy.mockReturnValue(jest.fn()); // restore the unsubscribe return value
     });
 
 
@@ -52,12 +44,8 @@ describe('useBackHandler', () => {
 
         // Test case where onBack is absent (ensure logging still fires)
         mockLogEvent.mockClear();
+        addListenerSpy.mockClear(); // Clear addListener calls for the next renderHook within this test
         renderHook(() => useBackHandler({}));
-        // Since each renderHook in a new test uses a fresh call to useNavigation,
-        // addListenerSpy needs to be updated.
-        const { useNavigation: actualUseNavigation } = require('@react-navigation/native');
-        navigation = actualUseNavigation();
-        addListenerSpy = navigation.addListener;
         const listenerNoOnBack = addListenerSpy.mock.calls[0][1]; // Get the new listener
         listenerNoOnBack(mockEvent);
         expect(mockLogEvent).toHaveBeenCalledWith({
