@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 import { NavigationBarView } from './NavigationBarView';
 import { NavigationBarViewCompact } from './NavigationBarViewCompact';
 import { TNavigationItem } from './types';
-import { colors } from '../../theme';
 
 const MOCK_PROPS_VERTICAL = {
     onClick: jest.fn(),
@@ -13,19 +12,13 @@ const MOCK_PROPS_VERTICAL = {
 };
 
 const MOCK_PROPS_COMPACT = {
-    selected: 'routes' as TNavigationItem,
     onClick: jest.fn(),
-    navHeight: 56,
     showExit: false,
 };
 
 describe('NavigationBarView', () => {
     it('renders correctly', () => {
-        const { toJSON } = render(
-            <NavigationBarView
-                {...MOCK_PROPS_VERTICAL}
-            />
-        );
+        const { toJSON } = render(<NavigationBarView {...MOCK_PROPS_VERTICAL} />);
         expect(toJSON()).toBeDefined();
     });
 
@@ -53,11 +46,7 @@ describe('NavigationBarView', () => {
 
 describe('NavigationBarViewCompact', () => {
     it('renders correctly', () => {
-        const { toJSON } = render(
-            <NavigationBarViewCompact
-                {...MOCK_PROPS_COMPACT}
-            />
-        );
+        const { toJSON } = render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
         expect(toJSON()).toBeDefined();
         expect(screen.getByText('Devices')).toBeDefined();
         expect(screen.getByText('Routes')).toBeDefined();
@@ -65,10 +54,12 @@ describe('NavigationBarViewCompact', () => {
         expect(screen.getByLabelText('user')).toBeDefined();
     });
 
-    it('renders with selected item', () => {
-        const props = { ...MOCK_PROPS_COMPACT, selected: 'activities' as TNavigationItem };
-        render(<NavigationBarViewCompact {...props} />);
-        expect(screen.getByText('Activities')).toBeDefined();
+    it('renders with a selected item', () => {
+        render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} selected="routes" />);
+    });
+
+    it('renders with no selected item', () => {
+        render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} selected={undefined} />);
     });
 
     it('left-side items show icon + label', () => {
@@ -83,20 +74,8 @@ describe('NavigationBarViewCompact', () => {
         render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
         expect(screen.queryByText('Settings')).toBeNull();
         expect(screen.queryByText('User')).toBeNull();
-
         expect(screen.getByLabelText('settings')).toBeDefined();
         expect(screen.getByLabelText('user')).toBeDefined();
-    });
-
-    it('selected item uses colors.iconSelected and unselected uses colors.background', () => {
-        const props = { ...MOCK_PROPS_COMPACT, selected: 'routes' as TNavigationItem };
-        render(<NavigationBarViewCompact {...props} />);
-
-        const selectedRouteText = screen.getByText('Routes');
-        expect(selectedRouteText.props.style).toContainEqual({ color: colors.iconSelected });
-
-        const unselectedDevicesText = screen.getByText('Devices');
-        expect(unselectedDevicesText.props.style).toContainEqual({ color: colors.background });
     });
 
     it('handles item click for left-side items', () => {

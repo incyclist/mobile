@@ -11,10 +11,12 @@ import {
     ActivityIcon,
 } from '../../assets/icons';
 
+export const COMPACT_NAV_HEIGHT = textSizes.smallText + 16;
+
 // Helper for rendering icons based on the TNavigationItem
 const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
     const color = isSelected ? colors.iconSelected : colors.background;
-    const iconProps = { fill: color, width: 24, height: 24 }; // Fixed size 24 as per requirements
+    const iconProps = { fill: color, width: textSizes.smallText, height: textSizes.smallText };
 
     switch (item) {
         case 'user': return <UserIcon {...iconProps} />;
@@ -23,13 +25,13 @@ const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
         case 'routes': return <RouteIcon {...iconProps} />;
         case 'workouts': return <WorkoutIcon {...iconProps} />;
         case 'activities': return <ActivityIcon {...iconProps} />;
-        default: return null; // 'search' and 'exit' are not shown in compact view
+        default: return null;
     }
 };
 
 interface CompactNavItemProps {
     item: TNavigationItem;
-    label?: string; // Optional label for left items
+    label?: string;
     selected: boolean;
     onPress: (item: TNavigationItem) => void;
 }
@@ -37,11 +39,11 @@ interface CompactNavItemProps {
 const CompactNavItem = ({ item, label, selected, onPress }: CompactNavItemProps) => {
     return (
         <TouchableOpacity
-            style={[styles.navItemContainer]}
+            style={styles.navItemContainer}
             onPress={() => onPress(item)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={label || item} // For icon-only items, use the item name as label
+            accessibilityLabel={label || item}
         >
             <View style={styles.content}>
                 <View style={styles.iconWrapper}>{renderIcon(item, selected)}</View>
@@ -65,10 +67,10 @@ const leftItems: { item: TNavigationItem; label: string }[] = [
 const rightItems: TNavigationItem[] = ['settings', 'user'];
 
 export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) => {
-    const { selected, onClick, navHeight } = props;
+    const { selected, onClick } = props;
 
     return (
-        <View style={[styles.container, { height: navHeight || 56 }]}>
+        <View style={styles.container}>
             <View style={styles.leftItemsContainer}>
                 {leftItems.map(({ item, label }) => (
                     <CompactNavItem
@@ -97,8 +99,9 @@ export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) =
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: 'lightgrey', // Updated to direct string per spec
+        backgroundColor: 'lightgrey',
         paddingHorizontal: 8,
+        paddingVertical: 8,
         justifyContent: 'space-between',
         alignItems: 'center',
         width: '100%',
@@ -118,12 +121,12 @@ const styles = StyleSheet.create({
     navItemContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 4,
         paddingHorizontal: 8,
         height: '100%',
-        minWidth: 44, // Ensure minimum touch target for icons
+        minWidth: 44,
     },
     content: {
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -132,9 +135,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemLabel: {
-        color: colors.background, // Updated unselected color per spec
+        color: colors.background,
         fontSize: textSizes.smallText,
-        marginTop: 2,
+        marginLeft: 4,
     },
     itemLabelSelected: {
         color: colors.iconSelected,

@@ -2,26 +2,24 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useWindowDimensions, Platform } from 'react-native';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
-import { NavigationBarViewCompact } from './NavigationBarViewCompact'; // New import
+import { NavigationBarViewCompact } from './NavigationBarViewCompact';
 import { UserSettings } from '../UserSettings';
 import { SettingsSlideIn, SettingsSectionItem } from '../SettingsSlideIn';
 import { SupportSettings } from '../SupportSettings';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
-import { useScreenLayout } from '../../hooks/render/useScreenLayout'; // New import
+import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact } = props;
     const { height } = useWindowDimensions();
-    const screenLayout = useScreenLayout(); // Get screen layout
+    const screenLayout = useScreenLayout();
     const [showUserSettings, setShowUserSettings] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showSupport, setShowSupport] = useState(false);
     const [showPlaceholder, setShowPlaceholder] = useState(false);
     const [showGear, setShowGear] = useState(false);
 
-    // Icon size and navigation width are dynamic for the vertical bar.
-    // Fixed for compact view.
     const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const verticalNavWidth = compact ? 70 : 150;
     const showExitForVertical = Platform.OS === 'android';
@@ -67,8 +65,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 <NavigationBarViewCompact
                     selected={selected}
                     onClick={handleOnClick}
-                    navHeight={56} // Fixed height for compact view
-                    showExit={false} // Exit never shown in compact view
+                    showExit={false}
                 />
             ) : (
                 <NavigationBarView
@@ -87,9 +84,9 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 onClose={() => setShowSettings(false)}
                 onSectionPress={handleSectionPress}
             />
-            {showSupport && <SupportSettings onClose={() => setShowSupport(false)} />}
-            {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(false)} />}
-            {showGear && <GearSettings onClose={() => setShowGear(false)} />}
+            {showSupport && <SupportSettings onClose={() => setShowSupport(true)} />}
+            {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(true)} />}
+            {showGear && <GearSettings onClose={() => setShowGear(true)} />}
         </>
     );
 };
