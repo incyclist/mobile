@@ -1,4 +1,5 @@
 import { NavigationBarView } from './NavigationBarView';
+import { NavigationBarViewCompact } from './NavigationBarViewCompact';
 import { fn } from 'storybook/test';
 import { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { View, DimensionValue } from 'react-native';
@@ -12,7 +13,7 @@ const meta = {
                 <Story />
             </View>
         )
-    ],  
+    ],
     args:{
         onClick: fn(),
         iconSize: 40,
@@ -31,11 +32,31 @@ export const Default: Story = {
     }
 };
 
-export const Compact: Story = {
+export const CompactSidebar: Story = {
     args: {
         compact: true,
         iconSize: 32,
         navWidth: 70,
         selected: 'activities',
+    }
+};
+
+export const CompactHorizontal: Story = {
+    render: (args) => (
+        <NavigationBarViewCompact
+            selected={args.selected as any}
+            onClick={args.onClick}
+            showExit={false}
+        />
+    ),
+    args: {
+        selected: 'routes',
+        onClick: fn(),
+    },
+    parameters: {
+        viewport: {
+            defaultViewport: 'iphone6p',
+        },
+        layout: 'fullscreen',
     }
 };
