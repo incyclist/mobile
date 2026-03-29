@@ -7,7 +7,8 @@ import {
     TouchableWithoutFeedback,
     useWindowDimensions,
     Platform,
-    Text
+    Text,
+    DimensionValue
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
@@ -93,12 +94,12 @@ export const SettingsSlideIn = ({
         : { translateX: animPos };
 
     const dynamicStripStyle = isCompact 
-        ? { height: stripSize, width: '100%' } 
-        : { width: stripSize, height: '100%' };
+        ? { height: stripSize, width: '100%' as DimensionValue } 
+        : { width: stripSize, height: '100%' as DimensionValue };
 
     const dynamicPanelStyle = isCompact 
-        ? { flex: 1, width: '100%' } 
-        : { width: panelWidth, height: '100%' };
+        ? { flex: 1, width: '100%' as DimensionValue } 
+        : { width: panelWidth, height: '100%' as DimensionValue };
 
     return (
         <View 
