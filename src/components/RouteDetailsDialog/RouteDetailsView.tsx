@@ -8,8 +8,6 @@ import {
     TextInput,
     ScrollView,
     ActivityIndicator,
-    Switch,
-    Platform,
 } from 'react-native';
 import type { UIRouteSettings, FormattedNumber } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
@@ -17,34 +15,9 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
+import { BinarySelect } from '../BinarySelect';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
-
-const SwitchRow = ({ label, value, onToggle, logName }: any) => {
-    const { logEvent } = useLogging('RouteDetailsView');
-    const handleChange = (v: boolean) => {
-        logEvent({ message: 'button clicked', button: logName, eventSource: 'user' });
-        onToggle(v);
-    };
-    return (
-        <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{label}</Text>
-            <Switch
-                value={value ?? false}
-                onValueChange={handleChange}
-                ios_backgroundColor={colors.switchThumb.off}
-                trackColor={colors.switchTrack}
-                thumbColor={value ? colors.switchThumb.on : colors.switchThumb.off}
-                {...Platform.select({
-                    web: {
-                        activeThumbColor: colors.switchThumb.on,
-                        activeTrackColor: colors.switchTrack.true,
-                    }
-                } as any)}
-            />
-        </View>
-    );
-};
 
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
@@ -249,9 +222,30 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </View>
                 </View>
                 <View style={styles.switchGrid}>
-                    {showLoopOverwrite && <SwitchRow label="Stop at end of loop" value={data.loopOverwrite} onToggle={(v: boolean) => handleApplySettings({ ...data, loopOverwrite: v })} logName="loopOverwrite" />}
-                    {showNextOverwrite && <SwitchRow label="Stop at end of movie" value={data.nextOverwrite} onToggle={(v: boolean) => handleApplySettings({ ...data, nextOverwrite: v })} logName="nextOverwrite" />}
-                    {data.prevRides && <SwitchRow label="Compare prev rides" value={data.showPrev} onToggle={(v: boolean) => handleApplySettings({ ...data, showPrev: v })} logName="showPrev" />}
+                    {showLoopOverwrite && (
+                        <BinarySelect 
+                            label="Stop at end of loop" 
+                            labelPosition="before"
+                            value={data.loopOverwrite ?? false} 
+                            onValueChange={(v) => handleApplySettings({ ...data, loopOverwrite: v })} 
+                        />
+                    )}
+                    {showNextOverwrite && (
+                        <BinarySelect 
+                            label="Stop at end of movie" 
+                            labelPosition="before"
+                            value={data.nextOverwrite ?? false} 
+                            onValueChange={(v) => handleApplySettings({ ...data, nextOverwrite: v })} 
+                        />
+                    )}
+                    {data.prevRides && (
+                        <BinarySelect 
+                            label="Compare prev rides" 
+                            labelPosition="before"
+                            value={data.showPrev ?? false} 
+                            onValueChange={(v) => handleApplySettings({ ...data, showPrev: v })} 
+                        />
+                    )}
                 </View>
             </>
         );
@@ -337,8 +331,6 @@ const styles = StyleSheet.create({
     inputLabel: { color: colors.text, fontSize: 12, opacity: 0.8 },
     textInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: '#555', borderRadius: 4, color: '#FFF', paddingHorizontal: 10, height: 36, fontSize: 14 },
     switchGrid: { gap: 4 },
-    switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 4 },
-    switchLabel: { color: colors.text, fontSize: 13, flex: 1 },
     compactRoot: { flexDirection: 'row', padding: 10, gap: 15 },
     compactLeft: { flex: 1 },
     compactRight: { width: '35%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 6, overflow: 'hidden' },
