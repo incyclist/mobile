@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import { NavigationBar, MainBackground, ElevationGraph, RiderMarker } from '../../components';
 import { colors, textSizes } from '../../theme';
 import { useUnmountEffect } from '../../hooks';
+import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 import type { TNavigationItem } from '../../components';
 
 // Import route data
@@ -19,6 +20,9 @@ export const MainPageView = ({ onClick }: MainPageViewProps) => {
     const [speedKmh, setSpeedKmh] = useState(30);
     const [currentPos, setCurrentPos] = useState(0);
     const [lapMode, setLapMode] = useState(true);
+
+    const layout = useScreenLayout();
+    const isCompact = layout === 'compact';
 
     const refObserver = useRef<EventEmitter | null>(null);
     const refInitialized = useRef(false);
@@ -78,9 +82,9 @@ export const MainPageView = ({ onClick }: MainPageViewProps) => {
 
     return (
         <MainBackground>
-            <View style={styles.layout}>
-                <View style={styles.navColumn}>
-                    <NavigationBar onClick={onClick} />
+            <View style={[styles.layout, isCompact && styles.layoutCompact]}>
+                <View style={[styles.navColumn, isCompact && styles.navColumnCompact]}>
+                    <NavigationBar onClick={onClick} compact={isCompact} />
                 </View>
 
                 <ScrollView style={styles.contentColumn} contentContainerStyle={styles.scrollContent}>
@@ -197,8 +201,15 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
     },
+    layoutCompact: {
+        flexDirection: 'column',
+    },
     navColumn: {
         width: 150,
+    },
+    navColumnCompact: {
+        width: '100%',
+        height: 56,
     },
     contentColumn: {
         flex: 1,

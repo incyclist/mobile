@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity, Platform } from 'react-native
 import { Dynamic, NavigationBar, Video } from '../../components';
 import { colors, textSizes } from '../../theme';
 import { useUnmountEffect } from '../../hooks';
+import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 import type { TNavigationItem, VideoPlaybackEvent } from '../../components';
 import { IObserver, Observer } from 'incyclist-services';
 
@@ -22,30 +23,34 @@ interface PlaybackStatusProps {
     status: TStatusProps
 }
 
-const PlaybackStatus = ({ status}: PlaybackStatusProps) => {
+const PlaybackStatus = ({ status }: PlaybackStatusProps) => {
 
-    const {currentTime, currentRate,bufferedTime,statusLines=[] } = status
+    const { currentTime, currentRate, bufferedTime, statusLines = [] } = status;
 
-    return(
-    <View style={styles.statusSection}>
-        <Text style={styles.statusSummary}>
-            Time: {currentTime.toFixed(1)}s   Rate: {currentRate}×   Buf: {bufferedTime.toFixed(1)}s
-        </Text>        
-        {statusLines.map((line, index) => (
-            <Text key={index} style={styles.statusLine}>{line}</Text>
-        ))}
-    </View>
-)};
+    return (
+        <View style={styles.statusSection}>
+            <Text style={styles.statusSummary}>
+                Time: {currentTime.toFixed(1)}s   Rate: {currentRate}×   Buf: {bufferedTime.toFixed(1)}s
+            </Text>        
+            {statusLines.map((line, index) => (
+                <Text key={index} style={styles.statusLine}>{line}</Text>
+            ))}
+        </View>
+    );
+};
 
 export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
     const [muted, setMuted] = useState(true);
 
+    const layout = useScreenLayout();
+    const isCompact = layout === 'compact';
+
     const refObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false); // Gate for observer initialization
-    const [initialized, setInitialized] = useState(false)
+    const [initialized, setInitialized] = useState(false);
 
-    const refStatus = useRef<TStatusProps>({currentTime:0, currentRate:0, bufferedTime:0, statusLines:[]})
-    const refStatusUpdateObserver = useRef( new Observer())
+    const refStatus = useRef<TStatusProps>({ currentTime: 0, currentRate: 0, bufferedTime: 0, statusLines: [] });
+    const refStatusUpdateObserver = useRef(new Observer());
 
     // Initialize observer once on mount
     useEffect(() => {
@@ -53,7 +58,7 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
             return;
         }
         refObserver.current = new Observer();
-        setInitialized(true)
+        setInitialized(true);
     }, [initialized]);
 
     // Cleanup observer on unmount
@@ -63,21 +68,21 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
     });
 
     const addStatus = useCallback((line: string) => {
-        const prev = refStatus.current.statusLines
+        const prev = refStatus.current.statusLines;
         refStatus.current.statusLines = [`${new Date().toISOString()} ${line}`, ...prev].slice(0, 4);
 
-        console.log('# add Status',line)
+        console.log('# add Status', line);
     }, []);
 
     const emitRate = useCallback((rate: number) => {
-        refStatus.current.currentRate = rate
-        refStatusUpdateObserver.current.emit('update', refStatus.current)
+        refStatus.current.currentRate = rate;
+        refStatusUpdateObserver.current.emit('update', refStatus.current);
         refObserver.current?.emit('rate-update', rate);
     }, []);
 
     const emitSeek = useCallback((time: number) => {
-        refStatus.current.currentTime = time
-        refStatusUpdateObserver.current.emit('update', refStatus.current)
+        refStatus.current.currentTime = time;
+        refStatusUpdateObserver.current.emit('update', refStatus.current);
         refObserver.current?.emit('time-update', time);
     }, []);
 
@@ -110,44 +115,44 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
 
 
     const handleLoaded = useCallback((bufferedTime: number) => {
-        console.log('# video loaded',bufferedTime)
+        console.log('# video loaded', bufferedTime);
         addStatus(`loaded buffer=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);
 
-    const handleLoadError = useCallback((error:any) => {
-        console.log('# video load error',error)
+    const handleLoadError = useCallback((error: any) => {
+        console.log('# video load error', error);
         addStatus(`load-error ${error.message ?? error.code}`);
     }, [addStatus]);
 
-    const handlePlaybackError = useCallback((error:any) => {
-        console.log('# video playback error',error)
+    const handlePlaybackError = useCallback((error: any) => {
+        console.log('# video playback error', error);
         addStatus(`playback-error ${error.message ?? error.code}`);
     }, [addStatus]);
 
-    const handleStalled = useCallback((time:number, bufferedTime:number) => {
-        console.log('# video stalled', time, bufferedTime)
+    const handleStalled = useCallback((time: number, bufferedTime: number) => {
+        console.log('# video stalled', time, bufferedTime);
         addStatus(`stalled t=${time.toFixed(1)}s buf=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);
 
-    const handleWaiting = useCallback((time:number, rate:number, bufferedTime:number) => {
-        console.log('# video waiting', time, rate,bufferedTime)
+    const handleWaiting = useCallback((time: number, rate: number, bufferedTime: number) => {
+        console.log('# video waiting', time, rate, bufferedTime);
         addStatus(`waiting t=${time.toFixed(1)}s rate=${rate} buf=${bufferedTime.toFixed(1)}s`);
     }, [addStatus]);
 
     const handleEnded = useCallback(() => {
-        console.log('# video ended' )
+        console.log('# video ended' );
         addStatus('ended');
     }, [addStatus]);
 
-    const handleProgress  =useCallback( (time:number, rate:number,event: VideoPlaybackEvent)=>{
-        console.log('# video progress', time, rate)
-        refStatus.current.currentTime = time
-        refStatus.current.currentRate = rate
-        refStatus.current.bufferedTime = event?.bufferedTime ?? 0
-        refStatusUpdateObserver.current.emit('update', refStatus.current)
+    const handleProgress = useCallback((time: number, rate: number, event: VideoPlaybackEvent) => {
+        console.log('# video progress', time, rate);
+        refStatus.current.currentTime = time;
+        refStatus.current.currentRate = rate;
+        refStatus.current.bufferedTime = event?.bufferedTime ?? 0;
+        refStatusUpdateObserver.current.emit('update', refStatus.current);
 
         // Do NOT add a status line here — fires too frequently
-    },[])
+    }, []);
 
 
 
@@ -159,8 +164,8 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
                         src={videoSrc}
                         startTime={0}
                         observer={refObserver.current}
-                        width='100%'
-                        height='100%'
+                        width="100%"
+                        height="100%"
                         muted={muted}
                         loop={false}
                         hidden={false}
@@ -175,11 +180,11 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
                 </View>
             )}
 
-            <View style={styles.navColumn}>
-                <NavigationBar onClick={onClick} />
+            <View style={isCompact ? styles.navColumnCompact : styles.navColumn}>
+                <NavigationBar onClick={onClick} compact={isCompact} />
             </View>
 
-            <View style={styles.controlPanel}>
+            <View style={[styles.controlPanel, isCompact && styles.controlPanelCompact]}>
                 <View style={styles.controlRow}>
                     <Text style={styles.controlLabel}>RATE</Text>
                     {renderRateButton(0, '0×')}
@@ -208,7 +213,7 @@ export const VideoDemoView = ({ onClick }: RidePageViewProps) => {
                     </TouchableOpacity>
                 </View>
 
-                <Dynamic observer={refStatusUpdateObserver.current } event='update' prop='status' >
+                <Dynamic observer={refStatusUpdateObserver.current } event="update" prop="status" >
                     <PlaybackStatus status={ refStatus.current} />
                 </Dynamic>
 
@@ -234,6 +239,14 @@ const styles = StyleSheet.create({
         width: 150, // Same width as MainPage
         zIndex: 1,
     },
+    navColumnCompact: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 56,
+        zIndex: 1,
+    },
     controlPanel: {
         position: 'absolute',
         bottom: 0,
@@ -242,6 +255,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.55)',
         padding: 12,
         zIndex: 2,
+    },
+    controlPanelCompact: {
+        top: 56,
+        left: 0,
     },
     controlRow: {
         flexDirection: 'row',
