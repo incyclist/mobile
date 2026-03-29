@@ -8,6 +8,20 @@ jest.mock('../../components', () => ({
     NavigationBar: () => null,
     MainBackground: ({ children }: any) => children,
 }));
+jest.mock('incyclist-services', () => ({
+    useIncyclist: () => ({
+        onAppExit: jest.fn().mockResolvedValue(undefined),
+    }),
+}));
+jest.mock('../../bindings/ui', () => ({
+    getUIBinding: () => ({
+        quit: jest.fn(),
+    }),
+}));
+
+jest.mock('../../services', () => ({
+    navigate: jest.fn(),
+}));
 
 describe('NotImplementedView', () => {
     const mockProps: any = {
