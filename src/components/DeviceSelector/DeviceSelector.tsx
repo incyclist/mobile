@@ -69,7 +69,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
 
                     <View style={styles.checkboxContainer}>
                         <BinarySelect
-                            label="None"
+                            label="Disable All"
                             labelPosition="after"
                             value={none}
                             onValueChange={setNone}
