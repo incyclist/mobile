@@ -6,20 +6,17 @@ import ReactAppDependencyProvider
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
-
     var reactNativeDelegate: ReactNativeDelegate?
     var reactNativeFactory: RCTReactNativeFactory?
 
-    // 2. Add this specific method to the class
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return Orientation.getOrientation()
+      return .landscape
     }
-
+	
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-
         let delegate = ReactNativeDelegate()
         let factory = RCTReactNativeFactory(delegate: delegate)
         delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -30,7 +27,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window = UIWindow(frame: UIScreen.main.bounds)
 
         factory.startReactNative(
-            withModuleName: "incyclist",
+            withModuleName: "Incyclist",
             in: window,
             launchOptions: launchOptions
         )
@@ -40,23 +37,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
-    override func sourceURL(for bridge: RCTBridge) -> URL? {
-        self.bundleURL()
-    }
-
+    // 0.83.1 uses bundleURL() as the primary source for the factory
     override func bundleURL() -> URL? {
         let defaults = UserDefaults.standard
+        
+        // 1. Check for the dynamic bundle path in UserDefaults
         if let bundlePath = defaults.string(forKey: "active_bundle_path") {
             let bundleURL = URL(fileURLWithPath: bundlePath).appendingPathComponent("main.jsbundle")
+            
             if FileManager.default.fileExists(atPath: bundleURL.path) {
                 return bundleURL
             }
         }
 
+        // 2. Fallback to default behavior (Metro in Debug, main.jsbundle in Release)
         #if DEBUG
-        return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+            return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
         #else
-        return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+            return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
         #endif
-    }    
+      
+    }
+
+    // Explicitly point sourceURL to our bundleURL logic for backward compatibility
+    override func sourceURL(for bridge: RCTBridge) -> URL? {
+        return self.bundleURL()
+    }
 }

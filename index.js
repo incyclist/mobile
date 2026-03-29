@@ -43,7 +43,7 @@ if (!EventEmitter.default) {
 import { Loader } from './src/Loader.tsx';
 
 const Root = () => (
-  <SafeAreaProvider>
+  <SafeAreaProvider style={{ flex: 1 }}>
     <Loader />
   </SafeAreaProvider>
 );
