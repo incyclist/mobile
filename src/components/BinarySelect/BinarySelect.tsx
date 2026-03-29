@@ -38,7 +38,7 @@ export const BinarySelect = (props: BinarySelectProps) => {
             </Text>
             <View style={styles.chipsWrapper}>
                 <ChipSelect
-                    label={label}
+                    label="" // Fix: Pass empty string to prevent duplicate label rendering
                     labelWidth={0}
                     options={options}
                     selected={selected}
