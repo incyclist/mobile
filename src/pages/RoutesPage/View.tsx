@@ -48,8 +48,8 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
 
     return (
         <MainBackground>
-            <View style={styles.container}>
-                <View style={[styles.navColumn, { width: compact ? 70 : 150 }]}>
+            <View style={[styles.container, compact && styles.containerCompact]}>
+                <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
                     <NavigationBar
                         compact={compact}
                         selected="routes"
@@ -124,9 +124,19 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
     },
+    containerCompact: {
+        flexDirection: 'column',
+    },
     navColumn: {
         flexDirection: 'column',
         alignSelf: 'stretch',
+    },
+    navColumnNormal: {
+        width: 150,
+    },
+    navColumnCompact: {
+        height: 56,
+        width: '100%',
     },
     contentColumn: {
         flex: 1,

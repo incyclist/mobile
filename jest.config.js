@@ -1,5 +1,7 @@
 module.exports = {
   preset: 'react-native',
+  setupFilesAfterEnv: ['./__tests__/jest.setup.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '__tests__/jest.setup.ts'],
   moduleNameMapper: {
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',

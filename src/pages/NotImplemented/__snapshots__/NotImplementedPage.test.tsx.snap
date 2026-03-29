@@ -1,0 +1,106 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NotImplementedView renders correctly in compact layout 1`] = `
+<View
+  style={
+    [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      {
+        "flexDirection": "column",
+      },
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "width": 150,
+        },
+        {
+          "height": 56,
+          "width": "100%",
+        },
+      ]
+    }
+  />
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "bottom": 0,
+        "gap": 24,
+        "justifyContent": "center",
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 24,
+        }
+      }
+    >
+      Not yet implemented
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`NotImplementedView renders correctly in normal layout 1`] = `
+<View
+  style={
+    [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      false,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "width": 150,
+        },
+        false,
+      ]
+    }
+  />
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "bottom": 0,
+        "gap": 24,
+        "justifyContent": "center",
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 24,
+        }
+      }
+    >
+      Not yet implemented
+    </Text>
+  </View>
+</View>
+`;

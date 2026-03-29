@@ -1,22 +1,25 @@
-import { StyleSheet, Text, View } from "react-native";
-import { colors, textSizes } from "../../theme";
-import { useIncyclist } from "incyclist-services";
+import { StyleSheet, Text, View } from 'react-native';
+import { colors, textSizes } from '../../theme';
+import { useIncyclist } from 'incyclist-services';
 import { NavigationBar, MainBackground, TNavigationItem } from '../../components';
-import { getUIBinding } from "../../bindings/ui";
-import { navigate } from "../../services";
+import { getUIBinding } from '../../bindings/ui';
+import { navigate } from '../../services';
+import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 interface NotImplementedViewProps {
-    onClick:( item:TNavigationItem)=>void,
-    selected:TNavigationItem
+    onClick: (item: TNavigationItem) => void;
+    selected: TNavigationItem;
 }
 
-export const NotImplementedView = ( {onClick,selected}:NotImplementedViewProps) => {
+export const NotImplementedView = ({ onClick, selected }: NotImplementedViewProps) => {
+    const layout = useScreenLayout();
+    const isCompact = layout === 'compact';
     
     return (
         <MainBackground>
-            <View style={styles.layout}>
-                <View style={styles.navColumn}>
-                    <NavigationBar selected={selected} onClick={onClick} />
+            <View style={[styles.layout, isCompact && styles.layoutCompact]}>
+                <View style={[styles.navColumn, isCompact && styles.navColumnCompact]}>
+                    <NavigationBar selected={selected} onClick={onClick} compact={isCompact} />
                 </View>
                 
                 <View style={styles.content}>
@@ -35,10 +38,16 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
     },  
+    layoutCompact: {
+        flexDirection: 'column',
+    },
     navColumn: {
         width: 150,
     },
-  
+    navColumnCompact: {
+        width: '100%',
+        height: 56,
+    },
     container: {
         flex: 1,
     },
@@ -54,16 +63,16 @@ const styles = StyleSheet.create({
     },
 });
 
-export const NotImplementedPage= ( {selected}:{selected?:TNavigationItem}) => {
-    const incyclist = useIncyclist()
+export const NotImplementedPage = ({ selected }: { selected?: TNavigationItem }) => {
+    const incyclist = useIncyclist();
 
-    const onClick=( item:TNavigationItem)=> {
-        if (item==='exit') {
+    const onClick = (item: TNavigationItem) => {
+        if (item === 'exit') {
             incyclist.onAppExit()
-                .then( ()=>{ getUIBinding().quit()})
+                .then(() => { getUIBinding().quit(); });
         }
         else 
-            navigate(item)
-    }
-    return <NotImplementedView selected={selected!} onClick={onClick}/>
-}
+            navigate(item);
+    };
+    return <NotImplementedView selected={selected!} onClick={onClick} />;
+};
