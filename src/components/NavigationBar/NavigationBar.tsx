@@ -84,9 +84,9 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 onClose={() => setShowSettings(false)}
                 onSectionPress={handleSectionPress}
             />
-            {showSupport && <SupportSettings onClose={() => setShowSupport(true)} />}
-            {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(true)} />}
-            {showGear && <GearSettings onClose={() => setShowGear(true)} />}
+            {showSupport && <SupportSettings onClose={() => setShowSupport(false)} />}
+            {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(false)} />}
+            {showGear && <GearSettings onClose={() => setShowGear(false)} />}
         </>
     );
 };
