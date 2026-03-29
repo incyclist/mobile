@@ -10,9 +10,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var reactNativeFactory: RCTReactNativeFactory?
 
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return Orientation.getOrientation()
+      return .landscape
     }
-
+	
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -27,7 +27,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window = UIWindow(frame: UIScreen.main.bounds)
 
         factory.startReactNative(
-            withModuleName: "incyclist",
+            withModuleName: "Incyclist",
             in: window,
             launchOptions: launchOptions
         )
@@ -52,9 +52,9 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
         // 2. Fallback to default behavior (Metro in Debug, main.jsbundle in Release)
         #if DEBUG
-          return RCTBundleURLProvider.shared().jsBundleURL(forBundleRoot: "index")
+            return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
         #else
-          return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+            return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
         #endif
       
     }

@@ -8,6 +8,7 @@ require Pod::Executable.execute_command('node', ['-p',
 min_ios_version_supported = '15.5'  
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
+cpu_arch = `uname -m`.strip 
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -25,24 +26,15 @@ target 'Incyclist' do
   )
 
   post_install do |installer|
+    
     react_native_post_install(
       installer,
       config[:reactNativePath],
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
-    $MLRN.post_install(installer)
     
-    # Add this inside your existing post_install do |installer| block
-    installer.pods_project.targets.each do |target|
-      if target.name == 'react-native-native-mqtt'
-        target.build_configurations.each do |config|
-          # This tells Xcode to ignore the bundled files that cause duplicates
-          config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = 'GCDAsyncSocket.m GCDAsyncUdpSocket.m'
-        end
-      end
-    end
-    
+
     installer.pods_project.build_configurations.each do |config|
       if cpu_arch == 'x86_64'
         config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
@@ -50,6 +42,30 @@ target 'Incyclist' do
         config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "x86_64"
       end
     end
+    
+    # Add this inside your existing post_install do |installer| block
+    installer.pods_project.targets.each do |target|
+
+      if target.name == 'react-native-native-mqtt'
+        target.build_configurations.each do |config|
+          # This tells Xcode to ignore the bundled files that cause duplicates
+          config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = 'GCDAsyncSocket.m GCDAsyncUdpSocket.m'
+        end
+      end
+
+      # Force every target to match your Intel Mac architecture
+      target.build_configurations.each do |config|
+        if cpu_arch == 'x86_64'
+          config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+        else
+          config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "x86_64"
+        end
+      end      
+
+      $MLRN.post_install(installer)
+
+    end
+    
     
   end
 end

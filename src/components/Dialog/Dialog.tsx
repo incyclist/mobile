@@ -125,6 +125,7 @@ export const Dialog = ({
             <Modal
                 transparent={true}
                 visible={isModalActive}
+                supportedOrientations={['landscape']} 
                 animationType="none"
                 onRequestClose={onOutsideClick}
             >
@@ -172,6 +173,7 @@ export const Dialog = ({
             visible={isModalActive}
             animationType="fade"
             onRequestClose={onOutsideClick}
+            supportedOrientations={['landscape']}
         >
             <TouchableWithoutFeedback onPress={onOutsideClick}>
                 <View style={styles.overlay}>
