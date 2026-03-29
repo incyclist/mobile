@@ -14,6 +14,7 @@ import {
     Animated,
     useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ButtonBar } from '../ButtonBar';
 import { colors, textSizes } from '../../theme';
 import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
@@ -34,15 +35,25 @@ export const Dialog = ({
     const { logEvent } = useLogging('Incyclist');
     const refInitialized = useRef<boolean>(false);
     const layout = useScreenLayout();
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const { top: safeAreaTop } = useSafeAreaInsets();
 
     const [isModalActive, setIsModalActive] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
 
+    const isCompact = layout === 'compact';
+    const NAV_BAR_HEIGHT = 56;
+    const stripHeight = NAV_BAR_HEIGHT + safeAreaTop;
+
     const defaultSlideFrom = 'left';
     const actualSlideFrom = variant === 'full' ? (slideFrom || defaultSlideFrom) : undefined;
-    const initialTranslateX = actualSlideFrom === 'left' ? -screenWidth : 0;
-    const animTranslateX = useRef(new Animated.Value(initialTranslateX)).current;
+    
+    // Animation constants
+    const initialPos = isCompact 
+        ? -screenHeight 
+        : (actualSlideFrom === 'left' ? -screenWidth : screenWidth);
+    
+    const animPos = useRef(new Animated.Value(initialPos)).current;
 
     useEffect(() => {
         if (variant !== 'full') {
@@ -62,14 +73,14 @@ export const Dialog = ({
 
         if (visible && !isModalActive) {
             setIsModalActive(true);
-
-            animTranslateX.setValue(actualSlideFrom === 'left' ? -screenWidth : screenWidth);
+            animPos.setValue(initialPos);
             setIsAnimating(true);
-            Animated.timing(animTranslateX, {
+            Animated.timing(animPos, {
                 toValue: 0,
                 duration: 220,
                 useNativeDriver: true,
             }).start(() => {
+                setIsAnimating(true); // Should be false but matches logic to signal end of move
                 setIsAnimating(false);
                 if (!refInitialized.current) {
                     refInitialized.current = true;
@@ -79,8 +90,8 @@ export const Dialog = ({
             });
         } else if (!visible && isModalActive) {
             setIsAnimating(true);
-            Animated.timing(animTranslateX, {
-                toValue: actualSlideFrom === 'left' ? -screenWidth : screenWidth,
+            Animated.timing(animPos, {
+                toValue: initialPos,
                 duration: 220,
                 useNativeDriver: true,
             }).start(() => {
@@ -93,7 +104,7 @@ export const Dialog = ({
                 }
             });
         }
-    }, [visible, isModalActive, animTranslateX, screenWidth, actualSlideFrom, variant, logEvent, title]);
+    }, [visible, isModalActive, animPos, initialPos, variant, logEvent, title]);
 
     useUnmountEffect(() => {
         if (refInitialized.current) {
@@ -103,7 +114,7 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant });
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight });
 
     const gradientColors = colors.dialogBackground;
 
@@ -112,15 +123,15 @@ export const Dialog = ({
         ? [styles.container, { backgroundColor: gradientColors[gradientColors.length - 1] }]
         : styles.container;
 
-    const isCompact = layout === 'compact';
-    const stripWidth = isCompact ? 70 : 150;
-    const stripWidthStyle = { width: stripWidth };
-
     if (variant === 'full' && !isModalActive && !isAnimating) {
         return null;
     }
 
     if (variant === 'full') {
+        const dynamicTransform = isCompact 
+            ? { translateY: animPos } 
+            : { translateX: animPos };
+
         return (
             <Modal
                 transparent={true}
@@ -130,11 +141,11 @@ export const Dialog = ({
             >
                 <Animated.View style={[
                     styles.fullScreenWrapper,
-                    { transform: [{ translateX: animTranslateX }] },
+                    { transform: [dynamicTransform] },
                 ]}>
                     <View style={styles.fullLayout}>
                         <TouchableOpacity
-                            style={[styles.strip, stripWidthStyle]}
+                            style={styles.strip}
                             onPress={onOutsideClick}
                             activeOpacity={1}
                         />
@@ -214,7 +225,7 @@ type StyleProps = {
     variant?: DialogVariant
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: StyleProps) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, stripHeight }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
     return StyleSheet.create({
         overlay: {
             flex: 1,
@@ -243,7 +254,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
         },
         scrollArea: {
             flexShrink: 1,
-            padding:8,
+            padding: 8,
         },
         content: {
             flexGrow: variant === 'details' || variant === 'full' ? 1 : 0,
@@ -259,14 +270,15 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details' }: 
         },
         fullLayout: {
             flex: 1,
-            flexDirection: 'row',
+            flexDirection: isCompact ? 'column' : 'row',
         },
         strip: {
-            height: '100%',
+            height: isCompact ? stripHeight : '100%',
+            width: isCompact ? '100%' : 150,
         },
         fullContentArea: {
             flex: 1,
-            height: '100%',
+            height: isCompact ? undefined : '100%',
             borderRadius: 0,
             maxHeight: '100%',
         },

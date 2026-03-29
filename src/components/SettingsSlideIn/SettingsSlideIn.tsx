@@ -12,7 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
 import { colors, textSizes } from '../../theme';
-import { useLogging, useScreenLayout } from '../../hooks'; // Add useScreenLayout
+import { useLogging, useScreenLayout } from '../../hooks';
 
 const gradientColors = colors.dialogBackground;
 const BackgroundContainer = Platform.OS === 'web' ? View : (LinearGradient as any);
@@ -26,18 +26,19 @@ export const SettingsSlideIn = ({
     onClose,
     onSectionPress
 }: SettingsSlideInProps) => {
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const { logEvent } = useLogging('SettingsSlideIn');
-    const layout = useScreenLayout(); // Get screen layout
-    const isCompact = layout === 'compact'; // Determine if compact
+    const layout = useScreenLayout();
+    const isCompact = layout === 'compact';
+    const NAV_BAR_HEIGHT = 56;
 
-    // Calculate widths as per instructions
-    const stripWidth = isCompact ? 70 : 150;
-    const panelWidth = screenWidth * 0.35; // Unchanged fixed panel width
-    const totalWidth = stripWidth + panelWidth; // Total width of the sliding unit
+    // Layout calculations
+    const stripSize = isCompact ? NAV_BAR_HEIGHT : 150;
+    const panelWidth = screenWidth * 0.35;
+    const totalSize = isCompact ? screenHeight : (stripSize + panelWidth);
     
-    // Start off-screen (left)
-    const animTranslateX = useRef(new Animated.Value(-totalWidth)).current; // Use totalWidth for initial position
+    // Start off-screen
+    const animPos = useRef(new Animated.Value(-totalSize)).current;
     
     // Track animation state to handle backdrop visibility and pointer events
     const [isAnimating, setIsAnimating] = useState(false);
@@ -52,14 +53,14 @@ export const SettingsSlideIn = ({
             }
         }
 
-        const targetValue = visible ? 0 : -totalWidth; // Use totalWidth for target
+        const targetValue = visible ? 0 : -totalSize;
         
         if (visible) {
             setIsFullyClosed(false);
         }
         setIsAnimating(true);
 
-        Animated.timing(animTranslateX, {
+        Animated.timing(animPos, {
             toValue: targetValue,
             duration: 220,
             useNativeDriver: true,
@@ -69,20 +70,35 @@ export const SettingsSlideIn = ({
                 setIsFullyClosed(true);
             }
         });
-    }, [visible, animTranslateX, totalWidth]); // Add totalWidth to deps
+    }, [visible, animPos, totalSize]);
 
     const handleSectionPress = (label: string) => {
         logEvent({ message: 'menu item clicked', item: label, eventSource: 'user' });
         onSectionPress(label);
     };
 
-    // If fully closed and not animating, don't show the backdrop/content
     if (isFullyClosed && !isAnimating) {
         return null;
     }
 
     const backdropPointerEvents = visible ? 'auto' : 'none';
     const backdropOpacity = visible ? 1 : 0;
+
+    const dynamicContainerStyle = isCompact 
+        ? { height: totalSize, width: screenWidth, flexDirection: 'column' as const } 
+        : { width: totalSize, flexDirection: 'row' as const };
+
+    const dynamicTransform = isCompact 
+        ? { translateY: animPos } 
+        : { translateX: animPos };
+
+    const dynamicStripStyle = isCompact 
+        ? { height: stripSize, width: '100%' } 
+        : { width: stripSize, height: '100%' };
+
+    const dynamicPanelStyle = isCompact 
+        ? { flex: 1, width: '100%' } 
+        : { width: panelWidth, height: '100%' };
 
     return (
         <View 
@@ -102,22 +118,22 @@ export const SettingsSlideIn = ({
             {/* Sliding Unit (Tap Zone + Panel) */}
             <Animated.View
                 style={[
-                    styles.panelContainer, // Container for both strip and panel
-                    { width: totalWidth }, // Apply total width to the animated unit
-                    { transform: [{ translateX: animTranslateX }] }
+                    styles.panelContainer,
+                    dynamicContainerStyle,
+                    { transform: [dynamicTransform] }
                 ]}
             >
-                {/* Transparent Tap Zone Column */}
+                {/* Transparent Tap Zone */}
                 <TouchableOpacity 
                     onPress={onClose} 
-                    style={[styles.stripZone, { width: stripWidth }]} 
+                    style={[styles.stripZone, dynamicStripStyle]} 
                     testID="settings-slide-in-tap-zone"
                 />
 
                 {/* Sections Panel */}
                 <BackgroundContainer
                     colors={gradientColors}
-                    style={[panelBackgroundStyle, { width: panelWidth }]} // Explicit panel width
+                    style={[panelBackgroundStyle, dynamicPanelStyle]}
                 >
                     <View style={styles.content}>
                         {sections.map((section) => (
@@ -143,20 +159,18 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFill,
         backgroundColor: 'rgba(0,0,0,0.4)',
     },
-    panelContainer: { // New style for the sliding unit wrapper
+    panelContainer: {
         position: 'absolute',
         left: 0,
         top: 0,
         bottom: 0,
         zIndex: 1000,
-        flexDirection: 'row', // Arrange strip and panel side-by-side
     },
     stripZone: {
-        alignSelf: 'stretch', // Ensures it takes full height of panelContainer
-        // No background color, it should be transparent
+        alignSelf: 'stretch',
     },
     content: {
-        flex: 1, // Content needs to flex within its parent BackgroundContainer
+        flex: 1,
         paddingTop: 20,
     },
     row: {
