@@ -22,7 +22,7 @@ export const BinarySelect = (props: BinarySelectProps) => {
         disabled = false,
     } = props;
 
-    const options = [falseLabel, trueLabel];
+    const options = [trueLabel, falseLabel];
     const selected = value ? trueLabel : falseLabel;
 
     const handleValueChange = (v: string) => {
@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
     },
     flexLabel: {
-        flex: 1,
         marginRight: 8,
     },
     marginLeft: {
