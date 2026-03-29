@@ -13,7 +13,7 @@ import {
 
 // Helper for rendering icons based on the TNavigationItem
 const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
-    const color = isSelected ? colors.iconSelected : colors.icon;
+    const color = isSelected ? colors.iconSelected : colors.background;
     const iconProps = { fill: color, width: 24, height: 24 }; // Fixed size 24 as per requirements
 
     switch (item) {
@@ -97,7 +97,7 @@ export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) =
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: colors.dialogBorder, // Using dialogBorder for lightgrey as per rule
+        backgroundColor: 'lightgrey', // Updated to direct string per spec
         paddingHorizontal: 8,
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemLabel: {
-        color: colors.icon,
+        color: colors.background, // Updated unselected color per spec
         fontSize: textSizes.smallText,
         marginTop: 2,
     },

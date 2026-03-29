@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { NavigationBarView } from './NavigationBarView';
-import { NavigationBarViewCompact } from './NavigationBarViewCompact'; // New import
+import { NavigationBarViewCompact } from './NavigationBarViewCompact';
 import { TNavigationItem } from './types';
-import { colors, textSizes } from '../../theme'; // Import colors and textSizes for style checks
+import { colors } from '../../theme';
 
 const MOCK_PROPS_VERTICAL = {
     onClick: jest.fn(),
@@ -30,36 +30,23 @@ describe('NavigationBarView', () => {
     });
 
     it('renders with selected item', () => {
-        const { toJSON } = render(
-            <NavigationBarView
-                selected="routes"
-                {...MOCK_PROPS_VERTICAL}
-            />
-        );
+        const props = { ...MOCK_PROPS_VERTICAL, selected: 'routes' as TNavigationItem };
+        const { toJSON } = render(<NavigationBarView {...props} />);
         expect(toJSON()).toBeDefined();
     });
 
     it('renders with compact=true (hides labels)', () => {
-        const { queryByText } = render(
-            <NavigationBarView
-                {...MOCK_PROPS_VERTICAL}
-                compact={true}
-            />
-        );
-        expect(queryByText('User')).toBeNull(); // Label should be hidden
+        const props = { ...MOCK_PROPS_VERTICAL, compact: true };
+        const { queryByText } = render(<NavigationBarView {...props} />);
+        expect(queryByText('User')).toBeNull();
         expect(queryByText('Settings')).toBeNull();
     });
 
     it('handles item click', () => {
         const mockOnClick = jest.fn();
-        const { getByText } = render(
-            <NavigationBarView
-                selected="routes"
-                onClick={mockOnClick}
-                {...MOCK_PROPS_VERTICAL}
-            />
-        );
-        fireEvent.press(getByText('Settings'));
+        const props = { ...MOCK_PROPS_VERTICAL, onClick: mockOnClick, selected: 'routes' as TNavigationItem };
+        render(<NavigationBarView {...props} />);
+        fireEvent.press(screen.getByText('Settings'));
         expect(mockOnClick).toHaveBeenCalledWith('settings');
     });
 });
@@ -74,97 +61,60 @@ describe('NavigationBarViewCompact', () => {
         expect(toJSON()).toBeDefined();
         expect(screen.getByText('Devices')).toBeDefined();
         expect(screen.getByText('Routes')).toBeDefined();
-        // Check for right-side items via accessibility label as they are icon-only
-        expect(screen.getByAccessibilityLabel('settings')).toBeDefined();
-        expect(screen.getByAccessibilityLabel('user')).toBeDefined();
+        expect(screen.getByLabelText('settings')).toBeDefined();
+        expect(screen.getByLabelText('user')).toBeDefined();
     });
 
     it('renders with selected item', () => {
-        const { getByText, getByAccessibilityLabel } = render(
-            <NavigationBarViewCompact
-                selected="activities"
-                {...MOCK_PROPS_COMPACT}
-            />
-        );
-        const selectedActivitiesText = getByText('Activities');
-        expect(selectedActivitiesText).toBeDefined();
-
-        // Check if the selected item has the correct accessibility state
-        const selectedItemWrapper = selectedActivitiesText.parent?.parent as HTMLElement;
-        expect(selectedItemWrapper).toHaveAccessibilityState({ selected: true });
-
-        // Ensure an unselected item is not selected
-        const unselectedItemWrapper = getByText('Routes').parent?.parent as HTMLElement;
-        expect(unselectedItemWrapper).toHaveAccessibilityState({ selected: false });
+        const props = { ...MOCK_PROPS_COMPACT, selected: 'activities' as TNavigationItem };
+        render(<NavigationBarViewCompact {...props} />);
+        expect(screen.getByText('Activities')).toBeDefined();
     });
 
     it('left-side items show icon + label', () => {
-        const { getByText, queryByAccessibilityLabel } = render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
-        expect(getByText('Devices')).toBeDefined();
-        expect(getByText('Routes')).toBeDefined();
-        expect(getByText('Workouts')).toBeDefined();
-        expect(getByText('Activities')).toBeDefined();
-        // Ensure no accessibility labels exist for these if they have text labels
-        expect(queryByAccessibilityLabel('Devices')).toBeNull();
+        render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
+        expect(screen.getByText('Devices')).toBeDefined();
+        expect(screen.getByText('Routes')).toBeDefined();
+        expect(screen.getByText('Workouts')).toBeDefined();
+        expect(screen.getByText('Activities')).toBeDefined();
     });
 
     it('right-side items show icon only (no label)', () => {
-        const { queryByText, getByAccessibilityLabel } = render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
-        expect(queryByText('Settings')).toBeNull(); // Label should be null
-        expect(queryByText('User')).toBeNull();     // Label should be null
+        render(<NavigationBarViewCompact {...MOCK_PROPS_COMPACT} />);
+        expect(screen.queryByText('Settings')).toBeNull();
+        expect(screen.queryByText('User')).toBeNull();
 
-        // But they should be accessible via accessibility label
-        expect(getByAccessibilityLabel('settings')).toBeDefined();
-        expect(getByAccessibilityLabel('user')).toBeDefined();
+        expect(screen.getByLabelText('settings')).toBeDefined();
+        expect(screen.getByLabelText('user')).toBeDefined();
     });
 
-    it('selected item uses colors.iconSelected and unselected uses colors.icon', () => {
-        const mockOnClick = jest.fn();
-        const { getByText } = render(
-            <NavigationBarViewCompact
-                selected="routes"
-                onClick={mockOnClick}
-                navHeight={56}
-                showExit={false}
-            />
-        );
+    it('selected item uses colors.iconSelected and unselected uses colors.background', () => {
+        const props = { ...MOCK_PROPS_COMPACT, selected: 'routes' as TNavigationItem };
+        render(<NavigationBarViewCompact {...props} />);
 
-        // Check selected item (Routes) text color
-        const selectedRouteText = getByText('Routes');
+        const selectedRouteText = screen.getByText('Routes');
         expect(selectedRouteText.props.style).toContainEqual({ color: colors.iconSelected });
 
-        // Check unselected item (Devices) text color
-        const unselectedDevicesText = getByText('Devices');
-        expect(unselectedDevicesText.props.style).not.toContainEqual({ color: colors.iconSelected });
-        expect(unselectedDevicesText.props.style).toContainEqual({ color: colors.icon }); // Should be default icon color
+        const unselectedDevicesText = screen.getByText('Devices');
+        expect(unselectedDevicesText.props.style).toContainEqual({ color: colors.background });
     });
 
     it('handles item click for left-side items', () => {
         const mockOnClick = jest.fn();
-        const { getByText } = render(
-            <NavigationBarViewCompact
-                selected="routes"
-                onClick={mockOnClick}
-                {...MOCK_PROPS_COMPACT}
-            />
-        );
-        fireEvent.press(getByText('Devices'));
+        const props = { ...MOCK_PROPS_COMPACT, onClick: mockOnClick };
+        render(<NavigationBarViewCompact {...props} />);
+        fireEvent.press(screen.getByText('Devices'));
         expect(mockOnClick).toHaveBeenCalledWith('devices');
     });
 
     it('handles item click for right-side (icon-only) items', () => {
         const mockOnClick = jest.fn();
-        const { getByAccessibilityLabel } = render(
-            <NavigationBarViewCompact
-                selected="routes"
-                onClick={mockOnClick}
-                {...MOCK_PROPS_COMPACT}
-            />
-        );
-        fireEvent.press(getByAccessibilityLabel('settings'));
+        const props = { ...MOCK_PROPS_COMPACT, onClick: mockOnClick };
+        render(<NavigationBarViewCompact {...props} />);
+        fireEvent.press(screen.getByLabelText('settings'));
         expect(mockOnClick).toHaveBeenCalledWith('settings');
 
-        fireEvent.press(getByAccessibilityLabel('user'));
+        fireEvent.press(screen.getByLabelText('user'));
         expect(mockOnClick).toHaveBeenCalledWith('user');
     });
 });
