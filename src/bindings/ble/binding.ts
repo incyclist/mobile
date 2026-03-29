@@ -63,7 +63,7 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         this._state = this._state ?? 'unknown'
 
         this.logger.logEvent({message:'starting BLE manager ..'})
-        BleManager.start({ showAlert: true })
+        BleManager.start({ showAlert: false })
         .then( ()=> { 
             this._state = this._state ?? 'unknown'
 
