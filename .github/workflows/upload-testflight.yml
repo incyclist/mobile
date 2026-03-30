@@ -22,10 +22,22 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
-
       - name: Sync version from app.json
-        run: npx react-native-version --never-amend
-        
+        run: |
+          APP_VERSION=$(node -e "console.log(require('./app.json').appVersion)")
+          BUNDLE_VERSION=$(node -e "console.log(require('./app.json').bundleVersion)")
+          ANDROID_VERSION_CODE=$(node -e "console.log(require('./app.json').androidVersionCode)")
+
+          # iOS
+          cd ios
+          agvtool new-marketing-version "$APP_VERSION"
+          agvtool new-version -all "$BUNDLE_VERSION"
+          cd ..
+
+          # Android
+          sed -i "s/versionCode [0-9]*/versionCode $ANDROID_VERSION_CODE/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$APP_VERSION\"/" android/app/build.gradle
+
       # ── Ruby / CocoaPods ────────────────────────────────────────────────────
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
