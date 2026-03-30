@@ -43,12 +43,11 @@
 	<string>This app uses Bluetooth to connect to fitness devices.</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_http._tcp.</string>
-		<string>_wahoo-fitness-tnp._tcp.local.</string>
-		<string>_openbikecontrol._tcp.local.</string>
+        <string>_wahoo-fitness-tnp._tcp</string>
+        <string>_openbikecontrol._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>This app uses the local network to discover printers and other devices.</string>
+	<string>Incyclist uses the local network to discover and connect to fitness devices such as smart trainers.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Incyclist uses your photo library to allow you to save and share ride data and screenshots.</string>	
     <key>NSLocationWhenInUseUsageDescription</key>
