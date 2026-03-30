@@ -1,0 +1,166 @@
+name: iOS — Build & Upload to TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    runs-on: macos-latest
+    timeout-minutes: 120
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Node ────────────────────────────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # ── Ruby / CocoaPods ────────────────────────────────────────────────────
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: Install CocoaPods
+        run: gem install cocoapods --no-document
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/.cocoapods
+          key: pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: pods-
+
+      - name: Install pods
+        run: pod install
+        working-directory: ios
+
+      # ── Code signing ────────────────────────────────────────────────────────
+      - name: Import Distribution certificate
+        env:
+          CERT_P12_BASE64: ${{ secrets.DISTRIBUTION_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DISTRIBUTION_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          # Create a temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          echo "$CERT_P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/xcodebuild
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Make it the default keychain
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+
+      - name: Install provisioning profile
+        env:
+          PROFILE_BASE64: ${{ secrets.DISTRIBUTION_PROFILE }}
+        run: |
+          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_PATH"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/incyclist_distribution.mobileprovision"
+
+      # ── App Store Connect API key ────────────────────────────────────────────
+      - name: Set up App Store Connect API key
+        env:
+          API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_KEY_BASE64" | base64 --decode \
+            > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
+
+      # ── Archive ─────────────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          # Remove stale MapLibre signature if present (known MapLibre bug)
+          find "$BUILD_DIR" -name "MapLibre.xcframework-ios.signature" -delete 2>/dev/null || true
+
+          xcodebuild \
+            -workspace ios/Incyclist.xcworkspace \
+            -scheme Incyclist \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/Incyclist.xcarchive \
+            -destination "generic/platform=iOS" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="Incyclist Mobile Distribution" \
+            archive
+
+      # ── Export IPA ──────────────────────────────────────────────────────────
+      - name: Export IPA
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>APPLE_TEAM_ID_PLACEHOLDER</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.incyclist.app</key>
+              <string>Incyclist Mobile Distribution</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          # Substitute team ID from secret
+          sed -i '' "s/APPLE_TEAM_ID_PLACEHOLDER/$APPLE_TEAM_ID/" $RUNNER_TEMP/ExportOptions.plist
+
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/Incyclist.xcarchive \
+            -exportPath $RUNNER_TEMP/export \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      # ── Upload to TestFlight ─────────────────────────────────────────────────
+      - name: Upload to App Store Connect
+        env:
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$RUNNER_TEMP/export/Incyclist.ipa" \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      # ── Cleanup ─────────────────────────────────────────────────────────────
+      - name: Clean up secrets
+        if: always()
+        env:
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          security delete-keychain $RUNNER_TEMP/build.keychain || true
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/incyclist_distribution.mobileprovision"
+          rm -f ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
