@@ -12,8 +12,8 @@ import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
 const Stack = createNativeStackNavigator();
 
 const WorkoutsPage = ()=> <NotImplementedPage selected='workouts'/>
-const ActivitiesPage = ()=> <NotImplementedPage selected='activities'/>
-
+//const ActivitiesPage = ()=> <NotImplementedPage selected='activities'/>
+const ActivitiesPage = () => <VideoDemoPage />
 export const RootNavigator = () => {
     return (
         <NavigationContainer ref={navigationRef}>

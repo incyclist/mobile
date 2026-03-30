@@ -6,7 +6,7 @@ import {
     OnProgressData, 
     OnBufferData 
 } from 'react-native-video';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
@@ -32,6 +32,7 @@ export const Video = (props: VideoProps) => {
     const [internalHidden, setInternalHidden] = useState(true);
     const [paused, setPaused] = useState(false);
     const [rate, setRateState] = useState(0);
+    const {logEvent} = useLogging('VideoDebug')
 
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
@@ -75,13 +76,15 @@ export const Video = (props: VideoProps) => {
     }, []);
 
     const handleLoad = useCallback((_data: OnLoadData) => {
+        logEvent({message:'onLoad', data:JSON.stringify(_data??{})})
         seekTo(startTime ?? 0);
         refInfo.current.loading = true
         refInfo.current.loaded = false
        
-    }, [startTime, seekTo]);
+    }, [logEvent, seekTo, startTime]);
 
     const handleSeek = useCallback((data: OnSeekData) => {
+        logEvent({message:'onSeek', data:JSON.stringify(data??{})})
 
         const done = ()=> {
 
@@ -111,9 +114,11 @@ export const Video = (props: VideoProps) => {
         }
 
 
-    }, [onLoaded, seekTo, startTime]);
+    }, [logEvent, onLoaded, seekTo, startTime]);
 
     const handleProgress = useCallback((data: OnProgressData) => {
+        logEvent({message:'onProgress', data:JSON.stringify(data??{})})
+
         if (refInfo.current.ended) {
             return;
         }
@@ -129,9 +134,11 @@ export const Video = (props: VideoProps) => {
         
         const event: VideoPlaybackEvent = { bufferedTime: bufferedAhead };
         onPlaybackUpdate?.(time, refInfo.current.currentRate, event);
-    }, [onPlaybackUpdate]);
+    }, [logEvent, onPlaybackUpdate]);
 
     const handleBuffer = useCallback((data: OnBufferData) => {
+        logEvent({message:'onBuffer', data:JSON.stringify(data??{})})
+
         if (data.isBuffering) {
             if (!refInfo.current.loaded) {
                 return;
@@ -144,9 +151,11 @@ export const Video = (props: VideoProps) => {
                 []
             );
         }
-    }, [onWaiting]);
+    }, [logEvent, onWaiting]);
 
     const handleError = useCallback((error: OnVideoErrorData) => {
+        logEvent({message:'onError', data:JSON.stringify(error??{})})
+
         const code = error?.error?.errorCode !== undefined 
             ? Number(error.error.errorCode) 
             : undefined;
@@ -160,16 +169,18 @@ export const Video = (props: VideoProps) => {
         } else {
             onPlaybackError?.(mediaError);
         }
-    }, [onLoadError, onPlaybackError]);
+    }, [logEvent, onLoadError, onPlaybackError]);
 
     const handleEnd = useCallback(() => {
+        logEvent({message:'onEnd'})
+
         refInfo.current.ended = true;
         refInfo.current.playing = false;
         refInfo.current.currentRate = 0;
         setPaused(true);
         setRateState(0);
         onEnded?.();
-    }, [onEnded]);
+    }, [logEvent, onEnded]);
 
     useEffect(() => {
         if (refInitialized.current) {
