@@ -37,6 +37,7 @@ export const Video = (props: VideoProps) => {
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
     const refHidden = useRef(hidden);
+    const refBootstrapSeek = useRef(false);
     
     const refInfo = useRef({
         loading: false,
@@ -77,7 +78,14 @@ export const Video = (props: VideoProps) => {
 
     const handleLoad = useCallback((_data: OnLoadData) => {
         logEvent({message:'onLoad', data:JSON.stringify(_data??{})})
-        seekTo(startTime ?? 0);
+
+        if (!startTime) {
+            refBootstrapSeek.current = true;
+            seekTo(0.1);
+        } else {
+            seekTo(startTime);
+        }        
+
         refInfo.current.loading = true
         refInfo.current.loaded = false
        
@@ -85,6 +93,12 @@ export const Video = (props: VideoProps) => {
 
     const handleSeek = useCallback((data: OnSeekData) => {
         logEvent({message:'onSeek', data:JSON.stringify(data??{})})
+
+        if (refBootstrapSeek.current) {
+            refBootstrapSeek.current = false;
+            seekTo(0);  // seek back to actual start
+            return;     // wait for the next onSeek
+        }
 
         const done = ()=> {
 
