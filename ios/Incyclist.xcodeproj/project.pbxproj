@@ -118,6 +118,7 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				111AB9066C5B03E6B2B5F495 /* [CP] Embed Pods Frameworks */,
 				A02DFD0BB3853B2DE54C92DA /* [CP] Copy Pods Resources */,
+				DF8D2F962F79AF1F00E245DB /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -237,6 +238,24 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Incyclist/Pods-Incyclist-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		DF8D2F962F79AF1F00E245DB /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nrm -f \"${BUILT_PRODUCTS_DIR}/MapLibre.xcframework-ios.signature\"\n";
+		};
 		F49BFB3D950186683C1A08A4 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -279,7 +298,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 33ZL4TD87Q;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Incyclist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Incyclist;
@@ -296,6 +320,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.incyclist.app;
 				PRODUCT_NAME = Incyclist;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Incyclist Development";
 				SWIFT_OBJC_BRIDGING_HEADER = "incyclist--Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -310,7 +336,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 33ZL4TD87Q;
 				INFOPLIST_FILE = Incyclist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Incyclist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
@@ -327,6 +357,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.incyclist.app;
 				PRODUCT_NAME = Incyclist;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Incyclist Mobile Distribution";
 				SWIFT_OBJC_BRIDGING_HEADER = "incyclist--Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -559,6 +591,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 33ZL4TD87Q;
 				INFOPLIST_FILE = Incyclist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Incyclist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
