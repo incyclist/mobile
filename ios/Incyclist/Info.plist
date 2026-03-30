@@ -24,6 +24,8 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>    
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIRequiresFullScreen</key>
@@ -49,6 +51,8 @@
 	<string>This app uses the local network to discover printers and other devices.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Incyclist uses your photo library to allow you to save and share ride data and screenshots.</string>	
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Bluetooth device scanning may require location access on some devices.</string>    
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIBackgroundModes</key>
