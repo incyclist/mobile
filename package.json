@@ -98,7 +98,6 @@
     "prettier": "2.8.8",
     "react-native-nitro-modules": "^0.35.1",
     "react-native-svg-transformer": "^1.5.3",
-    "react-native-version": "^4.0.0",
     "react-native-web": "^0.21.2",
     "react-test-renderer": "^19.2.4",
     "storybook": "^10.2.19",
