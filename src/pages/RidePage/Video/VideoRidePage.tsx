@@ -8,7 +8,7 @@ import {
     RidePageService,
     RideType 
 } from 'incyclist-services';
-import { useLogging, useUnmountEffect } from '../../../hooks';
+import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
 import { MainBackground } from '../../../components';
@@ -21,7 +21,6 @@ interface VideoRidePageProps {
 export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
     const navigation = useNavigation();
-    const {logEvent} = useLogging('VideoRidePage')
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
@@ -32,10 +31,9 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
         const service = refService.current;
         if (service) {
             const update = service.getPageDisplayProps() as VideoRidePageDisplayProps
-            logEvent( { message:'#update-event', update:JSON.stringify(update)})
             setDisplayProps(update);
         }
-    }, [logEvent]);
+    }, []);
 
     useEffect(() => {
         if (refInitialized.current) return;
