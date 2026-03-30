@@ -107,7 +107,6 @@ export const App = () => {
 
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);
-                getBleBinding().start();   // ← ADDED HERE
                 logEvent({ message: 'Initializing App done' });
                 setInitialized(true);
             } catch (err: any) {
