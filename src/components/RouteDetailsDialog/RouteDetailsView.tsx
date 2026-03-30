@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import type { UIRouteSettings, FormattedNumber } from 'incyclist-services';
+import { useUnitConverter } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
@@ -31,7 +32,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const { logEvent } = useLogging('RouteDetailsView');
     const [data, setData] = useState<UIRouteSettings>(initialSettings);
     const [initialized, setInitialized] = useState(false);
-
+    const converter = useUnitConverter();
 
     const val = useCallback(( (v:number|FormattedNumber|undefined, defValue?:number)=> {
 
@@ -93,7 +94,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: undefined,
-                startPos: { value: 0, unit: data.startPos?.unit ?? 'm' },
+                startPos: { value: 0, unit: data.startPos?.unit ?? 'km' },
                 endPos: undefined
             });
             return;
@@ -103,8 +104,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: segName,
-                startPos: { value: Number(seg.start), unit: data.startPos?.unit ?? 'm' },
-                endPos: { value: Number(seg.end), unit: data.startPos?.unit ?? 'm' }
+                startPos: { value: converter.convert(Number(seg.start), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' }), unit: data.startPos?.unit ?? 'km' },
+                endPos: { value: converter.convert(Number(seg.end), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' }), unit: data.startPos?.unit ?? 'km' }
             });
         }
     };
