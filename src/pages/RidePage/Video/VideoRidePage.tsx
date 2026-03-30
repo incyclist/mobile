@@ -8,7 +8,7 @@ import {
     RidePageService,
     RideType 
 } from 'incyclist-services';
-import { useUnmountEffect } from '../../../hooks';
+import { useLogging, useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
 import { MainBackground } from '../../../components';
@@ -21,6 +21,7 @@ interface VideoRidePageProps {
 export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
     const navigation = useNavigation();
+    const {logEvent} = useLogging('VideoRidePage')
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
@@ -30,9 +31,11 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onUpdate = useCallback(() => {
         const service = refService.current;
         if (service) {
-            setDisplayProps(service.getPageDisplayProps() as VideoRidePageDisplayProps);
+            const update = service.getPageDisplayProps() as VideoRidePageDisplayProps
+            logEvent( { message:'#update-event', update:JSON.stringify(update)})
+            setDisplayProps(update);
         }
-    }, []);
+    }, [logEvent]);
 
     useEffect(() => {
         if (refInitialized.current) return;
@@ -86,7 +89,13 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onEndRide = useCallback(() => refService.current?.onEndRide(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
-    const onCancelStart = useCallback(() => refService.current?.onCancelStart(), []);
+    const onCancelStart = useCallback(() => {
+        setDisplayProps( current => {            
+            const prev = current??{}
+            return {...prev,startOverlayProps:null } as VideoRidePageDisplayProps
+        })
+        refService.current?.onCancelStart()
+    }, []);
     
     const onSettings = useCallback(() => {
         navigation.navigate('settings' as never);

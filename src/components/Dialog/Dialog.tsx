@@ -138,6 +138,7 @@ export const Dialog = ({
                 visible={isModalActive}
                 supportedOrientations={['landscape']} 
                 animationType="none"
+                presentationStyle="overFullScreen"                              
                 onRequestClose={onOutsideClick}
             >
                 <Animated.View style={[
@@ -184,6 +185,7 @@ export const Dialog = ({
             visible={isModalActive}
             animationType="fade"
             onRequestClose={onOutsideClick}
+            presentationStyle="overFullScreen"              
             supportedOrientations={['landscape']}
         >
             <TouchableWithoutFeedback onPress={onOutsideClick}>
