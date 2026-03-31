@@ -155,6 +155,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                                 digits={1}
                             />
                         </View>
+                        <View style={styles.editNumberWrapper} />
                     </View>
                 )}
 
