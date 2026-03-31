@@ -6,10 +6,10 @@ import {
     Image,
     // TouchableOpacity, // Not directly used for chip/dropdown anymore, but keep for other elements
     // TextInput, // REMOVED
-    ScrollView,
+    // ScrollView, // REMOVED
     ActivityIndicator,
 } from 'react-native';
-import type { UIRouteSettings, FormattedNumber, UIStartSettings } from 'incyclist-services'; // Added UIStartSettings
+import type { UIRouteSettings /* REMOVED: FormattedNumber */ /* REMOVED: UIStartSettings */ } from 'incyclist-services'; // Added UIStartSettings
 import { useUnitConverter } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
 import { Dialog } from '../Dialog';

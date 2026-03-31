@@ -13,13 +13,21 @@ jest.mock('../../hooks', () => ({
     useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
     useUnmountEffect: jest.fn((cb) => cb()), // Mock for cleanup
 }));
+// NEW: Mock for MapLibreRN to prevent test crashes
+jest.mock('@maplibre/maplibre-react-native', () => ({
+    MapView: 'MapView',
+    Camera: 'Camera',
+    ShapeSource: 'ShapeSource',
+    LineLayer: 'LineLayer',
+    default: { createFragment: jest.fn() },
+}));
 
-const MOCK_SETTINGS: UIRouteSettings = {
+const MOCK_SETTINGS = {
     startPos: { value: 0, unit: 'km' },
     realityFactor: 100,
     prevRides: [],
     showPrev: false,
-};
+} as unknown as UIRouteSettings;
 
 const MOCK_PROPS = {
     title: 'Test Route',
@@ -44,7 +52,7 @@ const MOCK_PROPS = {
     onSettingsChanged: jest.fn().mockResolvedValue({}),
     onUpdateStartPos: jest.fn((value: number) => {
         // Mock simple update, no further adjustments unless specific scenario
-        return { startPos: { value, unit: 'km' } } as UIStartSettings;
+        return { startPos: { value, unit: 'km' } } as unknown as UIStartSettings;
     }),
 };
 
@@ -108,10 +116,10 @@ describe('RouteDetailsView', () => {
                 segment: 'Segment 1',
                 startPos: { value: 0, unit: 'km' },
                 endPos: { value: 1, unit: 'km' } // Explicitly set endPos in initial settings
-            }
+            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
         };
 
-        const { getByLabelText } = render(<RouteDetailsView {...propsWithSegment} />);
+        const { getByLabelText, getByText } = render(<RouteDetailsView {...propsWithSegment} />); // NEW: Added getByText
 
         expect(getByLabelText('End')).toBeVisible();
         expect(getByLabelText('End')).toHaveProp('disabled', true);
@@ -167,7 +175,7 @@ describe('RouteDetailsView', () => {
 
     it('selects a segment via ChipSelect', async () => {
         const segments = [{ name: 'Segment A', start: 1000, end: 2000 }];
-        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} />);
+        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} />); // NEW: Added getByText
 
         fireEvent.press(getByText('Segment A'));
 
@@ -192,9 +200,9 @@ describe('RouteDetailsView', () => {
                 segment: 'Segment A',
                 startPos: { value: 1, unit: 'km' },
                 endPos: { value: 2, unit: 'km' }
-            }
+            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
         };
-        const { getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />);
+        const { getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />); // NEW: Added getByText
 
         fireEvent.press(getByText('All'));
 
@@ -240,7 +248,7 @@ describe('RouteDetailsView', () => {
                 segment: 'Seg 2',
                 startPos: { value: 1, unit: 'km' },
                 endPos: { value: 2, unit: 'km' }
-            }
+            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
         };
         const { getByLabelText, getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />);
 
@@ -262,7 +270,7 @@ describe('RouteDetailsView', () => {
     });
 
     it('handles onUpdateStartPos returning null gracefully', async () => {
-        MOCK_PROPS.onUpdateStartPos.mockReturnValueOnce(null); // Simulate service returning null
+        MOCK_PROPS.onUpdateStartPos.mockReturnValueOnce(null as unknown as UIStartSettings); // NEW: Cast for null return
 
         const { getByLabelText } = render(<RouteDetailsView {...MOCK_PROPS} />);
         const startPosInput = getByLabelText('Start');
