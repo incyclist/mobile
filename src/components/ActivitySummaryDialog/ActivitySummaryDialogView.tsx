@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { formatTime } from 'incyclist-services';
+import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
@@ -29,66 +29,107 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
     const layout = useScreenLayout();
     const isCompact = compact ?? layout === 'compact';
+    const converter = useUnitConverter();
 
     const dialogButtons = [
-        ...(showSave ? [{
-            label: 'Save',
+        ...(showSave && !isSaved ? [{
+            label: isSaving ? 'Saving...' : 'Save',
             onClick: onSave,
             primary: true,
-            disabled: isSaving || isSaved,
+            disabled: isSaving,
         }] : []),
         {
             label: 'Delete',
             onClick: onDelete,
         },
         {
-            label: isSaving ? 'Saving...' : 'Close',
+            label: 'Close',
             onClick: onClose,
         },
     ];
 
-    const renderSimpleStat = (label: string, value: any, fallbackUnit: string = '') => {
-        let displayValue = '--';
-        let displayUnit = fallbackUnit;
+    const renderKeyFact = (label: string, value: any, unitKey?: 'distance' | 'elevation' | 'speed' | 'time' | 'power') => {
+        let displayValue: string;
+        let displayUnit: string = '';
 
         if (isFormattedNumber(value)) {
             displayValue = value.value.toFixed(1);
             displayUnit = value.unit;
-        } else if (value !== undefined && value !== null) {
-            displayValue = value.toString();
+        } else if (typeof value === 'number') {
+            if (unitKey === 'distance') {
+                displayValue = converter.convert(value, 'distance', { from: 'm' }).toFixed(1);
+                displayUnit = converter.getUnit('distance');
+            } else if (unitKey === 'elevation') {
+                displayValue = Math.round(converter.convert(value, 'elevation', { from: 'm' })).toString();
+                displayUnit = converter.getUnit('elevation');
+            } else if (unitKey === 'time') {
+                displayValue = formatTime(value as number, true);
+            } else if (unitKey === 'power') {
+                displayValue = value.toFixed(0);
+                displayUnit = 'W'; // Hardcoded as per comment
+            }
+            else {
+                displayValue = value.toFixed(1);
+            }
+        } else if (typeof value === 'string' && value) {
+            displayValue = value;
+        } else {
+            displayValue = '--';
         }
 
         return (
-            <View style={styles.statItemSimple}>
-                <Text style={styles.statLabel}>{label}</Text>
-                <Text style={styles.statValue}>
-                    {displayValue}
-                    <Text style={styles.statUnit}> {displayUnit}</Text>
-                </Text>
+            <View style={styles.keyFactItem}>
+                <Text style={styles.keyFactLabel}>{label}</Text>
+                <Text style={styles.keyFactValue}>{displayValue}<Text style={styles.keyFactUnit}> {displayUnit}</Text></Text>
             </View>
         );
     };
 
-    const renderMetricStat = (label: string, stats: any, unit: string = '') => {
+    const renderTableHeader = () => (
+        <View style={styles.metricTableHeaderRow}>
+            <Text style={styles.metricTableHeaderCell}></Text> {/* Empty for metric name */}
+            <Text style={styles.metricTableHeaderCell}>Average</Text>
+            <Text style={styles.metricTableHeaderCell}>Min</Text>
+            <Text style={styles.metricTableHeaderCell}>Max</Text>
+        </View>
+    );
+
+    const renderMetricRow = (label: string, stats: any, defaultUnit: string | undefined, compactMode: boolean) => {
         if (!stats) return null;
-        
-        const avgValue = stats.avg;
-        const minValue = stats.min;
-        const maxValue = stats.max;
 
-        const avg = avgValue !== undefined ? avgValue.toFixed(1) : '--';
-        const min = minValue !== undefined ? minValue.toFixed(0) : '0';
-        const max = maxValue !== undefined ? maxValue.toFixed(0) : '0';
+        let avgValue: string | number = '--';
+        let minValue: string | number = '--';
+        let maxValue: string | number = '--';
+        let currentDisplayUnit: string | undefined = defaultUnit;
 
-        return (
-            <View style={styles.metricRow}>
-                <Text style={styles.metricLabel}>{label}</Text>
-                <Text style={styles.metricAvg}>
-                    {avg} <Text style={styles.statUnit}>{unit}</Text>
-                </Text>
-                <Text style={styles.metricMinMax}>min: {min}  max: {max}</Text>
-            </View>
-        );
+        if (label === 'Speed') {
+            currentDisplayUnit = converter.getUnit('speed');
+            avgValue = stats.avg !== undefined ? converter.convert(stats.avg, 'speed', { from: 'm/s' }).toFixed(1) : '--';
+            minValue = stats.min !== undefined ? converter.convert(stats.min, 'speed', { from: 'm/s' }).toFixed(1) : '--';
+            maxValue = stats.max !== undefined ? converter.convert(stats.max, 'speed', { from: 'm/s' }).toFixed(1) : '--';
+        } else {
+            avgValue = stats.avg !== undefined ? stats.avg.toFixed(1) : '--';
+            minValue = stats.min !== undefined ? stats.min.toFixed(0) : '--';
+            maxValue = stats.max !== undefined ? stats.max.toFixed(0) : '--';
+        }
+
+        if (compactMode) {
+            return (
+                <View style={styles.metricRowCompact}>
+                    <Text style={styles.metricLabelCompact}>{label}</Text>
+                    <Text style={styles.metricAvgCompact}>{avgValue}<Text style={styles.metricUnitCompact}> {currentDisplayUnit}</Text></Text>
+                </View>
+            );
+        } else {
+            return (
+                <View style={styles.metricTableRow}>
+                    <Text style={styles.metricTableCell}>{label}</Text>
+                    <Text style={styles.metricTableCell}>{avgValue}</Text>
+                    <Text style={styles.metricTableCell}>{minValue}</Text>
+                    <Text style={styles.metricTableCell}>{maxValue}<Text style={styles.metricUnitTable}> {currentDisplayUnit}</Text></Text>
+                </View>
+            );
+        }
     };
 
     const FileChip = ({ label, path }: { label: string; path?: string | null }) => {
@@ -117,17 +158,19 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
             
-            <View style={styles.simpleStatsRow}>
-                {renderSimpleStat('Distance', activity.distance)}
-                {renderSimpleStat('Elevation', activity.totalElevation)}
-                {renderSimpleStat('Duration', formatTime(activity.time, true))}
+            <View style={styles.keyFactsSection}>
+                {renderKeyFact('Distance', activity.distance, 'distance')}
+                {renderKeyFact('Duration', activity.time, 'time')}
+                {renderKeyFact('Elevation', activity.totalElevation, 'elevation')}
+                {renderKeyFact('Power Weighted', activity.stats?.power?.weighted, 'power')}
             </View>
 
-            <View style={styles.metricsContainer}>
-                {renderMetricStat('Avg Speed', activity.stats?.speed, units?.speed)}
-                {renderMetricStat('Avg Power', activity.stats?.power, 'W')}
-                {renderMetricStat('Avg HR', activity.stats?.hrm, 'bpm')}
-                {renderMetricStat('Avg Cadence', activity.stats?.cadence, 'rpm')}
+            <View style={styles.metricsTableSection}>
+                {!isCompact && renderTableHeader()}
+                {renderMetricRow('Speed', activity.stats?.speed, units?.speed, isCompact)}
+                {renderMetricRow('Power', activity.stats?.power, 'W', isCompact)}
+                {renderMetricRow('Heart Rate', activity.stats?.hrm, 'bpm', isCompact)}
+                {renderMetricRow('Cadence', activity.stats?.cadence, 'rpm', isCompact)}
             </View>
         </View>
     );
@@ -142,23 +185,28 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         </View>
     );
 
+    const MapPreview = (
+        <View style={isCompact ? styles.compactMapContainer : styles.mapContainer}>
+            {showMap ? (
+                <FreeMap style={styles.map} />
+            ) : preview ? (
+                <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
+            ) : (
+                <View style={styles.emptyPreview} />
+            )}
+        </View>
+    );
+
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+            {(showMap || preview) && MapPreview}
             {StatsContent}
             {GraphContent}
         </ScrollView>
     ) : (
         <View style={styles.normalContainer}>
             <View style={styles.topRow}>
-                <View style={styles.mapContainer}>
-                    {showMap ? (
-                        <FreeMap style={styles.map} />
-                    ) : preview ? (
-                        <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
-                    ) : (
-                        <View style={styles.emptyPreview} />
-                    )}
-                </View>
+                {MapPreview}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>
@@ -213,6 +261,14 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.2)',
     },
+    compactMapContainer: {
+        height: 150,
+        width: '100%',
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        marginBottom: 16,
+    },
     map: {
         flex: 1,
     },
@@ -247,53 +303,85 @@ const styles = StyleSheet.create({
         color: colors.disabled,
         marginBottom: 12,
     },
-    simpleStatsRow: {
+    keyFactsSection: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginBottom: 16,
+        marginBottom: 20,
+        gap: 8,
     },
-    statItemSimple: {
-        flex: 1,
+    keyFactItem: {
+        width: '48%', // Approx two columns
+        marginBottom: 4,
     },
-    metricsContainer: {
-        gap: 4,
-    },
-    metricRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-    },
-    metricLabel: {
-        flex: 2,
+    keyFactLabel: {
         fontSize: textSizes.smallText,
         color: colors.disabled,
-        textTransform: 'uppercase',
+        textTransform: 'capitalize', // Sentence case
     },
-    metricAvg: {
-        flex: 2,
+    keyFactValue: {
         fontSize: textSizes.normalText,
         color: colors.text,
         fontWeight: '600',
     },
-    metricMinMax: {
-        flex: 3,
+    keyFactUnit: {
         fontSize: textSizes.smallText,
         color: colors.disabled,
-        textAlign: 'right',
     },
-    statLabel: {
+    metricsTableSection: {
+        marginTop: 8,
+    },
+    metricTableHeaderRow: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
+        marginBottom: 4,
+    },
+    metricTableHeaderCell: {
+        flex: 1,
         fontSize: textSizes.smallText,
         color: colors.disabled,
-        textTransform: 'uppercase',
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
-    statValue: {
+    metricTableRow: {
+        flexDirection: 'row',
+        paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    metricTableCell: {
+        flex: 1,
         fontSize: textSizes.normalText,
         color: colors.text,
+        textAlign: 'center',
     },
-    statUnit: {
+    metricUnitTable: {
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
+    },
+    metricRowCompact: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    metricLabelCompact: {
+        flex: 1,
+        fontSize: textSizes.normalText,
+        color: colors.text,
+        textTransform: 'capitalize', // Sentence case
+    },
+    metricAvgCompact: {
+        flex: 1,
+        fontSize: textSizes.normalText,
+        color: colors.text,
+        fontWeight: '600',
+        textAlign: 'right',
+    },
+    metricUnitCompact: {
         fontSize: textSizes.smallText,
         color: colors.disabled,
     },
@@ -318,7 +406,6 @@ const styles = StyleSheet.create({
     graphContainer: {
         height: 200,
         width: '100%',
-        marginTop: 16,
     },
     graph: {
         flex: 1,
