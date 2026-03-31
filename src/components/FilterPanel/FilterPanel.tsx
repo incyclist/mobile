@@ -5,6 +5,8 @@ import {
     StyleSheet,
     TouchableOpacity,
     TextInput,
+    useWindowDimensions,
+    ScrollView,
 } from 'react-native';
 import { FilterPanelProps, SearchFilter } from './types';
 import { colors } from '../../theme';
@@ -21,7 +23,7 @@ const isFormattedNumber = (v: unknown): v is FormattedNumber =>
 const getFilterPills = (f: SearchFilter): string[] => {
     const pills: string[] = [];
     if (!f) {
-        return []
+        return [];
     }
 
     if (f.title) pills.push(`*${f.title}*`);
@@ -165,6 +167,8 @@ const FilterSelect = (props: any) => {
 
 export const FilterPanel = (props: FilterPanelProps) => {
     const { filters, visible, compact, onFilterChanged, onToggle, options } = props;
+    const { height: screenHeight } = useWindowDimensions();
+    const compactMaxHeight = compact ? screenHeight * 0.6 : undefined;
     const { 
         countries, 
         contentTypes, 
@@ -209,7 +213,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
             : (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'; // Applied type guard
         const current = localFilters[key] || {};
         
-        const unit = typeof current[type]==='number' ? defaultUnit : current[type]?.unit || defaultUnit
+        const unit = typeof current[type]==='number' ? defaultUnit : current[type]?.unit || defaultUnit;
         const updated = {
             ...current,
             [type]: val !== undefined ? { value: val, unit } : undefined
@@ -221,8 +225,96 @@ export const FilterPanel = (props: FilterPanelProps) => {
         });
     };
 
+    const panelContent = (
+        <>
+            <View style={styles.fullWidth}>
+                <Text style={styles.label}>Title</Text>
+                <TextInput
+                    style={[styles.input, compact && styles.inputCompact]}
+                    value={localTitle}
+                    onChangeText={setLocalTitle}
+                    onFocus={closeDropdown}
+                    onBlur={() => applyFilter({
+                        ...localFilters,
+                        title: localTitle === '' ? undefined : localTitle
+                    })}
+                    placeholder="Search title..."
+                    placeholderTextColor={colors.disabled}
+                />
+            </View>
+
+            <View style={styles.fullWidth}>
+                <View style={styles.row}>
+                    <View style={styles.minMaxGroup}>
+                        <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text> {/* Applied type guard */}
+                        <View style={styles.minMaxRow}>
+                            <FilterInput 
+                                compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min" // Applied type guard
+                                value={isFormattedNumber(localFilters?.distance?.min) ? localFilters.distance!.min!.value : localFilters?.distance?.min} logEvent={logEvent}
+                                onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
+                                onFocus={closeDropdown}
+                            />
+                            <Text style={styles.separator}>-</Text>
+                            <FilterInput 
+                                compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max" // Applied type guard
+                                value={isFormattedNumber(localFilters?.distance?.max) ? localFilters.distance!.max!.value : localFilters?.distance?.max} logEvent={logEvent}
+                                onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
+                                onFocus={closeDropdown}
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.minMaxGroup}>
+                        <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text> {/* Applied type guard */}
+                        <View style={styles.minMaxRow}>
+                            <FilterInput 
+                                compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min" // Applied type guard
+                                value={isFormattedNumber(localFilters?.elevation?.min) ? localFilters.elevation!.min!.value : localFilters?.elevation?.min} logEvent={logEvent}
+                                onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
+                                onFocus={closeDropdown}
+                            />
+                            <Text style={styles.separator}>-</Text>
+                            <FilterInput 
+                                compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max" // Applied type guard
+                                value={isFormattedNumber(localFilters?.elevation?.max) ? localFilters.elevation!.max!.value : localFilters?.elevation?.max} logEvent={logEvent}
+                                onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
+                                onFocus={closeDropdown}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            <View style={[styles.twoColumnGrid, compact && styles.twoColumnGridCompact]}>
+                <FilterSelect 
+                    label="Country" value={localFilters.country} options={countries} 
+                    fieldName="country" compact={compact} logEvent={logEvent} isHalf={!compact}
+                    isOpen={openField === 'country'} onOpen={setOpenField}
+                    onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
+                />
+                <FilterSelect 
+                    label="Content" value={localFilters.contentType} options={contentTypes} 
+                    fieldName="contentType" compact={compact} logEvent={logEvent} isHalf={!compact}
+                    isOpen={openField === 'contentType'} onOpen={setOpenField}
+                    onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
+                />
+                <FilterSelect 
+                    label="Type" value={localFilters.routeType} options={routeTypes} 
+                    fieldName="routeType" compact={compact} logEvent={logEvent} isHalf={!compact}
+                    isOpen={openField === 'routeType'} onOpen={setOpenField}
+                    onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
+                />
+                <FilterSelect 
+                    label="Source" value={localFilters.routeSource} options={routeSources} 
+                    fieldName="routeSource" compact={compact} logEvent={logEvent} isHalf={!compact}
+                    isOpen={openField === 'routeSource'} onOpen={setOpenField}
+                    onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
+                />
+            </View>
+        </>
+    );
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, compact && compactMaxHeight !== undefined && { maxHeight: compactMaxHeight }]}>
             <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
                 <View style={styles.toggleLeft}>
                     <Icon 
@@ -241,91 +333,19 @@ export const FilterPanel = (props: FilterPanelProps) => {
             </TouchableOpacity>
 
             {visible && (
-                <View style={[styles.panel, compact ? styles.gridColumn : styles.gridTwoColumn]}>
-                    <View style={styles.fullWidth}>
-                        <Text style={styles.label}>Title</Text>
-                        <TextInput
-                            style={[styles.input, compact && styles.inputCompact]}
-                            value={localTitle}
-                            onChangeText={setLocalTitle}
-                            onFocus={closeDropdown}
-                            onBlur={() => applyFilter({
-                                ...localFilters,
-                                title: localTitle === '' ? undefined : localTitle
-                            })}
-                            placeholder="Search title..."
-                            placeholderTextColor={colors.disabled}
-                        />
+                compact ? (
+                    <ScrollView
+                        style={styles.panel}
+                        contentContainerStyle={styles.gridColumn}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {panelContent}
+                    </ScrollView>
+                ) : (
+                    <View style={[styles.panel, styles.gridTwoColumn]}>
+                        {panelContent}
                     </View>
-
-                    <View style={styles.fullWidth}>
-                        <View style={styles.row}>
-                            <View style={styles.minMaxGroup}>
-                                <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text> {/* Applied type guard */}
-                                <View style={styles.minMaxRow}>
-                                    <FilterInput 
-                                        compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min" // Applied type guard
-                                        value={isFormattedNumber(localFilters?.distance?.min) ? localFilters.distance!.min!.value : localFilters?.distance?.min} logEvent={logEvent}
-                                        onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
-                                        onFocus={closeDropdown}
-                                    />
-                                    <Text style={styles.separator}>-</Text>
-                                    <FilterInput 
-                                        compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max" // Applied type guard
-                                        value={isFormattedNumber(localFilters?.distance?.max) ? localFilters.distance!.max!.value : localFilters?.distance?.max} logEvent={logEvent}
-                                        onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
-                                        onFocus={closeDropdown}
-                                    />
-                                </View>
-                            </View>
-                            <View style={styles.minMaxGroup}>
-                                <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text> {/* Applied type guard */}
-                                <View style={styles.minMaxRow}>
-                                    <FilterInput 
-                                        compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min" // Applied type guard
-                                        value={isFormattedNumber(localFilters?.elevation?.min) ? localFilters.elevation!.min!.value : localFilters?.elevation?.min} logEvent={logEvent}
-                                        onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
-                                        onFocus={closeDropdown}
-                                    />
-                                    <Text style={styles.separator}>-</Text>
-                                    <FilterInput 
-                                        compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max" // Applied type guard
-                                        value={isFormattedNumber(localFilters?.elevation?.max) ? localFilters.elevation!.max!.value : localFilters?.elevation?.max} logEvent={logEvent}
-                                        onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
-                                        onFocus={closeDropdown}
-                                    />
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={[styles.twoColumnGrid, compact && styles.twoColumnGridCompact]}>
-                        <FilterSelect 
-                            label="Country" value={localFilters.country} options={countries} 
-                            fieldName="country" compact={compact} logEvent={logEvent} isHalf={!compact}
-                            isOpen={openField === 'country'} onOpen={setOpenField}
-                            onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
-                        />
-                        <FilterSelect 
-                            label="Content" value={localFilters.contentType} options={contentTypes} 
-                            fieldName="contentType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                            isOpen={openField === 'contentType'} onOpen={setOpenField}
-                            onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
-                        />
-                        <FilterSelect 
-                            label="Type" value={localFilters.routeType} options={routeTypes} 
-                            fieldName="routeType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                            isOpen={openField === 'routeType'} onOpen={setOpenField}
-                            onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
-                        />
-                        <FilterSelect 
-                            label="Source" value={localFilters.routeSource} options={routeSources} 
-                            fieldName="routeSource" compact={compact} logEvent={logEvent} isHalf={!compact}
-                            isOpen={openField === 'routeSource'} onOpen={setOpenField}
-                            onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
-                        />
-                    </View>
-                </View>
+                )
             )}
         </View>
     );
