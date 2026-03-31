@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { FilterPanel } from './FilterPanel';
+import type { FilterPanelProps } from './types';
 
 // Mock incyclist-services
 jest.mock('incyclist-services', () => ({
@@ -31,7 +32,7 @@ const MOCK_OPTIONS = {
     routeSources: ['Local', 'Online'],
     maxDistance: { value: 200, unit: 'km' },
     maxElevation: { value: 3000, unit: 'm' },
-};
+} as unknown as FilterPanelProps['options'];
 
 const MOCK_PROPS = {
     filters: {},
