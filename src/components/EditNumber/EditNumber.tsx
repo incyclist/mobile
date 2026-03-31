@@ -40,11 +40,11 @@ export const EditNumber = ({
     }, [value, formatValue]);
 
     const handleCommit = useCallback(() => {
+        setError(null);
         if (internalValue === formatValue(refLastCommitted.current)) {
             return;
         }
 
-        setError(null);
 
         if (internalValue === '') {
             if (allowEmpty) {
@@ -82,16 +82,17 @@ export const EditNumber = ({
     }, [internalValue, formatValue, min, max, logEvent, label, onValueChange, allowEmpty]);
 
     const deriveLength = useCallback((): number | undefined => {
-        if (length !== undefined) return length; // Explicit length takes precedence
-        if (min === undefined && max === undefined) return undefined; // No min/max to derive from
-
+        if (length !== undefined) return length;
+        if (min === undefined && max === undefined) {
+            if (value === undefined) return undefined;
+            return value.toFixed(digits).length + 3;
+        }
         const minStr = min !== undefined ? min.toString() : '';
         const maxStr = max !== undefined ? max.toString() : '';
         const longestLen = Math.max(minStr.length, maxStr.length);
-
-        // Add 3 characters as buffer for potential negative sign, decimal point, and extra digits
         return longestLen + 3;
-    }, [length, min, max]);
+    }, [length, min, max, value, digits]);
+
 
     const labelStyle = { width: labelWidth };
     const errorStyle = { marginLeft: labelWidth + LABEL_MARGIN };

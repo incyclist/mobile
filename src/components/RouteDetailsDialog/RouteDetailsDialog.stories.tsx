@@ -68,8 +68,8 @@ export const CannotStart: Story = {
 export const WithSegments: Story = {
     args: mockRouteProps({
         segments: [
-            { name: 'Total Trip', start: 0, end: 47.5 },
-            { name: 'First Climb', start: 5.2, end: 12.8 },
+            { name: 'Total Trip', start: 0, end: 47500 },
+            { name: 'First Climb', start: 5200, end: 12800 },
         ],
         initialSettings: {
             startPos: { value: 2.9, unit: 'km' },
@@ -82,13 +82,13 @@ export const WithSegments: Story = {
 export const WithManySegments: Story = {
     args: mockRouteProps({
         segments: [
-            { name: 'Total Trip', start: 0, end: 47.5 },
-            { name: '1st Climb', start: 5.2, end: 12.8 },
-            { name: '2nd Climb', start: 5.2, end: 12.8 },
-            { name: '3rd Climb', start: 5.2, end: 12.8 },
-            { name: '4th Climb', start: 5.2, end: 12.8 },
-            { name: '5th Climb', start: 5.2, end: 12.8 },
-            { name: '6th Climb', start: 5.2, end: 12.8 },
+            { name: 'Total Trip', start: 0, end: 47500 },
+            { name: '1st Climb', start: 5200, end: 12800 },
+            { name: '2nd Climb', start: 15200, end: 16800 },
+            { name: '3rd Climb', start: 17200, end: 18800 },
+            { name: '4th Climb', start: 19200, end: 20800 },
+            { name: '5th Climb', start: 21200, end: 22800 },
+            { name: '6th Climb', start: 23200, end: 24800 },
         ],
         initialSettings: {
             startPos: { value: 2.9, unit: 'km' },
