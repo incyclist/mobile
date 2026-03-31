@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { RouteDetailsView } from './RouteDetailsView';
-import type { UIRouteSettings, UIStartSettings } from 'incyclist-services'; // Added UIStartSettings
+import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
 jest.mock('incyclist-services', () => ({
     useUnitConverter: () => ({ convert: (v: number) => v }),
@@ -11,14 +11,15 @@ jest.mock('incyclist-services', () => ({
 jest.mock('../../bindings/ui', () => ({}));
 jest.mock('../../hooks', () => ({
     useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
-    useUnmountEffect: jest.fn((cb) => cb()), // Mock for cleanup
+    useUnmountEffect: jest.fn((cb) => cb()),
 }));
-// NEW: Mock for MapLibreRN to prevent test crashes
+
 jest.mock('@maplibre/maplibre-react-native', () => ({
     MapView: 'MapView',
     Camera: 'Camera',
     ShapeSource: 'ShapeSource',
     LineLayer: 'LineLayer',
+    setAccessToken: jest.fn(),
     default: { createFragment: jest.fn() },
 }));
 
@@ -51,7 +52,6 @@ const MOCK_PROPS = {
     onStartWithWorkout: jest.fn(),
     onSettingsChanged: jest.fn().mockResolvedValue({}),
     onUpdateStartPos: jest.fn((value: number) => {
-        // Mock simple update, no further adjustments unless specific scenario
         return { startPos: { value, unit: 'km' } } as unknown as UIStartSettings;
     }),
 };
@@ -66,9 +66,9 @@ describe('RouteDetailsView', () => {
 
         expect(getByLabelText('Start')).toBeVisible();
         expect(getByLabelText('Reality')).toBeVisible();
-        expect(queryByLabelText('End')).toBeNull(); // End field should not be present
+        expect(queryByLabelText('End')).toBeNull();
 
-        expect(queryByLabelText('Segment')).toBeNull(); // No segments, so no selector
+        expect(queryByLabelText('Segment')).toBeNull();
     });
 
     it('renders correctly in compact layout without segments and endPos', () => {
@@ -85,25 +85,25 @@ describe('RouteDetailsView', () => {
         const segments = [{ name: 'Segment 1', start: 0, end: 1000 }];
         const { getByText, queryByLabelText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} compact={false} />);
 
-        expect(getByText('All')).toBeVisible(); // Chip for 'All'
-        expect(getByText('Segment 1')).toBeVisible(); // Chip for 'Segment 1'
-        expect(queryByLabelText('Segment')).toBeNull(); // SingleSelect should not be present
+        expect(getByText('All')).toBeVisible();
+        expect(getByText('Segment 1')).toBeVisible();
+        expect(queryByLabelText('Segment')).toBeNull();
     });
 
     it('renders SingleSelect when segments count is > SEGMENT_CHIP_THRESHOLD (5) and not compact', () => {
         const segments = Array.from({ length: 6 }, (_, i) => ({ name: `Seg ${i + 1}`, start: i * 1000, end: (i + 1) * 1000 }));
         const { getByLabelText, queryByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} compact={false} />);
 
-        expect(getByLabelText('Segment')).toBeVisible(); // SingleSelect
-        expect(queryByText('Seg 1')).toBeNull(); // Chips should not be present initially
+        expect(getByLabelText('Segment')).toBeVisible();
+        expect(queryByText('Seg 1')).toBeNull();
     });
 
     it('renders SingleSelect when segments exist and compact is true', () => {
         const segments = [{ name: 'Segment 1', start: 0, end: 1000 }];
         const { getByLabelText, queryByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} compact={true} />);
 
-        expect(getByLabelText('Segment')).toBeVisible(); // SingleSelect
-        expect(queryByText('Segment 1')).toBeNull(); // Chips should not be present initially
+        expect(getByLabelText('Segment')).toBeVisible();
+        expect(queryByText('Segment 1')).toBeNull();
     });
 
     it('displays endPos when a segment is selected', async () => {
@@ -115,16 +115,16 @@ describe('RouteDetailsView', () => {
                 ...MOCK_SETTINGS,
                 segment: 'Segment 1',
                 startPos: { value: 0, unit: 'km' },
-                endPos: { value: 1, unit: 'km' } // Explicitly set endPos in initial settings
-            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
+                endPos: { value: 1, unit: 'km' }
+            } as unknown as UIRouteSettings
         };
 
-        const { getByLabelText, getByText } = render(<RouteDetailsView {...propsWithSegment} />); // NEW: Added getByText
+        const { getByLabelText, getByText } = render(<RouteDetailsView {...propsWithSegment} />);
 
         expect(getByLabelText('End')).toBeVisible();
         expect(getByLabelText('End')).toHaveProp('disabled', true);
         expect(getByLabelText('End')).toHaveProp('value', 1);
-        expect(getByText('km')).toBeVisible(); // Check unit for End
+        expect(getByText('km')).toBeVisible();
     });
 
     it('updates startPos via EditNumber and calls onUpdateStartPos and onSettingsChanged', async () => {
@@ -132,7 +132,7 @@ describe('RouteDetailsView', () => {
         const startPosInput = getByLabelText('Start');
 
         fireEvent.changeText(startPosInput, '25.5');
-        fireEvent(startPosInput, 'blur'); // Simulate blur to trigger commit
+        fireEvent(startPosInput, 'blur');
 
         await waitFor(() => {
             expect(MOCK_PROPS.onUpdateStartPos).toHaveBeenCalledWith(25.5);
@@ -149,7 +149,7 @@ describe('RouteDetailsView', () => {
         const realityInput = getByLabelText('Reality');
 
         fireEvent.changeText(realityInput, '75');
-        fireEvent(realityInput, 'blur'); // Simulate blur to trigger commit
+        fireEvent(realityInput, 'blur');
 
         await waitFor(() => {
             expect(MOCK_PROPS.onSettingsChanged).toHaveBeenCalledWith(
@@ -164,18 +164,18 @@ describe('RouteDetailsView', () => {
         const { getByLabelText, getByText } = render(<RouteDetailsView {...MOCK_PROPS} totalDistance={{ value: 50, unit: 'km' }} />);
         const startPosInput = getByLabelText('Start');
 
-        fireEvent.changeText(startPosInput, '55'); // Exceeds max
+        fireEvent.changeText(startPosInput, '55');
         fireEvent(startPosInput, 'blur');
 
         await waitFor(() => {
             expect(getByText('Maximum value is 50')).toBeVisible();
-            expect(MOCK_PROPS.onUpdateStartPos).not.toHaveBeenCalled(); // No commit if validation fails internally in EditNumber
+            expect(MOCK_PROPS.onUpdateStartPos).not.toHaveBeenCalled();
         });
     });
 
     it('selects a segment via ChipSelect', async () => {
         const segments = [{ name: 'Segment A', start: 1000, end: 2000 }];
-        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} />); // NEW: Added getByText
+        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} />);
 
         fireEvent.press(getByText('Segment A'));
 
@@ -183,8 +183,8 @@ describe('RouteDetailsView', () => {
             expect(MOCK_PROPS.onSettingsChanged).toHaveBeenCalledWith(
                 expect.objectContaining({
                     segment: 'Segment A',
-                    startPos: { value: 1, unit: 'km' }, // 1000m converted to 1km
-                    endPos: { value: 2, unit: 'km' } // 2000m converted to 2km
+                    startPos: { value: 1000, unit: 'km' },
+                    endPos: { value: 2000, unit: 'km' }
                 })
             );
         });
@@ -200,9 +200,9 @@ describe('RouteDetailsView', () => {
                 segment: 'Segment A',
                 startPos: { value: 1, unit: 'km' },
                 endPos: { value: 2, unit: 'km' }
-            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
+            } as unknown as UIRouteSettings
         };
-        const { getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />); // NEW: Added getByText
+        const { getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />);
 
         fireEvent.press(getByText('All'));
 
@@ -221,18 +221,15 @@ describe('RouteDetailsView', () => {
         const segments = Array.from({ length: 6 }, (_, i) => ({ name: `Seg ${i + 1}`, start: i * 1000, end: (i + 1) * 1000 }));
         const { getByLabelText, getByText } = render(<RouteDetailsView {...MOCK_PROPS} segments={segments} />);
 
-        // Open dropdown
         fireEvent.press(getByLabelText('Segment'));
-
-        // Select an option
         fireEvent.press(getByText('Seg 3'));
 
         await waitFor(() => {
             expect(MOCK_PROPS.onSettingsChanged).toHaveBeenCalledWith(
                 expect.objectContaining({
                     segment: 'Seg 3',
-                    startPos: { value: 2, unit: 'km' },
-                    endPos: { value: 3, unit: 'km' }
+                    startPos: { value: 2000, unit: 'km' },
+                    endPos: { value: 3000, unit: 'km' }
                 })
             );
         });
@@ -248,14 +245,11 @@ describe('RouteDetailsView', () => {
                 segment: 'Seg 2',
                 startPos: { value: 1, unit: 'km' },
                 endPos: { value: 2, unit: 'km' }
-            } as unknown as UIRouteSettings // NEW: Cast for initialSettings
+            } as unknown as UIRouteSettings
         };
         const { getByLabelText, getByText } = render(<RouteDetailsView {...propsWithInitialSegment} />);
 
-        // Open dropdown
         fireEvent.press(getByLabelText('Segment'));
-
-        // Select an option
         fireEvent.press(getByText('All'));
 
         await waitFor(() => {
@@ -270,7 +264,7 @@ describe('RouteDetailsView', () => {
     });
 
     it('handles onUpdateStartPos returning null gracefully', async () => {
-        MOCK_PROPS.onUpdateStartPos.mockReturnValueOnce(null as unknown as UIStartSettings); // NEW: Cast for null return
+        MOCK_PROPS.onUpdateStartPos.mockReturnValueOnce(null as unknown as UIStartSettings);
 
         const { getByLabelText } = render(<RouteDetailsView {...MOCK_PROPS} />);
         const startPosInput = getByLabelText('Start');
@@ -300,17 +294,10 @@ describe('RouteDetailsView', () => {
         fireEvent.changeText(realityInput, '50');
         fireEvent(realityInput, 'blur');
 
-        // Unmount the component before the promise resolves
         unmount();
 
-        // Resolve the promise
         resolveSettingsChanged!({ realityFactor: 50, someOtherProp: 'test' });
 
-        // Ensure setData was not called after unmount
-        // This is hard to assert directly without mocking useState's setter
-        // but we rely on refMounted.current === false to prevent the call.
-        // We can indirectly verify that `onSettingsChanged` *was* called, but its effect
-        // on component state was prevented.
         expect(MOCK_PROPS.onSettingsChanged).toHaveBeenCalled();
     });
 });

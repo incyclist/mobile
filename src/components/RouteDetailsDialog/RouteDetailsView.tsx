@@ -4,22 +4,19 @@ import {
     Text,
     StyleSheet,
     Image,
-    // TouchableOpacity, // Not directly used for chip/dropdown anymore, but keep for other elements
-    // TextInput, // REMOVED
-    // ScrollView, // REMOVED
     ActivityIndicator,
 } from 'react-native';
-import type { UIRouteSettings /* REMOVED: FormattedNumber */ /* REMOVED: UIStartSettings */ } from 'incyclist-services'; // Added UIStartSettings
+import type { UIRouteSettings } from 'incyclist-services';
 import { useUnitConverter } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
-import { useLogging, useUnmountEffect } from '../../hooks'; // Added useUnmountEffect
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { BinarySelect } from '../BinarySelect';
-import { EditNumber } from '../EditNumber'; // NEW
-import { ChipSelect } from '../ChipSelect'; // NEW
-import { SingleSelect } from '../SingleSelect'; // NEW
+import { EditNumber } from '../EditNumber';
+import { ChipSelect } from '../ChipSelect';
+import { SingleSelect } from '../SingleSelect';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -34,29 +31,25 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const { logEvent } = useLogging('RouteDetailsView');
     const [data, setData] = useState<UIRouteSettings>(initialSettings);
-    const refMounted = useRef(true); // NEW: To guard async setState calls
-    useUnmountEffect(() => { refMounted.current = false; }); // NEW: Clean up ref on unmount
+    const refMounted = useRef(true);
+    useUnmountEffect(() => { refMounted.current = false; });
 
     const converter = useUnitConverter();
-
-    // REMOVED: val, startPosInput, realityInput, segmentDropdownOpen, segmentTriggerHeight states
-    // REMOVED: useEffect for initialized, and for syncing startPosInput/realityInput
 
     useEffect(() => {
         setData(prev => ({ ...prev, prevRides, showPrev: initialShowPrev }));
     }, [prevRides, initialShowPrev]);
 
-    const handleApplySettings = useCallback(async (updated: UIRouteSettings) => { // Made async
+    const handleApplySettings = useCallback(async (updated: UIRouteSettings) => {
         setData(updated); // Optimistic update
-        const result = await onSettingsChanged(updated); // Await service response
-        if (refMounted.current && result) { // Guard against unmounted component
+        const result = await onSettingsChanged(updated);
+        if (refMounted.current && result) {
             setData(prev => ({ ...prev, ...result })); // Merge service adjustments
         }
     }, [onSettingsChanged]);
 
     const handleSegmentSelect = (segName: string) => {
         logEvent({ message: 'option selected', field: 'segment', value: segName, eventSource: 'user' });
-        // REMOVED: setSegmentDropdownOpen(false);
         if (segName === 'All') {
             handleApplySettings({
                 ...data,
@@ -77,8 +70,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         }
     };
 
-    // REMOVED: handleStartPosBlur, handleRealityBlur
-
     const renderMedia = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (hasGpx && points?.length) {
@@ -95,8 +86,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };
 
-    // REMOVED: renderSegmentChips and renderSegmentDropdown
-
     const renderForm = () => {
         const useChips = !compact && (segments?.length ?? 0) <= SEGMENT_CHIP_THRESHOLD;
 
@@ -104,7 +93,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             <>
                 {segments && segments.length > 0 && (
                     useChips ? (
-                        <ChipSelect // NEW: ChipSelect for segments
+                        <ChipSelect
                             label=''
                             labelWidth={0}
                             options={['All', ...segments.map(s => s.name)]}
@@ -112,7 +101,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             onValueChange={handleSegmentSelect}
                         />
                     ) : (
-                        <SingleSelect // NEW: SingleSelect for segments
+                        <SingleSelect
                             label='Segment'
                             options={['All', ...segments.map(s => s.name)]}
                             selected={data.segment ?? 'All'}
@@ -122,7 +111,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 )}
                 <View style={styles.inputRow}>
                     <View style={styles.editNumberWrapper}>
-                        <EditNumber // NEW: EditNumber for startPos
+                        <EditNumber
                             label='Start'
                             unit={data.startPos?.unit ?? 'km'}
                             value={data.startPos?.value ?? 0}
@@ -134,7 +123,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                                 if (result) {
                                     handleApplySettings({ ...data, ...result });
                                 } else {
-                                    // If service returns null, apply user input directly
                                     handleApplySettings({
                                         ...data,
                                         startPos: { value: value ?? 0, unit: data.startPos?.unit ?? 'km' }
@@ -144,7 +132,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                         />
                     </View>
                     <View style={styles.editNumberWrapper}>
-                        <EditNumber // NEW: EditNumber for realityFactor
+                        <EditNumber
                             label='Reality'
                             unit='%'
                             value={data.realityFactor ?? 100}
@@ -156,7 +144,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </View>
                 </View>
 
-                {data.endPos !== undefined && ( // NEW: Conditional row for endPos
+                {data.endPos !== undefined && (
                     <View style={styles.inputRow}>
                         <View style={styles.editNumberWrapper}>
                             <EditNumber
@@ -271,13 +259,8 @@ const styles = StyleSheet.create({
     statLabel: { color: colors.disabled, fontSize: 10, textTransform: 'uppercase' },
     statValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
     settingsArea: { padding: 15 },
-    // REMOVED: segmentScroll
-    // REMOVED: chip, chipActive, chipText
     inputRow: { flexDirection: 'row', gap: 20, marginBottom: 15 },
-    editNumberWrapper: { flex: 1 }, // NEW: Wrapper for EditNumber to allow flex:1 layout
-    // REMOVED: inputGroup
-    // REMOVED: inputLabel
-    // REMOVED: textInput
+    editNumberWrapper: { flex: 1 },
     switchGrid: { gap: 4 },
     compactRoot: { flexDirection: 'row', padding: 10, gap: 15 },
     compactLeft: { flex: 1 },
@@ -286,5 +269,4 @@ const styles = StyleSheet.create({
     infoBarText: { color: colors.disabled, fontSize: 12 },
     errorText: { color: colors.error, fontSize: 11, marginTop: 4 },
     fullErrorText: { color: colors.error, fontSize: 13, marginTop: 10, textAlign: 'center' },
-    // REMOVED: dropdownContainer, segmentDropdownTrigger, segmentDropdownText, segmentDropdownArrow, segmentDropdownList, dropdownScroll, segmentDropdownItem, segmentDropdownItemText
 });
