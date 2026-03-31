@@ -24,46 +24,69 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         onDeleteConfirm,
         onDeleteCancel,
         onShareFile,
+        compact,
     } = props;
 
     const layout = useScreenLayout();
-    const isCompact = layout === 'compact';
+    const isCompact = compact ?? layout === 'compact';
 
     const dialogButtons = [
         ...(showSave ? [{
             label: 'Save',
-            onPress: onSave,
+            onClick: onSave,
             primary: true,
             disabled: isSaving || isSaved,
         }] : []),
         {
             label: 'Delete',
-            onPress: onDelete,
+            onClick: onDelete,
         },
         {
             label: isSaving ? 'Saving...' : 'Close',
-            onPress: onClose,
+            onClick: onClose,
         },
     ];
 
-    const renderStat = (label: string, value: any, fallbackUnit: string = '') => {
+    const renderSimpleStat = (label: string, value: any, fallbackUnit: string = '') => {
         let displayValue = '--';
         let displayUnit = fallbackUnit;
 
         if (isFormattedNumber(value)) {
-            displayValue = value.value.toString();
+            displayValue = value.value.toFixed(1);
             displayUnit = value.unit;
         } else if (value !== undefined && value !== null) {
             displayValue = value.toString();
         }
 
         return (
-            <View style={styles.statItem}>
+            <View style={styles.statItemSimple}>
                 <Text style={styles.statLabel}>{label}</Text>
                 <Text style={styles.statValue}>
                     {displayValue}
                     <Text style={styles.statUnit}> {displayUnit}</Text>
                 </Text>
+            </View>
+        );
+    };
+
+    const renderMetricStat = (label: string, stats: any, unit: string = '') => {
+        if (!stats) return null;
+        
+        const avgValue = stats.avg;
+        const minValue = stats.min;
+        const maxValue = stats.max;
+
+        const avg = avgValue !== undefined ? avgValue.toFixed(1) : '--';
+        const min = minValue !== undefined ? minValue.toFixed(0) : '0';
+        const max = maxValue !== undefined ? maxValue.toFixed(0) : '0';
+
+        return (
+            <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>{label}</Text>
+                <Text style={styles.metricAvg}>
+                    {avg} <Text style={styles.statUnit}>{unit}</Text>
+                </Text>
+                <Text style={styles.metricMinMax}>min: {min}  max: {max}</Text>
             </View>
         );
     };
@@ -83,29 +106,34 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
     const StatsContent = (
         <View style={styles.statsContainer}>
-            <Text style={styles.title}>{activity.title}</Text>
+            <View style={styles.titleRow}>
+                <Text style={styles.title} numberOfLines={1}>{activity.title}</Text>
+                <View style={styles.chipsRow}>
+                    <FileChip label="JSON" path={activity.fileName} />
+                    <FileChip label="TCX" path={activity.tcxFileName} />
+                    <FileChip label="FIT" path={activity.fitFileName} />
+                </View>
+            </View>
+            
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
             
-            <View style={styles.statsGrid}>
-                {renderStat('Distance', activity.distance)}
-                {renderStat('Elevation', activity.totalElevation)}
-                {renderStat('Duration', formatTime(activity.time, true))}
-                {renderStat('Avg Speed', activity.stats?.speed?.avg, units?.speed)}
-                {renderStat('Avg Power', activity.stats?.power?.avg, 'W')}
-                {renderStat('Avg HR', activity.stats?.hrm?.avg, 'bpm')}
-                {renderStat('Avg Cadence', activity.stats?.cadence?.avg, 'rpm')}
+            <View style={styles.simpleStatsRow}>
+                {renderSimpleStat('Distance', activity.distance)}
+                {renderSimpleStat('Elevation', activity.totalElevation)}
+                {renderSimpleStat('Duration', formatTime(activity.time, true))}
             </View>
 
-            <View style={styles.chipsRow}>
-                <FileChip label="JSON" path={activity.fileName} />
-                <FileChip label="TCX" path={activity.tcxFileName} />
-                <FileChip label="FIT" path={activity.fitFileName} />
+            <View style={styles.metricsContainer}>
+                {renderMetricStat('Avg Speed', activity.stats?.speed, units?.speed)}
+                {renderMetricStat('Avg Power', activity.stats?.power, 'W')}
+                {renderMetricStat('Avg HR', activity.stats?.hrm, 'bpm')}
+                {renderMetricStat('Avg Cadence', activity.stats?.cadence, 'rpm')}
             </View>
         </View>
     );
 
     const GraphContent = (
-        <View style={styles.graphWrapper}>
+        <View style={styles.graphContainer}>
             <ActivityGraph
                 activity={activity}
                 units={{ speed: units?.speed, distance: units?.distance }}
@@ -149,12 +177,13 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
             {showDeleteConfirm && (
                 <Dialog
-                    variant="details"
+                    variant="info"
                     title="Delete Ride"
                     buttons={[
-                        { label: 'Cancel', onPress: onDeleteCancel },
-                        { label: 'Delete', onPress: onDeleteConfirm, attention: true },
+                        { label: 'Cancel', onClick: onDeleteCancel },
+                        { label: 'Delete', onClick: onDeleteConfirm, attention: true },
                     ]}
+                    onOutsideClick={onDeleteCancel}
                 >
                     <Text style={styles.confirmText}>This will permanently delete this ride. Are you sure?</Text>
                 </Dialog>
@@ -200,24 +229,60 @@ const styles = StyleSheet.create({
     statsContainer: {
         flex: 1,
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
     title: {
+        flex: 1,
         fontSize: textSizes.dialogTitle,
         color: colors.text,
         fontWeight: 'bold',
+        marginRight: 8,
     },
     startTime: {
         fontSize: textSizes.normalText,
         color: colors.disabled,
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    statsGrid: {
+    simpleStatsRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginBottom: 16,
     },
-    statItem: {
-        width: '48%',
-        marginBottom: 4,
+    statItemSimple: {
+        flex: 1,
+    },
+    metricsContainer: {
+        gap: 4,
+    },
+    metricRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
+    },
+    metricLabel: {
+        flex: 2,
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
+        textTransform: 'uppercase',
+    },
+    metricAvg: {
+        flex: 2,
+        fontSize: textSizes.normalText,
+        color: colors.text,
+        fontWeight: '600',
+    },
+    metricMinMax: {
+        flex: 3,
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
+        textAlign: 'right',
     },
     statLabel: {
         fontSize: textSizes.smallText,
@@ -234,14 +299,13 @@ const styles = StyleSheet.create({
     },
     chipsRow: {
         flexDirection: 'row',
-        marginTop: 12,
         gap: 8,
     },
     chip: {
         backgroundColor: colors.tileActive,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
     chipDisabled: {
         opacity: 0.5,
@@ -251,10 +315,10 @@ const styles = StyleSheet.create({
         fontSize: textSizes.smallText,
         fontWeight: 'bold',
     },
-    graphWrapper: {
-        flex: 1,
-        minHeight: 250,
-        marginTop: 8,
+    graphContainer: {
+        height: 200,
+        width: '100%',
+        marginTop: 16,
     },
     graph: {
         flex: 1,

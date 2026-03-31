@@ -20,6 +20,7 @@ export interface ActivitySummaryDialogViewProps {
     onDeleteConfirm: () => void;
     onDeleteCancel: () => void;
     onShareFile: (path: string) => void;
+    compact?: boolean;
 }
 
 export const isFormattedNumber = (v: unknown): v is FormattedNumber =>
