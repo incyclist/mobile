@@ -3,16 +3,47 @@ import { IFileSystem } from 'incyclist-services';
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
-        return await RNFS.writeFile(path, data, encoding);
+        console.log('# write file', path);
+        
+        if (Buffer.isBuffer(data)) {
+            // Buffer already contains raw bytes — convert to base64 for RNFS
+            return await RNFS.writeFile(path, data.toString('base64'), 'base64');
+        } else if (typeof data === 'string') {
+            let rnfsEncoding: string = 'utf8';
+            if (encoding === 'base64') {
+                rnfsEncoding = 'base64';
+            } else if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+                return await RNFS.writeFile(path, Buffer.from(data, encoding as BufferEncoding).toString('base64'), 'base64');
+            }
+            return await RNFS.writeFile(path, data, rnfsEncoding);
+        }
     }
 
     async readFile(path: string, encoding?: string): Promise<string> {
-        return await RNFS.readFile(path, encoding);
+        let rnfsEncoding: string = 'utf8';
+    
+        if (encoding === 'base64') {
+            rnfsEncoding = 'base64';
+        } else if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+            // Read as base64, then decode to the requested encoding via Buffer
+            const base64 = await RNFS.readFile(path, 'base64');
+            return Buffer.from(base64, 'base64').toString(encoding as BufferEncoding);
+        }
+        // 'utf8', 'utf-8', undefined all map to 'utf8'
+        return await RNFS.readFile(path, rnfsEncoding);
     }
 
     async appendFile(path: string, data: string, encoding?: string): Promise<void> {
-        return await RNFS.appendFile(path, data, encoding);
+        if (encoding === 'base64') {
+            return await RNFS.appendFile(path, data, 'base64');
+        } else if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+            const base64 = Buffer.from(data, encoding as BufferEncoding).toString('base64');
+            return await RNFS.appendFile(path, base64, 'base64');
+        }
+        // 'utf8', 'utf-8', undefined → 'utf8'
+        return await RNFS.appendFile(path, data, 'utf8');
     }
+
 
     async deleteFile(path: string): Promise<void> {
         return await RNFS.unlink(path);

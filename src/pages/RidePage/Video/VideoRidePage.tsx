@@ -11,7 +11,7 @@ import {
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
-import { MainBackground } from '../../../components';
+import { MainBackground,ActivitySummaryDialog, ErrorBoundary } from '../../../components';
 
 interface VideoRidePageProps {
     simulate?: boolean;
@@ -21,6 +21,8 @@ interface VideoRidePageProps {
 export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
     const navigation = useNavigation();
+    
+    const [showSummary, setShowSummary] = useState(false);
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
@@ -84,7 +86,11 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onPause = useCallback(() => refService.current?.onPause(), []);
     const onResume = useCallback(() => refService.current?.onResume(), []);
-    const onEndRide = useCallback(() => refService.current?.onEndRide(), []);
+    const onExit = useCallback(() => refService.current?.onEndRide(), []);
+    const onEndRide = useCallback(() => {
+        refService.current?.onPause()
+        setShowSummary(true)
+    }, []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
     const onCancelStart = useCallback(() => {
@@ -109,18 +115,29 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     }
 
     return (
-        <VideoRidePageView
-            displayProps={displayProps}
-            rideObserver={refRideObserver.current}
-            onMenuOpen={onMenuOpen}
-            onMenuClose={onMenuClose}
-            onPause={onPause}
-            onResume={onResume}
-            onEndRide={onEndRide}
-            onRetryStart={onRetryStart}
-            onIgnoreStart={onIgnoreStart}
-            onCancelStart={onCancelStart}
-            onSettings={onSettings}
-        />
+        <ErrorBoundary>
+            <VideoRidePageView
+                displayProps={displayProps}
+                rideObserver={refRideObserver.current}
+                onMenuOpen={onMenuOpen}
+                onMenuClose={onMenuClose}
+                onPause={onPause}
+                onResume={onResume}
+                onEndRide={onEndRide}
+                onRetryStart={onRetryStart}
+                onIgnoreStart={onIgnoreStart}
+                onCancelStart={onCancelStart}
+                onSettings={onSettings}
+            />
+
+            {showSummary && 
+                <ErrorBoundary>
+                    <ActivitySummaryDialog
+                        onClose={() => setShowSummary(false)}
+                        onExit={onExit}
+                    />
+                </ErrorBoundary>
+            }      
+        </ErrorBoundary>
     );
 };

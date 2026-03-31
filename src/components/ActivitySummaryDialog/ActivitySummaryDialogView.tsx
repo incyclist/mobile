@@ -7,6 +7,17 @@ import { ActivityGraph } from '../ActivityGraph';
 import { ActivitySummaryDialogViewProps, isFormattedNumber } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
+import { ErrorBoundary } from '../ErrorBoundary';
+
+const safeNum = (v: any): number | undefined => {
+    try {
+        if (v === undefined || v === null) return undefined;
+        if (typeof v === 'object' && 'value' in v) return (v as { value: number }).value;
+        if (typeof v === 'number') return v;
+    }
+    catch {} 
+    return undefined
+};
 
 export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps) => {
     const {
@@ -66,9 +77,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
                 displayValue = formatTime(value as number, true);
             } else if (unitKey === 'power') {
                 displayValue = value.toFixed(0);
-                displayUnit = 'W'; // Hardcoded as per comment
-            }
-            else {
+                displayUnit = 'W';
+            } else {
                 displayValue = value.toFixed(1);
             }
         } else if (typeof value === 'string' && value) {
@@ -87,7 +97,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
     const renderTableHeader = () => (
         <View style={styles.metricTableHeaderRow}>
-            <Text style={styles.metricTableHeaderCell}></Text> {/* Empty for metric name */}
+            <Text style={styles.metricTableHeaderCell} />
             <Text style={styles.metricTableHeaderCell}>Average</Text>
             <Text style={styles.metricTableHeaderCell}>Min</Text>
             <Text style={styles.metricTableHeaderCell}>Max</Text>
@@ -97,20 +107,28 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     const renderMetricRow = (label: string, stats: any, defaultUnit: string | undefined, compactMode: boolean) => {
         if (!stats) return null;
 
-        let avgValue: string | number = '--';
-        let minValue: string | number = '--';
-        let maxValue: string | number = '--';
+        let avgValue: string = '--';
+        let minValue: string = '--';
+        let maxValue: string = '--';
         let currentDisplayUnit: string | undefined = defaultUnit;
 
-        if (label === 'Speed') {
-            currentDisplayUnit = converter.getUnit('speed');
-            avgValue = stats.avg !== undefined ? converter.convert(stats.avg, 'speed', { from: 'km/h' }).toFixed(1) : '--';
-            minValue = stats.min !== undefined ? converter.convert(stats.min, 'speed', { from: 'km/h' }).toFixed(1) : '--';
-            maxValue = stats.max !== undefined ? converter.convert(stats.max, 'speed', { from: 'km/h' }).toFixed(1) : '--';
-        } else {
-            avgValue = stats.avg !== undefined ? stats.avg.toFixed(1) : '--';
-            minValue = stats.min !== undefined ? stats.min.toFixed(0) : '--';
-            maxValue = stats.max !== undefined ? stats.max.toFixed(0) : '--';
+        try {
+            const avg = safeNum(stats.avg);
+            const min = safeNum(stats.min);
+            const max = safeNum(stats.max);
+
+            if (label === 'Speed') {
+                currentDisplayUnit = converter.getUnit('speed');
+                avgValue = avg !== undefined ? converter.convert(avg, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+                minValue = min !== undefined ? converter.convert(min, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+                maxValue = max !== undefined ? converter.convert(max, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+            } else {
+                avgValue = avg !== undefined ? avg.toFixed(1) : '--';
+                minValue = min !== undefined ? min.toFixed(0) : '--';
+                maxValue = max !== undefined ? max.toFixed(0) : '--';
+            }
+        } catch {
+            // leave defaults ('--') if anything goes wrong
         }
 
         if (compactMode) {
@@ -162,9 +180,9 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
                     <FileChip label="FIT" path={activity.fitFileName} />
                 </View>
             </View>
-            
+
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
-            
+
             <View style={styles.keyFactsSection}>
                 {renderKeyFact('Distance', activity.distance, 'distance')}
                 {renderKeyFact('Duration', activity.time, 'time')}
@@ -183,12 +201,14 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     );
 
     const GraphContent = (
-        <View style={styles.graphContainer}>
-            <ActivityGraph
-                activity={activity}
-                units={{ speed: units?.speed, distance: units?.distance }}
-            />
-        </View>
+        <ErrorBoundary>
+            <View style={styles.graphContainer}>
+                <ActivityGraph
+                    activity={activity}
+                    units={units as Record<string, string>}
+                />                
+            </View>
+        </ErrorBoundary>
     );
 
     const MapPreview = (
@@ -258,7 +278,7 @@ const styles = StyleSheet.create({
     },
     topRow: {
         flexDirection: 'row',
-        height: 400, // Increased height to fit all stats content
+        height: 400,
         marginBottom: 16,
     },
     mapContainer: {
@@ -274,7 +294,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.2)',
         marginBottom: 16,
-        marginTop: 16, // Added spacing for compact map below stats
+        marginTop: 16,
     },
     map: {
         flex: 1,
@@ -318,13 +338,13 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     keyFactItem: {
-        width: '48%', // Approx two columns
+        width: '48%',
         marginBottom: 4,
     },
     keyFactLabel: {
         fontSize: textSizes.smallText,
         color: colors.disabled,
-        textTransform: 'capitalize', // Sentence case
+        textTransform: 'capitalize',
     },
     keyFactValue: {
         fontSize: textSizes.normalText,
@@ -379,7 +399,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: textSizes.normalText,
         color: colors.text,
-        textTransform: 'capitalize', // Sentence case
+        textTransform: 'capitalize',
     },
     metricAvgCompact: {
         flex: 1,

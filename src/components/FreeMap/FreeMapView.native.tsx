@@ -18,6 +18,15 @@ if (Platform.OS !== 'web') {
 
 }
 
+let cachedMapStyle: any = null;
+
+const getMapStyle = async (): Promise<any> => {
+    if (cachedMapStyle) return cachedMapStyle;
+    const response = await fetch('https://tiles.openfreemap.org/styles/liberty');
+    cachedMapStyle = await response.json();
+    return cachedMapStyle;
+};
+
 export const FreeMapView = ({
     style,
     width = '100%',
@@ -30,6 +39,23 @@ export const FreeMapView = ({
     scrollWheelZoom = true,
     children,
 }: FreeMapViewProps) => {
+    const [mapStyle, setMapStyle] = useState(null);
+
+    useEffect(() => {
+        if (mapStyle!==null || Platform.OS === 'web')
+            return
+
+        getMapStyle().then(osStyle => {
+            MapLibreRN.setConnected(true);
+            Logger.setLogCallback(log => {
+                if (log.message.includes('Canceled')) return true;
+                return false;
+            });
+            setMapStyle(osStyle);
+        });
+
+        
+    }, [mapStyle]);
 
    // Web Fallback for Storybook-Vite
     if (Platform.OS === 'web') {
@@ -44,35 +70,7 @@ export const FreeMapView = ({
         );
     }
 
-    const [mapStyle, setMapStyle] = useState(null);
 
-    useEffect(() => {
-        const fetchAndFixStyle = async () => {
-            const response = await fetch('https://raw.githubusercontent.com/streetcomplete/maplibre-streetcomplete-style/master/demo/streetcomplete.json');
-            const style = await response.json();
-
-            // 1. Point the 'openmaptiles' source to OpenFreeMap's public server
-            if (style.sources && style.sources.openmaptiles) {
-                style.sources.openmaptiles.url = "https://tiles.openfreemap.org";
-                // Remove 'tiles' array if it exists to ensure the 'url' takes precedence
-                delete style.sources.openmaptiles.tiles;
-            }
-
-            // 2. Fix Glyphs (Fonts) and Sprites (Icons) to use public CDNs
-            // Without these, labels and icons will fail to render.
-            style.glyphs = "https://tiles.openfreemap.org{fontstack}/{range}.pbf";
-            style.sprite = "https://tiles.openfreemap.org"; 
-            MapLibreRN.setConnected(true); 
-
-            Logger.setLogCallback(log => {
-                if (log.message.includes('Canceled')) return true;
-                return false;
-            });            
-            setMapStyle(style);
-        };
-
-        fetchAndFixStyle();
-    }, []);
 
     if (!mapStyle) return null;
 
