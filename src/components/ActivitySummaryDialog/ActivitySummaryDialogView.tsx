@@ -104,9 +104,9 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
         if (label === 'Speed') {
             currentDisplayUnit = converter.getUnit('speed');
-            avgValue = stats.avg !== undefined ? converter.convert(stats.avg, 'speed', { from: 'm/s' }).toFixed(1) : '--';
-            minValue = stats.min !== undefined ? converter.convert(stats.min, 'speed', { from: 'm/s' }).toFixed(1) : '--';
-            maxValue = stats.max !== undefined ? converter.convert(stats.max, 'speed', { from: 'm/s' }).toFixed(1) : '--';
+            avgValue = stats.avg !== undefined ? converter.convert(stats.avg, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+            minValue = stats.min !== undefined ? converter.convert(stats.min, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+            maxValue = stats.max !== undefined ? converter.convert(stats.max, 'speed', { from: 'km/h' }).toFixed(1) : '--';
         } else {
             avgValue = stats.avg !== undefined ? stats.avg.toFixed(1) : '--';
             minValue = stats.min !== undefined ? stats.min.toFixed(0) : '--';
@@ -145,7 +145,12 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         );
     };
 
-    const mapPoints = activity.logs?.filter(l => !!l.lat && !!l.lng) ?? [];
+    const mapPoints = (activity.logs?.filter(l => l.lat != null && l.lon != null) ?? []).map(l => ({
+        lat: l.lat as number,
+        lng: l.lon as number,
+        routeDistance: l.distance ?? 0,
+        elevation: l.elevation ?? 0,
+    }));
 
     const StatsContent = (
         <View style={styles.statsContainer}>
@@ -200,14 +205,14 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-            {(showMap || preview) && MapPreview}
             {StatsContent}
+            {(showMap || preview) && MapPreview}
             {GraphContent}
         </ScrollView>
     ) : (
         <View style={styles.normalContainer}>
             <View style={styles.topRow}>
-                {MapPreview}
+                {(showMap || preview) && MapPreview}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>
@@ -253,7 +258,7 @@ const styles = StyleSheet.create({
     },
     topRow: {
         flexDirection: 'row',
-        height: 200,
+        height: 400, // Increased height to fit all stats content
         marginBottom: 16,
     },
     mapContainer: {
@@ -269,6 +274,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.2)',
         marginBottom: 16,
+        marginTop: 16, // Added spacing for compact map below stats
     },
     map: {
         flex: 1,

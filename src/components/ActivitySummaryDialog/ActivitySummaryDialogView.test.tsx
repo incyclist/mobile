@@ -15,13 +15,32 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
 
 jest.mock('incyclist-services', () => ({
     useActivityRide: jest.fn(),
-    formatTime: (t: number) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`,
+    formatTime: (t: number, includeSeconds: boolean) => {
+        const minutes = Math.floor(t / 60);
+        const seconds = Math.round(t % 60);
+        if (includeSeconds) {
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+        return `${minutes}min`;
+    },
     useUnitConverter: () => ({
-        convert: (v: number) => v,
+        convert: (v: number, dimension: string, options?: any) => {
+            if (dimension === 'distance') {
+                return options?.to === 'mi' ? v * 0.621371 : v / 1000; // Assuming input is meters, converting to km/mi for test
+            }
+            if (dimension === 'elevation') {
+                return options?.to === 'ft' ? v * 3.28084 : v; // Assuming input is meters, converting to m/ft for test
+            }
+            // For speed, power, cadence, if they are already in display units, 'convert' might just format.
+            // Based on MOCK_ACTIVITY, speed is already km/h.
+            return v; // Default: just return the value for testing
+        },
         getUnit: (dimension: string) => {
             if (dimension === 'speed') return 'km/h';
             if (dimension === 'distance') return 'km';
             if (dimension === 'elevation') return 'm';
+            if (dimension === 'power') return 'W';
+            if (dimension === 'time') return '';
             return '';
         },
     }),
@@ -48,17 +67,21 @@ const MOCK_ACTIVITY = {
     title: 'Test Ride',
     startTime: '2026-03-31T10:00:00Z',
     time: 3600,
-    distance: { value: 25.3, unit: 'km' },
-    totalElevation: { value: 320, unit: 'm' },
+    distance: 25300, // in meters
+    totalElevation: 320, // in meters
     fileName: 'test.json',
     tcxFileName: 'test.tcx',
     fitFileName: null,
     stats: {
-        speed: { avg: 18.5, min: 0, max: 35 },
-        power: { avg: 180, min: 0, max: 400 },
+        speed: { avg: 18.5, min: 0, max: 35 }, // already in km/h
+        power: { avg: 180, min: 0, max: 400, weighted: 210 },
         hrm: { avg: 145, min: 90, max: 175 },
         cadence: { avg: 88, min: 0, max: 110 },
     },
+    logs: [
+        { lat: 51.0, lng: 6.0, distance: 0, elevation: 100, speed: 0, time: 0, cadence: 0, heartrate: 0, power: 0 },
+        { lat: 51.1, lng: 6.1, distance: 100, elevation: 105, speed: 10, time: 10, cadence: 80, heartrate: 120, power: 150 },
+    ],
 } as unknown as ActivityDetailsUI;
 
 const MOCK_PROPS: ActivitySummaryDialogViewProps = {
