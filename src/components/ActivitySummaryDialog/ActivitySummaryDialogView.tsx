@@ -145,6 +145,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         );
     };
 
+    const mapPoints = activity.logs?.filter(l => !!l.lat && !!l.lng) ?? [];
+
     const StatsContent = (
         <View style={styles.statsContainer}>
             <View style={styles.titleRow}>
@@ -180,7 +182,6 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             <ActivityGraph
                 activity={activity}
                 units={{ speed: units?.speed, distance: units?.distance }}
-                style={styles.graph}
             />
         </View>
     );
@@ -188,7 +189,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     const MapPreview = (
         <View style={isCompact ? styles.compactMapContainer : styles.mapContainer}>
             {showMap ? (
-                <FreeMap style={styles.map} />
+                <FreeMap points={mapPoints} style={styles.map} />
             ) : preview ? (
                 <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
             ) : (
@@ -404,11 +405,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     graphContainer: {
-        height: 200,
-        width: '100%',
-    },
-    graph: {
         flex: 1,
+        width: '100%',
+        marginTop: 16,
     },
     confirmText: {
         fontSize: textSizes.normalText,

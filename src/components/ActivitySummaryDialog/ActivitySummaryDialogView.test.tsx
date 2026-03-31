@@ -16,7 +16,15 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
 jest.mock('incyclist-services', () => ({
     useActivityRide: jest.fn(),
     formatTime: (t: number) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`,
-    useUnitConverter: () => ({ convert: (v: number) => v }),
+    useUnitConverter: () => ({
+        convert: (v: number) => v,
+        getUnit: (dimension: string) => {
+            if (dimension === 'speed') return 'km/h';
+            if (dimension === 'distance') return 'km';
+            if (dimension === 'elevation') return 'm';
+            return '';
+        },
+    }),
 }));
 
 jest.mock('react-native-share', () => ({ default: { open: jest.fn() } }));

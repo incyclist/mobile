@@ -35,6 +35,7 @@ export const Default: Story = {};
 export const Compact: Story = {
     args: {
         compact: true,
+        showMap: true,
     },
 };
 
