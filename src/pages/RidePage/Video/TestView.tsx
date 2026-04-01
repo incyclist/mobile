@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useCallback } from 'react';
 import { View, StyleSheet, useWindowDimensions, Image  } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps, ActivityDashboardItem } from 'incyclist-services';
 import { 
@@ -74,13 +74,16 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
 
     const [dashboardWidth, setDashboardWidth] = useState(0);
+    const [dashboardHeight, setDashboardHeight] = useState(DASHBOARD_HEIGHT );
+
     const reservedRight = screenWidth * 0.15;
-    const cornerTopOffset = dashboardWidth > screenWidth - reservedRight ? DASHBOARD_HEIGHT : 0;    
+    const dashboardRightEdge = (screenWidth / 2) + (dashboardWidth / 2);
+    const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight+2 : 0;    
 
     // Dynamic style constants to satisfy no-inline-styles
     const elevationPreviewDynamicStyle = {
         height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-        top: isCompact ? DASHBOARD_HEIGHT : cornerTopOffset,
+        top: isCompact ? dashboardHeight : cornerTopOffset,
         width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
     }
     const bottomBarStyle = {
@@ -96,6 +99,11 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     const elevationFullDynamicStyle = { height: ELEVATION_FULL_HEIGHT };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
 
+    const updateDashboardDimensions = useCallback((e: any) => {
+        setDashboardWidth(e.nativeEvent.layout.width);
+        setDashboardHeight(e.nativeEvent.layout.height);
+    }, []);
+
     return (
         <View style={styles.container}>
 
@@ -109,17 +117,17 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
                 {/* Mock Dashboard */}
                 <View style={[
-                    styles.dashboardContainer, 
+                    styles.dashboardContainer,
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
                     dashboardDynamicStyle,
-                ]}
-                    onLayout={e => setDashboardWidth(e.nativeEvent.layout.width)}                
-                >
-                    <RideDashboardView 
-                        items={MOCK_DASHBOARD_ITEMS} 
-                        layout={dbLayout} 
-                        compact={isCompact} 
-                    />
+                ]}>
+                    <View onLayout={updateDashboardDimensions}>
+                        <RideDashboardView
+                            items={MOCK_DASHBOARD_ITEMS}
+                            layout={dbLayout}
+                            compact={isCompact}
+                        />
+                    </View>
                 </View>
 
                 {/* 2km Elevation Preview */}
