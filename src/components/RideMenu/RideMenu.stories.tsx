@@ -2,12 +2,13 @@ import React from 'react';
 import { View, StyleSheet, Image, useWindowDimensions, Text } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { RideMenu } from './RideMenu';
+import { RideMenuView } from './RideMenuView'; // Target the View component
 import { Button } from '../ButtonBar';
+import { colors } from '../../theme'; // Import colors for mock dialogs
 
-const meta: Meta<typeof RideMenu> = {
+const meta: Meta<typeof RideMenuView> = {
     title: 'Components/RideMenu',
-    component: RideMenu,
+    component: RideMenuView, // Target the View component
     decorators: [
         (Story) => {
             const {width, height} = useWindowDimensions()
@@ -28,49 +29,68 @@ const meta: Meta<typeof RideMenu> = {
     ],
     args: {
         onClose: fn(),
-    },
-    parameters: {
-        pseudoService: {
-            getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
-            onPause: fn(),
-            onResume: fn(),
-            onEndRide: fn(),
-        },
+        onPause: fn(),
+        onResume: fn(),
+        onEndRide: fn(),
+        onGearSettings: fn(),
+        onRideSettings: fn(),
+        onDialogClose: fn(),
+        onExitFromSummary: fn(),
     },
 };
 
 export default meta;
 
-type Story = StoryObj<typeof RideMenu>;
+type Story = StoryObj<typeof RideMenuView>;
 
 export const Open: Story = {
     args: {
         visible: true,
-    },
-    parameters: {
-        pseudoService: {
-            getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
-        },
+        showResume: false,
+        activeDialog: null,
     },
 };
 
 export const OpenWithResumeButton: Story = {
     args: {
         visible: true,
-    },
-    parameters: {
-        pseudoService: {
-            getPageDisplayProps: () => ({ menuProps: { showResume: true } }),
-        },
+        showResume: true,
+        activeDialog: null,
     },
 };
-
 
 export const Closed: Story = {
     args: {
         visible: false,
+        showResume: false,
+        activeDialog: null,
     },
 };
+
+export const GearSettingsActive: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: 'gearSettings',
+    },
+};
+
+export const RideSettingsActive: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: 'rideSettings',
+    },
+};
+
+export const ActivitySummaryActive: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: 'activitySummary',
+    },
+};
+
 
 const styles = StyleSheet.create({
     container: {
@@ -90,7 +110,7 @@ const styles = StyleSheet.create({
         top: 50,
         left: 50,
         padding: 20,
-        backgroundColor: 'purple',
+        backgroundColor: colors.dialogBackground[0], // Using theme color
         zIndex: 9999,
     },
     mockDialogRide: {
@@ -98,7 +118,7 @@ const styles = StyleSheet.create({
         top: 50,
         left: 50,
         padding: 20,
-        backgroundColor: 'blue',
+        backgroundColor: colors.dialogBackground[1], // Using theme color
         zIndex: 9999,
     },
     mockDialogSummary: {
@@ -106,23 +126,16 @@ const styles = StyleSheet.create({
         top: 50,
         left: 50,
         padding: 20,
-        backgroundColor: 'red',
+        backgroundColor: colors.error, // Using theme color
         zIndex: 9999,
     },
     mockText: {
-        color: 'white',
+        color: colors.text, // Using theme color
     },
 });
 
-jest.mock('incyclist-services', () => ({
-    getRidePageService: jest.fn(() => ({
-        getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
-        onPause: fn(),
-        onResume: fn(),
-        onEndRide: fn(),
-    })),
-}));
-
+// Mock service is not needed as we target the View component directly.
+// The component mocks below are for the dialogs that RideMenuView renders.
 jest.mock('../GearSettings', () => ({
     GearSettings: ({ onClose }: { onClose: () => void }) => (
         <View style={styles.mockDialogGear}>

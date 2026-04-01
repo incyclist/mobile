@@ -16,7 +16,7 @@ import { useScreenLayout } from '../../../hooks';
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
     rideObserver: IObserver | null;
-    dbLayout: 'icon-left' | 'icon-top' 
+    dbLayout: 'icon-left' | 'icon-top'
     onMenuOpen: () => void;
     onMenuClose: () => void;
     onRetryStart: () => void;
@@ -69,7 +69,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
     const [dashboardWidth, setDashboardWidth] = useState(0);
     const reservedRight = screenWidth * 0.15;
-    const cornerTopOffset = dashboardWidth > screenWidth - reservedRight ? DASHBOARD_HEIGHT : 0;    
+    const cornerTopOffset = dashboardWidth > screenWidth - reservedRight ? DASHBOARD_HEIGHT : 0;
 
     // Dynamic style constants to satisfy no-inline-styles
     const elevationPreviewDynamicStyle = {
@@ -95,10 +95,10 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Mock Video Layer */}
-                <Image 
+                <Image
                     source={{ uri: '/screenshot.jpg' }}
-                    style={StyleSheet.absoluteFill} 
-                    resizeMode="cover" 
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
                 />
 
                 {/* Mock Dashboard */}
@@ -107,12 +107,12 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
                     dashboardDynamicStyle,
                 ]}
-                    onLayout={e => setDashboardWidth(e.nativeEvent.layout.width)}                
+                    onLayout={e => setDashboardWidth(e.nativeEvent.layout.width)}
                 >
-                    <RideDashboardView 
-                        items={MOCK_DASHBOARD_ITEMS} 
-                        layout={dbLayout} 
-                        compact={isCompact} 
+                    <RideDashboardView
+                        items={MOCK_DASHBOARD_ITEMS}
+                        layout={dbLayout}
+                        compact={isCompact}
                     />
                 </View>
 
