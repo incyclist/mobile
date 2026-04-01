@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { StyleSheet, View, DimensionValue } from 'react-native';
-import MapView, { Marker, Polyline, LatLng as RNLatLng, MapEvent, Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, LatLng as RNLatLng, Region } from 'react-native-maps';
 import { FreeMapViewProps, LatLng, MapCoord } from './types';
 import { colors } from '../../theme/colors';
 
@@ -47,7 +47,7 @@ export const FreeMapView = ({
         }
         const firstLineString = polylineData.features[0]?.geometry;
         if (firstLineString?.type === 'LineString' && firstLineString.coordinates?.length) {
-            return firstLineString.coordinates.map(toRNLatLng);
+            return (firstLineString.coordinates as MapCoord[]).map(toRNLatLng);
         }
         return [];
     }, [polylineData]);
@@ -96,7 +96,7 @@ export const FreeMapView = ({
     }, [mapRef, cameraProps.bounds, initialRegionSet]);
 
 
-    const handleMarkerDragEnd = useCallback((e: MapEvent<{ coordinate: RNLatLng }>) => {
+    const handleMarkerDragEnd = useCallback((e: any) => { // Changed type from MapEvent to any
         if (onPositionChanged) {
             onPositionChanged(toInternalLatLng(e.nativeEvent.coordinate));
         }
