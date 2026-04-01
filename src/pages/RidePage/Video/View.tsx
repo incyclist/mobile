@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps } from 'incyclist-services';
 import { 
@@ -65,10 +65,16 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
 
+
+    const [dashboardWidth, setDashboardWidth] = useState(0);
+    const reservedRight = screenWidth * 0.15; // elevation preview; add map width here later
+    const cornerTopOffset = dashboardWidth > screenWidth - reservedRight ? DASHBOARD_HEIGHT : 0;
+
+
     // Dynamic style constants to satisfy no-inline-styles
     const elevationPreviewDynamicStyle = {
         height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-        top: isCompact ? DASHBOARD_HEIGHT : 0,
+        top: isCompact ? DASHBOARD_HEIGHT : cornerTopOffset,
         width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
     };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
@@ -91,10 +97,12 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             {/* Dashboard */}
             { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
                 <View style={[
-                    styles.dashboardContainer, 
+                    styles.dashboardContainer,                     
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
                     dashboardDynamicStyle
-                ]}>
+                ]}
+                    onLayout={e => setDashboardWidth(e.nativeEvent.layout.width)}                
+                >
                     <RideDashboard layout='icon-left'/>
                 </View>
             </View>}
