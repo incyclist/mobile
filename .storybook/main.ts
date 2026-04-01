@@ -15,7 +15,7 @@ const config: StorybookConfig = {
         '../src/components/**/*.stories.@(js|jsx|mjs|ts|tsx)',
         '../src/pages/**/*.stories.@(js|jsx|mjs|ts|tsx)',
     ],
-
+    staticDirs: ['./public'],
     addons: ['@storybook/addon-docs'],
     framework: '@storybook/react-native-web-vite',
 

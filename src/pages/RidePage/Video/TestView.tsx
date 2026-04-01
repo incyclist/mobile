@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, useWindowDimensions, Image  } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps, ActivityDashboardItem } from 'incyclist-services';
 import {
@@ -16,6 +16,7 @@ import { useScreenLayout } from '../../../hooks';
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
     rideObserver: IObserver | null;
+    dbLayout: 'icon-left' | 'icon-top' 
     onMenuOpen: () => void;
     onMenuClose: () => void;
     onRetryStart: () => void;
@@ -42,8 +43,12 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
 export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     const {
         displayProps,
+        dbLayout = 'icon-left',
         onMenuOpen,
         onMenuClose,
+        onPause, 
+        onResume, 
+        onEndRide, 
         onRetryStart,
         onIgnoreStart,
         onCancelStart
@@ -65,10 +70,14 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
 
+    const [dashboardWidth, setDashboardWidth] = useState(0);
+    const reservedRight = screenWidth * 0.15;
+    const cornerTopOffset = dashboardWidth > screenWidth - reservedRight ? DASHBOARD_HEIGHT : 0;    
+
     // Dynamic style constants to satisfy no-inline-styles
     const elevationPreviewDynamicStyle = {
         height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-        top: isCompact ? DASHBOARD_HEIGHT : 0,
+        top: isCompact ? DASHBOARD_HEIGHT : cornerTopOffset,
         width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
     }
     const bottomBarStyle = {
@@ -89,22 +98,24 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Mock Video Layer */}
-                <Image
-                    source={require('../../../__tests__/testdata/screenshot.jpg')}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="cover"
+                <Image 
+                    source={{ uri: '/screenshot.jpg' }}
+                    style={StyleSheet.absoluteFill} 
+                    resizeMode="cover" 
                 />
 
                 {/* Mock Dashboard */}
                 <View style={[
                     styles.dashboardContainer,
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
-                    dashboardDynamicStyle
-                ]}>
-                    <RideDashboardView
-                        items={MOCK_DASHBOARD_ITEMS}
-                        layout={isCompact ? 'icon-left' : 'icon-top'}
-                        compact={isCompact}
+                    dashboardDynamicStyle,
+                ]}
+                    onLayout={e => setDashboardWidth(e.nativeEvent.layout.width)}                
+                >
+                    <RideDashboardView 
+                        items={MOCK_DASHBOARD_ITEMS} 
+                        layout={dbLayout} 
+                        compact={isCompact} 
                     />
                 </View>
 

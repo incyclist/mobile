@@ -55,6 +55,21 @@ export const ActiveRide: Story = {
         },
     },
 };
+export const ActiveRideTop: Story = {
+    args: {
+        ...callbacks,
+        rideObserver: null,
+        dbLayout:'icon-top',
+        displayProps: {
+            rideState: 'Active',
+            rideType: 'Video',
+            startOverlayProps: null,
+            menuProps: null,
+            route: sydneyRoute as any,
+            video: { src: '', hidden: false } as any,
+        },
+    },
+};
 
 export const MenuOpenActive: Story = {
     args: {
