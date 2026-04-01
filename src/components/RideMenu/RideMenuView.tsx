@@ -31,6 +31,11 @@ export const RideMenuView = ({
     onRideSettings,
     onDialogClose, // Generic dialog close
     onExitFromSummary, // Activity Summary specific exit
+
+    renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
+    renderRideSettings = () => <SettingsPlaceholder onClose={onDialogClose} />,
+    renderActivitySummary = () => <ActivitySummaryDialog onClose={onDialogClose} onExit={onExitFromSummary} />,
+
 }: RideMenuViewProps) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
@@ -163,15 +168,9 @@ export const RideMenuView = ({
             </Animated.View>
 
             {/* Dialogs rendered on top */}
-            {activeDialog === 'gearSettings' && (
-                <GearSettings onClose={onDialogClose} />
-            )}
-            {activeDialog === 'rideSettings' && (
-                <SettingsPlaceholder onClose={onDialogClose} />
-            )}
-            {activeDialog === 'activitySummary' && (
-                <ActivitySummaryDialog onClose={onDialogClose} onExit={onExitFromSummary} />
-            )}
+            {activeDialog === 'gearSettings' && renderGearSettings()}
+            {activeDialog === 'rideSettings' && renderRideSettings()}
+            {activeDialog === 'activitySummary' && renderActivitySummary()}
         </View>
     );
 };

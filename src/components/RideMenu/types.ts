@@ -17,4 +17,9 @@ export interface RideMenuViewProps {
     onRideSettings: () => void;
     onDialogClose: () => void; // Generic dialog close for GearSettings, RideSettingsPlaceholder
     onExitFromSummary: () => void; // Specific exit for ActivitySummaryDialog (e.g., calls service.onEndRide)
+
+    // the following props are required for Storybook
+    renderGearSettings?: () => React.ReactNode;
+    renderRideSettings?: () => React.ReactNode;
+    renderActivitySummary?: () => React.ReactNode;
 }

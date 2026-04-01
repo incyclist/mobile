@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, Image, useWindowDimensions, Text } from 'react-native';
+import { View, StyleSheet, Image, useWindowDimensions  } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RideMenuView } from './RideMenuView'; // Target the View component
-import { Button } from '../ButtonBar';
 import { colors } from '../../theme'; // Import colors for mock dialogs
+import { GearSettingsView } from '../GearSettings/GearSettingsView';
+import { AllTypes } from '../GearSettings/GearSettings.stories';
 
 const meta: Meta<typeof RideMenuView> = {
     title: 'Components/RideMenu',
@@ -36,6 +37,9 @@ const meta: Meta<typeof RideMenuView> = {
         onRideSettings: fn(),
         onDialogClose: fn(),
         onExitFromSummary: fn(),
+
+        renderGearSettings: () => <GearSettingsView {...AllTypes.args as any} onClose={fn()} />,
+
     },
 };
 
@@ -72,22 +76,6 @@ export const GearSettingsActive: Story = {
         visible: true,
         showResume: false,
         activeDialog: 'gearSettings',
-    },
-};
-
-export const RideSettingsActive: Story = {
-    args: {
-        visible: true,
-        showResume: false,
-        activeDialog: 'rideSettings',
-    },
-};
-
-export const ActivitySummaryActive: Story = {
-    args: {
-        visible: true,
-        showResume: false,
-        activeDialog: 'activitySummary',
     },
 };
 
@@ -134,30 +122,3 @@ const styles = StyleSheet.create({
     },
 });
 
-// Mock service is not needed as we target the View component directly.
-// The component mocks below are for the dialogs that RideMenuView renders.
-jest.mock('../GearSettings', () => ({
-    GearSettings: ({ onClose }: { onClose: () => void }) => (
-        <View style={styles.mockDialogGear}>
-            <Text style={styles.mockText}>Gear Settings Dialog</Text>
-            <Button label="Close" primary onClick={onClose} />
-        </View>
-    ),
-}));
-jest.mock('../SettingsPlaceholder', () => ({
-    SettingsPlaceholder: ({ onClose }: { onClose: () => void }) => (
-        <View style={styles.mockDialogRide}>
-            <Text style={styles.mockText}>Ride Settings Dialog</Text>
-            <Button label="Close" primary onClick={onClose} />
-        </View>
-    ),
-}));
-jest.mock('../ActivitySummaryDialog', () => ({
-    ActivitySummaryDialog: ({ onClose, onExit }: { onClose: () => void; onExit: () => void }) => (
-        <View style={styles.mockDialogSummary}>
-            <Text style={styles.mockText}>Activity Summary Dialog</Text>
-            <Button label="Close" primary onClick={onClose} />
-            <Button label="Exit" attention onClick={onExit} />
-        </View>
-    ),
-}));
