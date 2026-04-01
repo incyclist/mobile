@@ -88,6 +88,7 @@ const config: StorybookConfig = {
                 alias: {
                     // ── React Native web shims ────────────────────────────────────
                     'react-native-safe-area-context': path.resolve(dirname, './mocks/react-native-safe-area-context.ts'),
+                    'react-native-share': path.resolve(dirname, './mocks/react-native-share.ts'),
                     'react-native-ble-manager':      'react-native-web/dist/exports/View',
                     'react-native-linear-gradient':  'react-native-web/dist/exports/View',
                     'react-native-zip-archive':      'react-native-web/dist/exports/View',
