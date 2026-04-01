@@ -113,8 +113,11 @@ describe('ActivitySummaryDialogView', () => {
     it('renders with isSaving=true', () => {
         render(<ActivitySummaryDialogView {...MOCK_PROPS} isSaving={true} />);
     });
-    it('renders with isSaved=true', () => {
-        render(<ActivitySummaryDialogView {...MOCK_PROPS} isSaved={true} />);
+    it('renders with isSaved true', () => {
+        render(<ActivitySummaryDialogView {...MOCK_PROPS} isSaved={true} compact={false} />);
+    });
+    it('renders with isSaved true compact', () => {
+        render(<ActivitySummaryDialogView {...MOCK_PROPS} isSaved={true} compact={true} />);
     });
     it('renders delete confirmation', () => {
         render(<ActivitySummaryDialogView {...MOCK_PROPS} showDeleteConfirm={true} />);

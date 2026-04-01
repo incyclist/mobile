@@ -42,22 +42,18 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     const isCompact = compact ?? layout === 'compact';
     const converter = useUnitConverter();
 
-    const dialogButtons = [
-        ...(showSave && !isSaved ? [{
-            label: isSaving ? 'Saving...' : 'Save',
-            onClick: onSave,
-            primary: true,
-            disabled: isSaving,
-        }] : []),
-        {
-            label: 'Delete',
-            onClick: onDelete,
-        },
-        {
-            label: 'Close',
-            onClick: onClose,
-        },
-    ];
+    const dialogButtons = isSaved
+        ? [{ label: 'Close', onClick: onClose, primary: true }]
+        : [
+            ...(showSave ? [{
+                label: isSaving ? 'Saving...' : 'Save',
+                onClick: onSave,
+                primary: true,
+                disabled: isSaving,
+            }] : []),
+            { label: 'Delete', onClick: onDelete },
+            { label: 'Close', onClick: onClose },
+        ];
 
     const renderKeyFact = (label: string, value: any, unitKey?: 'distance' | 'elevation' | 'speed' | 'time' | 'power') => {
         let displayValue: string;
@@ -250,17 +246,19 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             {MainContent}
 
             {showDeleteConfirm && (
-                <Dialog
-                    variant="info"
-                    title="Delete Ride"
-                    buttons={[
-                        { label: 'Cancel', onClick: onDeleteCancel },
-                        { label: 'Delete', onClick: onDeleteConfirm, attention: true },
-                    ]}
-                    onOutsideClick={onDeleteCancel}
-                >
-                    <Text style={styles.confirmText}>This will permanently delete this ride. Are you sure?</Text>
-                </Dialog>
+                <View style={styles.deleteConfirmWrapper}>
+                    <Dialog
+                        variant="info"
+                        title="Delete Ride"
+                        buttons={[
+                            { label: 'Cancel', onClick: onDeleteCancel },
+                            { label: 'Delete', onClick: onDeleteConfirm, attention: true },
+                        ]}
+                        onOutsideClick={onDeleteCancel}
+                    >
+                        <Text style={styles.confirmText}>This will permanently delete this ride. Are you sure?</Text>
+                    </Dialog>
+                </View>
             )}
         </Dialog>
     );
@@ -434,11 +432,18 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
         marginTop: 16,
+        minHeight: 200, // Added minHeight
     },
     confirmText: {
         fontSize: textSizes.normalText,
         color: colors.text,
         padding: 16,
         textAlign: 'center',
+    },
+    deleteConfirmWrapper: { // Added style for delete confirmation wrapper
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.4)',
+        borderRadius: 8,
+        overflow: 'hidden',
     },
 });
