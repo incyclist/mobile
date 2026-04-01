@@ -46,9 +46,6 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         dbLayout = 'icon-left',
         onMenuOpen,
         onMenuClose,
-        onPause, 
-        onResume, 
-        onEndRide, 
         onRetryStart,
         onIgnoreStart,
         onCancelStart

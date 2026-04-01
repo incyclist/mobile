@@ -44,7 +44,6 @@ describe('RideMenu', () => {
 
     it('renders with gearSettings dialog active', () => {
         // This test ensures the component renders without crashing in its active visible state.
-        // Internal dialog state transition testing is excluded as per project policy.
         render(<RideMenu visible={true} onClose={jest.fn()} />);
     });
 });

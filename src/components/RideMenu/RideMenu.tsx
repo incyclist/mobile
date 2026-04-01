@@ -38,9 +38,6 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
     const refPanelHeight = useRef<number>(screenHeight); // Initialize with screenHeight (off-screen)
     const animTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [isFullyClosed, setIsFullyClosed] = useState(!visible); // Only for panel
-
     const onLayout = useCallback((event: LayoutChangeEvent) => {
         refPanelHeight.current = event.nativeEvent.layout.height;
     }, []);
@@ -57,32 +54,18 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
 
     useEffect(() => {
         if (panelHiddenByDialog) {
-            // If a dialog is active, instantly hide the panel and stop any ongoing animation
+            // If a dialog is active, instantly hide the panel
             animTranslateY.setValue(refPanelHeight.current);
-            setIsFullyClosed(true);
-            setIsAnimating(false);
             return;
         }
 
         const targetValue = visible ? 0 : refPanelHeight.current;
 
-        if (visible) {
-            setIsFullyClosed(false);
-            setIsAnimating(true);
-        } else {
-            setIsAnimating(true);
-        }
-
         Animated.timing(animTranslateY, {
             toValue: targetValue,
             duration: 220,
             useNativeDriver: true,
-        }).start(() => {
-            setIsAnimating(false);
-            if (!visible) {
-                setIsFullyClosed(true);
-            }
-        });
+        }).start();
     }, [visible, animTranslateY, panelHiddenByDialog, refPanelHeight]);
 
     const handleEndRide = useCallback(() => {
@@ -158,6 +141,11 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
     const panelOpacity = panelIsVisuallyActive ? 1 : 0;
     const panelPointerEvents = panelIsVisuallyActive ? 'box-none' : 'none';
 
+    const panelAnimatedStyle = {
+        opacity: panelOpacity,
+        pointerEvents: panelPointerEvents as 'box-none' | 'none',
+    };
+
     return (
         <View
             style={StyleSheet.absoluteFill}
@@ -181,7 +169,7 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
                     styles.panel,
                     { width: panelWidth, transform: [{ translateY: animTranslateY }] },
                     isCompact ? styles.panelCompact : styles.panelTablet,
-                    { opacity: panelOpacity, pointerEvents: panelPointerEvents }
+                    panelAnimatedStyle
                 ]}
             >
                 <View style={styles.header}>

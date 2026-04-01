@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Image, useWindowDimensions, Text } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RideMenu } from './RideMenu';
+import { Button } from '../ButtonBar';
 
 const meta: Meta<typeof RideMenu> = {
     title: 'Components/RideMenu',
@@ -29,13 +30,10 @@ const meta: Meta<typeof RideMenu> = {
         onClose: fn(),
     },
     parameters: {
-        // Mock getRidePageService to provide consistent data for stories
-        // and allow testing interaction without actual service logic.
-        // This is a Storybook-specific mock, not a global jest mock.
         pseudoService: {
             getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
-            pause: fn(),
-            resume: fn(),
+            onPause: fn(),
+            onResume: fn(),
             onEndRide: fn(),
         },
     },
@@ -87,50 +85,66 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+    mockDialogGear: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: 'purple',
+        zIndex: 9999,
+    },
+    mockDialogRide: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: 'blue',
+        zIndex: 9999,
+    },
+    mockDialogSummary: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: 'red',
+        zIndex: 9999,
+    },
+    mockText: {
+        color: 'white',
+    },
 });
 
-// Mock getRidePageService globally for Storybook if needed,
-// but the parameters.pseudoService approach is more isolated for individual stories.
-// This is a minimal mock to prevent crashes if `getRidePageService` is called outside stories.
-// In a real setup, this might be handled by a global Storybook config or specific `__mocks__`
-// in the root of the project for Storybook's Node environment.
 jest.mock('incyclist-services', () => ({
     getRidePageService: jest.fn(() => ({
         getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
-        pause: fn(),
-        resume: fn(),
+        onPause: fn(),
+        onResume: fn(),
         onEndRide: fn(),
     })),
 }));
 
-// Mock dialog components to avoid rendering actual dialogs in Storybook if not desired,
-// but for this task, the dialogs are intended to be rendered.
-// Keeping this as a reminder of how to mock if needed.
 jest.mock('../GearSettings', () => ({
     GearSettings: ({ onClose }: { onClose: () => void }) => (
-        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'purple', zIndex: 9999 }}>
-            <Text style={{ color: 'white' }}>Gear Settings Dialog</Text>
+        <View style={styles.mockDialogGear}>
+            <Text style={styles.mockText}>Gear Settings Dialog</Text>
             <Button label="Close" primary onClick={onClose} />
         </View>
     ),
 }));
 jest.mock('../SettingsPlaceholder', () => ({
     SettingsPlaceholder: ({ onClose }: { onClose: () => void }) => (
-        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'blue', zIndex: 9999 }}>
-            <Text style={{ color: 'white' }}>Ride Settings Dialog</Text>
+        <View style={styles.mockDialogRide}>
+            <Text style={styles.mockText}>Ride Settings Dialog</Text>
             <Button label="Close" primary onClick={onClose} />
         </View>
     ),
 }));
 jest.mock('../ActivitySummaryDialog', () => ({
     ActivitySummaryDialog: ({ onClose, onExit }: { onClose: () => void; onExit: () => void }) => (
-        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'red', zIndex: 9999 }}>
-            <Text style={{ color: 'white' }}>Activity Summary Dialog</Text>
+        <View style={styles.mockDialogSummary}>
+            <Text style={styles.mockText}>Activity Summary Dialog</Text>
             <Button label="Close" primary onClick={onClose} />
             <Button label="Exit" attention onClick={onExit} />
         </View>
     ),
 }));
-// Assuming Button and Text are mocked or directly imported from components if they are simple enough
-import { Button } from '../ButtonBar';
-import { Text } from 'react-native';
