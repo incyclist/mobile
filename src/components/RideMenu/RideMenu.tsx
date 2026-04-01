@@ -87,7 +87,7 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
 
     const handleEndRide = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'End Ride' });
-        service.pause();
+        service.onPause();
         setActiveDialog('activitySummary');
     }, [service, logEvent]);
 
@@ -108,10 +108,10 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
     const handlePauseResume = useCallback(() => {
         if (showResume) {
             logEvent({ message: 'button clicked', button: 'Resume' });
-            service.resume();
+            service.onResume();
         } else {
             logEvent({ message: 'button clicked', button: 'Pause' });
-            service.pause();
+            service.onPause();
         }
         onClose(); // Close menu after action
     }, [showResume, service, logEvent, onClose]);
@@ -169,7 +169,6 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
                 disabled={!backdropPointerEvents}
             >
                 <View
-                    testID="backdrop"
                     style={[styles.backdrop, { opacity: backdropOpacity }]}
                     pointerEvents={backdropPointerEvents}
                 />
