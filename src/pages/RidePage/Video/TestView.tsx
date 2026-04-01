@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, useWindowDimensions, Image  } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps, ActivityDashboardItem } from 'incyclist-services';
-import { 
-    RideDashboardView, 
-    ElevationGraph, 
-    InfoText, 
-    StartRideDisplay, 
+import {
+    RideDashboardView,
+    ElevationGraph,
+    InfoText,
+    StartRideDisplay,
     RideMenu,
     Button,
     MainBackground
@@ -18,9 +18,6 @@ interface VideoRidePageViewProps {
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
-    onPause: () => void;
-    onResume: () => void;
-    onEndRide: () => void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -43,16 +40,13 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
 ));
 
 export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
-    const { 
-        displayProps, 
-        onMenuOpen, 
-        onMenuClose, 
-        onPause, 
-        onResume, 
-        onEndRide, 
-        onRetryStart, 
-        onIgnoreStart, 
-        onCancelStart 
+    const {
+        displayProps,
+        onMenuOpen,
+        onMenuClose,
+        onRetryStart,
+        onIgnoreStart,
+        onCancelStart
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
@@ -85,7 +79,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         height: ELEVATION_FULL_HEIGHT,
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
-    }   
+    }
 
     const elevationFullDynamicStyle = { height: ELEVATION_FULL_HEIGHT };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
@@ -95,22 +89,22 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Mock Video Layer */}
-                <Image 
-                    source={require('../../../__tests__/testdata/screenshot.jpg')} 
-                    style={StyleSheet.absoluteFill} 
-                    resizeMode="cover" 
+                <Image
+                    source={require('../../../__tests__/testdata/screenshot.jpg')}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
                 />
 
                 {/* Mock Dashboard */}
                 <View style={[
-                    styles.dashboardContainer, 
+                    styles.dashboardContainer,
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
                     dashboardDynamicStyle
                 ]}>
-                    <RideDashboardView 
-                        items={MOCK_DASHBOARD_ITEMS} 
-                        layout={isCompact ? 'icon-left' : 'icon-top'} 
-                        compact={isCompact} 
+                    <RideDashboardView
+                        items={MOCK_DASHBOARD_ITEMS}
+                        layout={isCompact ? 'icon-left' : 'icon-top'}
+                        compact={isCompact}
                     />
                 </View>
 
@@ -158,11 +152,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                 {menuProps && (
                     <RideMenu
                         visible={true}
-                        {...menuProps}
                         onClose={onMenuClose}
-                        onPause={onPause}
-                        onResume={onResume}
-                        onEndRide={onEndRide}
                     />
                 )}
 
@@ -220,7 +210,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
     elevationFull: {
-        flex: 1, 
+        flex: 1,
         height: '100%',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
@@ -229,8 +219,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    invisible: { 
-        opacity: 0 
-    }, 
-    
+    invisible: {
+        opacity: 0
+    },
+
 });

@@ -8,14 +8,14 @@ const meta: Meta<typeof RideMenu> = {
     title: 'Components/RideMenu',
     component: RideMenu,
     decorators: [
-        (Story) => { 
+        (Story) => {
             const {width, height} = useWindowDimensions()
             const fullScreen = {minHeight:height||500, minWidth:width||800}
 
             return (
             <View style={[styles.container,fullScreen]}>
-                
-                <Image 
+
+                <Image
                     source={require('../../../__tests__/testdata/screenshot.jpg')}
                     style={styles.backgroundImage}
                     resizeMode="cover"
@@ -25,61 +25,52 @@ const meta: Meta<typeof RideMenu> = {
         )
         },
     ],
+    args: {
+        onClose: fn(),
+    },
+    parameters: {
+        // Mock getRidePageService to provide consistent data for stories
+        // and allow testing interaction without actual service logic.
+        // This is a Storybook-specific mock, not a global jest mock.
+        pseudoService: {
+            getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
+            pause: fn(),
+            resume: fn(),
+            onEndRide: fn(),
+        },
+    },
 };
 
 export default meta;
 
 type Story = StoryObj<typeof RideMenu>;
 
-export const OpenWithResume: Story = {
+export const Open: Story = {
     args: {
         visible: true,
-        showResume: true,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
+    },
+    parameters: {
+        pseudoService: {
+            getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
+        },
     },
 };
 
-export const OpenWithPause: Story = {
+export const OpenWithResumeButton: Story = {
     args: {
         visible: true,
-        showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
+    },
+    parameters: {
+        pseudoService: {
+            getPageDisplayProps: () => ({ menuProps: { showResume: true } }),
+        },
     },
 };
+
 
 export const Closed: Story = {
     args: {
         visible: false,
-        showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
-    },
-};
-
-export const PartialCallbacks: Story = {
-    args: {
-        visible: true,
-        showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: undefined,
-        onCustomize: undefined,
     },
 };
 
@@ -97,3 +88,49 @@ const styles = StyleSheet.create({
         height: '100%',
     },
 });
+
+// Mock getRidePageService globally for Storybook if needed,
+// but the parameters.pseudoService approach is more isolated for individual stories.
+// This is a minimal mock to prevent crashes if `getRidePageService` is called outside stories.
+// In a real setup, this might be handled by a global Storybook config or specific `__mocks__`
+// in the root of the project for Storybook's Node environment.
+jest.mock('incyclist-services', () => ({
+    getRidePageService: jest.fn(() => ({
+        getPageDisplayProps: () => ({ menuProps: { showResume: false } }),
+        pause: fn(),
+        resume: fn(),
+        onEndRide: fn(),
+    })),
+}));
+
+// Mock dialog components to avoid rendering actual dialogs in Storybook if not desired,
+// but for this task, the dialogs are intended to be rendered.
+// Keeping this as a reminder of how to mock if needed.
+jest.mock('../GearSettings', () => ({
+    GearSettings: ({ onClose }: { onClose: () => void }) => (
+        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'purple', zIndex: 9999 }}>
+            <Text style={{ color: 'white' }}>Gear Settings Dialog</Text>
+            <Button label="Close" primary onClick={onClose} />
+        </View>
+    ),
+}));
+jest.mock('../SettingsPlaceholder', () => ({
+    SettingsPlaceholder: ({ onClose }: { onClose: () => void }) => (
+        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'blue', zIndex: 9999 }}>
+            <Text style={{ color: 'white' }}>Ride Settings Dialog</Text>
+            <Button label="Close" primary onClick={onClose} />
+        </View>
+    ),
+}));
+jest.mock('../ActivitySummaryDialog', () => ({
+    ActivitySummaryDialog: ({ onClose, onExit }: { onClose: () => void; onExit: () => void }) => (
+        <View style={{ position: 'absolute', top: 50, left: 50, padding: 20, backgroundColor: 'red', zIndex: 9999 }}>
+            <Text style={{ color: 'white' }}>Activity Summary Dialog</Text>
+            <Button label="Close" primary onClick={onClose} />
+            <Button label="Exit" attention onClick={onExit} />
+        </View>
+    ),
+}));
+// Assuming Button and Text are mocked or directly imported from components if they are simple enough
+import { Button } from '../ButtonBar';
+import { Text } from 'react-native';

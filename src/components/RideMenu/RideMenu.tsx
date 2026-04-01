@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -15,39 +15,57 @@ import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useLogging } from '../../hooks';
 import { Icon } from '../Icon';
 import { Button } from '../ButtonBar';
+import { getRidePageService } from 'incyclist-services';
+import { GearSettings } from '../GearSettings';
+import { SettingsPlaceholder } from '../SettingsPlaceholder';
+import { ActivitySummaryDialog } from '../ActivitySummaryDialog';
 
-export const RideMenu = ({
-    visible,
-    showResume,
-    onClose,
-    onEndRide,
-    onPause,
-    onResume,
-    onSettings,
-    onCustomize
-}: RideMenuProps) => {
-    const { width: screenWidth } = useWindowDimensions();
+type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | null;
+
+export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logEvent } = useLogging('Incyclist');
+    const { logEvent } = useLogging('RideMenu');
+
+    const service = getRidePageService();
+
+    const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
+    const showResume = (service.getPageDisplayProps() as any)?.menuProps?.showResume ?? false;
 
     const panelWidth = isCompact ? screenWidth * 0.35 : Math.min(300, screenWidth * 0.35);
-    
-    // Start off-screen (bottom)
-    const refPanelHeight = useRef<number>(1000);
-    const animTranslateY = useRef(new Animated.Value(1000)).current;
-    
-    // Track animation state to handle backdrop visibility and pointer events
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [isFullyClosed, setIsFullyClosed] = useState(!visible);
 
-    const onLayout = (event: LayoutChangeEvent) => {
+    const refPanelHeight = useRef<number>(screenHeight); // Initialize with screenHeight (off-screen)
+    const animTranslateY = useRef(new Animated.Value(screenHeight)).current;
+
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [isFullyClosed, setIsFullyClosed] = useState(!visible); // Only for panel
+
+    const onLayout = useCallback((event: LayoutChangeEvent) => {
         refPanelHeight.current = event.nativeEvent.layout.height;
-    };
+    }, []);
+
+    const handleCloseMenu = useCallback(() => {
+        if (activeDialog !== null) {
+            setActiveDialog(null); // Close active dialog first if any
+        } else {
+            onClose(); // Only close menu if no dialog is active
+        }
+    }, [activeDialog, onClose]);
+
+    const panelHiddenByDialog = activeDialog !== null;
 
     useEffect(() => {
+        if (panelHiddenByDialog) {
+            // If a dialog is active, instantly hide the panel and stop any ongoing animation
+            animTranslateY.setValue(refPanelHeight.current);
+            setIsFullyClosed(true);
+            setIsAnimating(false);
+            return;
+        }
+
         const targetValue = visible ? 0 : refPanelHeight.current;
-        
+
         if (visible) {
             setIsFullyClosed(false);
             setIsAnimating(true);
@@ -65,65 +83,95 @@ export const RideMenu = ({
                 setIsFullyClosed(true);
             }
         });
-    }, [visible, animTranslateY]);
+    }, [visible, animTranslateY, panelHiddenByDialog, refPanelHeight]);
+
+    const handleEndRide = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'End Ride' });
+        service.pause();
+        setActiveDialog('activitySummary');
+    }, [service, logEvent]);
+
+    const handleExitFromSummary = useCallback(() => {
+        setActiveDialog(null);
+        // Delay calling service.onEndRide to allow dialog to animate out
+        setTimeout(() => service.onEndRide(), 0);
+    }, [service]);
+
+    const handleGearSettings = useCallback(() => {
+        setActiveDialog('gearSettings');
+    }, []);
+
+    const handleRideSettings = useCallback(() => {
+        setActiveDialog('rideSettings');
+    }, []);
+
+    const handlePauseResume = useCallback(() => {
+        if (showResume) {
+            logEvent({ message: 'button clicked', button: 'Resume' });
+            service.resume();
+        } else {
+            logEvent({ message: 'button clicked', button: 'Pause' });
+            service.pause();
+        }
+        onClose(); // Close menu after action
+    }, [showResume, service, logEvent, onClose]);
 
     const renderMenuItem = (
-        iconName: any, 
-        label: string, 
-        onPress?: () => void
+        iconName: any,
+        label: string,
+        onPress: () => void
     ) => {
-        const isDisabled = !onPress;
-
         const handlePress = () => {
             logEvent({ message: 'button clicked', button: label });
-            onPress!();
+            onPress();
         };
 
         return (
             <Pressable
-                onPress={isDisabled ? undefined : handlePress}
-                disabled={isDisabled}
+                onPress={handlePress}
                 style={({ pressed }) => [
                     styles.menuItem,
-                    pressed && !isDisabled && styles.menuItemPressed,
-                    isDisabled && styles.menuItemDisabled
+                    pressed && styles.menuItemPressed,
                 ]}
             >
                 <View style={styles.menuItemIcon}>
-                    <Icon 
-                        name={iconName} 
-                        size={24} 
-                        color={isDisabled ? 'rgba(255,255,255,0.35)' : colors.text} 
+                    <Icon
+                        name={iconName}
+                        size={24}
+                        color={colors.text}
                     />
                 </View>
-                <Text style={[
-                    styles.menuItemLabel,
-                    isDisabled && styles.menuItemLabelDisabled
-                ]}>
+                <Text style={styles.menuItemLabel}>
                     {label}
                 </Text>
             </Pressable>
         );
     };
 
-    // If fully closed and not animating, don't show the backdrop/content
-    if (isFullyClosed && !isAnimating) {
-        return null;
-    }
+    const panelIsVisuallyActive = visible && !panelHiddenByDialog;
 
-    const backdropPointerEvents = visible ? 'auto' : 'none';
-    const backdropOpacity = visible ? 1 : 0;
+    const rootContainerPointerEvents = (visible || activeDialog !== null) ? 'box-none' : 'none';
+
+    const backdropOpacity = panelIsVisuallyActive ? 1 : 0;
+    const backdropPointerEvents = panelIsVisuallyActive ? 'auto' : 'none';
+
+    const panelOpacity = panelIsVisuallyActive ? 1 : 0;
+    const panelPointerEvents = panelIsVisuallyActive ? 'box-none' : 'none';
 
     return (
-        <View 
-            style={StyleSheet.absoluteFill} 
-            pointerEvents={visible || isAnimating ? 'box-none' : 'none'}
+        <View
+            style={StyleSheet.absoluteFill}
+            pointerEvents={rootContainerPointerEvents}
         >
             {/* Backdrop */}
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View 
-                    style={[styles.backdrop, { opacity: backdropOpacity }]} 
-                    pointerEvents={backdropPointerEvents} 
+            <TouchableWithoutFeedback
+                onPress={handleCloseMenu}
+                disabled={!backdropPointerEvents}
+            >
+                <View
+                    testID="backdrop"
+                    style={[styles.backdrop, { opacity: backdropOpacity }]}
+                    pointerEvents={backdropPointerEvents}
                 />
             </TouchableWithoutFeedback>
 
@@ -134,31 +182,38 @@ export const RideMenu = ({
                     styles.panel,
                     { width: panelWidth, transform: [{ translateY: animTranslateY }] },
                     isCompact ? styles.panelCompact : styles.panelTablet,
+                    { opacity: panelOpacity, pointerEvents: panelPointerEvents }
                 ]}
             >
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>MENU</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <TouchableOpacity onPress={handleCloseMenu} style={styles.closeButton}>
                         <Text style={styles.closeButtonText}>✕</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.content}>
-                    {renderMenuItem('settings', 'Settings', onSettings)}
-                    {renderMenuItem('controller', 'Customize interface', onCustomize)}
+                    {renderMenuItem('settings', 'Gear Settings', handleGearSettings)}
+                    {renderMenuItem('controller', 'Ride Settings', handleRideSettings)}
                 </View>
 
                 <View style={styles.footer}>
-                    {showResume ? 
-                        <Button label='Resume' primary onClick={onResume} />
-                     : 
-                        <Button label='Pause' primary onClick={onPause} />                        
-                    }
-                    
+                    <Button label={showResume ? 'Resume' : 'Pause'} primary onClick={handlePauseResume} />
                     <View style={styles.buttonGap} />
-                    <Button label='End Ride' attention onClick={onEndRide} />
+                    <Button label='End Ride' attention onClick={handleEndRide} />
                 </View>
             </Animated.View>
+
+            {/* Dialogs rendered on top */}
+            {activeDialog === 'gearSettings' && (
+                <GearSettings onClose={() => setActiveDialog(null)} />
+            )}
+            {activeDialog === 'rideSettings' && (
+                <SettingsPlaceholder onClose={() => setActiveDialog(null)} />
+            )}
+            {activeDialog === 'activitySummary' && (
+                <ActivitySummaryDialog onClose={() => setActiveDialog(null)} onExit={handleExitFromSummary} />
+            )}
         </View>
     );
 };
@@ -181,7 +236,7 @@ const styles = StyleSheet.create({
     panelCompact: {
         top: 0,
         bottom: 0,
-    },    
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -218,9 +273,6 @@ const styles = StyleSheet.create({
     menuItemPressed: {
         backgroundColor: 'rgba(255,255,255,0.1)',
     },
-    menuItemDisabled: {
-        opacity: 1,
-    },
     menuItemIcon: {
         width: 32,
         alignItems: 'center',
@@ -230,31 +282,9 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: textSizes.normalText,
     },
-    menuItemLabelDisabled: {
-        color: 'rgba(255,255,255,0.35)',
-    },
     footer: {
         paddingHorizontal: 12,
         paddingTop: 10,
-    },
-    actionButton: {
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        marginHorizontal: 8,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    endRideButton: {
-        backgroundColor: colors.error,
-    },
-    resumeButton: {
-        backgroundColor: colors.buttonPrimary,
     },
     buttonGap: {
         height: 8,
