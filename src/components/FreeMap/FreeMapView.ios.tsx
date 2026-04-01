@@ -52,11 +52,6 @@ export const FreeMapView = ({
         return [];
     }, [polylineData]);
 
-    // If no polyline, marker, or center coordinate, return null (matches Android's behavior before style loads)
-    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.centerCoordinate) {
-        return null;
-    }
-
     const initialRegion = useMemo<Region>(() => {
         if (cameraProps.centerCoordinate && cameraProps.zoomLevel !== undefined) {
             const { latitude, longitude } = toRNLatLng(cameraProps.centerCoordinate);
@@ -96,7 +91,7 @@ export const FreeMapView = ({
     }, [mapRef, cameraProps.bounds, initialRegionSet]);
 
 
-    const handleMarkerDragEnd = useCallback((e: any) => { // Changed type from MapEvent to any
+    const handleMarkerDragEnd = useCallback((e: any) => {
         if (onPositionChanged) {
             onPositionChanged(toInternalLatLng(e.nativeEvent.coordinate));
         }
@@ -104,6 +99,11 @@ export const FreeMapView = ({
 
     // If bounds are provided, `initialRegion` should be `undefined` as `fitToCoordinates` will handle the camera.
     const regionProp = cameraProps.bounds ? undefined : initialRegion;
+
+    // If no polyline, marker, or center coordinate, return null (matches Android's behavior before style loads)
+    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.centerCoordinate) {
+        return null;
+    }
 
     return (
         <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
