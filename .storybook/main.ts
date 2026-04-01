@@ -100,6 +100,7 @@ const config: StorybookConfig = {
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
+                    'react-native-maps': path.resolve(dirname, './mocks/react-native-maps.tsx'),
 
 
                     // ── crypto: stub (never use crypto-browserify) ────────────────
