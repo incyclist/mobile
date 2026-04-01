@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps } from 'incyclist-services';
-import { 
-    Video, 
-    RideDashboard, 
-    ElevationGraph, 
-    InfoText, 
-    StartRideDisplay, 
+import {
+    Video,
+    RideDashboard,
+    ElevationGraph,
+    InfoText,
+    StartRideDisplay,
     RideMenu,
     Button,
     MainBackground
@@ -19,13 +19,9 @@ interface VideoRidePageViewProps {
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
-    onPause: () => void;
-    onResume: () => void;
-    onEndRide: () => void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
-    onSettings: () => void;
 }
 
 const noop = () => {};
@@ -35,18 +31,14 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
 ));
 
 export const VideoRidePageView = (props: VideoRidePageViewProps) => {
-    const { 
-        displayProps, 
-        rideObserver, 
-        onMenuOpen, 
-        onMenuClose, 
-        onPause, 
-        onResume, 
-        onEndRide, 
-        onRetryStart, 
-        onIgnoreStart, 
-        onCancelStart,
-        onSettings
+    const {
+        displayProps,
+        rideObserver,
+        onMenuOpen,
+        onMenuClose,
+        onRetryStart,
+        onIgnoreStart,
+        onCancelStart
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
@@ -99,10 +91,9 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             {/* Everything below is rendered but made invisible during start overlay */}
 
 
-            {/* Dashboard */}
             { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
                 <View style={[
-                    styles.dashboardContainer,                     
+                    styles.dashboardContainer,
                     isCompact ? styles.dashboardCompact : styles.dashboardTablet,
                     dashboardDynamicStyle
                 ]}>
@@ -115,19 +106,19 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
                 {video && (
-                    <Video 
-                        key={video.src} 
-                        width='100%' 
-                        height='100%' 
-                        {...video} 
+                    <Video
+                        key={video.src}
+                        width='100%'
+                        height='100%'
+                        {...video}
                     />
                 )}
-                {videos?.map(v => { 
+                {videos?.map(v => {
                     return (
-                    <Video 
-                        key={v.src} 
-                        width='100%' 
-                        height='100%' 
+                    <Video
+                        key={v.src}
+                        width='100%'
+                        height='100%'
                         {...v}
                     />
                 )})}
@@ -171,12 +162,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 {menuProps && (
                     <RideMenu
                         visible={true}
-                        {...menuProps}
                         onClose={onMenuClose}
-                        onPause={onPause}
-                        onResume={onResume}
-                        onEndRide={onEndRide}
-                        onSettings={onSettings}
                     />
                 )}
             </View>

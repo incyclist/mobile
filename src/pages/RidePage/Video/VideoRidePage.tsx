@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, AppState } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { 
-    getRidePageService, 
-    IObserver, 
+import {
+    getRidePageService,
+    IObserver,
     VideoRidePageDisplayProps,
     RidePageService,
-    RideType 
+    RideType
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { VideoRidePageView } from './View';
-import { MainBackground,ActivitySummaryDialog, ErrorBoundary } from '../../../components';
+import { MainBackground, ErrorBoundary } from '../../../components';
 
 interface VideoRidePageProps {
     simulate?: boolean;
@@ -20,9 +19,6 @@ interface VideoRidePageProps {
 
 export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
-    const navigation = useNavigation();
-    
-    const [showSummary, setShowSummary] = useState(false);
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
@@ -53,7 +49,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
             refObserver.current.on('page-update', onUpdate);
             refObserver.current.on('ride-type-update',onRideTypeChange)
         }
-        
+
         onUpdate();
     }, [simulate, onUpdate, onRideTypeChange]);
 
@@ -84,26 +80,15 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
 
     const onMenuOpen = useCallback(() => refService.current?.onMenuOpen(), []);
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
-    const onPause = useCallback(() => refService.current?.onPause(), []);
-    const onResume = useCallback(() => refService.current?.onResume(), []);
-    const onExit = useCallback(() => refService.current?.onEndRide(), []);
-    const onEndRide = useCallback(() => {
-        refService.current?.onPause()
-        setShowSummary(true)
-    }, []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
     const onCancelStart = useCallback(() => {
-        setDisplayProps( current => {            
+        setDisplayProps( current => {
             const prev = current??{}
             return {...prev,startOverlayProps:null } as VideoRidePageDisplayProps
         })
         refService.current?.onCancelStart()
     }, []);
-    
-    const onSettings = useCallback(() => {
-        navigation.navigate('settings' as never);
-    }, [navigation]);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -121,23 +106,10 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
                 rideObserver={refRideObserver.current}
                 onMenuOpen={onMenuOpen}
                 onMenuClose={onMenuClose}
-                onPause={onPause}
-                onResume={onResume}
-                onEndRide={onEndRide}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
                 onCancelStart={onCancelStart}
-                onSettings={onSettings}
             />
-
-            {showSummary && 
-                <ErrorBoundary>
-                    <ActivitySummaryDialog
-                        onClose={() => setShowSummary(false)}
-                        onExit={onExit}
-                    />
-                </ErrorBoundary>
-            }      
         </ErrorBoundary>
     );
 };

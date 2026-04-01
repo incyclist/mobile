@@ -1,262 +1,77 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Animated,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    useWindowDimensions,
-    Pressable,
-    LayoutChangeEvent
-} from 'react-native';
-import { RideMenuProps } from './types';
-import { colors, textSizes } from '../../theme';
-import { useScreenLayout, useLogging } from '../../hooks';
-import { Icon } from '../Icon';
-import { Button } from '../ButtonBar';
+import React, { useState, useCallback } from 'react';
+import { RideMenuProps, ActiveDialog } from './types';
+import { getRidePageService } from 'incyclist-services';
+import { RideMenuView } from './RideMenuView';
+import { useLogging } from '../../hooks';
 
-export const RideMenu = ({
-    visible,
-    showResume,
-    onClose,
-    onEndRide,
-    onPause,
-    onResume,
-    onSettings,
-    onCustomize
-}: RideMenuProps) => {
-    const { width: screenWidth } = useWindowDimensions();
-    const layout = useScreenLayout();
-    const isCompact = layout === 'compact';
-    const { logEvent } = useLogging('Incyclist');
+export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
+    const { logEvent } = useLogging('RideMenu');
+    const service = getRidePageService();
 
-    const panelWidth = isCompact ? screenWidth * 0.35 : Math.min(300, screenWidth * 0.35);
-    
-    // Start off-screen (bottom)
-    const refPanelHeight = useRef<number>(1000);
-    const animTranslateY = useRef(new Animated.Value(1000)).current;
-    
-    // Track animation state to handle backdrop visibility and pointer events
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [isFullyClosed, setIsFullyClosed] = useState(!visible);
+    const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
 
-    const onLayout = (event: LayoutChangeEvent) => {
-        refPanelHeight.current = event.nativeEvent.layout.height;
-    };
+    // showResume is derived from service display props, which means it's current state
+    const showResume = (service.getPageDisplayProps() as any)?.menuProps?.showResume ?? false;
 
-    useEffect(() => {
-        const targetValue = visible ? 0 : refPanelHeight.current;
-        
-        if (visible) {
-            setIsFullyClosed(false);
-            setIsAnimating(true);
+    // Handles closing the menu, considering if a dialog is active
+    const handleCloseMenu = useCallback(() => {
+        if (activeDialog !== null) {
+            setActiveDialog(null); // Close active dialog first if any
         } else {
-            setIsAnimating(true);
+            onClose(); // Only close menu if no dialog is active
         }
+    }, [activeDialog, onClose]);
 
-        Animated.timing(animTranslateY, {
-            toValue: targetValue,
-            duration: 220,
-            useNativeDriver: true,
-        }).start(() => {
-            setIsAnimating(false);
-            if (!visible) {
-                setIsFullyClosed(true);
-            }
-        });
-    }, [visible, animTranslateY]);
+    // Handlers for menu actions that interact with the service and manage dialogs
+    const handleEndRide = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'End Ride' });
+        service.onPause();
+        setActiveDialog('activitySummary');
+    }, [service, logEvent]);
 
-    const renderMenuItem = (
-        iconName: any, 
-        label: string, 
-        onPress?: () => void
-    ) => {
-        const isDisabled = !onPress;
+    const handleExitFromSummary = useCallback(() => {
+        setActiveDialog(null);
+        // Delay calling service.onEndRide to allow dialog to animate out
+        setTimeout(() => service.onEndRide(), 0);
+    }, [service]);
 
-        const handlePress = () => {
-            logEvent({ message: 'button clicked', button: label });
-            onPress!();
-        };
+    const handleGearSettings = useCallback(() => {
+        setActiveDialog('gearSettings');
+    }, []);
 
-        return (
-            <Pressable
-                onPress={isDisabled ? undefined : handlePress}
-                disabled={isDisabled}
-                style={({ pressed }) => [
-                    styles.menuItem,
-                    pressed && !isDisabled && styles.menuItemPressed,
-                    isDisabled && styles.menuItemDisabled
-                ]}
-            >
-                <View style={styles.menuItemIcon}>
-                    <Icon 
-                        name={iconName} 
-                        size={24} 
-                        color={isDisabled ? 'rgba(255,255,255,0.35)' : colors.text} 
-                    />
-                </View>
-                <Text style={[
-                    styles.menuItemLabel,
-                    isDisabled && styles.menuItemLabelDisabled
-                ]}>
-                    {label}
-                </Text>
-            </Pressable>
-        );
-    };
+    const handleRideSettings = useCallback(() => {
+        setActiveDialog('rideSettings');
+    }, []);
 
-    // If fully closed and not animating, don't show the backdrop/content
-    if (isFullyClosed && !isAnimating) {
-        return null;
-    }
+    const handlePauseResume = useCallback(() => {
+        if (showResume) {
+            logEvent({ message: 'button clicked', button: 'Resume' });
+            service.onResume();
+        } else {
+            logEvent({ message: 'button clicked', button: 'Pause' });
+            service.onPause();
+        }
+        onClose(); // Close menu after action
+    }, [showResume, service, logEvent, onClose]);
 
-    const backdropPointerEvents = visible ? 'auto' : 'none';
-    const backdropOpacity = visible ? 1 : 0;
+    // Generic handler to close any active dialog
+    const handleDialogClose = useCallback(() => {
+        setActiveDialog(null);
+    }, []);
 
     return (
-        <View 
-            style={StyleSheet.absoluteFill} 
-            pointerEvents={visible || isAnimating ? 'box-none' : 'none'}
-        >
-            {/* Backdrop */}
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View 
-                    style={[styles.backdrop, { opacity: backdropOpacity }]} 
-                    pointerEvents={backdropPointerEvents} 
-                />
-            </TouchableWithoutFeedback>
-
-            {/* Side Panel */}
-            <Animated.View
-                onLayout={onLayout}
-                style={[
-                    styles.panel,
-                    { width: panelWidth, transform: [{ translateY: animTranslateY }] },
-                    isCompact ? styles.panelCompact : styles.panelTablet,
-                ]}
-            >
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>MENU</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Text style={styles.closeButtonText}>✕</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.content}>
-                    {renderMenuItem('settings', 'Settings', onSettings)}
-                    {renderMenuItem('controller', 'Customize interface', onCustomize)}
-                </View>
-
-                <View style={styles.footer}>
-                    {showResume ? 
-                        <Button label='Resume' primary onClick={onResume} />
-                     : 
-                        <Button label='Pause' primary onClick={onPause} />                        
-                    }
-                    
-                    <View style={styles.buttonGap} />
-                    <Button label='End Ride' attention onClick={onEndRide} />
-                </View>
-            </Animated.View>
-        </View>
+        <RideMenuView
+            visible={visible}
+            showResume={showResume}
+            activeDialog={activeDialog}
+            onClose={handleCloseMenu} // Pass the smart component's close handler
+            onPause={handlePauseResume}
+            onResume={handlePauseResume}
+            onEndRide={handleEndRide}
+            onGearSettings={handleGearSettings}
+            onRideSettings={handleRideSettings}
+            onDialogClose={handleDialogClose}
+            onExitFromSummary={handleExitFromSummary}
+        />
     );
 };
-
-const styles = StyleSheet.create({
-    backdrop: {
-        ...StyleSheet.absoluteFill,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-    },
-    panel: {
-        position: 'absolute',
-        left: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.88)',
-        zIndex: 1000,
-        paddingBottom: 20,
-    },
-    panelTablet: {
-        bottom: 0,
-    },
-    panelCompact: {
-        top: 0,
-        bottom: 0,
-    },    
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.15)',
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-        fontWeight: 'bold',
-        letterSpacing: 1.2,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    closeButtonText: {
-        color: colors.text,
-        fontSize: 20,
-        lineHeight: 24,
-    },
-    content: {
-        flex: 1,
-        paddingVertical: 10,
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        minHeight: 52,
-    },
-    menuItemPressed: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    menuItemDisabled: {
-        opacity: 1,
-    },
-    menuItemIcon: {
-        width: 32,
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    menuItemLabel: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-    },
-    menuItemLabelDisabled: {
-        color: 'rgba(255,255,255,0.35)',
-    },
-    footer: {
-        paddingHorizontal: 12,
-        paddingTop: 10,
-    },
-    actionButton: {
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        marginHorizontal: 8,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    endRideButton: {
-        backgroundColor: colors.error,
-    },
-    resumeButton: {
-        backgroundColor: colors.buttonPrimary,
-    },
-    buttonGap: {
-        height: 8,
-    },
-});

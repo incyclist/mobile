@@ -1,11 +1,11 @@
 import React, { useState,useCallback } from 'react';
 import { View, StyleSheet, useWindowDimensions, Image  } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps, ActivityDashboardItem } from 'incyclist-services';
-import { 
-    RideDashboardView, 
-    ElevationGraph, 
-    InfoText, 
-    StartRideDisplay, 
+import {
+    RideDashboardView,
+    ElevationGraph,
+    InfoText,
+    StartRideDisplay,
     RideMenu,
     Button,
     MainBackground
@@ -16,12 +16,9 @@ import { useScreenLayout } from '../../../hooks';
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
     rideObserver: IObserver | null;
-    dbLayout: 'icon-left' | 'icon-top' 
+    dbLayout: 'icon-left' | 'icon-top'
     onMenuOpen: () => void;
     onMenuClose: () => void;
-    onPause: () => void;
-    onResume: () => void;
-    onEndRide: () => void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -44,17 +41,14 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
 ));
 
 export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
-    const { 
-        displayProps, 
+    const {
+        displayProps,
         dbLayout = 'icon-left',
-        onMenuOpen, 
-        onMenuClose, 
-        onPause, 
-        onResume, 
-        onEndRide, 
-        onRetryStart, 
-        onIgnoreStart, 
-        onCancelStart 
+        onMenuOpen,
+        onMenuClose,
+        onRetryStart,
+        onIgnoreStart,
+        onCancelStart
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
@@ -94,8 +88,8 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         height: ELEVATION_FULL_HEIGHT,
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
-    }   
-    
+    }
+
     const elevationFullDynamicStyle = { height: ELEVATION_FULL_HEIGHT };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
 
@@ -109,10 +103,10 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Mock Video Layer */}
-                <Image 
+                <Image
                     source={{ uri: '/screenshot.jpg' }}
-                    style={StyleSheet.absoluteFill} 
-                    resizeMode="cover" 
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
                 />
 
                 {/* Mock Dashboard */}
@@ -174,11 +168,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                 {menuProps && (
                     <RideMenu
                         visible={true}
-                        {...menuProps}
                         onClose={onMenuClose}
-                        onPause={onPause}
-                        onResume={onResume}
-                        onEndRide={onEndRide}
                     />
                 )}
 
@@ -236,7 +226,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
     elevationFull: {
-        flex: 1, 
+        flex: 1,
         height: '100%',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
@@ -245,8 +235,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    invisible: { 
-        opacity: 0 
-    }, 
-    
+    invisible: {
+        opacity: 0
+    },
+
 });

@@ -1,21 +1,24 @@
 import React from 'react';
-import { View, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Image, useWindowDimensions  } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { RideMenu } from './RideMenu';
+import { RideMenuView } from './RideMenuView'; // Target the View component
+import { colors } from '../../theme'; // Import colors for mock dialogs
+import { GearSettingsView } from '../GearSettings/GearSettingsView';
+import { AllTypes } from '../GearSettings/GearSettings.stories';
 
-const meta: Meta<typeof RideMenu> = {
+const meta: Meta<typeof RideMenuView> = {
     title: 'Components/RideMenu',
-    component: RideMenu,
+    component: RideMenuView, // Target the View component
     decorators: [
-        (Story) => { 
+        (Story) => {
             const {width, height} = useWindowDimensions()
             const fullScreen = {minHeight:height||500, minWidth:width||800}
 
             return (
             <View style={[styles.container,fullScreen]}>
-                
-                <Image 
+
+                <Image
                     source={require('../../../__tests__/testdata/screenshot.jpg')}
                     style={styles.backgroundImage}
                     resizeMode="cover"
@@ -25,35 +28,38 @@ const meta: Meta<typeof RideMenu> = {
         )
         },
     ],
+    args: {
+        onClose: fn(),
+        onPause: fn(),
+        onResume: fn(),
+        onEndRide: fn(),
+        onGearSettings: fn(),
+        onRideSettings: fn(),
+        onDialogClose: fn(),
+        onExitFromSummary: fn(),
+
+        renderGearSettings: () => <GearSettingsView {...AllTypes.args as any} onClose={fn()} />,
+
+    },
 };
 
 export default meta;
 
-type Story = StoryObj<typeof RideMenu>;
+type Story = StoryObj<typeof RideMenuView>;
 
-export const OpenWithResume: Story = {
-    args: {
-        visible: true,
-        showResume: true,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
-    },
-};
-
-export const OpenWithPause: Story = {
+export const Open: Story = {
     args: {
         visible: true,
         showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
+        activeDialog: null,
+    },
+};
+
+export const OpenWithResumeButton: Story = {
+    args: {
+        visible: true,
+        showResume: true,
+        activeDialog: null,
     },
 };
 
@@ -61,27 +67,18 @@ export const Closed: Story = {
     args: {
         visible: false,
         showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: fn(),
-        onCustomize: fn(),
+        activeDialog: null,
     },
 };
 
-export const PartialCallbacks: Story = {
+export const GearSettingsActive: Story = {
     args: {
         visible: true,
         showResume: false,
-        onClose: fn(),
-        onEndRide: fn(),
-        onPause: fn(),
-        onResume: fn(),
-        onSettings: undefined,
-        onCustomize: undefined,
+        activeDialog: 'gearSettings',
     },
 };
+
 
 const styles = StyleSheet.create({
     container: {
@@ -96,4 +93,32 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+    mockDialogGear: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: colors.dialogBackground[0], // Using theme color
+        zIndex: 9999,
+    },
+    mockDialogRide: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: colors.dialogBackground[1], // Using theme color
+        zIndex: 9999,
+    },
+    mockDialogSummary: {
+        position: 'absolute',
+        top: 50,
+        left: 50,
+        padding: 20,
+        backgroundColor: colors.error, // Using theme color
+        zIndex: 9999,
+    },
+    mockText: {
+        color: colors.text, // Using theme color
+    },
 });
+

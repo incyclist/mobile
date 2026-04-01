@@ -1,10 +1,25 @@
 export interface RideMenuProps {
     visible: boolean;
-    showResume: boolean;       // true = show Resume button, false = show Pause button
-    onClose: () => void;        // Close button (X) or Backdrop — closes the menu without affecting ride state
-    onEndRide: () => void;      // End Ride — caller handles service call + navigation
-    onPause: () => void;        // Called when user taps Pause
-    onResume: () => void;       // Called when user taps Resume
-    onSettings?: () => void;    // Optional — render item, disabled if undefined
-    onCustomize?: () => void;   // Optional — render item, disabled if undefined
+    onClose: () => void;
+}
+
+export type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | null;
+
+export interface RideMenuViewProps {
+    visible: boolean;
+    showResume: boolean;
+    activeDialog: ActiveDialog;
+    onClose: () => void; // This is the menu's onClose, which the smart component wraps
+    onPause: () => void;
+    onResume: () => void;
+    onEndRide: () => void;
+    onGearSettings: () => void;
+    onRideSettings: () => void;
+    onDialogClose: () => void; // Generic dialog close for GearSettings, RideSettingsPlaceholder
+    onExitFromSummary: () => void; // Specific exit for ActivitySummaryDialog (e.g., calls service.onEndRide)
+
+    // the following props are required for Storybook
+    renderGearSettings?: () => React.ReactNode;
+    renderRideSettings?: () => React.ReactNode;
+    renderActivitySummary?: () => React.ReactNode;
 }
