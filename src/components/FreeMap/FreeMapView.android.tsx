@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Platform, StyleSheet, Text, View, DimensionValue } from 'react-native';
 import MapLibreRN, { 
     MapView, 
@@ -57,10 +57,12 @@ export const FreeMapView = ({
         
     }, [mapStyle]);
 
+    const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
+
    // Web Fallback for Storybook-Vite
     if (Platform.OS === 'web') {
         return (
-            <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue, backgroundColor: '#e0e0e0' }, style]}>
+            <View style={[styles.container, styles.webContainer, dynamicStyle, style]}>
                 <Text style={styles.webPlaceholder}>
                     MapLibre Native Component (Not available on Web)
                 </Text>
@@ -70,14 +72,22 @@ export const FreeMapView = ({
         );
     }
 
-
+    const handleDragEnd = useCallback(
+        (e: any) => {
+            if (onPositionChanged) {
+                const coords = e.geometry.coordinates;
+                onPositionChanged(fromMapCoord(coords));
+            }
+        },
+        [onPositionChanged]
+    );
 
     if (!mapStyle) return null;
 
     
 
     return (
-        <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
+        <View style={[styles.container, dynamicStyle, style]}>
             <MapView
                 style={styles.map}
                 mapStyle={JSON.stringify(mapStyle)} // Replaced styleJSON with mapStyle
@@ -93,13 +103,7 @@ export const FreeMapView = ({
                 <ShapeSource id='routeSource' shape={polylineData}>
                     <LineLayer
                         id='routeLayer'
-                        style={{
-                            lineColor: ['get', 'color'],
-                            lineWidth: 5,
-                            lineOpacity: 0.8,
-                            lineCap: 'round',
-                            lineJoin: 'round',
-                        }}
+                        style={styles.routeLayer}
                     />
                 </ShapeSource>
 
@@ -108,12 +112,7 @@ export const FreeMapView = ({
                         id='marker'
                         coordinate={markerCoordinate}
                         draggable={draggable}
-                        onDragEnd={(e) => {
-                            if (onPositionChanged) {
-                                const coords = e.geometry.coordinates;
-                                onPositionChanged(fromMapCoord(coords));
-                            }
-                        }}
+                        onDragEnd={handleDragEnd}
                     >
                         <View style={styles.marker} />
                     </PointAnnotation>
@@ -147,5 +146,15 @@ const styles = StyleSheet.create({
         paddingTop: '20%',
         color: '#666',
         fontWeight: 'bold',
-    },    
+    },
+    webContainer: {
+        backgroundColor: '#e0e0e0',
+    },
+    routeLayer: {
+        lineColor: ['get', 'color'],
+        lineWidth: 5,
+        lineOpacity: 0.8,
+        lineCap: 'round',
+        lineJoin: 'round',
+    } as any,
 });

@@ -58,6 +58,7 @@ export interface TFreeMapProps {
     height?: number | string;
     style?: StyleProp<ViewStyle>;
     onPositionChanged?: (position: LatLng) => void;
+    onRoutePositionChanged?: (distanceMeters: number) => void;
     onViewportChanged?: (viewport: TViewPort) => void;
     children?: ReactNode;
     colorActive?: string;
