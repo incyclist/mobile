@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react';
-import { TFreeMapProps, MapCoord } from './types';
+import React, { useMemo, useCallback } from 'react';
+import { getPosition } from 'incyclist-services';
+import type { RoutePoint } from 'incyclist-services';
+import { TFreeMapProps, MapCoord, LatLng } from './types';
 import { FreeMapView } from './FreeMapView';
 import { getPointsFromProps, toMapCoord, computeBoundsFromPoints } from './utils';
 
@@ -107,9 +109,23 @@ export const FreeMap = (props: TFreeMapProps) => {
         ? toMapCoord(props.position) 
         : undefined;
 
+    const handlePositionChanged = useCallback(
+        (latlng: LatLng) => {
+            if (!points?.length) return;
+            const snapped = getPosition(points as unknown as Array<RoutePoint>, { nearest: true, latlng });
+            if (!snapped) return;
+            props.onPositionChanged?.({ lat: snapped.lat, lng: snapped.lng });
+            props.onRoutePositionChanged?.(snapped.routeDistance ?? 0);
+        },
+        [points, props.onPositionChanged, props.onRoutePositionChanged]
+    );
+
+    const activeOnPositionChanged = props.draggable ? handlePositionChanged : props.onPositionChanged;
+
     return (
         <FreeMapView
             {...props}
+            onPositionChanged={activeOnPositionChanged}
             cameraProps={cameraProps}
             polylineData={polylineData}
             markerCoordinate={markerCoordinate}

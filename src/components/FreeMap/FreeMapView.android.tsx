@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Platform, StyleSheet, Text, View, DimensionValue } from 'react-native';
 import MapLibreRN, { 
     MapView, 
@@ -70,7 +70,15 @@ export const FreeMapView = ({
         );
     }
 
-
+    const handleDragEnd = useCallback(
+        (e: any) => {
+            if (onPositionChanged) {
+                const coords = e.geometry.coordinates;
+                onPositionChanged(fromMapCoord(coords));
+            }
+        },
+        [onPositionChanged]
+    );
 
     if (!mapStyle) return null;
 
@@ -108,12 +116,7 @@ export const FreeMapView = ({
                         id='marker'
                         coordinate={markerCoordinate}
                         draggable={draggable}
-                        onDragEnd={(e) => {
-                            if (onPositionChanged) {
-                                const coords = e.geometry.coordinates;
-                                onPositionChanged(fromMapCoord(coords));
-                            }
-                        }}
+                        onDragEnd={handleDragEnd}
                     >
                         <View style={styles.marker} />
                     </PointAnnotation>
