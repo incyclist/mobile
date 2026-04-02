@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, ReactElement } from 'react';
-import { Observer } from 'incyclist-services';
+import { IObserver } from 'incyclist-services';
 import { useUnmountEffect } from '../../hooks';
 
 interface DynamingMapping {
@@ -8,7 +8,7 @@ interface DynamingMapping {
 }
 
 export interface DynamicProps {
-    observer?: Observer;
+    observer?: IObserver;
     event?: string;
     events?: string; // comma-separated event names
     prop?: string;
