@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
@@ -41,6 +41,10 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     const layout = useScreenLayout();
     const isCompact = compact ?? layout === 'compact';
     const converter = useUnitConverter();
+
+    const { width: screenWidth } = useWindowDimensions();
+    const graphMinHeight = Math.round(screenWidth * 3 / 4);
+    const graphContainerStyle = { ...styles.graphContainer, minHeight: graphMinHeight };
 
     const dialogButtons = isSaved
         ? [{ label: 'Close', onClick: onClose, primary: true }]
@@ -198,7 +202,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
     const GraphContent = (
         <ErrorBoundary>
-            <View style={styles.graphContainer}>
+            <View style={graphContainerStyle}>
                 <ActivityGraph
                     activity={activity}
                     units={units as Record<string, string>}
@@ -226,7 +230,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             {GraphContent}
         </ScrollView>
     ) : (
-        <View style={styles.normalContainer}>
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             <View style={styles.topRow}>
                 {(showMap || preview) && MapPreview}
                 <View style={styles.statsWrapper}>
@@ -234,7 +238,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
                 </View>
             </View>
             {GraphContent}
-        </View>
+        </ScrollView>
     );
 
     return (
@@ -432,7 +436,6 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
         marginTop: 16,
-        minHeight: 200, // Added minHeight
     },
     confirmText: {
         fontSize: textSizes.normalText,
