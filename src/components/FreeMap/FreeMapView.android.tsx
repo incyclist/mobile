@@ -59,6 +59,16 @@ export const FreeMapView = ({
 
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
+    const handleDragEnd = useCallback(
+        (e: any) => {
+            if (onPositionChanged) {
+                const coords = e.geometry.coordinates;
+                onPositionChanged(fromMapCoord(coords));
+            }
+        },
+        [onPositionChanged]
+    );
+
    // Web Fallback for Storybook-Vite
     if (Platform.OS === 'web') {
         return (
@@ -71,16 +81,6 @@ export const FreeMapView = ({
             </View>
         );
     }
-
-    const handleDragEnd = useCallback(
-        (e: any) => {
-            if (onPositionChanged) {
-                const coords = e.geometry.coordinates;
-                onPositionChanged(fromMapCoord(coords));
-            }
-        },
-        [onPositionChanged]
-    );
 
     if (!mapStyle) return null;
 
@@ -110,11 +110,14 @@ export const FreeMapView = ({
                 {markerCoordinate && (
                     <PointAnnotation
                         id='marker'
+                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}`}
                         coordinate={markerCoordinate}
                         draggable={draggable}
                         onDragEnd={handleDragEnd}
                     >
-                        <View style={styles.marker} />
+                        <View style={styles.markerTouchTarget}>
+                            <View style={styles.marker} />
+                        </View>
                     </PointAnnotation>
                 )}
 
@@ -138,6 +141,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 2,
         borderColor: 'white',
+    },
+    markerTouchTarget: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
     },
     webPlaceholder: {
         flex: 1,
