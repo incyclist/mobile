@@ -134,7 +134,7 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
                 if (!result) return null;
                 return {
                     ...(cardProps.settings as UIStartSettings),
-                    startPos: result
+                    ...result
                 };
             }}
         />
