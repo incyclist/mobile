@@ -15,9 +15,17 @@ export const FreeMap = (props: TFreeMapProps) => {
         center,
         zoom,
         bounds,
+        onPositionChanged,
+        onRoutePositionChanged,
+        draggable,
+        routeOptions,
+        position,
+        points: propsPoints,
+        route,
+        activity,
     } = props;
 
-    const points = useMemo(() => getPointsFromProps(props), [props]);
+    const points = useMemo(() => getPointsFromProps({ points: propsPoints, route, activity }), [propsPoints, route, activity]);
 
     const polylineData = useMemo((): GeoJSON.FeatureCollection<GeoJSON.LineString> => {
         const features: GeoJSON.Feature<GeoJSON.LineString>[] = [];
@@ -61,8 +69,8 @@ export const FreeMap = (props: TFreeMapProps) => {
             });
         }
 
-        if (props.routeOptions) {
-            props.routeOptions.forEach((opt) => {
+        if (routeOptions) {
+            routeOptions.forEach((opt) => {
                 features.push({
                     type: 'Feature',
                     properties: { color: opt.selected ? 'green' : (opt.color || 'blue') },
@@ -75,12 +83,12 @@ export const FreeMap = (props: TFreeMapProps) => {
         }
 
         return { type: 'FeatureCollection', features };
-    }, [points, startPos, endPos, colorActive, colorInactive, props.routeOptions]);
+    }, [points, startPos, endPos, colorActive, colorInactive, routeOptions]);
 
     const cameraProps = useMemo(() => {
         // 1. Use explicit bounds prop if provided
         // 2. Otherwise, attempt to compute bounds from points and route options
-        const effectiveBounds = bounds || computeBoundsFromPoints(points, props.routeOptions);
+        const effectiveBounds = bounds || computeBoundsFromPoints(points, routeOptions);
 
         if (effectiveBounds) {
             return {
@@ -103,10 +111,10 @@ export const FreeMap = (props: TFreeMapProps) => {
             centerCoordinate: toMapCoord(mapCenter),
             zoomLevel: mapZoom,
         };
-    }, [bounds, center, viewport, zoom, points, props.routeOptions]);
+    }, [bounds, center, viewport, zoom, points, routeOptions]);
 
-    const markerCoordinate = props.position 
-        ? toMapCoord(props.position) 
+    const markerCoordinate = position 
+        ? toMapCoord(position) 
         : undefined;
 
     const handlePositionChanged = useCallback(
@@ -114,13 +122,13 @@ export const FreeMap = (props: TFreeMapProps) => {
             if (!points?.length) return;
             const snapped = getPosition(points as unknown as Array<RoutePoint>, { nearest: true, latlng });
             if (!snapped) return;
-            props.onPositionChanged?.({ lat: snapped.lat, lng: snapped.lng });
-            props.onRoutePositionChanged?.(snapped.routeDistance ?? 0);
+            onPositionChanged?.({ lat: snapped.lat, lng: snapped.lng });
+            onRoutePositionChanged?.(snapped.routeDistance ?? 0);
         },
-        [points, props.onPositionChanged, props.onRoutePositionChanged]
+        [points, onPositionChanged, onRoutePositionChanged]
     );
 
-    const activeOnPositionChanged = props.draggable ? handlePositionChanged : props.onPositionChanged;
+    const activeOnPositionChanged = draggable ? handlePositionChanged : onPositionChanged;
 
     return (
         <FreeMapView
