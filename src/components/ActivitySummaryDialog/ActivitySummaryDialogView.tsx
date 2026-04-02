@@ -159,9 +159,9 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         );
     };
 
-    const mapPoints = (activity.logs?.filter(l => l.lat != null && l.lon != null) ?? []).map(l => ({
+    const mapPoints = (activity.logs?.filter(l => l.lat != null && l.lng != null && l.lat !== undefined && l.lng !== undefined) ?? []).map(l => ({
         lat: l.lat as number,
-        lng: l.lon as number,
+        lng: l.lng as number,
         routeDistance: l.distance ?? 0,
         elevation: l.elevation ?? 0,
     }));
