@@ -9,15 +9,16 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
 import { UpdateService } from './services/UpdateManager';
+import { initSecrets } from './bindings/secret';
+import { SecretsStatus } from './bindings/secret/types';
 
 export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [statusMessage, setStatusMessage] = useState<string>('Starting up...');
+    const [secretsStatus, setSecretsStatus] = useState<SecretsStatus>('ok');
 
-
-    const refChecking = useRef<Promise<any>>(null)
+    const refChecking = useRef<Promise<any> | null>(null)
     
-
-
     const initLogging =() =>{
         const logAdapter  = new RNConsoleAdapter( {depth:1}) as LogAdapter
         EventLogger.registerAdapter(logAdapter)
@@ -25,42 +26,40 @@ export const Loader = () =>{
         initRestLogging()
     }
 
-
-    // Load and replace UI bundle
     useEffect(() => {
         if ( refChecking.current)
-                return
-        // Lock to landscape when the app starts
+            return
+        
         Orientation.lockToLandscape();
         initLogging()
         
-        const checkUpdate = async () => {
+        const run = async () => {
+            setStatusMessage('Setting up infrastructure...');
+            const status = await initSecrets({ timeout: 7000 });
+            setSecretsStatus(status);
 
-            // TODO: Wait with timeout, Consider termination or pause during bundle update
-
+            setStatusMessage('Checking for updates...');
             UpdateService.checkForUpdates();
 
-            // 2. Simple delay for Splash Screen visibility
-            setTimeout(() => {
-                setIsLoading(false);
-            }, 2000);
+            setStatusMessage('Almost ready...');
+            setIsLoading(false);
             refChecking.current    = null
-
         }
-        refChecking.current  = checkUpdate();
+        refChecking.current  = run();
         
 
-    }, [isLoading]);
-
+    }, []);
 
 
     if (isLoading) {
         return (
-            <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion}/>
+            <LoadingScreen 
+                appVersion={app.appVersion} 
+                bundleVersion={app.bundleVersion}
+                statusMessage={statusMessage}
+            />
         );
     }
 
-  // Once loading is finished, show the main app
-    return <App />;
+    return <App secretsStatus={secretsStatus} />;
 }
-

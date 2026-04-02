@@ -1,5 +1,6 @@
 import { getUserSettingsBinding } from "../user-settings"
 import defSettings from '@settings'
+import { SecretsStatus } from "./types"; // Import new type
 
 class SecretBinding  {
     protected static _instance: SecretBinding;
@@ -19,3 +20,7 @@ class SecretBinding  {
 }
 
 export const getSecretBinding =() => SecretBinding.getInstance()
+
+export const initSecrets = async (_opts: { timeout: number }): Promise<SecretsStatus> => {
+    return 'ok';
+};

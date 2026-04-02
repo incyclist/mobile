@@ -1,0 +1,1 @@
+export type SecretsStatus = 'ok' | 'stale' | 'missing';

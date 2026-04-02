@@ -23,9 +23,14 @@ import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
 import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
+import { SecretsStatus } from './bindings/secret/types'; // Import new type
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
+
+interface AppProps {
+    secretsStatus?: SecretsStatus; // new — not yet used internally, just accepted
+}
 
 const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => {
     const refLogged = useRef(false);
@@ -48,7 +53,7 @@ const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => 
     return <>{children}</>;
 };
 
-export const App = () => {
+export const App = ({ secretsStatus: _secretsStatus }: AppProps) => { // Accept new prop
     const isDarkMode = useColorScheme() === 'dark';
     const service = useIncyclist();
     const ble = getBleBinding();
