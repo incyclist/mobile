@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { TFreeMapProps, MapCoord } from './types';
 import { FreeMapView } from './FreeMapView';
-import { getPointsFromProps, toMapCoord } from './utils';
+import { getPointsFromProps, toMapCoord, computeBoundsFromPoints } from './utils';
 
 export const FreeMap = (props: TFreeMapProps) => {
     const {
@@ -76,11 +76,15 @@ export const FreeMap = (props: TFreeMapProps) => {
     }, [points, startPos, endPos, colorActive, colorInactive, props.routeOptions]);
 
     const cameraProps = useMemo(() => {
-        if (bounds) {
+        // 1. Use explicit bounds prop if provided
+        // 2. Otherwise, attempt to compute bounds from points and route options
+        const effectiveBounds = bounds || computeBoundsFromPoints(points, props.routeOptions);
+
+        if (effectiveBounds) {
             return {
                 bounds: {
-                    ne: toMapCoord(bounds.northeast),
-                    sw: toMapCoord(bounds.southwest),
+                    ne: toMapCoord(effectiveBounds.northeast),
+                    sw: toMapCoord(effectiveBounds.southwest),
                     paddingLeft: 20,
                     paddingRight: 20,
                     paddingTop: 20,
@@ -89,6 +93,7 @@ export const FreeMap = (props: TFreeMapProps) => {
             };
         }
 
+        // 3. Fall back to center + zoom logic
         const mapCenter = center || viewport?.center || points[0] || { lat: 0, lng: 0 };
         const mapZoom = zoom || viewport?.zoom || 10;
 
@@ -96,7 +101,7 @@ export const FreeMap = (props: TFreeMapProps) => {
             centerCoordinate: toMapCoord(mapCenter),
             zoomLevel: mapZoom,
         };
-    }, [bounds, center, viewport, zoom, points]);
+    }, [bounds, center, viewport, zoom, points, props.routeOptions]);
 
     const markerCoordinate = props.position 
         ? toMapCoord(props.position) 

@@ -1,4 +1,4 @@
-import { LatLng, IncyclistNode, MapCoord } from './types';
+import { LatLng, IncyclistNode, MapCoord, TBoundary, TOption } from './types';
 
 export const OSM_STYLE_URL = {
     version: 8,
@@ -5224,4 +5224,48 @@ export const getPointsFromProps = (props: any): IncyclistNode[] => {
         })).filter(validPoint);
     }
     return [];
+};
+
+/**
+ * Derives a TBoundary from an array of points and optional route options.
+ * Northeast = max lat, max lng. Southwest = min lat, min lng.
+ * Skips points where lat or lng is falsy.
+ * Returns undefined if fewer than 2 valid points exist.
+ */
+export const computeBoundsFromPoints = (
+    points: IncyclistNode[],
+    routeOptions?: Array<TOption>
+): TBoundary | undefined => {
+    const allPoints: LatLng[] = [...points];
+
+    if (routeOptions) {
+        routeOptions.forEach((opt) => {
+            if (opt.path) {
+                allPoints.push(...opt.path);
+            }
+        });
+    }
+
+    const validPoints = allPoints.filter((p) => p && p.lat && p.lng);
+
+    if (validPoints.length < 2) {
+        return undefined;
+    }
+
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+
+    validPoints.forEach((p) => {
+        if (p.lat < minLat) minLat = p.lat;
+        if (p.lat > maxLat) maxLat = p.lat;
+        if (p.lng < minLng) minLng = p.lng;
+        if (p.lng > maxLng) maxLng = p.lng;
+    });
+
+    return {
+        northeast: { lat: maxLat, lng: maxLng },
+        southwest: { lat: minLat, lng: minLng },
+    };
 };
