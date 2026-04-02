@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Platform, StyleSheet, Text, View, DimensionValue } from 'react-native';
 import MapLibreRN, { 
     MapView, 
@@ -38,8 +38,10 @@ export const FreeMapView = ({
     onPositionChanged,
     scrollWheelZoom = true,
     children,
+    followPosition,
 }: FreeMapViewProps) => {
     const [mapStyle, setMapStyle] = useState(null);
+    const refBoundsApplied = useRef(false);
 
     useEffect(() => {
         if (mapStyle!==null || Platform.OS === 'web')
@@ -56,6 +58,11 @@ export const FreeMapView = ({
 
         
     }, [mapStyle]);
+
+    // Reset when bounds change (route extension mid-ride)
+    useEffect(() => {
+        refBoundsApplied.current = false;
+    }, [cameraProps.bounds]);
 
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
@@ -84,6 +91,19 @@ export const FreeMapView = ({
 
     if (!mapStyle) return null;
 
+    let effectiveCameraProps: typeof cameraProps;
+    if (!refBoundsApplied.current) {
+        // Apply bounds only for the initial fit
+        effectiveCameraProps = cameraProps;
+    } else {
+        // After initial fit, remove bounds property and handle followPosition
+        const { bounds: _, ...rest } = cameraProps;
+        if (followPosition && markerCoordinate) {
+            effectiveCameraProps = { ...rest, centerCoordinate: markerCoordinate };
+        } else {
+            effectiveCameraProps = rest;
+        }
+    }
     
 
     return (
@@ -94,9 +114,10 @@ export const FreeMapView = ({
                 scrollEnabled={scrollWheelZoom}
                 logoEnabled={false}
                 attributionEnabled={true}
+                onDidFinishRenderingMapFully={() => { refBoundsApplied.current = true; }}
             >
                 <Camera 
-                    {...cameraProps}
+                    {...effectiveCameraProps}
                     animationDuration={0}
                 />
 

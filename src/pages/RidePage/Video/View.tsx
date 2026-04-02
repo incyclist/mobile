@@ -161,20 +161,22 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
 
                 {/* Map Overlay */}
                 {!isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
-                    <Dynamic
-                        observer={rideObserver ?? undefined}
-                        event='position-update'
-                        prop='position'
-                        transform={transformPosition}
-                    >
-                        <FreeMap
-                            points={routeData.points}
-                            draggable={false}
-                            colorActive='blue'
-                            colorInactive='rgba(255,255,255,0.4)'
-                            style={[styles.mapOverlay, mapOverlayDynamicStyle]}
-                        />
-                    </Dynamic>
+                    <View style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
+                        <Dynamic
+                            observer={rideObserver ?? undefined}
+                            event='position-update'
+                            prop='position'
+                            transform={transformPosition}
+                        >
+                            <FreeMap
+                                points={routeData.points}
+                                draggable={false}
+                                followPosition={true}
+                                colorActive='blue'
+                                colorInactive='rgba(255,255,255,0.4)'
+                            />
+                        </Dynamic>
+                    </View>
                 )}
 
                 {infoText && <InfoText {...infoText} />}
@@ -276,5 +278,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.45)',
         borderRadius: 4,
         overflow: 'hidden',
+        zIndex: 10,
+        elevation: 10,
     },
 });

@@ -23,6 +23,7 @@ export const FreeMap = (props: TFreeMapProps) => {
         points: propsPoints,
         route,
         activity,
+        followPosition,
     } = props;
 
     const points = useMemo(() => getPointsFromProps({ points: propsPoints, route, activity }), [propsPoints, route, activity]);
@@ -137,6 +138,7 @@ export const FreeMap = (props: TFreeMapProps) => {
             cameraProps={cameraProps}
             polylineData={polylineData}
             markerCoordinate={markerCoordinate}
+            followPosition={followPosition}
         />
     );
 };
