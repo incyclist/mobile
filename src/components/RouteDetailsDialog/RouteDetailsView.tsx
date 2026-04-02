@@ -1,13 +1,14 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     Image,
     ActivityIndicator,
+    useWindowDimensions,
 } from 'react-native';
-import type { UIRouteSettings } from 'incyclist-services';
-import { useUnitConverter } from 'incyclist-services';
+import type { UIRouteSettings, RoutePoint } from 'incyclist-services';
+import { useUnitConverter, getPosition } from 'incyclist-services';
 import { RouteDetailsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
@@ -35,6 +36,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     useUnmountEffect(() => { refMounted.current = false; });
 
     const converter = useUnitConverter();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
     useEffect(() => {
         setData(prev => ({ ...prev, prevRides, showPrev: initialShowPrev }));
@@ -48,7 +50,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         }
     }, [onSettingsChanged]);
 
-    const handleSegmentSelect = (segName: string) => {
+    const handleSegmentSelect = useCallback((segName: string) => {
         logEvent({ message: 'option selected', field: 'segment', value: segName, eventSource: 'user' });
         if (segName === 'All') {
             handleApplySettings({
@@ -68,12 +70,86 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 endPos: { value: converter.convert(Number(seg.end), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' }), unit: data.startPos?.unit ?? 'km' }
             });
         }
-    };
+    }, [data, segments, converter, handleApplySettings, logEvent]);
+
+    const handleStartPosValueChange = useCallback((value?: number) => {
+        const result = onUpdateStartPos(value ?? 0);
+        if (result) {
+            handleApplySettings({ ...data, ...result });
+        } else {
+            handleApplySettings({
+                ...data,
+                startPos: { value: value ?? 0, unit: data.startPos?.unit ?? 'km' }
+            });
+        }
+    }, [onUpdateStartPos, handleApplySettings, data]);
+
+    const handleRealityFactorChange = useCallback((value?: number) => {
+        handleApplySettings({ ...data, realityFactor: value ?? 100 });
+    }, [handleApplySettings, data]);
+
+    const handleLoopOverwriteChange = useCallback((v: boolean) => {
+        handleApplySettings({ ...data, loopOverwrite: v });
+    }, [handleApplySettings, data]);
+
+    const handleNextOverwriteChange = useCallback((v: boolean) => {
+        handleApplySettings({ ...data, nextOverwrite: v });
+    }, [handleApplySettings, data]);
+
+    const handleShowPrevChange = useCallback((v: boolean) => {
+        handleApplySettings({ ...data, showPrev: v });
+    }, [handleApplySettings, data]);
+
+
+    const markerPosition = useMemo(() => {
+        if (!points?.length || data.startPos === undefined) return undefined;
+        const startPosMeters = converter.convert(
+            data.startPos.value, 'distance',
+            { from: data.startPos.unit ?? 'km', to: 'm' }
+        );
+        const point = getPosition(
+            points as unknown as Array<RoutePoint>,
+            { distance: startPosMeters }
+        );
+        return point ? { lat: point.lat, lng: point.lng } : undefined;
+    }, [points, data.startPos, converter]);
+
+    const handleRoutePositionChanged = useCallback((distanceMeters: number) => {
+        const displayValue = converter.convert(
+            distanceMeters, 'distance',
+            { from: 'm', to: data.startPos?.unit ?? 'km' }
+        );
+        const result = onUpdateStartPos(displayValue);
+        if (result) {
+            handleApplySettings({ ...data, ...result });
+        } else {
+            handleApplySettings({
+                ...data,
+                startPos: { value: displayValue, unit: data.startPos?.unit ?? 'km' }
+            });
+        }
+    }, [converter, data, onUpdateStartPos, handleApplySettings]);
+
+    const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
+    const MEDIA_ROW_GAP = 10;
+    const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
+    const mediaRowHeight = Math.round(containerWidth * (screenHeight / screenWidth));
+    const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
+
 
     const renderMedia = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (hasGpx && points?.length) {
-            return <FreeMap points={points} startPos={0} zoom={12} />;
+            return (
+                <FreeMap
+                    points={points}
+                    startPos={0}
+                    zoom={12}
+                    draggable={true}
+                    position={markerPosition}
+                    onRoutePositionChanged={handleRoutePositionChanged}
+                />
+            );
         }
         return <Text style={styles.placeholderText}>Map not available</Text>;
     };
@@ -118,17 +194,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             min={0}
                             max={totalDistance.value}
                             digits={1}
-                            onValueChange={(value) => {
-                                const result = onUpdateStartPos(value ?? 0);
-                                if (result) {
-                                    handleApplySettings({ ...data, ...result });
-                                } else {
-                                    handleApplySettings({
-                                        ...data,
-                                        startPos: { value: value ?? 0, unit: data.startPos?.unit ?? 'km' }
-                                    });
-                                }
-                            }}
+                            onValueChange={handleStartPosValueChange}
                         />
                     </View>
                     <View style={styles.editNumberWrapper}>
@@ -139,7 +205,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             min={0}
                             max={100}
                             digits={0}
-                            onValueChange={(value) => handleApplySettings({ ...data, realityFactor: value ?? 100 })}
+                            onValueChange={handleRealityFactorChange}
                         />
                     </View>
                 </View>
@@ -165,7 +231,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             label="Stop at end of loop"
                             labelPosition="before"
                             value={data.loopOverwrite ?? false}
-                            onValueChange={(v) => handleApplySettings({ ...data, loopOverwrite: v })}
+                            onValueChange={handleLoopOverwriteChange}
                         />
                     )}
                     {showNextOverwrite && (
@@ -173,7 +239,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             label="Stop at end of movie"
                             labelPosition="before"
                             value={data.nextOverwrite ?? false}
-                            onValueChange={(v) => handleApplySettings({ ...data, nextOverwrite: v })}
+                            onValueChange={handleNextOverwriteChange}
                         />
                     )}
                     {data.prevRides && (
@@ -181,7 +247,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             label="Compare prev rides"
                             labelPosition="before"
                             value={data.showPrev ?? false}
-                            onValueChange={(v) => handleApplySettings({ ...data, showPrev: v })}
+                            onValueChange={handleShowPrevChange}
                         />
                     )}
                 </View>
@@ -224,7 +290,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     return (
         <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
-            <View style={styles.mediaRow}>
+            <View style={mediaRowStyle}>
                 <View style={styles.mediaContainer}>{renderMedia()}</View>
                 <View style={styles.mediaContainer}>{renderPreview()}</View>
             </View>
@@ -251,7 +317,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 };
 
 const styles = StyleSheet.create({
-    mediaRow: { flexDirection: 'row', height: 180, gap: 10, padding: 10 },
+    mediaRow: { flexDirection: 'row', gap: 10, padding: 10 },
     mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     fullMedia: { width: '100%', height: '100%' },
     placeholderText: { color: colors.disabled, fontSize: 12 },
