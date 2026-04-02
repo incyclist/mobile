@@ -59,6 +59,16 @@ export const FreeMapView = ({
 
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
+    const handleDragEnd = useCallback(
+        (e: any) => {
+            if (onPositionChanged) {
+                const coords = e.geometry.coordinates;
+                onPositionChanged(fromMapCoord(coords));
+            }
+        },
+        [onPositionChanged]
+    );
+
    // Web Fallback for Storybook-Vite
     if (Platform.OS === 'web') {
         return (
@@ -71,16 +81,6 @@ export const FreeMapView = ({
             </View>
         );
     }
-
-    const handleDragEnd = useCallback(
-        (e: any) => {
-            if (onPositionChanged) {
-                const coords = e.geometry.coordinates;
-                onPositionChanged(fromMapCoord(coords));
-            }
-        },
-        [onPositionChanged]
-    );
 
     if (!mapStyle) return null;
 
