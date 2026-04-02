@@ -5,8 +5,9 @@ import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 interface LoadingScreenProps  {
     appVersion: string
     bundleVersion: string
+    statusMessage?: string
 }
-export const LoadingScreen = ( {appVersion, bundleVersion}:LoadingScreenProps)=> {
+export const LoadingScreen = ( {appVersion, bundleVersion, statusMessage}:LoadingScreenProps)=> {
     const isDarkMode = useColorScheme() === 'dark';
 
     return (
@@ -22,6 +23,7 @@ export const LoadingScreen = ( {appVersion, bundleVersion}:LoadingScreenProps)=>
                 />
                 {appVersion && <Text style={styles.versionText}>App Version {appVersion}</Text>}
                 {bundleVersion && <Text style={styles.versionText}>UI Version {bundleVersion}</Text>}
+                {statusMessage && <Text style={styles.versionText}>{statusMessage}</Text>}
                 <ActivityIndicator size="large" color="#007AFF" />
             </View>
         </SafeAreaView>
@@ -49,4 +51,3 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
 });
-
