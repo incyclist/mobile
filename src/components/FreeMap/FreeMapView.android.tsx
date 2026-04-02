@@ -97,7 +97,9 @@ export const FreeMapView = ({
         effectiveCameraProps = cameraProps;
     } else {
         // After initial fit, remove bounds property and handle followPosition
-        const { bounds: _bounds, ...rest } = cameraProps;
+        const rest = Object.fromEntries(
+            Object.entries(cameraProps).filter(([key]) => key !== 'bounds')
+        ) as Omit<typeof cameraProps, 'bounds'>;
         if (followPosition && markerCoordinate) {
             effectiveCameraProps = { ...rest, centerCoordinate: markerCoordinate };
         } else {
