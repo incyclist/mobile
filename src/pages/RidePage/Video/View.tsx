@@ -9,8 +9,11 @@ import {
     StartRideDisplay,
     RideMenu,
     Button,
-    MainBackground
+    MainBackground,
+    FreeMap,
+    Dynamic
 } from '../../../components';
+import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 
@@ -64,7 +67,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         setDashboardHeight(e.nativeEvent.layout.height);
     }, []);
 
-    const reservedRight = screenWidth * 0.15; // elevation preview; add map width here later
+    // Account for both elevation preview and map width
+    const reservedRight = screenWidth * 0.15 * 2;
     const dashboardRightEdge = (screenWidth / 2) + (dashboardWidth / 2);
     const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight+2 : 0;    
 
@@ -75,6 +79,12 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
     };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
+
+    const mapOverlayDynamicStyle = {
+        width: screenWidth * 0.15,
+        height: ELEVATION_PREVIEW_HEIGHT,
+        top: cornerTopOffset,
+    };
     
     const bottomBarStyle = {
         position: 'absolute' as const,
@@ -85,6 +95,16 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
     };
+
+    const transformPosition = useCallback((val: any): LatLng | undefined => {
+        if (!val) return undefined;
+        if (typeof val === 'number') return undefined; // position-update can emit number for other contexts
+        const p = val?.position;
+        return (p?.lat !== undefined && p?.lng !== undefined)
+            ? { lat: p.lat, lng: p.lng }
+            : undefined;
+    }, []);
+
 
     return (
         <View style={styles.container}>
@@ -138,6 +158,24 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         elevationPreviewDynamicStyle,
                     ]}
                 />
+
+                {/* Map Overlay */}
+                {!isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
+                    <Dynamic
+                        observer={rideObserver ?? undefined}
+                        event='position-update'
+                        prop='position'
+                        transform={transformPosition}
+                    >
+                        <FreeMap
+                            points={routeData.points}
+                            draggable={false}
+                            colorActive='blue'
+                            colorInactive='rgba(255,255,255,0.4)'
+                            style={[styles.mapOverlay, mapOverlayDynamicStyle]}
+                        />
+                    </Dynamic>
+                )}
 
                 {infoText && <InfoText {...infoText} />}
 
@@ -231,5 +269,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    mapOverlay: {
+        position: 'absolute',
+        left: 0,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 4,
+        overflow: 'hidden',
     },
 });
