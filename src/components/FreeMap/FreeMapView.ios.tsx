@@ -37,6 +37,7 @@ export const FreeMapView = ({
     draggable = false,
     onPositionChanged,
     children,
+    followPosition,
 }: FreeMapViewProps) => {
     const mapRef = useRef<MapView | null>(null);
     const [initialRegionSet, setInitialRegionSet] = useState(false);
@@ -89,6 +90,27 @@ export const FreeMapView = ({
             setInitialRegionSet(true); // Mark as set to avoid re-running if bounds are static
         }
     }, [mapRef, cameraProps.bounds, initialRegionSet]);
+
+    // Reset initialRegionSet when bounds change (route extension mid-ride)
+    useEffect(() => {
+        setInitialRegionSet(false);
+    }, [cameraProps.bounds]);
+
+    // Effect to re-center the map on marker position if followPosition is true
+    useEffect(() => {
+        if (!followPosition || !initialRegionSet || !markerCoordinate || !mapRef.current) return;
+        mapRef.current.getCamera().then(camera => {
+            // Check mapRef.current again in case component unmounted during async operation
+            if (!mapRef.current) return;
+            mapRef.current.animateCamera({
+                center: {
+                    latitude: markerCoordinate[1],
+                    longitude: markerCoordinate[0],
+                },
+                zoom: camera.zoom, // Preserve current zoom level
+            }, { duration: 300 });
+        });
+    }, [markerCoordinate, followPosition, initialRegionSet]);
 
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 

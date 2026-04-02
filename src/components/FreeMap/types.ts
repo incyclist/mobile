@@ -63,6 +63,7 @@ export interface TFreeMapProps {
     children?: ReactNode;
     colorActive?: string;
     colorInactive?: string;
+    followPosition?: boolean;
 }
 
 // Internal type for MapLibre which uses [longitude, latitude]
@@ -83,4 +84,5 @@ export interface FreeMapViewProps extends TFreeMapProps {
     };
     polylineData: GeoJSON.FeatureCollection<GeoJSON.LineString>;
     markerCoordinate?: MapCoord;
+    followPosition?: boolean;
 }
