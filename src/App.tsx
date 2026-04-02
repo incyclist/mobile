@@ -53,7 +53,7 @@ const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => 
     return <>{children}</>;
 };
 
-export const App = ({ secretsStatus }: AppProps) => { // Accept new prop
+export const App = ({ secretsStatus: _secretsStatus }: AppProps) => { // Accept new prop
     const isDarkMode = useColorScheme() === 'dark';
     const service = useIncyclist();
     const ble = getBleBinding();
