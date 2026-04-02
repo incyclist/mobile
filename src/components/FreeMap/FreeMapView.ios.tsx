@@ -105,8 +105,10 @@ export const FreeMapView = ({
         return null;
     }
 
+    const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
+
     return (
-        <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, style]}>
+        <View style={[styles.container, dynamicStyle, style]}>
             <MapView
                 ref={mapRef}
                 provider={undefined} // Use Apple Maps
@@ -126,12 +128,15 @@ export const FreeMapView = ({
 
                 {markerCoordinate && (
                     <Marker
+                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}`}
                         coordinate={toRNLatLng(markerCoordinate)}
                         draggable={draggable}
                         onDragEnd={handleMarkerDragEnd}
                     >
-                        {/* Custom marker view to match Android's red circular marker */}
-                        <View style={styles.marker} />
+                        {/* Custom marker view with enlarged touch target */}
+                        <View style={styles.markerTouchTarget}>
+                            <View style={styles.marker} />
+                        </View>
                     </Marker>
                 )}
                 {children}
@@ -146,6 +151,13 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1,
+    },
+    markerTouchTarget: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
     },
     marker: {
         height: 20,
