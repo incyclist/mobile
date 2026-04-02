@@ -90,6 +90,7 @@ export const FreeMapView = ({
         }
     }, [mapRef, cameraProps.bounds, initialRegionSet]);
 
+    const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
     const handleMarkerDragEnd = useCallback((e: any) => {
         if (onPositionChanged) {
@@ -104,8 +105,6 @@ export const FreeMapView = ({
     if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.centerCoordinate) {
         return null;
     }
-
-    const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
     return (
         <View style={[styles.container, dynamicStyle, style]}>
