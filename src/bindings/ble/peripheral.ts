@@ -27,8 +27,8 @@ export class BlePeripheralRN
             this.name = peripheral.name
             this.advertisement = this.mapAdvertisement(peripheral.advertising)
         }
-        catch(err) {
-            console.log('#ERROR',err)
+        catch(err:any) {
+            console.log('[BlePeripheral] error in constructor',err.message)
         }
     }
 
@@ -62,8 +62,8 @@ export class BlePeripheralRN
                 delete this.subDisconnect
             }
         }
-        catch(err) {
-            console.log('# ERROR in disconnectAsync',err)
+        catch(err:any) {
+            console.log('[BlePeripheral] disconnectAsync error',err.message)
         }
     }
 
@@ -84,12 +84,11 @@ export class BlePeripheralRN
 
             const res =  available.map( s=> new BleServiceRN( s.uuid)  )
 
-            console.log( '[Ble] discoverServices result', res.map( s=>s.uuid))
             return res
 
         }
-        catch(err) {
-            console.log('# ERROR in discoverServicesAsync',err)
+        catch(err:any) {
+            console.log('[BlePeripheralRN] discoverServicesAsync error',err.message)
             return []
         }
     }
@@ -148,16 +147,10 @@ export class BlePeripheralRN
                 characteristics
             }
 
-            console.log( '[Ble] discoverServicesAndCharacteristics result', 
-                (res.services??[]).map( s=>s.uuid),
-                (res.characteristics??[]).map( c=>c.uuid)
-            )
-
-
             return res;
         }
-        catch(err) {
-            console.log('# ERROR in discoverSomeServicesAndCharacteristicsAsync',err)
+        catch(err:any) {
+            console.log('[BlePeripheral] discoverSomeServicesAndCharacteristicsAsync error',err.message)
             return {services:[], characteristics:[]}
         }
 
@@ -165,7 +158,7 @@ export class BlePeripheralRN
 
     private mapAdvertisement(advertising:  AdvertisingData) {
         const adv = advertising ?? {}
-
+        //console.log('# map advertiesement', adv)
         return {
             localName: adv.localName ?? this.name,
             txPowerLevel: adv.txPowerLevel,
@@ -196,7 +189,7 @@ export class BlePeripheralRN
             if (entry?.data) {
                 result.push({
                     uuid: this.normalizeUuid(uuid),
-                    data: Buffer.from(entry.data)
+                    data: Buffer.from(entry.bytes,'binary')
                 })
             }
         }
