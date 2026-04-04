@@ -26,6 +26,7 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Incyclist/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Incyclist/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "incyclist--Bridging-Header.h"; sourceTree = "<group>"; };
+		DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Incyclist.entitlements; path = Incyclist/Incyclist.entitlements; sourceTree = "<group>"; };
 		E9D6821723439ED529EBAFF2 /* Pods-Incyclist.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.debug.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -46,6 +47,7 @@
 		13B07FAE1A68108700A75B9A /* Incyclist */ = {
 			isa = PBXGroup;
 			children = (
+				DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */,
 				DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
@@ -298,6 +300,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Incyclist/Incyclist.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
@@ -336,6 +339,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Incyclist/Incyclist.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
@@ -590,6 +594,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Incyclist/Incyclist.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 33ZL4TD87Q;
 				INFOPLIST_FILE = Incyclist/Info.plist;
