@@ -1,15 +1,15 @@
 import * as AppAttest from 'react-native-app-attest';
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV } from 'react-native-mmkv';
 import { getCryptoBinding } from '../crypto';
 import type { AttestationProvider } from './attestation';
 
-const storage = new MMKV();
+const storage = createMMKV({ id: 'appattest-storage' });
 const KEY_ID_STORAGE_KEY = 'appattest-key-id';
 const SECRETS_BASE_URL = 'https://secrets.incyclist.com';
 
 export class IosAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {
-        return await AppAttest.isSupported();
+        return await AppAttest.attestationSupported();
     }
 
     async getAttestationToken(): Promise<string> {
@@ -31,8 +31,8 @@ export class IosAttestationProvider implements AttestationProvider {
 
         let nonce: string;
         try {
-            const response = await fetch(`${SECRETS_BASE_URL}/secrets/nonce`, { 
-                signal: controller.signal 
+            const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/nonce`, {
+                signal: controller.signal
             });
             if (!response.ok) {
                 throw new Error(`Failed to fetch nonce: ${response.statusText}`);
@@ -59,8 +59,8 @@ export class IosAttestationProvider implements AttestationProvider {
             return await AppAttest.attestAppKey(keyId, nonceHash);
         } catch (err: any) {
             const errorMessage = err?.message || String(err);
-            const isNetworkError = 
-                errorMessage.toLowerCase().includes('network') || 
+            const isNetworkError =
+                errorMessage.toLowerCase().includes('network') ||
                 errorMessage.toLowerCase().includes('offline') ||
                 errorMessage.toLowerCase().includes('connection');
 

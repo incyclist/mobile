@@ -16,8 +16,8 @@ export class AndroidAttestationProvider implements AttestationProvider {
 
         let nonce: string;
         try {
-            const response = await fetch(`${SECRETS_BASE_URL}/secrets/nonce`, { 
-                signal: controller.signal 
+            const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/nonce`, {
+                signal: controller.signal
             });
             if (!response.ok) {
                 throw new Error(`Failed to fetch nonce: ${response.statusText}`);
@@ -39,21 +39,36 @@ export class AndroidAttestationProvider implements AttestationProvider {
         // 3. Play Integrity standard request via REST
         const integrityUrl = `https://playintegrity.googleapis.com/v1/${packageName}:generateIntegrityToken`;
 
-        const integrityResponse = await fetch(integrityUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ nonce }),
-        });
+        // Apply timeout to this fetch as well
+        const integrityController = new AbortController();
+        const integrityTimeoutId = setTimeout(() => integrityController.abort(), 5000);
 
-        if (!integrityResponse.ok) {
-            throw new Error(`Play Integrity request failed: ${integrityResponse.statusText}`);
-        }
+        let integrityData: any;
+        try {
+            const integrityResponse = await fetch(integrityUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nonce }),
+                signal: integrityController.signal
+            });
 
-        const integrityData = await integrityResponse.json();
-        if (!integrityData.token) {
-            throw new Error('Play Integrity response missing token');
+            if (!integrityResponse.ok) {
+                throw new Error(`Play Integrity request failed: ${integrityResponse.statusText}`);
+            }
+
+            integrityData = await integrityResponse.json();
+            if (!integrityData.token) {
+                throw new Error('Play Integrity response missing token');
+            }
+        } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') {
+                throw new Error('Play Integrity request timed out');
+            }
+            throw err;
+        } finally {
+            clearTimeout(integrityTimeoutId);
         }
 
         return integrityData.token;
