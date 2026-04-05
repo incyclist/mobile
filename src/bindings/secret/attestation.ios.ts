@@ -1,6 +1,5 @@
 import * as AppAttest from 'react-native-app-attest';
 import { createMMKV } from 'react-native-mmkv';
-import { getCryptoBinding } from '../crypto';
 import type { AttestationProvider } from './attestation';
 
 const storage = createMMKV({ id: 'appattest-storage' });
@@ -9,7 +8,7 @@ const SECRETS_BASE_URL = 'https://secrets.incyclist.com';
 
 export class IosAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {
-        return await AppAttest.attestationSupported();
+        return true;
     }
 
     async getAttestationToken(): Promise<string> {
@@ -48,15 +47,9 @@ export class IosAttestationProvider implements AttestationProvider {
             clearTimeout(timeoutId);
         }
 
-        // 3. Compute SHA-256 and encode as base64
-        const nonceHash = getCryptoBinding()
-            .createHash('sha256')
-            .update(nonce)
-            .digest('base64') as string;
-
-        // 4. Attest Key
+        // 3. Attest Key - Library handles hashing of challenge internally
         try {
-            return await AppAttest.attestAppKey(keyId, nonceHash);
+            return await AppAttest.attestAppKey(keyId, nonce);
         } catch (err: any) {
             const errorMessage = err?.message || String(err);
             const isNetworkError =
@@ -66,7 +59,7 @@ export class IosAttestationProvider implements AttestationProvider {
 
             // On non-network errors, delete keyId so next attempt starts fresh
             if (!isNetworkError) {
-                storage.delete(KEY_ID_STORAGE_KEY);
+                storage.remove(KEY_ID_STORAGE_KEY);
             }
             throw err;
         }
