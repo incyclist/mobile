@@ -186,6 +186,10 @@ class SecretBinding {
         return getSecret(key) ?? '';
     }
 
+    getSecretsStatus(): SecretsStatus {
+        return getSecretsStatus();
+    }
+
     async init(opts: { timeout: number } = { timeout: 5000 }): Promise<void> {
         await initSecrets(opts);
     }
