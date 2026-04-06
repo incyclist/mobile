@@ -97,3 +97,5 @@ ios/*.xcworkspace/xcshareddata/SwiftPM/Package.resolved
 ios/*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 ios/*.xcodeproj/project.xcworkspace/xcshareddata/SwiftPM/Package.resolved
 ios/assets/*
+.env.debug
+.env.dev
