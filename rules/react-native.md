@@ -103,3 +103,24 @@ return <Button onClick={() => setActiveDialog(null)} />;
 ### Types from incyclist-services
 - **Always import types from `incyclist-services` — never redefine them locally.** If a type is needed, it must be named explicitly in the task's Key references section and imported at the top of the file.
 - If a type appears to be missing from `incyclist-services`, raise it as a question rather than defining it locally.
+
+### Catch bindings
+If a `catch` block does not use the error variable, omit the binding entirely:
+```typescript
+// ✅ Correct
+catch {
+    currentStatus = 'missing';
+}
+// ❌ Wrong — triggers no-unused-vars
+catch (err) {
+    currentStatus = 'missing';
+}
+```
+
+
+## 11. Context Files Are Mandatory
+Every file listed under "Context files" in the task must be read before writing any code that interacts with it. If a context file shows an existing pattern for instantiating a class, making a network call, or using a binding — use that exact pattern. Never assume you know the API from memory. If the context file contradicts your assumption, the context file is correct.
+
+## 12. Third-Party Library APIs
+Never assume the API of a third-party library from memory or documentation snippets. Use only function names, method signatures, and prop names that are explicitly provided in the task's Key references section. If the Key references section does not specify the exact API, raise it as a question rather than guessing. A wrong function name that compiles is worse than a question — it produces a runtime crash instead of a build error.
+
