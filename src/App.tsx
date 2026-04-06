@@ -11,7 +11,8 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
-import { AppFeatures, IncyclistBindings, useIncyclist } from 'incyclist-services';
+import { AppFeatures, IncyclistBindings } from 'incyclist-services';
+import { useIncyclist } from './services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json';
 import { useLogging, useUnmountEffect } from './hooks';
@@ -23,13 +24,13 @@ import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
 import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
-import { SecretsStatus } from './bindings/secret/types'; // Import new type
+import { SecretsStatus } from './bindings/secret/types';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
 
 interface AppProps {
-    secretsStatus?: SecretsStatus; // new — not yet used internally, just accepted
+    secretsStatus?: SecretsStatus;
 }
 
 const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => {
@@ -53,9 +54,9 @@ const DeviceInfoLogger = ({ children }: PropsWithChildren<{}>): ReactElement => 
     return <>{children}</>;
 };
 
-export const App = ({ secretsStatus: _secretsStatus }: AppProps) => { // Accept new prop
+export const App = ({ secretsStatus }: AppProps) => {
     const isDarkMode = useColorScheme() === 'dark';
-    const service = useIncyclist();
+    const service = useIncyclist({ secretsStatus });
     const ble = getBleBinding();
     const [initialized, setInitialized] = useState<boolean>(false);
 
@@ -64,7 +65,6 @@ export const App = ({ secretsStatus: _secretsStatus }: AppProps) => { // Accept 
     const { stopMonitoring } = useOnlineStatusMonitoringInit();
     const refStopMonitoring = useRef<() => void>(stopMonitoring);
 
-    
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
             if (lastState === 'active' && nextState !== 'active') {
