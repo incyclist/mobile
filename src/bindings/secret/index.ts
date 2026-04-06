@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV, type MMKV } from 'react-native-mmkv';
 import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
 import DeviceInfo from 'react-native-device-info';
@@ -53,7 +53,7 @@ const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
         } else {
             currentStatus = 'missing';
         }
-    } catch (err) {
+    } catch {
         currentStatus = 'missing';
     }
     return currentStatus;
@@ -61,25 +61,21 @@ const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
 
 const performInit = async (): Promise<SecretsStatus> => {
     try {
-        let existingKey: string | null = null;
+        let hexKey: string | null = null;
         const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
         if (credentials) {
-            existingKey = credentials.password;
+            hexKey = credentials.password;
         }
 
-        // iOS reinstall check: Keychain absent + MMKV present -> delete MMKV
-        if (Platform.OS === 'ios' && !existingKey) {
-            const checkStorage = new MMKV({ id: MMKV_ID });
-            checkStorage.clearAll();
-        }
-
-        let hexKey = existingKey;
         if (!hexKey) {
+            // No Keychain key — first install or iOS reinstall.
+            // Proceed directly to key generation. Old encrypted store
+            // (if any) is inaccessible without the key and effectively abandoned.
             hexKey = getCryptoBinding().randomBytes(32).toString('hex');
             await Keychain.setGenericPassword('encryptionKey', hexKey, { service: KEYCHAIN_SERVICE });
         }
 
-        const storage = new MMKV({ id: MMKV_ID, encryptionKey: hexKey });
+        const storage = createMMKV({ id: MMKV_ID, encryptionKey: hexKey });
         const cacheStr = storage.getString('cache');
         const cache: CachedSecrets | null = cacheStr ? JSON.parse(cacheStr) : null;
 
@@ -104,36 +100,42 @@ const performInit = async (): Promise<SecretsStatus> => {
 
         // Status check
         try {
-            const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/status`, {
-                headers: {
-                    'x-api-key': cache.secrets.backendApiToken ?? '',
-                },
-                signal: AbortSignal.timeout(3000),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            try {
+                const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/status`, {
+                    headers: {
+                        'x-api-key': cache.secrets.backendApiToken ?? '',
+                    },
+                    signal: controller.signal,
+                });
 
-            if (response.status === 401) {
-                return await runAttestation(storage);
-            }
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.valid) {
-                    currentSecrets = cache.secrets;
-                    currentStatus = 'ok';
-                } else {
-                    const updatedCache: CachedSecrets = {
-                        secrets: data.secrets,
-                        expiresAt: data.expiresAt,
-                        fetchedAt: new Date().toISOString(),
-                    };
-                    storage.set('cache', JSON.stringify(updatedCache));
-                    currentSecrets = data.secrets;
-                    currentStatus = 'ok';
+                if (response.status === 401) {
+                    return await runAttestation(storage);
                 }
-            } else {
-                // Network error or server error -> treat as stale within TTL
-                currentSecrets = cache.secrets;
-                currentStatus = 'stale';
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.valid) {
+                        currentSecrets = cache.secrets;
+                        currentStatus = 'ok';
+                    } else {
+                        const updatedCache: CachedSecrets = {
+                            secrets: data.secrets,
+                            expiresAt: data.expiresAt,
+                            fetchedAt: new Date().toISOString(),
+                        };
+                        storage.set('cache', JSON.stringify(updatedCache));
+                        currentSecrets = data.secrets;
+                        currentStatus = 'ok';
+                    }
+                } else {
+                    // Network error or server error -> treat as stale within TTL
+                    currentSecrets = cache.secrets;
+                    currentStatus = 'stale';
+                }
+            } finally {
+                clearTimeout(timeoutId);
             }
         } catch {
             // Fetch error or timeout
@@ -142,7 +144,7 @@ const performInit = async (): Promise<SecretsStatus> => {
         }
 
         return currentStatus;
-    } catch (err) {
+    } catch {
         currentStatus = 'missing';
         return currentStatus;
     }
@@ -180,8 +182,8 @@ class SecretBinding {
         return SecretBinding._instance;
     }
 
-    getSecret(key: string): string | undefined {
-        return getSecret(key);
+    getSecret(key: string): string {
+        return getSecret(key) ?? '';
     }
 
     async init(opts: { timeout: number } = { timeout: 5000 }): Promise<void> {
