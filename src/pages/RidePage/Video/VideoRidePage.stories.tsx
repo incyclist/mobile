@@ -1,10 +1,18 @@
 import React from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View, Text } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { VideoRidePageTestView } from './TestView';
+import { Dialog, ButtonBar, Button } from '../../../components';
+import { colors, textSizes } from '../../../theme';
+import { StartGateProps } from 'incyclist-services';
 import sydneyRoute from '../../../../__tests__/testdata/sydney.json';
 import teideRoute from '../../../../__tests__/testdata/ES_Teide.json';
+
+const MOCK_START_GATE_PROPS: StartGateProps = {
+    title: 'Session refresh needed',
+    body: 'Please connect to the internet before starting your ride',
+};
 
 const callbacks = {
     onMenuOpen: fn(),
@@ -18,7 +26,12 @@ const callbacks = {
 };
 
 const styles = StyleSheet.create( {
-    container: {flex: 1, position: 'relative', width: '100%'}
+    container: {flex: 1, position: 'relative', width: '100%'},
+    gateBody: {
+        color: colors.text,
+        fontSize: textSizes.normalText,
+        textAlign: 'center',
+    },
 })
 
 const meta: Meta<typeof VideoRidePageTestView> = {
@@ -121,5 +134,39 @@ export const Starting: Story = {
             route: teideRoute as any,
             video: { src: '', hidden: false } as any,
         },
+    },
+};
+
+export const WithStartGate: Story = {
+    args: {
+        ...ActiveRide.args,
+        displayProps: {
+            ...ActiveRide.args!.displayProps!,
+            startGateProps: MOCK_START_GATE_PROPS,
+        },
+    },
+    render: (args) => {
+        const startGateProps = args.displayProps?.startGateProps;
+        return (
+            <View style={styles.container}>
+                <VideoRidePageTestView {...args} />
+                {startGateProps && (
+                    <Dialog
+                        title={startGateProps.title}
+                        variant="info"
+                        presentationStyle="overFullScreen"
+                        supportedOrientations={['landscape']}
+                        buttons={
+                            <ButtonBar>
+                                <Button id="connect" label="Connect now" primary onClick={fn()} />
+                                <Button id="continue" label="Continue anyway" onClick={fn()} />
+                            </ButtonBar>
+                        }
+                    >
+                        <Text style={styles.gateBody}>{startGateProps.body}</Text>
+                    </Dialog>
+                )}
+            </View>
+        );
     },
 };
