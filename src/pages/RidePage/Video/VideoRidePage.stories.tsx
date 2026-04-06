@@ -160,8 +160,6 @@ export const WithStartGate: Story = {
                     <Dialog
                         title={startGateProps.title}
                         variant="info"
-                        presentationStyle="overFullScreen"
-                        supportedOrientations={['landscape']}
                         buttons={[
                             { id: 'connect', label: 'Connect now', primary: true, onClick: fn() },
                             { id: 'continue', label: 'Continue anyway', onClick: fn() },

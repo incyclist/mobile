@@ -82,8 +82,6 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
                     <Dialog
                         title={startGateProps.title}
                         variant="info"
-                        presentationStyle="overFullScreen"
-                        supportedOrientations={['landscape']}
                         buttons={[
                             { id: 'connect', label: 'Connect now', primary: true, onClick: onRefreshSecrets },
                             { id: 'continue', label: 'Continue anyway', onClick: onContinueAnyway },
