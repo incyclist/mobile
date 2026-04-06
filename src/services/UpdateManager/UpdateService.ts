@@ -5,6 +5,8 @@ import { CachesDirectoryPath, DocumentDirectoryPath, downloadFile, DownloadFileO
 import { isDevVariant } from '../../bindings/appInfo';
 import settings from '@settings'
 import { EventLogger } from 'gd-eventlog';
+import { getUserSettingsBinding } from '../../bindings/user-settings';
+import { getSecret } from '../../bindings/secret';
 
 
 // TODO: change towards production URL
@@ -59,6 +61,17 @@ export class UpdateService {
 
 
         try {
+            const userSettingsBinding = getUserSettingsBinding();
+            await userSettingsBinding.getAll();
+            const uuid = userSettingsBinding.getValue('uuid', null);
+
+            if (!uuid) {
+                this.logger.logEvent({ message: 'Skipping update check: No UUID found.' });
+                return;
+            }
+
+            const bundleApiKey = getSecret('bundleApiKey');
+
             const activePath = await DefaultPreference.get('active_bundle_path');
             const fileExists = await exists(`${activePath}/index.android.bundle`);
             const activeVersion = await DefaultPreference.get('active_bundle_version');
@@ -69,10 +82,10 @@ export class UpdateService {
                 this.logger.logEvent({message:'Current bundle',path:'<app-bundle>'});
             }
 
-            const response = await this.fetchBundleInfo(activeVersion);
+            const response = await this.fetchBundleInfo(activeVersion, uuid, bundleApiKey);
             if (!response) return;
 
-            await this.applyUpdate(response);
+            await this.applyUpdate(response, uuid, bundleApiKey);
             await this.cleanupOldBundles(response.bundleVersion);
             
         } catch (err:any) {
@@ -80,18 +93,22 @@ export class UpdateService {
         }
     }
 
-    private static async fetchBundleInfo(activeVersion:string|null|undefined): Promise<IAppBundleResponse | null> {
+    private static async fetchBundleInfo(activeVersion: string | null | undefined, uuid: string, bundleApiKey?: string): Promise<IAppBundleResponse | null> {
         const BASE_URL = await getBaseUrl()
         const url = `${BASE_URL}/api/v1/apps/${appName}`;
 
         this.logger.logEvent({message:'Request bundle',url});
 
-        const headers = {
-        'x-uuid': 'dummy-user-id-123', // Replace with real library ID later
-        'x-app-channel': 'mobile',
-        'x-app-version': appVersion,
-        'Accept': 'application/json',
+        const headers: Record<string, string> = {
+            'x-uuid': uuid,
+            'x-app-channel': 'mobile',
+            'x-app-version': appVersion,
+            'Accept': 'application/json',
         };
+
+        if (bundleApiKey) {
+            headers['x-api-key'] = bundleApiKey;
+        }
 
 
         try {
@@ -115,7 +132,7 @@ export class UpdateService {
     }
 
 
-    private static async applyUpdate(bundleInfo: IAppBundleResponse) {
+    private static async applyUpdate(bundleInfo: IAppBundleResponse, uuid: string, bundleApiKey?: string) {
         const versionDir = `${UPDATES_ROOT}/${bundleInfo.bundleVersion}`;
         const zipPath = `${CachesDirectoryPath}/update_${bundleInfo.bundleVersion}.zip`;
         const {bundleUrl,bundleVersion} = bundleInfo
@@ -125,14 +142,22 @@ export class UpdateService {
 
         const BASE_URL = await getBaseUrl()
         const url = bundleInfo.bundleUrl?.startsWith('http') ?  bundleUrl : `${BASE_URL}${bundleUrl}`
+
+        const headers: Record<string, string> = {
+            'x-uuid': uuid,
+            'x-app-channel': 'mobile',
+            'x-app-version': appVersion,
+            'Accept': 'application/json',
+        };
+
+        if (bundleApiKey) {
+            headers['x-api-key'] = bundleApiKey;
+        }
+
         const options: DownloadFileOptions = {
             fromUrl: url,
             toFile: zipPath,
-            headers: {
-            'x-uuid': 'dummy-user-id-123', // Replace with real ID logic
-            'x-app-version': appVersion,
-            'x-app-channel': 'mobile',
-            },
+            headers,
         };    
 
         try {
@@ -146,7 +171,7 @@ export class UpdateService {
             }        
         }
         catch(err : any) {
-            this.logger.logEvent({message:'Downloading bundle failed ',bundleVersion,url, reason:err.mesage});                    
+            this.logger.logEvent({message:'Downloading bundle failed ',bundleVersion,url, reason:err.message});                    
             return false
         }
 
