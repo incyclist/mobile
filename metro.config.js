@@ -75,6 +75,7 @@ const config = {
             'stream': path.resolve(__dirname, 'polyfill/node-mocks.js'),     // FIXED: was empty-module
             '@settings' : settingsPath,
             '@assets':assetsPath,
+            '@config': path.resolve(__dirname, 'config/config.json'),
 
             // Logic-only mocks can stay as empty-module
             'path': require.resolve('metro-runtime/src/modules/empty-module.js'),
