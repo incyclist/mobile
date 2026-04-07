@@ -1,8 +1,11 @@
-import DeviceInfo from 'react-native-device-info';
+import { prepareIntegrityToken, requestIntegrityToken } from '@pagopa/io-react-native-integrity';
+import { EventLogger } from 'gd-eventlog';
 import type { AttestationProvider } from './attestation';
 import settings from '@settings';
+
 const SECRETS_BASE_URL = (settings as Record<string, string>).SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
 
+const logger = EventLogger('Incyclist');
 
 export class AndroidAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {
@@ -12,17 +15,17 @@ export class AndroidAttestationProvider implements AttestationProvider {
 
     async getAttestationToken(): Promise<string> {
 
-        console.log('# getAttestationToken')
+        console.log('# getAttestationToken');
 
-        // 1. Fetch Nonce with 5s timeout        
+        // 1. Fetch Nonce with 5s timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         let nonce: string;
         try {
-            console.log('# fetch GET', `${SECRETS_BASE_URL}/api/v1/secrets/nonce`)
+            console.log('# fetch GET', `${SECRETS_BASE_URL}/api/v1/secrets/nonce`);
             const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/nonce`, {
-                signal: controller.signal
+                signal: controller.signal,
             });
             if (!response.ok) {
                 throw new Error(`Failed to fetch nonce: ${response.statusText}`);
@@ -38,46 +41,41 @@ export class AndroidAttestationProvider implements AttestationProvider {
             clearTimeout(timeoutId);
         }
 
-        // 2. Obtain package name
-        const packageName = DeviceInfo.getBundleId();
-
-        // 3. Play Integrity standard request via REST
-        const integrityUrl = `https://playintegrity.googleapis.com/v1/${packageName}:generateIntegrityToken`;
-
-        // Apply timeout to this fetch as well
-        const integrityController = new AbortController();
-        const integrityTimeoutId = setTimeout(() => integrityController.abort(), 5000);
-
-        let integrityData: any;
-        try {
-            console.log('# fetch POST', integrityUrl)
-            const integrityResponse = await fetch(integrityUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ nonce }),
-                signal: integrityController.signal
-            });
-
-            if (!integrityResponse.ok) {
-                throw new Error(`Play Integrity request failed: ${integrityResponse.statusText}`);
-            }
-
-            integrityData = await integrityResponse.json();
-            if (!integrityData.token) {
-                throw new Error('Play Integrity response missing token');
-            }
-        } catch (err) {
-            console.log('# integrity error', err)
-            if (err instanceof Error && err.name === 'AbortError') {
-                throw new Error('Play Integrity request timed out');
-            }
-            throw err;
-        } finally {
-            clearTimeout(integrityTimeoutId);
+        // 2. Validate that the Google Cloud project number is available
+        const googleCloudProjectNumber = process.env.GOOGLE_PROJECT_NUMBER;
+        if (!googleCloudProjectNumber) {
+            throw new Error(
+                'AndroidAttestationProvider: GOOGLE_PROJECT_NUMBER environment variable is not set. ' +
+                'This value is required to initialise the Play Integrity SDK.',
+            );
         }
 
-        return integrityData.token;
+        // 3. Prepare the Play Integrity token (safe to call repeatedly)
+        try {
+            await prepareIntegrityToken(googleCloudProjectNumber);
+        } catch (error) {
+            logger.logEvent({
+                message: 'Play Integrity prepareIntegrityToken failed',
+                error: JSON.stringify(error),
+            });
+            throw error;
+        }
+
+        // 4. Request the integrity token
+        // The nonce is passed to the microservice as part of the POST body in
+        // the attestation flow (see index.ts → runAttestation). requestIntegrityToken
+        // does not accept a nonce parameter in the current library version.
+        let token: string;
+        try {
+            token = await requestIntegrityToken();
+        } catch (error) {
+            logger.logEvent({
+                message: 'Play Integrity requestIntegrityToken failed',
+                error: JSON.stringify(error),
+            });
+            throw error;
+        }
+
+        return token;
     }
 }
