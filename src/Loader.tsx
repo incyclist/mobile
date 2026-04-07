@@ -34,6 +34,7 @@ export const Loader = () =>{
         initLogging()
         
         const run = async () => {
+
             setStatusMessage('Setting up infrastructure...');
             const status = await initSecrets({ timeout: 7000 });
             setSecretsStatus(status);

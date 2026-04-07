@@ -1,7 +1,8 @@
 import DeviceInfo from 'react-native-device-info';
 import type { AttestationProvider } from './attestation';
+import settings from '@settings';
+const SECRETS_BASE_URL = (settings as Record<string, string>).SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
 
-const SECRETS_BASE_URL = 'https://secrets.incyclist.com';
 
 export class AndroidAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {
@@ -10,12 +11,16 @@ export class AndroidAttestationProvider implements AttestationProvider {
     }
 
     async getAttestationToken(): Promise<string> {
-        // 1. Fetch Nonce with 5s timeout
+
+        console.log('# getAttestationToken')
+
+        // 1. Fetch Nonce with 5s timeout        
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         let nonce: string;
         try {
+            console.log('# fetch GET', `${SECRETS_BASE_URL}/api/v1/secrets/nonce`)
             const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/nonce`, {
                 signal: controller.signal
             });
@@ -45,6 +50,7 @@ export class AndroidAttestationProvider implements AttestationProvider {
 
         let integrityData: any;
         try {
+            console.log('# fetch POST', integrityUrl)
             const integrityResponse = await fetch(integrityUrl, {
                 method: 'POST',
                 headers: {
@@ -63,6 +69,7 @@ export class AndroidAttestationProvider implements AttestationProvider {
                 throw new Error('Play Integrity response missing token');
             }
         } catch (err) {
+            console.log('# integrity error', err)
             if (err instanceof Error && err.name === 'AbortError') {
                 throw new Error('Play Integrity request timed out');
             }

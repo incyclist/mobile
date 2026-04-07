@@ -3,15 +3,15 @@ import { createMMKV, type MMKV } from 'react-native-mmkv';
 import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
 import DeviceInfo from 'react-native-device-info';
-import Config from 'react-native-config';
 import { getCryptoBinding } from '../crypto';
 import { getAttestationProvider } from './attestation';
 import { SecretsStatus, AppSecrets, CachedSecrets } from './types';
+import settings from '@settings';
 
 const KEYCHAIN_SERVICE = 'incyclist-secrets-key';
 const MMKV_ID = 'incyclist-secrets';
 const TTL_DAYS = 30;
-const SECRETS_BASE_URL = Config.SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
+const SECRETS_BASE_URL = (settings as Record<string, string>).SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
 
 let currentStatus: SecretsStatus = 'missing';
 let currentSecrets: AppSecrets | undefined;
@@ -24,8 +24,11 @@ const isWithinTTL = (fetchedAt: string): boolean => {
 
 const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
     try {
+        console.log('# runAttestation start');
         const provider = getAttestationProvider();
         const attestationToken = await provider.getAttestationToken();
+
+        console.log('# fetch',`${SECRETS_BASE_URL}/api/v1/secrets`)
 
         const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets`, {
             method: 'POST',
@@ -53,16 +56,25 @@ const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
         } else {
             currentStatus = 'missing';
         }
-    } catch {
+        console.log('# attestationToken obtained');
+
+    } catch (err) {
+        console.log('# runAttestation ERROR', err);
         currentStatus = 'missing';
     }
     return currentStatus;
 };
 
 const performInit = async (): Promise<SecretsStatus> => {
+
+    console.log('# perform init')
+
+
     try {
         let hexKey: string | null = null;
         const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+        console.log('# keychain result', credentials ? 'found' : 'not found');
+
         if (credentials) {
             hexKey = credentials.password;
         }
@@ -80,9 +92,12 @@ const performInit = async (): Promise<SecretsStatus> => {
         const cache: CachedSecrets | null = cacheStr ? JSON.parse(cacheStr) : null;
 
         const netInfo = await NetInfo.fetch();
+        console.log('# netinfo', netInfo.isConnected, netInfo.type);
+
         const isConnected = netInfo.isConnected ?? false;
 
         const expired = !cache || !isWithinTTL(cache.fetchedAt);
+        console.log('# cache', cache ? 'found' : 'null', 'expired:', expired);
 
         if (expired || !cache) {
             if (!isConnected) {
@@ -103,6 +118,7 @@ const performInit = async (): Promise<SecretsStatus> => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             try {
+                console.log('# fetch',`${SECRETS_BASE_URL}/api/v1/secrets/status`)
                 const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/status`, {
                     headers: {
                         'x-api-key': cache.secrets.backendApiToken ?? '',
@@ -137,20 +153,24 @@ const performInit = async (): Promise<SecretsStatus> => {
             } finally {
                 clearTimeout(timeoutId);
             }
-        } catch {
+        } catch (err) {
+
+            console.log('# ERROR',err)
             // Fetch error or timeout
             currentSecrets = cache.secrets;
             currentStatus = 'stale';
         }
 
         return currentStatus;
-    } catch {
+    } catch (err) {
+        console.log('# ERROR',err)
         currentStatus = 'missing';
         return currentStatus;
     }
 };
 
 export const initSecrets = async (opts: { timeout: number }): Promise<SecretsStatus> => {
+    console.log('# init secrets')
     if (!initPromise) {
         initPromise = performInit();
     }

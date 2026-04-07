@@ -1,10 +1,11 @@
 import * as AppAttest from 'react-native-app-attest';
 import { createMMKV } from 'react-native-mmkv';
 import type { AttestationProvider } from './attestation';
+import settings from '@settings';
+const SECRETS_BASE_URL = (settings as Record<string, string>).SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
 
 const storage = createMMKV({ id: 'appattest-storage' });
 const KEY_ID_STORAGE_KEY = 'appattest-key-id';
-const SECRETS_BASE_URL = 'https://secrets.incyclist.com';
 
 export class IosAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {

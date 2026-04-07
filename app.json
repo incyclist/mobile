@@ -1,7 +1,7 @@
 {
   "name": "Incyclist",
   "displayName": "Incyclist",
-  "appVersion": "1.0.10",
-  "bundleVersion" : "0.0.18",
-  "androidVersionCode": 18
+  "appVersion": "1.0.12",
+  "bundleVersion" : "0.0.20",
+  "androidVersionCode": 20
 }

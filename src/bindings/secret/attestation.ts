@@ -11,9 +11,9 @@ export interface AttestationProvider {
  */
 export function getAttestationProvider(): AttestationProvider {
     if (Platform.OS === 'ios') {
-        const { IosAttestationProvider } = require('./attestation.ios');
+        const { IosAttestationProvider } = require('./attestation-ios');
         return new IosAttestationProvider();
     }
-    const { AndroidAttestationProvider } = require('./attestation.android');
+    const { AndroidAttestationProvider } = require('./attestation-android');
     return new AndroidAttestationProvider();
 }
