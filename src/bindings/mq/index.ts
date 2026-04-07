@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { getSecretBinding } from '../secret';
 import { EventLogger } from 'gd-eventlog';
 import { v4} from 'uuid'
+import { Platform } from 'react-native';
 
 const CONNECT_RETRY_INTERVAL = 10000;   // 10 seconds
 const CONNECT_RETRY_CNT = 5             // number of attempts before taking a pause
@@ -38,7 +39,10 @@ export class MessageQueue extends EventEmitter  {
 
 
     enabled(): boolean {
-        return true
+        const uri = this.getSecret('MQ_BROKER');
+        if (!uri) return false;
+        if (Platform.OS === 'ios' && uri.startsWith('mqtt://')) return false;
+        return true;
     }
 
     subscribe(topic: string) {
@@ -101,6 +105,12 @@ export class MessageQueue extends EventEmitter  {
             return await this.connectPromise
 
         const uri = this.getSecret('MQ_BROKER')
+
+        if (!this.enabled()) {
+            this.logger.logEvent({ message: 'mqtt disabled', reason: uri? 'no broker specified' :'non-TLS broker not supported on iOS' });
+            return false;
+        }        
+
         const username = this.getSecret('MQ_USER');
         const password = this.getSecret('MQ_PASSWORD');
 
