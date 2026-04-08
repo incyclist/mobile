@@ -25,6 +25,7 @@ import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMo
 import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
+import { getMessageQueueBinding  } from './bindings/mq';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
@@ -69,11 +70,14 @@ export const App = ({ secretsStatus }: AppProps) => {
         const sub = AppState.addEventListener('change', nextState => {
             if (lastState === 'active' && nextState !== 'active') {
                 service.onAppPause();
+                getMessageQueueBinding().connect();  // reconnect on foreground
             }
 
             if (lastState !== 'active' && nextState === 'active') {
                 ble.initializeAuthorization();
                 service.onAppResume();
+                getMessageQueueBinding().disconnect();  // disconnect on background
+                
             }
 
             lastState = nextState;
@@ -109,6 +113,8 @@ export const App = ({ secretsStatus }: AppProps) => {
             try {
                 const bindings = await initBindings();
                 service.setBindings(bindings as IncyclistBindings);
+
+                await getMessageQueueBinding().connect()
 
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);

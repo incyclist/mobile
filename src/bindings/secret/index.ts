@@ -7,6 +7,7 @@ import { getCryptoBinding } from '../crypto';
 import { getAttestationProvider } from './attestation';
 import { SecretsStatus, AppSecrets, CachedSecrets } from './types';
 import settings from '@settings';
+import { EventLogger } from 'gd-eventlog';
 
 const KEYCHAIN_SERVICE = 'incyclist-secrets-key';
 const MMKV_ID = 'incyclist-secrets';
@@ -23,12 +24,14 @@ const isWithinTTL = (fetchedAt: string): boolean => {
 };
 
 const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
+
+    const logger = new EventLogger('Attestation')
     try {
-        console.log('# runAttestation start');
+        logger.logEvent({message:'run attestation'})
         const provider = getAttestationProvider();
         const attestationToken = await provider.getAttestationToken();
 
-        console.log('# fetch',`${SECRETS_BASE_URL}/api/v1/secrets`)
+        
 
         const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets`, {
             method: 'POST',
@@ -56,24 +59,21 @@ const runAttestation = async (storage: MMKV): Promise<SecretsStatus> => {
         } else {
             currentStatus = 'missing';
         }
-        console.log('# attestationToken obtained');
+        logger.logEvent({message:'attestation result', attestationStatus:currentStatus})
 
-    } catch (err) {
-        console.log('# runAttestation ERROR', err);
+    } catch (err:any) {
+        logger.logEvent({message:'attestation failed', reason:err.message})
         currentStatus = 'missing';
     }
     return currentStatus;
 };
 
 const performInit = async (): Promise<SecretsStatus> => {
-
-    console.log('# perform init')
-
+    const logger = new EventLogger('Secrets')
 
     try {
         let hexKey: string | null = null;
         const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-        console.log('# keychain result', credentials ? 'found' : 'not found');
 
         if (credentials) {
             hexKey = credentials.password;
@@ -92,12 +92,11 @@ const performInit = async (): Promise<SecretsStatus> => {
         const cache: CachedSecrets | null = cacheStr ? JSON.parse(cacheStr) : null;
 
         const netInfo = await NetInfo.fetch();
-        console.log('# netinfo', netInfo.isConnected, netInfo.type);
 
         const isConnected = netInfo.isConnected ?? false;
 
         const expired = !cache || !isWithinTTL(cache.fetchedAt);
-        console.log('# cache', cache ? 'found' : 'null', 'expired:', expired);
+        logger.logEvent({message:'secret cache status',cacheStatus: cache ? 'found' : 'null',expired})
 
         if (expired || !cache) {
             if (!isConnected) {
@@ -115,14 +114,21 @@ const performInit = async (): Promise<SecretsStatus> => {
 
         // Status check
         try {
+            logger.logEvent( {message:'check secret status'})
+
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             try {
                 console.log('# fetch',`${SECRETS_BASE_URL}/api/v1/secrets/status`)
+                let headers
+                if (cache.secrets.INCYCLIST_API_KEY) {
+                    headers= {
+                        'x-api-key': cache.secrets.INCYCLIST_API_KEY ?? '',                    
+                    }
+                }
+
                 const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/status`, {
-                    headers: {
-                        'x-api-key': cache.secrets.backendApiToken ?? '',
-                    },
+                    headers,
                     signal: controller.signal,
                 });
 
@@ -153,24 +159,23 @@ const performInit = async (): Promise<SecretsStatus> => {
             } finally {
                 clearTimeout(timeoutId);
             }
-        } catch (err) {
-
-            console.log('# ERROR',err)
+        } catch (err:any) {
+            logger.logEvent( {message:'check secret status failed', reason:err.message})
             // Fetch error or timeout
             currentSecrets = cache.secrets;
             currentStatus = 'stale';
         }
 
         return currentStatus;
-    } catch (err) {
-        console.log('# ERROR',err)
+    } catch (err:any) {
+
+        logger.logEvent({message:'error', fn:'performInit', error:err.message, stack:err.stack})
         currentStatus = 'missing';
         return currentStatus;
     }
 };
 
 export const initSecrets = async (opts: { timeout: number }): Promise<SecretsStatus> => {
-    console.log('# init secrets')
     if (!initPromise) {
         initPromise = performInit();
     }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { App } from './App'; // This is your actual application
-import { initRestLogging  } from './services';
+import { ApiConfiguration, initRestLogging  } from './services';
 
 import { EventLogger, LogAdapter } from 'gd-eventlog';
 import { RNConsoleAdapter } from './bindings/logging/Adapters/RNConsoleAdapter';
@@ -9,8 +9,24 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
 import { UpdateService } from './services/UpdateManager';
-import { initSecrets } from './bindings/secret';
+import { getSecret, initSecrets } from './bindings/secret';
 import { SecretsStatus } from './bindings/secret/types';
+import { getUserSettingsBinding } from './bindings/user-settings';
+
+const initApi = async ()=> {
+    const apiKey = getSecret('INCYCLIST_API_KEY');
+    if (apiKey) {
+        ApiConfiguration.getInstance().addHeader('x-api-key', apiKey);
+    }
+
+    const userSettingsBinding = getUserSettingsBinding();
+    await userSettingsBinding.getAll();
+    const uuid = userSettingsBinding.getValue('uuid', null);
+    if (uuid) {
+        ApiConfiguration.getInstance().addHeader('x-uuid', uuid);
+    }
+
+}
 
 export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -38,6 +54,8 @@ export const Loader = () =>{
             setStatusMessage('Setting up infrastructure...');
             const status = await initSecrets({ timeout: 7000 });
             setSecretsStatus(status);
+
+            initApi()
 
             setStatusMessage('Checking for updates...');
             UpdateService.checkForUpdates();

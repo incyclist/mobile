@@ -16,7 +16,7 @@ export class MessageQueue extends EventEmitter  {
     private logger:EventLogger
     private queue: Array< {topic:string,payload:string,ts:number }>=[]
     private internalEmitter = new EventEmitter()
-    
+    private subscriptions: Set<string> = new Set();
 
     static _instance:MessageQueue|null;
 
@@ -30,9 +30,8 @@ export class MessageQueue extends EventEmitter  {
         super();
         
         this.logger = new EventLogger('mq')
-        this.connect()
-            
-
+        this.logger.logEvent({message:'create message queue'})
+        //this.connect()
     }
 
 
@@ -53,6 +52,7 @@ export class MessageQueue extends EventEmitter  {
             // QoS is usually required by this lib (0, 1, or 2)
             this.client.subscribe([topic], [0]); 
             this.emit('mq-subscribed',topic)
+            this.subscriptions.add(topic);
         }
         catch(err) {
             this.logError(err,'subscribe')
@@ -60,6 +60,8 @@ export class MessageQueue extends EventEmitter  {
     }
 
     unsubscribe(topic: string) {
+        this.subscriptions.delete(topic);
+        
         try {
             if (!this.client)
                 return;
@@ -69,6 +71,7 @@ export class MessageQueue extends EventEmitter  {
         catch(err) {
             this.logError(err,'subscribe')
         }
+
     }
 
     publish(topic: string, payload: object) {
@@ -100,9 +103,11 @@ export class MessageQueue extends EventEmitter  {
 
     }
 
-    private async connect(): Promise<boolean> {
+    async connect(): Promise<boolean> {
         if (this.connectPromise!==null && this.connectPromise!==undefined)
             return await this.connectPromise
+
+        if (this.isConnected) return true;        
 
         const uri = this.getSecret('MQ_BROKER')
 
@@ -122,6 +127,12 @@ export class MessageQueue extends EventEmitter  {
 
         const onConnected = () => {
             this.isConnected = true;
+
+            if (this.subscriptions.size > 0) {
+                const topics = Array.from(this.subscriptions);
+                this.client.subscribe(topics, topics.map(() => 0));
+            }
+
             this.logger.logEvent( {message:'mqtt connected'})
             this.internalEmitter.emit('connected')
 
@@ -174,6 +185,19 @@ export class MessageQueue extends EventEmitter  {
         this.connectPromise = null
         return this.isConnected
 
+    }
+
+    disconnect():void {
+        if (!this.isConnected) return;
+
+        try {
+            this.client?.disconnect();
+        } catch (err:any) {
+            this.logger.logEvent( {message:'disconnect failed', reason:err.message});
+        }
+        this.isConnected = false;
+        this.connectPromise = null;
+        this.logger.logEvent({ message: 'mqtt disconnected' });
     }
 
     private async connectRetries(options:Mqtt.ConnectionOptions, max:number, delay:number,onConnected:()=>void):Promise<boolean> {
