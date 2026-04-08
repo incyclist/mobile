@@ -1,8 +1,9 @@
-import DeviceInfo from 'react-native-device-info';
+import { prepareIntegrityToken, requestIntegrityToken } from '@pagopa/io-react-native-integrity';
+import { EventLogger } from 'gd-eventlog';
 import type { AttestationProvider } from './attestation';
-import settings from '@settings';
-const SECRETS_BASE_URL = (settings as Record<string, string>).SECRETS_BASE_URL ?? 'https://dlws.incyclist.com';
+import config from '@config';
 
+const logger = new EventLogger('Incyclist');
 
 export class AndroidAttestationProvider implements AttestationProvider {
     async isSupported(): Promise<boolean> {
@@ -12,72 +13,38 @@ export class AndroidAttestationProvider implements AttestationProvider {
 
     async getAttestationToken(): Promise<string> {
 
-        console.log('# getAttestationToken')
-
-        // 1. Fetch Nonce with 5s timeout        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        let nonce: string;
-        try {
-            console.log('# fetch GET', `${SECRETS_BASE_URL}/api/v1/secrets/nonce`)
-            const response = await fetch(`${SECRETS_BASE_URL}/api/v1/secrets/nonce`, {
-                signal: controller.signal
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to fetch nonce: ${response.statusText}`);
-            }
-            const data = await response.json();
-            nonce = data.nonce;
-        } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') {
-                throw new Error('Nonce fetch timed out');
-            }
-            throw err;
-        } finally {
-            clearTimeout(timeoutId);
+        // 1. Validate that the Google Cloud project number is available
+        const googleCloudProjectNumber = (config as Record<string, string>).GOOGLE_PROJECT_NUMBER;
+        if (!googleCloudProjectNumber) {
+            throw new Error(
+                'AndroidAttestationProvider: GOOGLE_PROJECT_NUMBER is not set in config/config.json. ' +
+                'This value is required to initialise the Play Integrity SDK.',
+            );
         }
 
-        // 2. Obtain package name
-        const packageName = DeviceInfo.getBundleId();
-
-        // 3. Play Integrity standard request via REST
-        const integrityUrl = `https://playintegrity.googleapis.com/v1/${packageName}:generateIntegrityToken`;
-
-        // Apply timeout to this fetch as well
-        const integrityController = new AbortController();
-        const integrityTimeoutId = setTimeout(() => integrityController.abort(), 5000);
-
-        let integrityData: any;
+        // 2. Prepare the Play Integrity token (safe to call repeatedly)
         try {
-            console.log('# fetch POST', integrityUrl)
-            const integrityResponse = await fetch(integrityUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ nonce }),
-                signal: integrityController.signal
+            await prepareIntegrityToken(googleCloudProjectNumber);
+        } catch (error) {
+            logger.logEvent({
+                message: 'Play Integrity prepareIntegrityToken failed',
+                error: JSON.stringify(error),
             });
-
-            if (!integrityResponse.ok) {
-                throw new Error(`Play Integrity request failed: ${integrityResponse.statusText}`);
-            }
-
-            integrityData = await integrityResponse.json();
-            if (!integrityData.token) {
-                throw new Error('Play Integrity response missing token');
-            }
-        } catch (err) {
-            console.log('# integrity error', err)
-            if (err instanceof Error && err.name === 'AbortError') {
-                throw new Error('Play Integrity request timed out');
-            }
-            throw err;
-        } finally {
-            clearTimeout(integrityTimeoutId);
+            throw error;
         }
 
-        return integrityData.token;
+        // 3. Request the integrity token
+        let token: string;
+        try {
+            token = await requestIntegrityToken();
+        } catch (error) {
+            logger.logEvent({
+                message: 'Play Integrity requestIntegrityToken failed',
+                error: JSON.stringify(error),
+            });
+            throw error;
+        }
+
+        return token;
     }
 }

@@ -102,6 +102,8 @@ const config: StorybookConfig = {
                     '@settings':                     'react-native-web/dist/exports/View',
                     'react-native-maps': path.resolve(dirname, './mocks/react-native-maps.tsx'),
 
+                    // ── native TurboModule stubs ──────────────────────────────────
+                    '@pagopa/io-react-native-integrity': path.resolve(dirname, 'mocks/io-react-native-integrity.ts'),
 
                     // ── crypto: stub (never use crypto-browserify) ────────────────
                     // crypto-browserify -> browserify-sign -> vendored readable-stream
