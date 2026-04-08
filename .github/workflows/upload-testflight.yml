@@ -38,6 +38,11 @@ jobs:
           sed -i '' "s/versionCode [0-9]*/versionCode $ANDROID_VERSION_CODE/" android/app/build.gradle
           sed -i '' "s/versionName \"[^\"]*\"/versionName \"$APP_VERSION\"/" android/app/build.gradle
 
+      - name: Create config.json
+        run: |
+          mkdir -p config
+          echo '{}' > config/config.json          
+
       # ── Ruby / CocoaPods ────────────────────────────────────────────────────
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1

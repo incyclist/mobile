@@ -33,6 +33,12 @@ jobs:
         run: |
           echo "${{ secrets.MYAPP_UPLOAD_KEYSTORE }}" | base64 --decode > android/app/upload.jks
 
+
+      - name: Create config.json
+        run: |
+          mkdir -p config
+          echo '{"GOOGLE_PROJECT_NUMBER":"${{ secrets.GOOGLE_PROJECT_NUMBER }}"}' > config/config.json          
+
       - name: Build release AAB
         working-directory: android
         env:
