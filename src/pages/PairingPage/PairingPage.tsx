@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 
 import { getDevicesPageService,PairingDisplayProps, IObserver } from 'incyclist-services'
-import { MainBackground } from '../../components'
+import { ErrorBoundary, MainBackground } from '../../components'
 import { useLogging,useUnmountEffect } from '../../hooks'
 import { PairingPageView } from './View'
 import { Platform } from 'react-native'
@@ -69,7 +69,11 @@ export const PairingPage = ( {forRide}:PairingPageProps) => {
     }
 
     const showExit = Platform.OS==='android'
-    return <PairingPageView {...props} showExit={showExit} />
+    return  (
+    <ErrorBoundary>
+        <PairingPageView {...props} showExit={showExit} />
+    </ErrorBoundary>
+    )
 
 }
 
