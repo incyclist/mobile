@@ -44,9 +44,17 @@ if (canUseLocalDevicesLib)  {
     watchFolders.push(devicesPath)
 }
 
-const settingsPath = (isDev)
-  ? path.resolve(__dirname, `config/${process.env.APP_VARIANT }/settings.json`)
-  : path.resolve(__dirname, 'polyfill/settings.ts');
+let settingsPath;
+
+if (isDev) {
+    settingsPath=path.resolve(__dirname, `config/${process.env.APP_VARIANT }/settings.json`)
+    if (!fs.existsSync(settingsPath)) {
+      settingsPath = path.resolve(__dirname, 'polyfill/empty-config.ts');  
+    }
+}
+else {
+    settingsPath = path.resolve(__dirname, 'polyfill/settings.ts');
+}
 
 
 const configPath = path.resolve(__dirname, 'config/config.json');
