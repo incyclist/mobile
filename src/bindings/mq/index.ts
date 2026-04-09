@@ -180,7 +180,7 @@ export class MessageQueue extends EventEmitter {
                 timeout: CONNECT_TIMEOUT,
                 keepAlive: 60,
                 autoReconnect: true,
-                ...(tls ? { enableSsl: true } : {}),
+                ...(tls ? { enableSsl: true, allowUntrustedCA:true } : {}),
             };
 
             this.connectRetries(options, CONNECT_RETRY_CNT, CONNECT_RETRY_INTERVAL, onConnected)
