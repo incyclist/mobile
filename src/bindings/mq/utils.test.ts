@@ -44,6 +44,15 @@ describe('normaliseMqttUri', () => {
             expect(result.tls).toBe(true);
         });
 
+        it('android — mqtts://mq.api.incyclist.com', () => {
+            const result = normaliseMqttUri('mqtts://mq.api.incyclist.com', 'android');
+            expect(result.nativeUri).toBe('ssl://mq.api.incyclist.com:8883');
+            expect(result.tls).toBe(true);
+        });
+
+
+        
+
         it('ios — no port → mqtts:// with default port 8883', () => {
             const result = normaliseMqttUri('mqtts://broker.example.com', 'ios');
             expect(result.nativeUri).toBe('mqtts://broker.example.com:8883');

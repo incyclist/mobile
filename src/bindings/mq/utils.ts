@@ -26,14 +26,29 @@ const DEFAULT_PORTS: Record<string, number> = {
  * Malformed URIs are returned unchanged with tls: false.
  */
 export function normaliseMqttUri(uri: string, platform: 'ios' | 'android'): NormalisedMqttUri {
+
+    /*
+            Hermes handles non-standard URL schemes differently from Node.js. 
+            new URL('mqtts://...') returns an empty hostname in Hermes because mqtts: is not a recognised scheme.    
+    */
+    const schemeMatch = uri.match(/^([a-z]+):\/\//);
+    if (!schemeMatch) return { nativeUri: uri, tls: false };
+
+    const originalScheme = schemeMatch[1] + ':'; // e.g. 'mqtt:'
+
+    const parseable = uri
+        .replace(/^mqtt:\/\//, 'http://')
+        .replace(/^mqtts:\/\//, 'https://')
+        .replace(/^tcp:\/\//, 'http://')
+        .replace(/^ssl:\/\//, 'https://');
+
     let parsed: URL;
     try {
-        parsed = new URL(uri);
+        parsed = new URL(parseable);
     } catch {
         return { nativeUri: uri, tls: false };
     }
 
-    const scheme = parsed.protocol; // includes trailing colon, e.g. 'mqtt:'
     const host = parsed.hostname;
     const explicitPort = parsed.port ? parseInt(parsed.port, 10) : null;
 
@@ -41,7 +56,7 @@ export function normaliseMqttUri(uri: string, platform: 'ios' | 'android'): Norm
         return explicitPort !== null ? explicitPort : DEFAULT_PORTS[defaultScheme] ?? 1883;
     };
 
-    switch (scheme) {
+    switch (originalScheme) {
         case 'mqtt:': {
             const port = resolvePort('mqtt:');
             const nativeUri =

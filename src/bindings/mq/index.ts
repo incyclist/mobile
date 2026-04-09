@@ -113,7 +113,7 @@ export class MessageQueue extends EventEmitter {
         if (!uri || !username || !password) return false;
 
         const { nativeUri, tls } = normaliseMqttUri(uri, Platform.OS as 'ios' | 'android');
-        this.logger.logEvent({ message: 'mqtt broker uri normalised', nativeUri, tls });
+        this.logger.logEvent({ message: 'mqtt broker uri normalised', uri, nativeUri, tls });
         this.client = new Mqtt.Client(nativeUri);
 
         const onConnected = () => {

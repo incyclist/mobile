@@ -114,7 +114,7 @@ export const App = ({ secretsStatus }: AppProps) => {
                 const bindings = await initBindings();
                 service.setBindings(bindings as IncyclistBindings);
 
-                await getMessageQueueBinding().connect()
+                getMessageQueueBinding().connect()
 
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);
