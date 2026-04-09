@@ -133,7 +133,8 @@ export const App = ({ secretsStatus }: AppProps) => {
     });
 
     if (!initialized) {
-        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion} />;
+        
+        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion} statusMessage='connecting ...' />;
     }
 
     return (

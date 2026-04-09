@@ -1,6 +1,7 @@
 import { ActivityIndicator, Image, StatusBar, StyleSheet, Text, useColorScheme, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
+import { useLogging } from "../../hooks";
 
 interface LoadingScreenProps  {
     appVersion: string
@@ -9,6 +10,9 @@ interface LoadingScreenProps  {
 }
 export const LoadingScreen = ( {appVersion, bundleVersion, statusMessage}:LoadingScreenProps)=> {
     const isDarkMode = useColorScheme() === 'dark';
+    const {logEvent} = useLogging('Incyclist')
+
+    logEvent({message:'show loading screen', statusMessage})
 
     return (
         <SafeAreaView style={styles.container}>

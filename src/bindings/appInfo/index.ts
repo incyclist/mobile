@@ -4,7 +4,7 @@ import appJson from '../../../app.json'
 import {Platform} from 'react-native';
 import {v4} from 'uuid';
 import DefaultPreference from 'react-native-default-preference';
-
+import settings from '@settings';
 
 export const getOS = () => {
     const arch = 'react-native';
@@ -56,3 +56,4 @@ export const getAppInfoBinding = async () => {
 }
 
 export const isDevVariant = __DEV__;
+export const isProdVariant = settings.APP_ENV === 'production';

@@ -21,8 +21,9 @@ const initApi = async ()=> {
 
     const userSettingsBinding = getUserSettingsBinding();
     await userSettingsBinding.getAll();
-    const uuid = userSettingsBinding.getValue('uuid', null);
-    if (uuid) {
+
+    const uuid = userSettingsBinding.getValue('uuid', null);   
+    if (uuid) {        
         ApiConfiguration.getInstance().addHeader('x-uuid', uuid);
     }
 
@@ -40,6 +41,7 @@ export const Loader = () =>{
         EventLogger.registerAdapter(logAdapter)
 
         initRestLogging()
+
     }
 
     useEffect(() => {
@@ -47,9 +49,12 @@ export const Loader = () =>{
             return
         
         Orientation.lockToLandscape();
-        initLogging()
+
+        
         
         const run = async () => {
+
+            await initLogging()
 
             setStatusMessage('Setting up infrastructure...');
             const status = await initSecrets({ timeout: 7000 });
@@ -64,6 +69,7 @@ export const Loader = () =>{
             setIsLoading(false);
             refChecking.current    = null
         }
+
         refChecking.current  = run();
         
 

@@ -2,7 +2,7 @@ import { EventLogger } from "gd-eventlog"
 import { RestLogAdapter } from "../../bindings/logging/Adapters/RestLogAdapter"
 import { ApiConfiguration } from "../IncyclistApi";
 import { Platform } from "react-native";
-import { getChannel} from "../../bindings/appInfo";
+import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
 
 
@@ -24,7 +24,10 @@ const restLogFilter = (context:string, event:any) => {
 
 
 export const initRestLogging = async () => {
+
+
     try {
+
         const settings = getUserSettingsBinding()
         const apiConfig = ApiConfiguration.getInstance()
         
@@ -35,9 +38,10 @@ export const initRestLogging = async () => {
         const sendInterval = settings.get('logRest.sendInterval',undefined)
         const enabled = settings.get('logRest.enabled',true)
 
+        const uuid = settings.get('uuid',undefined)
+
         if (enabled) {
 
-            const uuid = settings.get('uuid',undefined)
 
             apiConfig.addHeader('x-uuid',uuid)
             apiConfig.addHeader('x-platform',Platform.OS)
@@ -50,6 +54,17 @@ export const initRestLogging = async () => {
         else {
             console.log('# Rest logging disabled', {enabled, logUrl,sendInterval})
         }
+
+        const logger = new EventLogger('Incyclist')
+        const appInfo = await getAppInfoBinding()
+        
+        const appVersion = appInfo.getAppVersion()
+        const version= appInfo.getUIVersion()
+
+
+
+        logger.setGlobal({version, appVersion, uuid})
+        logger.logEvent( {message:'Logging initialiazed'})
     }
     catch(err) {
         console.log('Error', err)

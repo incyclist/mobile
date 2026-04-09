@@ -8,6 +8,8 @@ import { getAttestationProvider } from './attestation';
 import { SecretsStatus, AppSecrets, CachedSecrets } from './types';
 import settings from '@settings';
 import { EventLogger } from 'gd-eventlog';
+import { isProdVariant } from '../appInfo';
+import { getUserSettingsBinding } from '../user-settings';
 
 const KEYCHAIN_SERVICE = 'incyclist-secrets-key';
 const MMKV_ID = 'incyclist-secrets';
@@ -176,6 +178,12 @@ const performInit = async (): Promise<SecretsStatus> => {
 };
 
 export const initSecrets = async (opts: { timeout: number }): Promise<SecretsStatus> => {
+
+    if (!isProdVariant) {
+        await getUserSettingsBinding().getAll()
+        return 'ok';
+    }
+
     if (!initPromise) {
         initPromise = performInit();
     }
@@ -189,10 +197,17 @@ export const initSecrets = async (opts: { timeout: number }): Promise<SecretsSta
 };
 
 export const getSecret = (key: string): string | undefined => {
+    if (!isProdVariant)
+        return getUserSettingsBinding().getValue(key,null)
+
     return currentSecrets ? currentSecrets[key] : undefined;
 };
 
 export const getSecretsStatus = (): SecretsStatus => {
+
+    if (!isProdVariant)
+        return 'ok'
+
     return currentStatus;
 };
 

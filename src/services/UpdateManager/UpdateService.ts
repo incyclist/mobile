@@ -2,7 +2,7 @@ import { unzip } from 'react-native-zip-archive';
 import DefaultPreference from 'react-native-default-preference';
 import { name as appName, appVersion } from '../../../app.json';
 import { CachesDirectoryPath, DocumentDirectoryPath, downloadFile, DownloadFileOptions, exists, mkdir, readDir, unlink } from 'react-native-fs';
-import { isDevVariant } from '../../bindings/appInfo';
+import { isDevVariant, isProdVariant  } from '../../bindings/appInfo';
 import settings from '@settings'
 import { EventLogger } from 'gd-eventlog';
 import { getUserSettingsBinding } from '../../bindings/user-settings';
@@ -10,7 +10,7 @@ import { getSecret } from '../../bindings/secret';
 
 
 // TODO: change towards production URL
-const BASE_URL_PROD = 'https://updates.test.incyclist.com';
+const BASE_URL_PROD = 'https://updates.incyclist.com';
 const UPDATES_ROOT = `${DocumentDirectoryPath}/updates`;
 
 interface IAppBundleResponse {
@@ -53,6 +53,8 @@ export class UpdateService {
     static async checkForUpdates() {
 
 
+        this.logger.logEvent( {message:'check for updates', isDevVariant, isProdVariant})
+
         // 1. Skip if in Debug (Development) mode
         if (isDevVariant) {
             this.logger.logEvent({message:'Skipping update check in Debug mode.'});
@@ -70,7 +72,7 @@ export class UpdateService {
                 return;
             }
 
-            const bundleApiKey = getSecret('bundleApiKey');
+            const bundleApiKey = getSecret('INCYCLIST_API_KEY');
 
             const activePath = await DefaultPreference.get('active_bundle_path');
             const fileExists = await exists(`${activePath}/index.android.bundle`);
@@ -97,7 +99,7 @@ export class UpdateService {
         const BASE_URL = await getBaseUrl()
         const url = `${BASE_URL}/api/v1/apps/${appName}`;
 
-        this.logger.logEvent({message:'Request bundle',url});
+        this.logger.logEvent({message:'Request bundle info',url});
 
         const headers: Record<string, string> = {
             'x-uuid': uuid,
