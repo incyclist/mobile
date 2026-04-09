@@ -48,6 +48,12 @@ const settingsPath = (isDev)
   ? path.resolve(__dirname, `config/${process.env.APP_VARIANT }/settings.json`)
   : path.resolve(__dirname, 'polyfill/settings.ts');
 
+
+const configPath = path.resolve(__dirname, 'config/config.json');
+const configAlias = fs.existsSync(configPath)
+    ? configPath
+    : path.resolve(__dirname, 'polyfill/empty-config.ts');
+
 const assetsPath = path.resolve(__dirname, 'src/assets');
 /**
  * Metro configuration
@@ -75,7 +81,7 @@ const config = {
             'stream': path.resolve(__dirname, 'polyfill/node-mocks.js'),     // FIXED: was empty-module
             '@settings' : settingsPath,
             '@assets':assetsPath,
-            '@config': path.resolve(__dirname, 'config/config.json'),
+            '@config': configAlias,
 
             // Logic-only mocks can stay as empty-module
             'path': require.resolve('metro-runtime/src/modules/empty-module.js'),
