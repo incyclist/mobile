@@ -19,6 +19,7 @@ export class MessageQueue extends EventEmitter {
     private queue: Array<{ topic: string; payload: string; ts: number }> = [];
     private internalEmitter = new EventEmitter();
     private subscriptions: Set<string> = new Set();
+    private toConnect: NodeJS.Timeout|undefined
 
     static _instance: MessageQueue | null;
 
@@ -92,8 +93,9 @@ export class MessageQueue extends EventEmitter {
         }
 
         if (this.isConnected) return true;
+        
 
-        this.logger.logEvent({ message: 'connecting to message queue ...' });
+        this.logger.logEvent({ message: 'connecting to message queue ...', platform:Platform.OS, isProdVariant });
 
         // Temporarily disabled MQTT on iOS in production
         if (Platform.OS === 'ios' && isProdVariant) {
@@ -117,6 +119,7 @@ export class MessageQueue extends EventEmitter {
         this.client = new Mqtt.Client(nativeUri);
 
         const onConnected = () => {
+            this.logger.logEvent({ message: 'mqtt connected' });
             this.isConnected = true;
 
             if (this.subscriptions.size > 0) {
@@ -124,7 +127,6 @@ export class MessageQueue extends EventEmitter {
                 this.client.subscribe(topics, topics.map(() => 0));
             }
 
-            this.logger.logEvent({ message: 'mqtt connected' });
             this.internalEmitter.emit('connected');
 
             if (this.queue) {
@@ -143,12 +145,23 @@ export class MessageQueue extends EventEmitter {
 
         const onDisconnected = (reason: string) => {
             this.isConnected = false;
+            if (this.toConnect) {
+                clearTimeout(this.toConnect)
+                delete this.toConnect
+            }
+                
             this.logger.logEvent({ message: 'mqtt connection disconnected', reason });
             this.internalEmitter.emit('disconnected');
+
         };
 
         const onEror = (err: string) => {
             this.logger.logEvent({ message: 'mqtt error', info: err });
+            if (this.toConnect) {
+                clearTimeout(this.toConnect)
+                delete this.toConnect
+            }
+
         };
 
         this.client.on(Mqtt.Event.Connect, onConnected);
@@ -167,6 +180,7 @@ export class MessageQueue extends EventEmitter {
                 timeout: CONNECT_TIMEOUT,
                 keepAlive: 60,
                 autoReconnect: true,
+                ...(tls ? { enableSsl: true } : {}),
             };
 
             this.connectRetries(options, CONNECT_RETRY_CNT, CONNECT_RETRY_INTERVAL, onConnected)
@@ -188,7 +202,7 @@ export class MessageQueue extends EventEmitter {
         }
         this.isConnected = false;
         this.connectPromise = null;
-        this.logger.logEvent({ message: 'mqtt disconnected' });
+        this.logger.logEvent({ message: 'mqtt disconnect requested by app' });
     }
 
     private async connectRetries(
@@ -229,6 +243,14 @@ export class MessageQueue extends EventEmitter {
                 this.internalEmitter.removeAllListeners();
                 resolve(false);
             });
+
+            const onTimeout = ()=> {
+                if (this.isConnected)
+                    return
+                this.logger.logEvent({ message: 'mqtt timeout' });
+                resolve(false)
+            }
+            this.toConnect = setTimeout( onTimeout, CONNECT_TIMEOUT + 2000)
 
             this.client.connect(options, (error?: Error) => {
                 if (error !== null && error !== undefined) {
