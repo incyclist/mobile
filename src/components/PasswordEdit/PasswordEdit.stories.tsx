@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { PasswordEdit } from './PasswordEdit';
 
-const meta: Meta<typeof PasswordEdit> = {
+export const meta: Meta<typeof PasswordEdit> = {
     title: 'Components/PasswordEdit',
     component: PasswordEdit,
     args: {
@@ -12,7 +12,6 @@ const meta: Meta<typeof PasswordEdit> = {
     },
 };
 
-export default meta;
 type Story = StoryObj<typeof PasswordEdit>;
 
 export const Default: Story = {};

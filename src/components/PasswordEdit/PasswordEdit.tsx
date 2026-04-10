@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
@@ -15,14 +15,7 @@ export const PasswordEdit = ({
     compact = false,
 }: PasswordEditProps) => {
     const [isVisible, setIsVisible] = useState(false);
-    const [internalValue, setInternalValue] = useState(value);
-    const refLastValue = useRef(value);
     const { logEvent } = useLogging('PasswordEdit');
-
-    useEffect(() => {
-        setInternalValue(value);
-        refLastValue.current = value;
-    }, [value]);
 
     const handleToggle = useCallback(() => {
         const nextVisible = !isVisible;
@@ -33,14 +26,6 @@ export const PasswordEdit = ({
             eventSource: 'user',
         });
     }, [isVisible, logEvent]);
-
-    const handleCommit = useCallback(() => {
-        if (internalValue === refLastValue.current) {
-            return;
-        }
-        refLastValue.current = internalValue;
-        onChangeText?.(internalValue);
-    }, [internalValue, onChangeText]);
 
     const containerStyle = [styles.container, compact && styles.containerCompact];
     const inputWrapperStyle = [
@@ -59,10 +44,8 @@ export const PasswordEdit = ({
                 <View style={inputWrapperStyle}>
                     <TextInput
                         style={inputStyle}
-                        value={internalValue}
-                        onChangeText={setInternalValue}
-                        onBlur={handleCommit}
-                        onEndEditing={handleCommit}
+                        value={value ?? ''}
+                        onChangeText={onChangeText}
                         placeholder={placeholder}
                         placeholderTextColor={colors.disabled}
                         secureTextEntry={!isVisible}
