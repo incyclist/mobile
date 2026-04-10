@@ -23,6 +23,7 @@ export * from './InfoText'
 export * from './RideMenu'
 export * from './Dialog';
 export * from './EditText';
+export * from './PasswordEdit';
 export * from './EditNumber';
 export * from './SingleSelect';
 export * from './ChipSelect';
