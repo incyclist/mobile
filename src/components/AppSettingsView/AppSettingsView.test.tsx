@@ -11,6 +11,15 @@ jest.mock('incyclist-services', () => ({
     },
 }));
 
+jest.mock('../Dialog', () => ({
+    Dialog: ({ children, title }: { children: React.ReactNode, title: string }) => (
+        <>
+            {title}
+            {children}
+        </>
+    ),
+}));
+
 const MOCK_CONNECT_BUTTON = () => <Button label="Connect" onClick={jest.fn()} />;
 
 const MOCK_PROPS: AppSettingsViewProps = {
