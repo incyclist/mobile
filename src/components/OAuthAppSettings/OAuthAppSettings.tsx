@@ -1,11 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Linking, TouchableOpacity } from 'react-native';
+import { Linking, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppsService } from 'incyclist-services';
 import type { AppsOperation } from 'incyclist-services';
 import { AppSettingsView } from '../AppSettingsView';
 import type { OperationConfig } from '../OperationsSelector/types';
-import { useLogging } from '../../hooks/logging';
-import { useUnmountEffect } from '../../hooks/unmount';
+import { useLogging } from '../../hooks';
+import { useUnmountEffect } from '../../hooks';
+import { colors } from '../../theme/colors';
+import { textSizes } from '../../theme/textSizes';
+import StravaConnectSvg from '../../assets/apps/btn_strava_connectwith_orange.svg';
 import type { OAuthAppSettingsProps } from './types';
 
 const OAUTH_BASE = 'https://auth.incyclist.com';
@@ -115,8 +118,7 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
     const stravaConnectButton = useCallback(
         () => (
             <TouchableOpacity onPress={onConnect}>
-                {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
-                {React.createElement(require('../../assets/apps/strava-connect.svg').default)}
+                <StravaConnectSvg />
             </TouchableOpacity>
         ),
         [onConnect],
@@ -125,7 +127,6 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
     const intervalsConnectButton = useCallback(
         () => (
             <TouchableOpacity onPress={onConnect} style={styles.intervalsButton}>
-                {/* text rendered by AppSettingsView via Button — pass a simple wrapper */}
                 {React.createElement(
                     require('react-native').Text,
                     { style: styles.intervalsButtonText },
@@ -153,10 +154,6 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
         />
     );
 };
-
-import { StyleSheet } from 'react-native';
-import { colors } from '../../theme/colors';
-import { textSizes } from '../../theme/textSizes';
 
 const styles = StyleSheet.create({
     intervalsButton: {
