@@ -1,4 +1,3 @@
-import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { fn } from 'storybook/test'
 import { KomootLoginDialogView } from './KomootLoginDialogView'

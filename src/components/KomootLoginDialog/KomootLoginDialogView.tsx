@@ -24,13 +24,11 @@ export const KomootLoginDialogView = ({
         {
             label: 'Cancel',
             onClick: onCancel ?? (() => {}),
-            disabled: isConnecting,
         },
         {
             label: 'Connect',
             primary: true,
             onClick: onConnect ?? (() => {}),
-            disabled: isConnecting,
         },
     ]
 
@@ -40,19 +38,19 @@ export const KomootLoginDialogView = ({
                 <EditText
                     label="Email"
                     value={username ?? ''}
-                    onChangeText={onUsernameChange}
+                    onValueChange={onUsernameChange}
                     disabled={isConnecting}
                 />
                 <PasswordEdit
                     label="Password"
                     value={password ?? ''}
-                    onChangeText={onPasswordChange}
+                    onValueChange={onPasswordChange}
                     disabled={isConnecting}
                 />
                 <EditText
                     label="Account ID"
                     value={userid ?? ''}
-                    onChangeText={onUseridChange}
+                    onValueChange={onUseridChange}
                     disabled={isConnecting}
                 />
                 {!!errorMessage && (
