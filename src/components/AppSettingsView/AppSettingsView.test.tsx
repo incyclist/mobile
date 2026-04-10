@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { AppSettingsView } from './AppSettingsView';
 import { AppSettingsViewProps } from './types';
@@ -14,7 +15,7 @@ jest.mock('incyclist-services', () => ({
 jest.mock('../Dialog', () => ({
     Dialog: ({ children, title }: { children: React.ReactNode, title: string }) => (
         <>
-            {title}
+            <Text>{title}</Text>
             {children}
         </>
     ),
