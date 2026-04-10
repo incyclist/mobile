@@ -29,3 +29,4 @@ export * from './ChipSelect';
 export * from './BinarySelect';
 export * from './ActivitySummaryDialog';
 export * from './ErrorBoundary'
+export * from './KomootLoginDialog'
