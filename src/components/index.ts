@@ -32,3 +32,4 @@ export * from './ActivitySummaryDialog';
 export * from './ErrorBoundary'
 export * from './OperationsSelector'
 export * from './KomootLoginDialog'
+export * from './KomootSettings'
