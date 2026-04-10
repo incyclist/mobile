@@ -1,5 +1,6 @@
 export interface PasswordEditProps {
-    label?: string;
+    label: string;
+    labelWidth?: number;
     value?: string;
     onChangeText?: (value: string) => void;
     placeholder?: string;
