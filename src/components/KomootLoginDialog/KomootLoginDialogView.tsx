@@ -44,7 +44,7 @@ export const KomootLoginDialogView = ({
                 <PasswordEdit
                     label="Password"
                     value={password ?? ''}
-                    onValueChange={onPasswordChange}
+                    onChangeText={onPasswordChange}
                     disabled={isConnecting}
                 />
                 <EditText
