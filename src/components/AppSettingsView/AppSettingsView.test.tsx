@@ -1,5 +1,4 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { AppSettingsView } from './AppSettingsView';
 import { AppSettingsViewProps } from './types';
@@ -12,14 +11,17 @@ jest.mock('incyclist-services', () => ({
     },
 }));
 
-jest.mock('../Dialog', () => ({
-    Dialog: ({ children, title }: { children: React.ReactNode, title: string }) => (
-        <>
-            <Text>{title}</Text>
-            {children}
-        </>
-    ),
-}));
+jest.mock('../Dialog', () => {
+    const { Text } = require('react-native');
+    return {
+        Dialog: ({ children, title }: { children: React.ReactNode; title: string }) => (
+            <>
+                <Text>{title}</Text>
+                {children}
+            </>
+        ),
+    };
+});
 
 const MOCK_CONNECT_BUTTON = () => <Button label="Connect" onClick={jest.fn()} />;
 
