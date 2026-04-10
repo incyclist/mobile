@@ -7,7 +7,6 @@ import { PasswordEditProps } from './types';
 
 export const PasswordEdit = ({
     label,
-    labelWidth = 100,
     value = '',
     onChangeText,
     placeholder,
@@ -34,15 +33,16 @@ export const PasswordEdit = ({
         disabled && styles.disabledBorder,
         hasError && styles.errorBorder,
     ];
-    const labelWidthStyle = { width: labelWidth };
-    const labelStyle = [styles.label, labelWidthStyle, disabled && styles.disabledText];
+    const labelStyle = [styles.label, disabled && styles.disabledText];
     const inputStyle = [styles.input, disabled && styles.disabledText];
     const toggleTextStyle = [styles.toggleText, disabled && styles.disabledText];
 
     return (
         <View style={containerStyle}>
             <View style={styles.row}>
-                <Text style={labelStyle}>{label}</Text>
+                {label !== undefined && (
+                    <Text style={labelStyle}>{label}</Text>
+                )}
                 <View style={inputWrapperStyle}>
                     <TextInput
                         style={inputStyle}
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: textSizes.normalText,
         marginRight: 8,
+        width: 100,
     },
     inputWrapper: {
         flex: 1,
