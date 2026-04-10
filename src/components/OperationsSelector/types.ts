@@ -1,4 +1,9 @@
-import { AppsOperation } from 'incyclist-services';
+export type AppsOperation =
+    | 'ActivityUpload'
+    | 'WorkoutUpload'
+    | 'WorkoutDownload'
+    | 'RouteDownload'
+    | 'ActivityDownload';
 
 export interface OperationConfig {
     operation: AppsOperation;

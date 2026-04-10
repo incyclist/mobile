@@ -2,22 +2,20 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { OperationsSelector } from './OperationsSelector';
 
-const meta: Meta<typeof OperationsSelector> = {
+export const meta: Meta<typeof OperationsSelector> = {
     title: 'Components/OperationsSelector',
     component: OperationsSelector,
     args: {
         onChanged: fn(),
         operations: [
-            { operation: 'ActivityUpload' as any, enabled: true },
-            { operation: 'WorkoutUpload' as any, enabled: false },
-            { operation: 'WorkoutDownload' as any, enabled: true },
-            { operation: 'RouteDownload' as any, enabled: false },
-            { operation: 'ActivityDownload' as any, enabled: true },
+            { operation: 'ActivityUpload', enabled: true },
+            { operation: 'WorkoutUpload', enabled: false },
+            { operation: 'WorkoutDownload', enabled: true },
+            { operation: 'RouteDownload', enabled: false },
+            { operation: 'ActivityDownload', enabled: true },
         ],
     },
 };
-
-export default meta;
 
 type Story = StoryObj<typeof OperationsSelector>;
 

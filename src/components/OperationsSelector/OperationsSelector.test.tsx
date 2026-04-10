@@ -3,21 +3,17 @@ import { render } from '@testing-library/react-native';
 import { OperationsSelector } from './OperationsSelector';
 import { OperationsSelectorProps } from './types';
 
-jest.mock('../../hooks/useLogging', () => ({
+jest.mock('../../hooks', () => ({
     useLogging: () => ({
         logEvent: jest.fn(),
         logError: jest.fn(),
     }),
 }));
 
-jest.mock('incyclist-services', () => ({
-    AppsOperation: {},
-}));
-
 const MOCK_PROPS: OperationsSelectorProps = {
     operations: [
-        { operation: 'ActivityUpload' as any, enabled: true },
-        { operation: 'RouteDownload' as any, enabled: false },
+        { operation: 'ActivityUpload', enabled: true },
+        { operation: 'RouteDownload', enabled: false },
     ],
     onChanged: jest.fn(),
 };
