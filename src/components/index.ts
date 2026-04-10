@@ -11,10 +11,10 @@ export * from './FreeMap'
 export * from './FilterPanel';
 export * from './RoutesTable'
 export * from './RouteDetailsDialog'
+export * from './RouteImportDialog'
 export type * from './NavigationBar/types'
 export * from './Icon';
 export * from './Dynamic'
-export * from './RouteImportDialog'
 export * from './ElevationGraph'
 export * from './RideDashboard'
 export * from './Video'
@@ -32,3 +32,4 @@ export * from './ActivitySummaryDialog';
 export * from './ErrorBoundary'
 export * from './OperationsSelector'
 export * from './KomootLoginDialog'
+export * from './AppsSettings'
