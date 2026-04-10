@@ -4,12 +4,12 @@ import { Linking } from 'react-native';
 import { OAuthAppSettings } from './OAuthAppSettings';
 
 jest.mock('incyclist-services', () => ({
-    useAppsService: () => ({
+    useAppsService: jest.fn(() => ({
         openAppSettings: jest.fn().mockReturnValue({ isConnected: false, operations: [] }),
         connect: jest.fn().mockResolvedValue(true),
         disconnect: jest.fn(),
         enableOperation: jest.fn().mockReturnValue([]),
-    }),
+    })),
 }));
 
 jest.mock('../AppSettingsView', () => ({
