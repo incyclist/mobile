@@ -33,8 +33,8 @@ export const Connected: Story = {
         title: 'Strava Integration',
         isConnected: true,
         operations: [
-            { id: 'route' as any, label: 'Download Routes', enabled: true },
-            { id: 'activity' as any, label: 'Upload Activities', enabled: false },
+            { operation: 'RouteDownload', enabled: true },
+            { operation: 'ActivityUpload', enabled: false },
         ],
     },
 };

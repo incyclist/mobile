@@ -1,5 +1,4 @@
-import { OperationConfig } from '../OperationsSelector/types';
-import { AppsOperation } from 'incyclist-services';
+import { OperationConfig, AppsOperation } from '../OperationsSelector/types';
 
 export interface AppSettingsViewProps {
     title: string;
