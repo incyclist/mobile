@@ -8,6 +8,7 @@ import { SettingsSlideIn, SettingsSectionItem } from '../SettingsSlideIn';
 import { SupportSettings } from '../SupportSettings';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
+import { AppsSettings } from '../AppsSettings';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 export const NavigationBar = (props: NavigationBarProps) => {
@@ -19,6 +20,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showSupport, setShowSupport] = useState(false);
     const [showPlaceholder, setShowPlaceholder] = useState(false);
     const [showGear, setShowGear] = useState(false);
+    const [showApps, setShowApps] = useState(false);
 
     const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const verticalNavWidth = compact ? 70 : 150;
@@ -42,6 +44,9 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 break;
             case 'Gear':
                 setShowGear(true);
+                break;
+            case 'Apps':
+                setShowApps(true);
                 break;
             default:
                 setShowPlaceholder(true);
@@ -87,6 +92,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
             {showSupport && <SupportSettings onClose={() => setShowSupport(false)} />}
             {showPlaceholder && <SettingsPlaceholder onClose={() => setShowPlaceholder(false)} />}
             {showGear && <GearSettings onClose={() => setShowGear(false)} />}
+            {showApps && <AppsSettings onBack={() => setShowApps(false)} />}
         </>
     );
 };
