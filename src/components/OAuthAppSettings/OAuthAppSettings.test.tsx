@@ -16,7 +16,7 @@ jest.mock('../AppSettingsView', () => ({
     AppSettingsView: () => null,
 }));
 
-jest.mock('../../assets/apps/btn_strava_connectwith_orange.svg', () => ({
+jest.mock('../../assets/btn_strava_connectwith_orange.svg', () => ({
     default: () => null,
 }));
 

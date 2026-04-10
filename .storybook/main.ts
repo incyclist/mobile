@@ -82,7 +82,7 @@ const config: StorybookConfig = {
                     enforce: 'pre' as const,
                     resolveId(id: string) {
                         // Redirect SVG imports from assets/apps to a stub component
-                        if (id.includes('assets/apps/') && id.endsWith('.svg')) {
+                        if (id.includes('assets/') && id.endsWith('.svg')) {
                             return path.resolve(dirname, './mocks/svg-stub.tsx');
                         }
                         return null;

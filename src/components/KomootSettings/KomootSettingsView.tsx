@@ -11,7 +11,7 @@ import { AppSettingsView } from '../AppSettingsView';
 import { KomootLoginDialog } from '../KomootLoginDialog';
 import { OperationConfig } from '../OperationsSelector/types';
 import { colors, textSizes } from '../../theme';
-import KomootLogo from '../../assets/apps/komoot.svg';
+import { SvgUri } from 'react-native-svg';
 
 export const KomootSettingsView = ({
     isConnected,
@@ -30,7 +30,7 @@ export const KomootSettingsView = ({
         return (
             <TouchableOpacity style={styles.connectButton} onPress={onConnect}>
                 <View style={styles.connectButtonContent}>
-                    <KomootLogo width={24} height={24} />
+                    <SvgUri uri="https://www.komoot.com/assets/4d8ae313eec53e6e.svg" width={24} height={24} />
                     <Text style={styles.connectButtonText}>Connect with Komoot</Text>
                 </View>
             </TouchableOpacity>

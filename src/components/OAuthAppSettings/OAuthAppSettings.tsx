@@ -8,7 +8,7 @@ import { useLogging } from '../../hooks';
 import { useUnmountEffect } from '../../hooks';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
-import StravaConnectSvg from '../../assets/apps/btn_strava_connectwith_orange.svg';
+import StravaConnectSvg from '../../assets/btn_strava_connectwith_orange.svg';
 import type { OAuthAppSettingsProps } from './types';
 
 const OAUTH_BASE = 'https://auth.incyclist.com';
