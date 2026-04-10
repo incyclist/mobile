@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { OperationsSelector } from './OperationsSelector';
 
-export const meta: Meta<typeof OperationsSelector> = {
+const meta: Meta<typeof OperationsSelector> = {
     title: 'Components/OperationsSelector',
     component: OperationsSelector,
     args: {
@@ -16,6 +16,8 @@ export const meta: Meta<typeof OperationsSelector> = {
         ],
     },
 };
+
+export default meta;
 
 type Story = StoryObj<typeof OperationsSelector>;
 
