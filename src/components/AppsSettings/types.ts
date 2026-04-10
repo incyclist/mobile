@@ -9,6 +9,7 @@ export interface AppsSettingsViewProps {
     apps?: AppDisplayProps[];
     onSelect?: (key: string) => void;
     compact?: boolean;
+    onBack?: () => void;
 }
 
 export interface AppsSettingsProps {

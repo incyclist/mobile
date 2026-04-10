@@ -4,6 +4,7 @@ import { SvgUri } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { AppsSettingsViewProps, AppDisplayProps } from './types';
+import { ExitButton } from '../ExitButton';
 
 const AppRow = ({ app, onSelect }: { app: AppDisplayProps; onSelect?: (key: string) => void }) => {
     const isSvg = app.iconUrl.toLowerCase().endsWith('.svg');
@@ -37,18 +38,21 @@ const AppRow = ({ app, onSelect }: { app: AppDisplayProps; onSelect?: (key: stri
     );
 };
 
-export const AppsSettingsView = ({ apps, onSelect, compact }: AppsSettingsViewProps) => {
+export const AppsSettingsView = ({ apps, onSelect, compact, onBack }: AppsSettingsViewProps) => {
     const containerStyle = [
         styles.container,
         compact && styles.compact
     ];
 
     return (
-        <ScrollView style={containerStyle}>
-            {apps?.map((app) => (
-                <AppRow key={app.key} app={app} onSelect={onSelect} />
-            ))}
-        </ScrollView>
+        <View style={styles.container}>
+            <ScrollView style={containerStyle}>
+                {apps?.map((app) => (
+                    <AppRow key={app.key} app={app} onSelect={onSelect} />
+                ))}
+            </ScrollView>
+            {onBack && <ExitButton onPress={onBack} />}
+        </View>
     );
 };
 

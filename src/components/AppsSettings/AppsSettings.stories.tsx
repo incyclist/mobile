@@ -7,6 +7,7 @@ const meta: Meta<typeof AppsSettingsView> = {
     component: AppsSettingsView,
     args: {
         onSelect: fn(),
+        onBack: fn(),
     },
 };
 

@@ -46,6 +46,7 @@ export const AppsSettings = ({ onBack }: AppsSettingsProps) => {
         <AppsSettingsView 
             apps={apps} 
             onSelect={handleSelect} 
+            onBack={onBack}
         />
     );
 };

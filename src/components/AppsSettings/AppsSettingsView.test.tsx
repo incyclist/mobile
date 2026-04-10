@@ -3,6 +3,10 @@ import { render } from '@testing-library/react-native';
 import { AppsSettingsView } from './AppsSettingsView';
 import { AppDisplayProps, AppsSettingsViewProps } from './types';
 
+jest.mock('react-native-svg', () => ({
+    SvgUri: () => null,
+}));
+
 const MOCK_APPS: AppDisplayProps[] = [
     { name: 'Strava', key: 'strava', iconUrl: 'strava.svg', isConnected: true },
     { name: 'Komoot', key: 'komoot', iconUrl: 'komoot.svg', isConnected: false },
