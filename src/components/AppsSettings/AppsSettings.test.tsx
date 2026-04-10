@@ -2,8 +2,12 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { AppsSettings } from './AppsSettings';
 
+jest.mock('react-native-svg', () => ({
+    SvgUri: () => null,
+}));
+
 jest.mock('incyclist-services', () => ({
-    useAppsService: () => ({
+    useAppsService: jest.fn().mockReturnValue({
         openSettings: jest.fn().mockReturnValue([
             { name: 'Strava', key: 'strava', iconUrl: 'strava.svg', isConnected: false },
         ]),

@@ -4,7 +4,6 @@ import { SvgUri } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { AppsSettingsViewProps, AppDisplayProps } from './types';
-import { ExitButton } from '../ExitButton';
 
 const AppRow = ({ app, onSelect }: { app: AppDisplayProps; onSelect?: (key: string) => void }) => {
     const isSvg = app.iconUrl.toLowerCase().endsWith('.svg');
@@ -51,7 +50,11 @@ export const AppsSettingsView = ({ apps, onSelect, compact, onBack }: AppsSettin
                     <AppRow key={app.key} app={app} onSelect={onSelect} />
                 ))}
             </ScrollView>
-            {onBack && <ExitButton onPress={onBack} />}
+            {onBack && (
+                <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                    <Text style={styles.backText}>{'←'}</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
@@ -106,5 +109,13 @@ const styles = StyleSheet.create({
         color: colors.disabled,
         fontSize: 24,
         fontWeight: 'bold',
+    },
+    backButton: {
+        padding: 16,
+        alignSelf: 'flex-start',
+    },
+    backText: {
+        color: colors.text,
+        fontSize: textSizes.normalText,
     },
 });
