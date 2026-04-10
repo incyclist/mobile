@@ -76,6 +76,17 @@ const config: StorybookConfig = {
                         }
                         return null;
                     },
+                },
+                {
+                    name: 'mock-svg-apps-assets',
+                    enforce: 'pre' as const,
+                    resolveId(id: string) {
+                        // Redirect SVG imports from assets/apps to a stub component
+                        if (id.includes('assets/apps/') && id.endsWith('.svg')) {
+                            return path.resolve(dirname, './mocks/svg-stub.tsx');
+                        }
+                        return null;
+                    },
                 },                
                 // nodePolyfills() is intentionally omitted.
                 // It pulls in crypto-browserify -> browserify-sign, which vendors
@@ -87,6 +98,7 @@ const config: StorybookConfig = {
             resolve: {
                 alias: {
                     // ── React Native web shims ────────────────────────────────────
+                    'react-native': path.resolve(dirname, './mocks/react-native.ts'),
                     'react-native-safe-area-context': path.resolve(dirname, './mocks/react-native-safe-area-context.ts'),
                     'react-native-share': path.resolve(dirname, './mocks/react-native-share.ts'),
                     'react-native-ble-manager':      'react-native-web/dist/exports/View',
