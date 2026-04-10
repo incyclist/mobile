@@ -2,8 +2,8 @@ import React from 'react'
 import { render } from '@testing-library/react-native'
 import { KomootLoginDialog } from './KomootLoginDialog'
 
-jest.mock('../Dialog', () => ({
-    Dialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+jest.mock('./KomootLoginDialogView', () => ({
+    KomootLoginDialogView: () => null,
 }))
 
 jest.mock('incyclist-services', () => ({
