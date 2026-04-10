@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 import { OAuthAppSettings } from './OAuthAppSettings';
 
 jest.mock('incyclist-services', () => ({
@@ -11,21 +12,25 @@ jest.mock('incyclist-services', () => ({
     }),
 }));
 
-jest.mock('react-native', () => ({
-    ...jest.requireActual('react-native'),
-    Linking: {
-        openURL: jest.fn(),
-        addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
-    },
-}));
-
 jest.mock('../AppSettingsView', () => ({
     AppSettingsView: () => null,
 }));
 
-jest.mock('../../assets/apps/strava-connect.svg', () => ({
+jest.mock('../../assets/apps/btn_strava_connectwith_orange.svg', () => ({
     default: () => null,
 }));
+
+const mockOpenURL = jest.fn().mockResolvedValue(undefined);
+const mockAddEventListener = jest.fn().mockReturnValue({ remove: jest.fn() });
+
+beforeEach(() => {
+    jest.spyOn(Linking, 'openURL').mockImplementation(mockOpenURL);
+    jest.spyOn(Linking, 'addEventListener').mockImplementation(mockAddEventListener);
+});
+
+afterEach(() => {
+    jest.restoreAllMocks();
+});
 
 describe('OAuthAppSettings', () => {
     it('renders disconnected state for appKey="strava" without crashing', () => {
