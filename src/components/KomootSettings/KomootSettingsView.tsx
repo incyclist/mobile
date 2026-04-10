@@ -11,8 +11,7 @@ import { AppSettingsView } from '../AppSettingsView';
 import { KomootLoginDialog } from '../KomootLoginDialog';
 import { OperationConfig } from '../OperationsSelector/types';
 import { colors, textSizes } from '../../theme';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const KomootLogo = require('../../assets/apps/komoot.svg').default;
+import KomootLogo from '../../assets/apps/komoot.svg';
 
 export const KomootSettingsView = ({
     isConnected,

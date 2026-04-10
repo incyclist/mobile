@@ -4,7 +4,6 @@ import { KomootSettingsProps } from './types';
 import { KomootSettingsView } from './KomootSettingsView';
 import { OperationConfig } from '../OperationsSelector/types';
 import { useLogging } from '../../hooks/logging';
-import { useUnmountEffect } from '../../hooks/unmount';
 
 export const KomootSettings = ({ onBack }: KomootSettingsProps) => {
     const service = useAppsService();
@@ -28,10 +27,6 @@ export const KomootSettings = ({ onBack }: KomootSettingsProps) => {
         }
         logEvent({ message: 'komoot settings opened' });
     }, [service, logEvent]);
-
-    useUnmountEffect(() => {
-        service.closeAppSettings('komoot');
-    });
 
     const handleConnect = useCallback(() => {
         setIsConnecting(true);

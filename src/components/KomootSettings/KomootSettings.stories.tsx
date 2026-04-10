@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { KomootSettingsView } from './KomootSettingsView';
@@ -30,8 +29,8 @@ export const Connected: Story = {
     args: {
         isConnected: true,
         operations: [
-            { operation: 'import', label: 'Import Routes', enabled: true },
-            { operation: 'export', label: 'Export Activities', enabled: false },
+            { operation: 'ActivityUpload', enabled: true },
+            { operation: 'RouteDownload', enabled: false },
         ],
     },
 };
