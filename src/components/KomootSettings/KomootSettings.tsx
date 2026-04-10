@@ -1,20 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
-import {
-    TouchableOpacity,
-    Text,
-    View,
-    StyleSheet,
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppsOperation, useAppsService } from 'incyclist-services';
 import { KomootSettingsProps } from './types';
-import { AppSettingsView } from '../AppSettingsView';
-import { KomootLoginDialog } from '../KomootLoginDialog';
+import { KomootSettingsView } from './KomootSettingsView';
 import { OperationConfig } from '../OperationsSelector/types';
 import { useLogging } from '../../hooks/logging';
 import { useUnmountEffect } from '../../hooks/unmount';
-import { colors, textSizes } from '../../theme';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const KomootLogo = require('../../assets/apps/komoot.svg').default;
 
 export const KomootSettings = ({ onBack }: KomootSettingsProps) => {
     const service = useAppsService();
@@ -27,18 +17,20 @@ export const KomootSettings = ({ onBack }: KomootSettingsProps) => {
     const [showLoginDialog, setShowLoginDialog] = useState<boolean>(false);
     const [operations, setOperations] = useState<OperationConfig[]>([]);
 
-    if (!refInitialized.current) {
+    useEffect(() => {
+        if (refInitialized.current) return;
         refInitialized.current = true;
+
         const initial = service.openAppSettings('komoot');
         if (initial) {
             setIsConnected(initial.isConnected ?? false);
             setOperations((initial.operations as OperationConfig[]) ?? []);
         }
         logEvent({ message: 'komoot settings opened' });
-    }
+    }, [service, logEvent]);
 
     useUnmountEffect(() => {
-        // no explicit closePage call needed; cleanup if required
+        service.closeAppSettings('komoot');
     });
 
     const handleConnect = useCallback(() => {
@@ -76,55 +68,18 @@ export const KomootSettings = ({ onBack }: KomootSettingsProps) => {
         [service],
     );
 
-    const renderConnectButton = useCallback((): React.ReactElement => {
-        return (
-            <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
-                <View style={styles.connectButtonContent}>
-                    <KomootLogo width={24} height={24} />
-                    <Text style={styles.connectButtonText}>Connect with Komoot</Text>
-                </View>
-            </TouchableOpacity>
-        );
-    }, [handleConnect]);
-
     return (
-        <>
-            <AppSettingsView
-                title="Komoot"
-                isConnected={isConnected}
-                isConnecting={isConnecting}
-                connectButton={renderConnectButton}
-                operations={operations}
-                onDisconnect={handleDisconnect}
-                onOperationsChanged={handleOperationsChanged}
-                onBack={onBack}
-            />
-            {showLoginDialog && (
-                <KomootLoginDialog
-                    onSuccess={handleLoginSuccess}
-                    onCancel={handleLoginCancel}
-                />
-            )}
-        </>
+        <KomootSettingsView
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+            operations={operations}
+            showLoginDialog={showLoginDialog}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+            onOperationsChanged={handleOperationsChanged}
+            onLoginSuccess={handleLoginSuccess}
+            onLoginCancel={handleLoginCancel}
+            onBack={onBack}
+        />
     );
 };
-
-const styles = StyleSheet.create({
-    connectButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 6,
-        backgroundColor: colors.buttonPrimary,
-        alignSelf: 'flex-start',
-    },
-    connectButtonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    connectButtonText: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-        fontWeight: '600',
-    },
-});

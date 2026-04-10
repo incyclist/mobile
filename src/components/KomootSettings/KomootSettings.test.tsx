@@ -2,12 +2,16 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { KomootSettings } from './KomootSettings';
 
+const mockService = {
+    openAppSettings: jest.fn().mockReturnValue({ isConnected: false, operations: [] }),
+    closeAppSettings: jest.fn(),
+    disconnect: jest.fn(),
+    enableOperation: jest.fn().mockReturnValue([]),
+};
+
 jest.mock('incyclist-services', () => ({
-    useAppsService: () => ({
-        openAppSettings: jest.fn().mockReturnValue({ isConnected: false, operations: [] }),
-        disconnect: jest.fn(),
-        enableOperation: jest.fn().mockReturnValue([]),
-    }),
+    useAppsService: () => mockService,
+    AppsOperation: {},
 }));
 
 jest.mock('../../assets/apps/komoot.svg', () => ({
@@ -23,17 +27,17 @@ jest.mock('../KomootLoginDialog', () => ({
 }));
 
 describe('KomootSettings', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockService.openAppSettings.mockReturnValue({ isConnected: false, operations: [] });
+    });
+
     it('renders disconnected state without crashing', () => {
         expect(() => render(<KomootSettings />)).not.toThrow();
     });
 
     it('renders connected state without crashing', () => {
-        const { useAppsService } = require('incyclist-services');
-        (useAppsService as jest.Mock).mockReturnValue({
-            openAppSettings: jest.fn().mockReturnValue({ isConnected: true, operations: [] }),
-            disconnect: jest.fn(),
-            enableOperation: jest.fn().mockReturnValue([]),
-        });
+        mockService.openAppSettings.mockReturnValue({ isConnected: true, operations: [] });
         expect(() => render(<KomootSettings />)).not.toThrow();
     });
 });
