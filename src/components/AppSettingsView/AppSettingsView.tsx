@@ -1,9 +1,10 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { colors, textSizes } from '../../theme';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { colors } from '../../theme';
 import { AppSettingsViewProps } from './types';
 import { Button } from '../ButtonBar/ButtonBar';
 import { OperationsSelector } from '../OperationsSelector';
+import { Dialog } from '../Dialog';
 
 export const AppSettingsView = ({
     title,
@@ -14,7 +15,6 @@ export const AppSettingsView = ({
     onDisconnect,
     onOperationsChanged,
     onBack,
-    compact = false,
 }: AppSettingsViewProps) => {
     const handleDisconnect = useCallback(() => {
         if (onDisconnect) {
@@ -22,26 +22,12 @@ export const AppSettingsView = ({
         }
     }, [onDisconnect]);
 
-    const handleBack = useCallback(() => {
-        if (onBack) {
-            onBack();
-        }
-    }, [onBack]);
-
-    const titleStyle = [
-        styles.title,
-        compact && styles.titleCompact
-    ];
-
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={titleStyle}>{title}</Text>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Text style={styles.backText}>←</Text>
-                </TouchableOpacity>
-            </View>
-
+        <Dialog
+            title={title}
+            variant="details"
+            onOutsideClick={onBack}
+        >
             <View style={styles.content}>
                 <View style={styles.connectArea}>
                     {!isConnected && !isConnecting && connectButton()}
@@ -69,37 +55,11 @@ export const AppSettingsView = ({
                     </View>
                 )}
             </View>
-        </View>
+        </Dialog>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    title: {
-        fontSize: textSizes.pageTitle,
-        color: colors.text,
-        fontWeight: '700',
-    },
-    titleCompact: {
-        fontSize: textSizes.dialogTitle,
-    },
-    backButton: {
-        padding: 8,
-    },
-    backText: {
-        fontSize: 32,
-        color: colors.text,
-    },
     content: {
         flex: 1,
     },
