@@ -1,18 +1,66 @@
+import React, { useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { AppsDialog } from './AppsDialog';
+import { Button } from '../ButtonBar/ButtonBar';
+import { OperationsSelector } from '../OperationsSelector';
+
+const MockAppContent = ({ appKey, isConnected }: { appKey: string; isConnected: boolean }) => {
+    const ops = useMemo(() => {
+        if (appKey === 'strava') {
+            return [{ key: 'activityData', name: 'Activity Upload', enabled: true }];
+        }
+        if (appKey === 'intervals') {
+            return [
+                { key: 'activityData', name: 'Activity Upload', enabled: true },
+                { key: 'workoutData', name: 'Workout Download', enabled: true },
+            ];
+        }
+        if (appKey === 'komoot') {
+            return [{ key: 'routeData', name: 'Route Download', enabled: true }];
+        }
+        return [];
+    }, [appKey]);
+
+    return (
+        <View style={styles.mockContent}>
+            <View style={styles.buttonContainer}>
+                {isConnected ? (
+                    <Button 
+                        label="Disconnect" 
+                        onClick={fn()} 
+                        attention 
+                    />
+                ) : (
+                    <Button 
+                        label={`Connect with ${appKey === 'intervals' ? 'Intervals.icu' : appKey.charAt(0).toUpperCase() + appKey.slice(1)}`} 
+                        onClick={fn()} 
+                    />
+                )}
+            </View>
+            {isConnected && (
+                <OperationsSelector 
+                    operations={ops} 
+                    onChanged={fn()} 
+                />
+            )}
+        </View>
+    );
+};
 
 const meta: Meta<typeof AppsDialog> = {
-    title: 'Components/AppsDialog',
+    title: 'Components/Settings/Apps',
     component: AppsDialog,
     args: {
         visible: true,
         onClose: fn(),
         apps: [
-            { name: "Strava", key: "strava", iconUrl: "https://example.com/s.svg", isConnected: true },
-            { name: "Intervals.icu", key: "intervals", iconUrl: "https://example.com/i.svg", isConnected: false },
-            { name: "Komoot", key: "komoot", iconUrl: "https://example.com/k.svg", isConnected: false },
+            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
+            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
         ],
+        renderApp: (key) => <MockAppContent appKey={key} isConnected={key === 'strava'} />,
     },
 };
 
@@ -25,19 +73,42 @@ export const Default: Story = {};
 export const AllDisconnected: Story = {
     args: {
         apps: [
-            { name: "Strava", key: "strava", iconUrl: "", isConnected: false },
-            { name: "Intervals.icu", key: "intervals", iconUrl: "", isConnected: false },
-            { name: "Komoot", key: "komoot", iconUrl: "", isConnected: false },
+            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: false },
+            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
+            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
         ],
+        renderApp: (key) => <MockAppContent appKey={key} isConnected={false} />,
     },
 };
 
 export const AllConnected: Story = {
     args: {
         apps: [
-            { name: "Strava", key: "strava", iconUrl: "", isConnected: true },
-            { name: "Intervals.icu", key: "intervals", iconUrl: "", isConnected: true },
-            { name: "Komoot", key: "komoot", iconUrl: "", isConnected: true },
+            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: true },
+            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: true },
         ],
+        renderApp: (key) => <MockAppContent appKey={key} isConnected={true} />,
     },
 };
+
+export const StravaConnected: Story = {
+    args: {
+        apps: [
+            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
+            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
+        ],
+        renderApp: (key) => <MockAppContent appKey={key} isConnected={key === 'strava'} />,
+    },
+};
+
+const styles = StyleSheet.create({
+    mockContent: {
+        padding: 10,
+    },
+    buttonContainer: {
+        alignItems: 'center',
+        marginVertical: 16,
+    },
+});

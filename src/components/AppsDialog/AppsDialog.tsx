@@ -6,6 +6,7 @@ import { colors, textSizes } from '../../theme';
 import { AppSettingsContext } from '../AppSettingsView/AppSettingsView';
 import { OAuthAppSettings } from '../OAuthAppSettings/OAuthAppSettings';
 import { KomootSettings } from '../KomootSettings/KomootSettings';
+import { OAuthAppKey } from '../OAuthAppSettings/types';
 
 const APP_SECTIONS = [
     { key: 'strava', name: 'Strava' },
@@ -25,11 +26,11 @@ export const AppsDialog = ({
         setExpandedKey(prev => (prev === key ? null : key));
     }, []);
 
-    const defaultRenderApp = useCallback((key: string, onBack: () => void) => {
+    const defaultRenderApp = useCallback((key: string, onBack: () => void, _standalone: boolean) => {
         if (key === 'komoot') {
             return <KomootSettings onBack={onBack} />;
         }
-        return <OAuthAppSettings appKey={key} onBack={onBack} />;
+        return <OAuthAppSettings appKey={key as OAuthAppKey} onBack={onBack} />;
     }, []);
 
     const renderApp = renderAppProp || defaultRenderApp;
