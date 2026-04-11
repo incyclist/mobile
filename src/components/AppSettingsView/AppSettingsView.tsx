@@ -1,10 +1,20 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useContext } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { colors } from '../../theme';
 import { AppSettingsViewProps } from './types';
 import { Button } from '../ButtonBar/ButtonBar';
 import { OperationsSelector } from '../OperationsSelector';
 import { Dialog } from '../Dialog';
+
+/**
+ * Context to allow parent components (like AppsDialog) to override the standalone behavior
+ * of AppSettingsView without modifying intermediate smart components.
+ */
+export const AppSettingsContext = React.createContext({ standalone: true });
+
+export interface ExtendedAppSettingsViewProps extends AppSettingsViewProps {
+    standalone?: boolean;
+}
 
 export const AppSettingsView = ({
     title,
@@ -15,12 +25,50 @@ export const AppSettingsView = ({
     onDisconnect,
     onOperationsChanged,
     onBack,
-}: AppSettingsViewProps) => {
+    standalone: standaloneProp,
+}: ExtendedAppSettingsViewProps) => {
+    const { standalone: contextStandalone } = useContext(AppSettingsContext);
+    const standalone = standaloneProp ?? contextStandalone;
+
     const handleDisconnect = useCallback(() => {
         if (onDisconnect) {
             onDisconnect();
         }
     }, [onDisconnect]);
+
+    const content = (
+        <View style={styles.content}>
+            <View style={styles.connectArea}>
+                {!isConnected && !isConnecting && connectButton()}
+                {isConnected && (
+                    <Button 
+                        label="Disconnect" 
+                        onClick={handleDisconnect} 
+                        attention 
+                    />
+                )}
+            </View>
+
+            {isConnecting && (
+                <View style={styles.loaderArea}>
+                    <ActivityIndicator size="large" color={colors.buttonPrimary} />
+                </View>
+            )}
+
+            {isConnected && (
+                <View style={styles.operationsArea}>
+                    <OperationsSelector 
+                        operations={operations || []} 
+                        onChanged={onOperationsChanged} 
+                    />
+                </View>
+            )}
+        </View>
+    );
+
+    if (!standalone) {
+        return content;
+    }
 
     return (
         <Dialog
@@ -28,33 +76,7 @@ export const AppSettingsView = ({
             variant="details"
             onOutsideClick={onBack}
         >
-            <View style={styles.content}>
-                <View style={styles.connectArea}>
-                    {!isConnected && !isConnecting && connectButton()}
-                    {isConnected && (
-                        <Button 
-                            label="Disconnect" 
-                            onClick={handleDisconnect} 
-                            attention 
-                        />
-                    )}
-                </View>
-
-                {isConnecting && (
-                    <View style={styles.loaderArea}>
-                        <ActivityIndicator size="large" color={colors.buttonPrimary} />
-                    </View>
-                )}
-
-                {isConnected && (
-                    <View style={styles.operationsArea}>
-                        <OperationsSelector 
-                            operations={operations || []} 
-                            onChanged={onOperationsChanged} 
-                        />
-                    </View>
-                )}
-            </View>
+            {content}
         </Dialog>
     );
 };

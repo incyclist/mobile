@@ -72,4 +72,21 @@ describe('AppSettingsView', () => {
         );
         expect(getByText('Strava Settings')).toBeTruthy();
     });
+
+    it('renders AppSettingsView with standalone={false} without crashing', () => {
+        const { queryByText, getByText } = render(
+            <AppSettingsView {...MOCK_PROPS} standalone={false} />
+        );
+        // Should not show the Dialog title
+        expect(queryByText('Strava Settings')).toBeNull();
+        expect(getByText('Connect')).toBeTruthy();
+    });
+
+    it('renders AppSettingsView with standalone={true} (default) without crashing', () => {
+        const { getByText } = render(
+            <AppSettingsView {...MOCK_PROPS} />
+        );
+        // Should show the Dialog title
+        expect(getByText('Strava Settings')).toBeTruthy();
+    });
 });
