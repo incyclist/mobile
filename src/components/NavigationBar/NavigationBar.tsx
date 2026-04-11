@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useWindowDimensions, Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { useAppsService } from 'incyclist-services';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
@@ -9,16 +9,14 @@ import { SettingsSlideIn, SettingsSectionItem } from '../SettingsSlideIn';
 import { SupportSettings } from '../SupportSettings';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
-import { AppsSlideIn } from '../AppsSlideIn';
-import { OAuthAppSettings } from '../OAuthAppSettings';
-import { KomootSettings } from '../KomootSettings';
+import { AppsDialog } from '../AppsDialog';
 import { AppDisplayProps } from '../AppsSettings/types';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact } = props;
-    const { height, width } = useWindowDimensions();
     const screenLayout = useScreenLayout();
+    const { height } = useWindowDimensions();
     const appsService = useAppsService();
 
     const [showUserSettings, setShowUserSettings] = useState(false);
@@ -26,8 +24,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showSupport, setShowSupport] = useState(false);
     const [showPlaceholder, setShowPlaceholder] = useState(false);
     const [showGear, setShowGear] = useState(false);
-    const [showApps, setShowApps] = useState(false);
-    const [selectedAppKey, setSelectedAppKey] = useState<string | null>(null);
+    const [showAppsDialog, setShowAppsDialog] = useState(false);
     const [apps, setApps] = useState<AppDisplayProps[]>([]);
 
     const refInitialized = useRef(false);
@@ -43,31 +40,30 @@ export const NavigationBar = (props: NavigationBarProps) => {
         }
     }, [appsService]);
 
-    const NAV_BAR_HEIGHT = 56;
     const isCompact = screenLayout === 'compact';
-    const stripSize = isCompact ? NAV_BAR_HEIGHT : 150;
-    const panelWidth = width * 0.35;
-    const appsSlideInOffsetX = stripSize + panelWidth;
-
-    const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const verticalNavWidth = compact ? 70 : 150;
+    const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const showExitForVertical = Platform.OS === 'android';
 
     const handleOnClick = useCallback((item: TNavigationItem) => {
         if (item === 'user') {
             setShowUserSettings(true);
         } else if (item === 'settings') {
-            setShowSettings(true);
+            setShowSettings(prev => {
+                if (prev) {
+                    setShowAppsDialog(false);
+                }
+                return !prev;
+            });
         } else {
             onClick(item);
         }
     }, [onClick]);
 
     const handleSectionPress = useCallback((label: string) => {
-        setShowApps(false);
         switch (label) {
             case 'Apps':
-                setShowApps(true);
+                setShowAppsDialog(true);
                 break;
             case 'Support':
                 setShowSettings(false);
@@ -84,19 +80,16 @@ export const NavigationBar = (props: NavigationBarProps) => {
         }
     }, []);
 
-    const handleAppSelect = useCallback((key: string) => {
-        setShowApps(false);
+    const handleUserSettingsClose = useCallback(() => setShowUserSettings(false), []);
+    
+    const handleSettingsClose = useCallback(() => {
         setShowSettings(false);
-        setSelectedAppKey(key);
+        setShowAppsDialog(false);
     }, []);
 
-    const handleUserSettingsClose = useCallback(() => setShowUserSettings(false), []);
-    const handleSettingsClose = useCallback(() => setShowSettings(false), []);
     const handleSupportClose = useCallback(() => setShowSupport(false), []);
     const handlePlaceholderClose = useCallback(() => setShowPlaceholder(false), []);
     const handleGearClose = useCallback(() => setShowGear(false), []);
-    const handleAppsClose = useCallback(() => setShowApps(false), []);
-    const handleAppBack = useCallback(() => setSelectedAppKey(null), []);
 
     const sections: SettingsSectionItem[] = useMemo(
         () => [
@@ -137,23 +130,11 @@ export const NavigationBar = (props: NavigationBarProps) => {
             {showPlaceholder && <SettingsPlaceholder onClose={handlePlaceholderClose} />}
             {showGear && <GearSettings onClose={handleGearClose} />}
             
-            <AppsSlideIn
-                visible={showApps}
+            <AppsDialog
+                visible={showAppsDialog}
                 apps={apps}
-                offsetX={appsSlideInOffsetX}
-                onSelect={handleAppSelect}
-                onClose={handleAppsClose}
+                onClose={handleSettingsClose}
             />
-
-            {selectedAppKey === 'strava' && (
-                <OAuthAppSettings appKey="strava" onBack={handleAppBack} />
-            )}
-            {selectedAppKey === 'intervals' && (
-                <OAuthAppSettings appKey="intervals" onBack={handleAppBack} />
-            )}
-            {selectedAppKey === 'komoot' && (
-                <KomootSettings onBack={handleAppBack} />
-            )}
         </>
     );
 };
