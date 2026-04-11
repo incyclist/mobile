@@ -33,10 +33,11 @@ export const KomootLoginDialogView = ({
     ]
 
     return (
-        <Dialog title="Komoot Login" variant="details" buttons={buttons}>
+        <Dialog title="Komoot Login" variant="info" buttons={buttons}>
             <View style={styles.container}>
                 <EditText
                     label="Email"
+                    length={20}
                     value={username ?? ''}
                     onValueChange={onUsernameChange}
                     disabled={isConnecting}
@@ -49,6 +50,7 @@ export const KomootLoginDialogView = ({
                 />
                 <EditText
                     label="Account ID"
+                    length={20}
                     value={userid ?? ''}
                     onValueChange={onUseridChange}
                     disabled={isConnecting}

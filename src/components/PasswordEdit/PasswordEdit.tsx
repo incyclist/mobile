@@ -43,7 +43,7 @@ export const PasswordEdit = ({
                 {label !== undefined && (
                     <Text style={labelStyle}>{label}</Text>
                 )}
-                <View style={inputWrapperStyle}>
+                <View style={[inputWrapperStyle, styles.inputWrapperFixed]}>
                     <TextInput
                         style={inputStyle}
                         value={value ?? ''}
@@ -54,14 +54,16 @@ export const PasswordEdit = ({
                         autoCorrect={false}
                         spellCheck={false}
                         editable={!disabled}
+                        maxLength={20}
                     />
                     <TouchableOpacity
                         onPress={handleToggle}
                         style={styles.toggle}
                         disabled={disabled}
+                        accessibilityLabel={isVisible ? 'Hide password' : 'Show password'}
                     >
                         <Text style={toggleTextStyle}>
-                            {isVisible ? '○' : '●'}
+                            {isVisible ? '👁️' : '👁️‍🗨️'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -94,6 +96,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
+    },
+    inputWrapperFixed: {
+        maxWidth: 300,
     },
     input: {
         flex: 1,
