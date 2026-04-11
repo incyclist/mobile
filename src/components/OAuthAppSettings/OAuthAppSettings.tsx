@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Linking, StyleSheet, TouchableOpacity } from 'react-native';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 import { useAppsService } from 'incyclist-services';
 import type { AppsOperation } from 'incyclist-services';
 import { AppSettingsView } from '../AppSettingsView';
 import type { OperationConfig } from '../OperationsSelector/types';
 import { useLogging } from '../../hooks';
-import { useUnmountEffect } from '../../hooks';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import StravaConnectSvg from '../../assets/btn_strava_connectwith_orange.svg';
@@ -23,14 +23,7 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
     const [operations, setOperations] = useState<OperationConfig[]>([]);
 
     const refInitialized = useRef<boolean>(false);
-    const refLinkingSubscription = useRef<{ remove: () => void } | null>(null);
-
-    const removeLinkingListener = useCallback(() => {
-        if (refLinkingSubscription.current) {
-            refLinkingSubscription.current.remove();
-            refLinkingSubscription.current = null;
-        }
-    }, []);
+    const refStateParam = useRef<string>('');
 
     useEffect(() => {
         if (refInitialized.current || !service) return;
@@ -43,61 +36,77 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
         }
     }, [service, appKey]);
 
-    useUnmountEffect(removeLinkingListener);
-
-    const onConnect = useCallback(() => {
+    const onConnect = useCallback(async () => {
         if (!service) return;
+
+        const stateParam = Math.random().toString(36).substring(2);
+        refStateParam.current = stateParam;
 
         logEvent({ message: 'oauth connect start', appKey, eventSource: 'user' });
         setIsConnecting(true);
 
-        const url = `${OAUTH_BASE}/${appKey}?sid=${encodeURIComponent(REDIRECT_URI)}`;
+        const url = `${OAUTH_BASE}/${appKey}?sid=${encodeURIComponent(REDIRECT_URI)}&state=${stateParam}`;
 
-        Linking.openURL(url).catch((err: Error) => {
-            logError(err, 'onConnect');
-            setIsConnecting(false);
-        });
-
-        const subscription = Linking.addEventListener('url', async ({ url: callbackUrl }: { url: string }) => {
-            if (!callbackUrl.startsWith('incyclist://oauth/callback')) return;
-
-            removeLinkingListener();
-
-            try {
-                const parsed = new URL(callbackUrl.replace('incyclist://', 'https://incyclist'));
-                const error = parsed.searchParams.get('error');
-
-                if (error) {
-                    logEvent({ message: 'oauth connect failed', appKey, error });
-                    setIsConnecting(false);
-                    return;
-                }
-
-                const credentials = {
-                    accesstoken: parsed.searchParams.get('accesstoken'),
-                    refreshtoken: parsed.searchParams.get('refreshtoken'),
-                    id: parsed.searchParams.get('id'),
-                };
-
-                await service.connect(appKey, credentials);
-
-                logEvent({ message: 'oauth connect success', appKey });
-
-                const refreshed = service.openAppSettings(appKey);
-                if (refreshed) {
-                    setIsConnected(refreshed.isConnected ?? false);
-                    setOperations((refreshed.operations as OperationConfig[]) ?? []);
-                }
-            } catch (err) {
-                logError(err as Error, 'onConnectCallback');
-                logEvent({ message: 'oauth connect failed', appKey, error: (err as Error).message });
-            } finally {
+        try {
+            const isAvailable = await InAppBrowser.isAvailable();
+            if (!isAvailable) {
+                // Fallback: open system browser, user must return manually
+                await Linking.openURL(url);
                 setIsConnecting(false);
+                return;
             }
-        });
 
-        refLinkingSubscription.current = subscription;
-    }, [service, appKey, logEvent, logError, removeLinkingListener]);
+            const result = await InAppBrowser.openAuth(url, REDIRECT_URI, {
+                showTitle: false,
+                enableUrlBarHiding: true,
+                enableDefaultShare: false,
+                forceCloseOnRedirection: false,
+                headers: { 'stateKey': stateParam },
+            });
+
+            if (result.type === 'cancel') {
+                return;
+            }
+
+            if (result.type !== 'success' || !result.url) {
+                return;
+            }
+
+            const callbackUrl = result.url;
+            const parsed = new URL(callbackUrl.replace('incyclist://', 'https://incyclist'));
+            const returnedState = parsed.searchParams.get('state');
+
+            if (returnedState !== refStateParam.current) {
+                logEvent({ message: 'oauth state mismatch', appKey });
+                return;
+            }
+
+            const error = parsed.searchParams.get('error');
+            if (error) {
+                logEvent({ message: 'oauth connect failed', appKey, error });
+                return;
+            }
+
+            const credentials = {
+                accesstoken: parsed.searchParams.get('accesstoken'),
+                refreshtoken: parsed.searchParams.get('refreshtoken'),
+                id: parsed.searchParams.get('id'),
+            };
+
+            await service.connect(appKey, credentials);
+            logEvent({ message: 'oauth connect success', appKey });
+
+            const refreshed = service.openAppSettings(appKey);
+            if (refreshed) {
+                setIsConnected(refreshed.isConnected ?? false);
+                setOperations((refreshed.operations as OperationConfig[]) ?? []);
+            }
+        } catch (err) {
+            logError(err as Error, 'onConnect');
+        } finally {
+            setIsConnecting(false);
+        }
+    }, [service, appKey, logEvent, logError]);
 
     const onDisconnect = useCallback(() => {
         if (!service) return;

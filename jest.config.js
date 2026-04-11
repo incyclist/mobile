@@ -7,6 +7,7 @@ module.exports = {
     'react-native-maps': '<rootDir>/__mocks__/react-native-maps.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
     'react-native-safe-area-context': '<rootDir>/__mocks__/react-native-safe-area-context.ts',
+    'react-native-inappbrowser-reborn': '<rootDir>/__mocks__/react-native-inappbrowser-reborn.ts',
     '@react-navigation/native': '<rootDir>/src/__mocks__/@react-navigation/native.ts', // Added for ESM module support
   },
 };
