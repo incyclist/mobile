@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { useAppsService } from 'incyclist-services';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
@@ -16,6 +16,7 @@ import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact } = props;
     const screenLayout = useScreenLayout();
+    const { height } = useWindowDimensions();
     const appsService = useAppsService();
 
     const [showUserSettings, setShowUserSettings] = useState(false);
@@ -41,6 +42,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
 
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;
+    const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const showExitForVertical = Platform.OS === 'android';
 
     const handleOnClick = useCallback((item: TNavigationItem) => {
@@ -112,6 +114,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                     selected={selected}
                     onClick={handleOnClick}
                     compact={compact}
+                    iconSize={verticalIconSize}
                     navWidth={verticalNavWidth}
                     showExit={showExitForVertical}
                 />
