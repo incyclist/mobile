@@ -65,10 +65,17 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
             });
 
             if (result.type === 'cancel') {
+                logEvent({ message: 'oauth cancelled by user', appKey });
                 return;
             }
 
-            if (result.type !== 'success' || !result.url) {
+            else if (result.type !== 'success' ) {
+                logEvent({ 
+                    message: 'oauth callback received', 
+                    appKey, 
+                    resultType: result.type,                
+                    fullResult: JSON.stringify(result)
+                });
                 return;
             }
 
