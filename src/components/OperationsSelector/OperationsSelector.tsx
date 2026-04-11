@@ -5,11 +5,11 @@ import { OperationsSelectorProps, AppsOperation } from './types';
 import { useLogging } from '../../hooks';
 
 const OPERATION_LABELS: Record<AppsOperation, string> = {
-    ActivityUpload: 'Upload activities',
-    WorkoutUpload: 'Upload workouts',
-    WorkoutDownload: 'Download workouts',
-    RouteDownload: 'Download routes',
-    ActivityDownload: 'Download activities',
+    ActivityUpload: 'Activity Upload',
+    WorkoutUpload: 'Workout Upload',
+    WorkoutDownload: 'Workout Download',
+    RouteDownload: 'Route Download',
+    ActivityDownload: 'Activity Download',
 };
 
 /**
