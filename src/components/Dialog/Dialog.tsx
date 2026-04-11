@@ -230,11 +230,14 @@ type StyleProps = {
 }
 
 const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, stripHeight }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
+    const isInfoVariant = variant === 'info';
+    
     return StyleSheet.create({
         overlay: {
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
+            backgroundColor: 'transparent', // No dimming - keep screen fully visible
         },
         container: {
             minWidth: minWidth ?? (variant === 'details' ? '50%' : undefined),
@@ -242,14 +245,25 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             width,
             height,
             maxHeight: variant === 'full' ? '100%' : '80%',
-            borderRadius: variant === 'full' ? 0 : 8,
+            borderRadius: variant === 'full' ? 0 : 12,
             overflow: 'hidden',
             color: colors.text,
+            // Shadow and thin white frame for info variant only
+            ...(isInfoVariant && {
+                borderWidth: 1,
+                borderColor: 'white',
+                // Subtle shadow to create floating effect
+                shadowColor: '#000',
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.75,
+                shadowRadius: 12,
+                elevation: 5,
+            }),
         },
         header: {
             padding: 16,
             borderBottomWidth: 1,
-            borderBottomColor: colors.dialogBorder ?? '#ccc',
+            borderBottomColor: colors.dialogBorder ?? 'rgba(255,255,255,0.1)',
         },
         title: {
             fontSize: textSizes.dialogTitle,
@@ -267,7 +281,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
         },
         footer: {
             borderTopWidth: 1,
-            borderTopColor: colors.dialogBorder ?? '#ccc',
+            borderTopColor: colors.dialogBorder ?? 'rgba(255,255,255,0.1)',
         },
         fullScreenWrapper: {
             flex: 1,

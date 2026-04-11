@@ -54,6 +54,18 @@ export const TitleStyle: Story = {
         ),
     },
 };
+export const InfoVariant: Story = {
+    args: {
+        visible: true,
+        title: 'Info Dialog',
+        variant: 'info',
+        children: (
+            <View>
+                <Text style={styles.text}>This is a info dialog with simple content.</Text>
+            </View>
+        ),
+    },
+};
 
 export const WithButtons: Story = {
     args: {
