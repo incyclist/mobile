@@ -5,23 +5,24 @@ import { fn } from 'storybook/test';
 import { AppsDialog } from './AppsDialog';
 import { Button } from '../ButtonBar/ButtonBar';
 import { OperationsSelector } from '../OperationsSelector';
+import type { OperationConfig } from '../OperationsSelector/types';
 
 const MockAppContent = ({ appKey, isConnected }: { appKey: string; isConnected: boolean }) => {
     const ops = useMemo(() => {
         if (appKey === 'strava') {
-            return [{ key: 'activityData', name: 'Activity Upload', enabled: true }];
+            return [{ operation: 'ActivityUpload', enabled: true }];
         }
         if (appKey === 'intervals') {
             return [
-                { key: 'activityData', name: 'Activity Upload', enabled: true },
-                { key: 'workoutData', name: 'Workout Download', enabled: true },
+                { operation: 'ActivityUpload', enabled: true },
+                { operation: 'WorkoutDownload', enabled: true },
             ];
         }
         if (appKey === 'komoot') {
-            return [{ key: 'routeData', name: 'Route Download', enabled: true }];
+            return [{ operation: 'RouteDownload', enabled: true }];
         }
         return [];
-    }, [appKey]);
+    }, [appKey]) as OperationConfig[];
 
     return (
         <View style={styles.mockContent}>
