@@ -5,7 +5,7 @@ import { ExitPage } from '../ExitPage';
 import { PairingPage } from '../PairingPage';
 import { navigationRef } from '../../services';
 import { RoutesPage } from '../RoutesPage/RoutesPage';
-import { RidePage } from '../RidePage'; // New import
+import { RidePage } from '../RidePage';
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
 
@@ -45,6 +45,9 @@ export const RootNavigator = () => {
                 </Stack.Screen>
                 <Stack.Screen name='rideSimulate'>
                     {() => <RidePage simulate={true} />}
+                </Stack.Screen>
+                <Stack.Screen name='rideGpxTour'>
+                    {() => <RidePage />}
                 </Stack.Screen>
             </Stack.Navigator>
         </NavigationContainer>
