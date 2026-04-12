@@ -9,7 +9,7 @@ import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
 import { UpdateService } from './services/UpdateManager';
-import { getSecret, initSecrets } from './bindings/secret';
+import { getSecret, getSecretsStatus, initSecrets } from './bindings/secret';
 import { SecretsStatus } from './bindings/secret/types';
 import { getUserSettingsBinding } from './bindings/user-settings';
 
@@ -57,7 +57,8 @@ export const Loader = () =>{
             await initLogging()
 
             setStatusMessage('Setting up infrastructure...');
-            const status = await initSecrets({ timeout: 7000 });
+            await initSecrets({ timeout: 7000 });
+            const status = getSecretsStatus()
             setSecretsStatus(status);
 
             initApi()
