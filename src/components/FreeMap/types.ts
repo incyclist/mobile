@@ -1,3 +1,4 @@
+import { RoutePoint } from 'incyclist-services';
 import { ReactNode } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 
@@ -37,7 +38,7 @@ export interface TViewPort {
 }
 
 export interface TFreeMapProps {
-    position?: LatLng;
+    position?: LatLng|RoutePoint;
     viewport?: TViewPort;
     routeOptions?: Array<TOption>;
     startPos?: number;
@@ -63,7 +64,9 @@ export interface TFreeMapProps {
     children?: ReactNode;
     colorActive?: string;
     colorInactive?: string;
+    colorDone?:string;
     followPosition?: boolean;
+    showDone?: boolean
 }
 
 // Internal type for MapLibre which uses [longitude, latitude]
