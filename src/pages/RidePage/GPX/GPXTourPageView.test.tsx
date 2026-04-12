@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { GPXTourPageView, GPXTourPageViewProps } from './View';
 import type { GpxDisplayProps } from 'incyclist-services';
-import { IObserver, RideType, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
+import { IObserver, RideType, RoutePoint, StartOverlayProps, RideMenuProps } from 'incyclist-services';
 import { useWindowDimensions } from 'react-native';
 import { useScreenLayout } from '../../../hooks';
 
@@ -35,7 +35,7 @@ const MOCK_ROUTE_POINTS: RoutePoint[] = [
     { lat: 48.8575, lng: 2.3540, elevation: 38, routeDistance: 200, heading: 90 },
 ];
 
-const MOCK_ROUTE: Route = {
+const MOCK_ROUTE = {
     details: { points: MOCK_ROUTE_POINTS },
     description: { hasGpx: true, isLoop: false, name: 'Test Route' },
     id: 'test-route',
@@ -46,15 +46,15 @@ const MOCK_DISPLAY_PROPS = (
 ): GpxDisplayProps => ({
     rideView: 'map',
     position: MOCK_ROUTE_POINTS[0],
-    route: MOCK_ROUTE,
+    route: MOCK_ROUTE as any,
     startOverlayProps: null,
     menuProps: null,
     rideState: 'active',
-    sideViews: { left: false, right: false },
+    sideViews: { left: false, right: false } as any,
     startPos: 0,
     endPos: 1000,
     realityFactor: 1,
-    nearbyRides: { visible: false, riders: [] },
+    nearbyRides: { visible: false, riders: [] } as any,
     ...overrides,
 });
 
@@ -175,7 +175,7 @@ describe('GPXTourPageView', () => {
         const propsNoPoints = {
             ...defaultProps,
             displayProps: MOCK_DISPLAY_PROPS({
-                route: { ...MOCK_ROUTE, details: { points: [] } },
+                route: { ...MOCK_ROUTE, details: { points: [] } } as any,
             }),
         };
         render(<GPXTourPageView {...propsNoPoints} />);

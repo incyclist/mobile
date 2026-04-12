@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { GPXTourPageView } from './View';
 import type { GpxDisplayProps } from 'incyclist-services';
-import { IObserver, RideType, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
+import { IObserver, RideType, RoutePoint, StartOverlayProps, RideMenuProps } from 'incyclist-services';
 import { TestView } from './TestView'; // Using TestView for dynamic map display
 
 export const MOCK_ROUTE_POINTS: RoutePoint[] = [
@@ -14,7 +14,7 @@ export const MOCK_ROUTE_POINTS: RoutePoint[] = [
     { lat: 48.8560, lng: 2.3530, elevation: 35, routeDistance: 500, heading: 225 },
 ];
 
-const MOCK_ROUTE: Route = {
+const MOCK_ROUTE = {
     details: { points: MOCK_ROUTE_POINTS },
     description: { hasGpx: true, isLoop: false, name: 'Paris City Tour' },
     id: 'gpx-paris-tour',
@@ -25,15 +25,15 @@ const MOCK_DISPLAY_PROPS = (
 ): GpxDisplayProps => ({
     rideView: 'map',
     position: MOCK_ROUTE_POINTS[0],
-    route: MOCK_ROUTE,
+    route: MOCK_ROUTE as any,
     startOverlayProps: null,
     menuProps: null,
     rideState: 'active',
-    sideViews: { left: false, right: false },
+    sideViews: { left: false, right: false } as any,
     startPos: 0,
     endPos: 1000,
     realityFactor: 1,
-    nearbyRides: { visible: false, riders: [] },
+    nearbyRides: { visible: false, riders: [] } as any,
     ...overrides,
 });
 
@@ -127,7 +127,7 @@ export const NoRoutePoints: Story = {
             route: {
                 ...MOCK_ROUTE,
                 details: { points: [] },
-            },
+            } as any,
         }),
     },
 };

@@ -66,7 +66,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
         refService.current?.closePage();
         logEvent({ message: 'page closed', page: 'GPXTourPage' });
         refInitialized.current = false;
-    }, [onUpdate, onRideTypeChange, logEvent]);
+    });
 
     const onMenuOpen = useCallback(() => refService.current?.onMenuOpen(), []);
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
