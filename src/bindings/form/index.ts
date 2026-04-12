@@ -3,8 +3,13 @@ import RNFS from 'react-native-fs';
 import { EventLogger } from 'gd-eventlog';
 
 export class FormBinding implements IFormPostBinding {
+    private logger: EventLogger;
+
+    constructor() {
+        this.logger = new EventLogger('Bindings');
+    }
+
     async createForm(opts: object, uploadInfo: object): Promise<object> {
-        const logger = new EventLogger('Bindings');
         const result = { ...opts } as any;
         const formData: Record<string, any> = {};
 
@@ -13,19 +18,28 @@ export class FormBinding implements IFormPostBinding {
                 try {
                     if (entry && typeof entry === 'object' && (entry as any).type === 'file') {
                         const path = (entry as any).fileName;
+
+                        if (!path) {
+                            this.logger.logEvent({
+                                message: 'createForm: missing fileName for file entry',
+                                key,
+                            });
+                            continue;
+                        }
+
                         const base64 = await RNFS.readFile(path, 'base64');
                         const byteChars = atob(base64);
                         const uint8Array = new Uint8Array(byteChars.length);
                         for (let i = 0; i < byteChars.length; i++) {
                             uint8Array[i] = byteChars.charCodeAt(i);
                         }
-                        const blob = new Blob([uint8Array], { type: 'application/octet-stream' });
+                        const blob = new Blob([uint8Array.buffer], { type: 'application/octet-stream' });
                         formData[key] = { value: blob, options: { filepath: path } };
                     } else {
                         formData[key] = entry;
                     }
                 } catch (err: any) {
-                    logger.logEvent({
+                    this.logger.logEvent({
                         message: 'createForm: error processing entry',
                         key,
                         error: err.message,
@@ -34,7 +48,7 @@ export class FormBinding implements IFormPostBinding {
             }
             result.formData = formData;
         } catch (err: any) {
-            logger.logEvent({
+            this.logger.logEvent({
                 message: 'createForm: general error',
                 error: err.message,
             });
