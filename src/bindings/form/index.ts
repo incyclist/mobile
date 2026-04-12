@@ -1,5 +1,4 @@
 import { IFormPostBinding } from 'incyclist-services';
-import RNFS from 'react-native-fs';
 import { EventLogger } from 'gd-eventlog';
 
 export class FormBinding implements IFormPostBinding {
@@ -17,17 +16,16 @@ export class FormBinding implements IFormPostBinding {
                 if (info && typeof info === 'object' && (info as any).type === 'file') {
                     const fileName = (info as any).fileName;
                     if (fileName) {
-                        const base64 = await RNFS.readFile(fileName, 'base64');
-                        
-                        // Convert base64 to Blob as per reference pattern
-                        const byteChars = atob(base64);
-                        const uint8 = new Uint8Array(byteChars.length);
-                        for (let i = 0; i < byteChars.length; i++) {
-                            uint8[i] = byteChars.charCodeAt(i);
-                        }
-                        const blob = new Blob([uint8], { type: 'application/octet-stream' });
-                        
-                        formData[key] = { value: blob, options: { filepath: fileName } };
+                        // For React Native, we use the file URI approach for FormData.
+                        // This avoids loading the entire file into memory as a Blob/Base64.
+                        formData[key] = {
+                            value: {
+                                uri: fileName.startsWith('file://') ? fileName : `file://${fileName}`,
+                                name: fileName.split('/').pop() || 'file',
+                                type: 'application/octet-stream'
+                            },
+                            options: { filepath: fileName }
+                        };
                     }
                 } else {
                     formData[key] = info;
@@ -51,19 +49,26 @@ export class FormBinding implements IFormPostBinding {
         if (formData) {
             for (const [key, entry] of Object.entries(formData)) {
                 if (entry && typeof entry === 'object' && (entry as any).value && (entry as any).options) {
-                    const { value, options } = entry as any;
-                    const filename = options.filepath ? options.filepath.split('/').pop() : 'file';
-                    // React Native FormData expects (key, value, filename) for files
-                    form.append(key, value as any, filename);
+                    // React Native FormData handles file objects with uri, name, type
+                    // The 'as any' is required as RN's FormData type definition is sometimes incomplete
+                    form.append(key, (entry as any).value as any);
                 } else {
                     form.append(key, String(entry));
                 }
             }
         }
 
+        const fetchHeaders: Record<string, string> = { ...headers };
+        // Remove Content-Type to allow fetch to set the multipart boundary automatically
+        Object.keys(fetchHeaders).forEach(k => {
+            if (k.toLowerCase() === 'content-type') {
+                delete fetchHeaders[k];
+            }
+        });
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: { ...headers },
+            headers: fetchHeaders,
             body: form as any,
         });
 
@@ -76,12 +81,13 @@ export class FormBinding implements IFormPostBinding {
         }
 
         if (!response.ok) {
+            // Throwing standardized error response shape
             throw {
                 response: {
                     status: response.status,
-                    message: response.statusText || 'Request failed',
+                    statusText: response.statusText || 'Request failed',
                     data: parsed,
-                    body: JSON.stringify(parsed),
+                    body: text,
                 }
             };
         }
@@ -93,3 +99,5 @@ export class FormBinding implements IFormPostBinding {
         };
     }
 }
+
+export const getFormBinding = () => new FormBinding();
