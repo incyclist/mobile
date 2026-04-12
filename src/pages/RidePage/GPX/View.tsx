@@ -2,8 +2,8 @@ import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
 import {
     IObserver,
-    GpxDisplayProps,
     RoutePoint,
+    GPXRidePageDisplayProps,
 } from 'incyclist-services';
 import {
     RideDashboard,
@@ -20,7 +20,7 @@ import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 
 export interface GPXTourPageViewProps {
-    displayProps: GpxDisplayProps;
+    displayProps: GPXRidePageDisplayProps;
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
@@ -53,7 +53,8 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCancelStart,
     } = props;
 
-    const { rideView, route, position, startOverlayProps, menuProps } = displayProps;
+    const { gpx, route, startOverlayProps,menuProps} = displayProps??{};
+    const { rideView,position }  = gpx??{}
 
     // Derived properties
     const routeData = route?.details;

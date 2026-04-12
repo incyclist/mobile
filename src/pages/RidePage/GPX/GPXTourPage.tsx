@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import {
     getRidePageService,
     IObserver,
-    GpxDisplayProps,
+    GPXRidePageDisplayProps,
     RidePageService,
     RideType,
 } from 'incyclist-services';
@@ -11,7 +11,6 @@ import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
 import { GPXTourPageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
-import { useLogging } from '../../../hooks/logging';
 
 interface GPXTourPageProps {
     simulate?: boolean;
@@ -19,19 +18,17 @@ interface GPXTourPageProps {
 }
 
 export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageProps) => {
-    const [displayProps, setDisplayProps] = useState<GpxDisplayProps | null>(null);
+    const [displayProps, setDisplayProps] = useState<GPXRidePageDisplayProps | null>(null);
 
     const refService = useRef<RidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
     const refRideObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
 
-    const { logEvent } = useLogging('GPXTourPage');
-
     const onUpdate = useCallback(() => {
         const service = refService.current;
         if (service) {
-            const update = service.getPageDisplayProps() as GpxDisplayProps;
+            const update = service.getPageDisplayProps() as GPXRidePageDisplayProps;
             setDisplayProps(update);
         }
     }, []);
@@ -39,8 +36,6 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
     useEffect(() => {
         if (refInitialized.current) return;
         refInitialized.current = true;
-
-        logEvent({ message: 'page shown', page: 'GPXTourPage' });
 
         const service = getRidePageService();
         refService.current = service;
@@ -56,7 +51,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
         }
 
         onUpdate();
-    }, [simulate, onUpdate, onRideTypeChange, logEvent]);
+    }, [simulate, onUpdate, onRideTypeChange ]);
 
     useUnmountEffect(() => {
         if (refObserver.current) {
@@ -64,9 +59,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
             refObserver.current.off('ride-type-update', onRideTypeChange);
         }
         refService.current?.closePage();
-        logEvent({ message: 'page closed', page: 'GPXTourPage' });
         refInitialized.current = false;
-    }, [onUpdate, onRideTypeChange, logEvent]);
+    }, [onUpdate, onRideTypeChange ]);
 
     const onMenuOpen = useCallback(() => refService.current?.onMenuOpen(), []);
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
