@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { GPXTourPageView } from './View';
-import { IObserver, RideType, CurrentRideState, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
+import type { GpxDisplayProps } from 'incyclist-services';
+import { IObserver, RideType, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
 import { TestView } from './TestView'; // Using TestView for dynamic map display
 
 export const MOCK_ROUTE_POINTS: RoutePoint[] = [
@@ -27,7 +28,7 @@ const MOCK_DISPLAY_PROPS = (
     route: MOCK_ROUTE,
     startOverlayProps: null,
     menuProps: null,
-    rideState: 'active' as CurrentRideState,
+    rideState: 'active',
     sideViews: { left: false, right: false },
     startPos: 0,
     endPos: 1000,
@@ -46,7 +47,6 @@ const MOCK_START_OVERLAY_PROPS: StartOverlayProps = {
 };
 
 const MOCK_MENU_PROPS: RideMenuProps = {
-    visible: true,
     showResume: true,
     onClose: fn(),
     onPause: fn(),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IObserver, RoutePoint } from 'incyclist-services';
+import { IObserver } from 'incyclist-services';
 import { GPXTourPageView, GPXTourPageViewProps } from './View';
 import { MOCK_ROUTE_POINTS } from './GPXTourPage.stories';
 
@@ -8,7 +8,7 @@ import { MOCK_ROUTE_POINTS } from './GPXTourPage.stories';
  * dynamic position updates for the GPXTourPageView.
  */
 export const TestView = (props: Omit<GPXTourPageViewProps, 'rideObserver'>) => {
-    const [mockPositionIndex, setMockPositionIndex] = useState(0);
+    const [, setMockPositionIndex] = useState(0);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const eventHandlers = useRef<Record<string, ((data: any) => void)[]>>({});
 

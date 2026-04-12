@@ -108,7 +108,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     }, []);
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} testID='gpx-tour-page-view'>
             {/* Main content layer, conditionally hidden by start overlay */}
             {!startOverlayProps && (
                 <View style={StyleSheet.absoluteFill}>

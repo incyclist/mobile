@@ -99,7 +99,7 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
         return <VideoRidePage simulate={simulate} onRideTypeChange={onRideTypeChange} />;
     }
 
-    if (rideType === 'GpxTour') { // Handle GpxTour ride type
+    if (rideType === 'GPX') { // Handle GPX ride type
         return <GPXTourPage simulate={simulate} onRideTypeChange={onRideTypeChange} />;
     }
 

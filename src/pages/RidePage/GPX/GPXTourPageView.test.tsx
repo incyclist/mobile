@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { GPXTourPageView, GPXTourPageViewProps } from './View';
-import { IObserver, RideType, CurrentRideState, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
+import type { GpxDisplayProps } from 'incyclist-services';
+import { IObserver, RideType, RoutePoint, Route, StartOverlayProps, RideMenuProps } from 'incyclist-services';
 import { useWindowDimensions } from 'react-native';
 import { useScreenLayout } from '../../../hooks';
 
@@ -15,6 +16,10 @@ jest.mock('react-native', () => {
             ...ActualReactNative.StyleSheet,
             // Ensure create returns mockable styles if needed, or actual ones
             create: (styles: any) => styles,
+        },
+        NativeModules: {
+            ...ActualReactNative.NativeModules,
+            DevMenu: { addListener: jest.fn(), removeListeners: jest.fn() },
         },
     };
 });
@@ -44,7 +49,7 @@ const MOCK_DISPLAY_PROPS = (
     route: MOCK_ROUTE,
     startOverlayProps: null,
     menuProps: null,
-    rideState: 'active' as CurrentRideState,
+    rideState: 'active',
     sideViews: { left: false, right: false },
     startPos: 0,
     endPos: 1000,
@@ -63,7 +68,6 @@ const MOCK_START_OVERLAY_PROPS: StartOverlayProps = {
 };
 
 const MOCK_MENU_PROPS: RideMenuProps = {
-    visible: true,
     showResume: true,
     onClose: jest.fn(),
     onPause: jest.fn(),

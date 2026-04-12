@@ -26,7 +26,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
     const refRideObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
 
-    const { logError, logEvent } = useLogging('GPXTourPage');
+    const { logEvent } = useLogging('GPXTourPage');
 
     const onUpdate = useCallback(() => {
         const service = refService.current;
@@ -66,7 +66,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
         refService.current?.closePage();
         logEvent({ message: 'page closed', page: 'GPXTourPage' });
         refInitialized.current = false;
-    });
+    }, [onUpdate, onRideTypeChange, logEvent]);
 
     const onMenuOpen = useCallback(() => refService.current?.onMenuOpen(), []);
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
@@ -74,8 +74,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
     const onCancelStart = useCallback(() => {
         setDisplayProps(current => {
-            const prev = current ?? {};
-            return { ...prev, startOverlayProps: null } as GpxDisplayProps;
+            if (!current) return current;
+            return { ...current, startOverlayProps: null };
         });
         refService.current?.onCancelStart();
     }, []);
