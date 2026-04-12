@@ -1,5 +1,6 @@
 import { IFormPostBinding } from 'incyclist-services';
 import { EventLogger } from 'gd-eventlog';
+import RNFS from 'react-native-fs';
 
 export class FormBinding implements IFormPostBinding {
     private logger: EventLogger;
@@ -26,9 +27,12 @@ export class FormBinding implements IFormPostBinding {
                             continue;
                         }
 
+                        const base64 = await RNFS.readFile(path, 'base64');
+                        const dataUri = `data:application/octet-stream;base64,${base64}`;
+
                         formData[key] = {
                             value: {
-                                uri: path,
+                                uri: dataUri,
                                 type: 'application/octet-stream',
                                 name: path.split('/').pop() || 'upload',
                             },
@@ -70,6 +74,8 @@ export class FormBinding implements IFormPostBinding {
                 }
             }
         }
+
+        this.logger.logEvent({ message: 'posting form', url, headers, formData });
 
         const response = await fetch(url, {
             method: 'POST',
