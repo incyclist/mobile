@@ -13,6 +13,7 @@ import { getVideoBinding } from "./video"
 import { getRepositoryBinding } from "./db"
 import { getFileLoaderBinding } from "./loader"
 import { getCryptoBinding } from "./crypto"
+import { FormBinding } from "./form"
 
 
 let _bindings:IncyclistBindings|undefined
@@ -41,6 +42,7 @@ export const initBindings = async  ()=> {
     bindings.db = getRepositoryBinding()
     bindings.loader = getFileLoaderBinding()
     bindings.crypto = getCryptoBinding()
+    bindings.form = new FormBinding()
 
     
     // bindings.downloadManager = DownloadManager.getInstance()
