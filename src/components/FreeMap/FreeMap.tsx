@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { getPosition } from 'incyclist-services';
 import type { RoutePoint } from 'incyclist-services';
-import { TFreeMapProps, MapCoord, LatLng } from './types';
+import { TFreeMapProps, MapCoord, LatLng  } from './types';
 import { FreeMapView } from './FreeMapView';
 import { getPointsFromProps, toMapCoord, computeBoundsFromPoints } from './utils';
 
@@ -11,6 +11,7 @@ export const FreeMap = (props: TFreeMapProps) => {
         endPos,
         colorActive = 'blue',
         colorInactive = 'grey',
+        colorDone = 'lightblue',
         viewport,
         center,
         zoom,
@@ -24,6 +25,7 @@ export const FreeMap = (props: TFreeMapProps) => {
         route,
         activity,
         followPosition,
+        showDone
     } = props;
 
     const points = useMemo(() => getPointsFromProps({ points: propsPoints, route, activity }), [propsPoints, route, activity]);
@@ -34,6 +36,15 @@ export const FreeMap = (props: TFreeMapProps) => {
         const before: MapCoord[] = [];
         const during: MapCoord[] = [];
         const after: MapCoord[] = [];
+        const done: MapCoord[] = [];
+
+        let completed:number = -1
+
+        if (showDone && (position as RoutePoint)?.routeDistance!==undefined ) {
+            completed = (position as RoutePoint).routeDistance??-1
+        }
+
+
 
         points.forEach((p) => {
             const dist = p.routeDistance ?? 0;
@@ -43,7 +54,10 @@ export const FreeMap = (props: TFreeMapProps) => {
                 before.push(coord);
             } else if (endPos !== undefined && dist > endPos) {
                 after.push(coord);
-            } else {
+            } else  if (completed>0 && dist<completed) {
+                done.push(coord)
+            }
+            else {
                 during.push(coord);
             }
         });
@@ -69,6 +83,13 @@ export const FreeMap = (props: TFreeMapProps) => {
                 geometry: { type: 'LineString', coordinates: after },
             });
         }
+        if (done.length > 1) {
+            features.push({
+                type: 'Feature',
+                properties: { color: colorDone },
+                geometry: { type: 'LineString', coordinates: done },
+            });
+        }
 
         if (routeOptions) {
             routeOptions.forEach((opt) => {
@@ -84,7 +105,7 @@ export const FreeMap = (props: TFreeMapProps) => {
         }
 
         return { type: 'FeatureCollection', features };
-    }, [points, startPos, endPos, colorActive, colorInactive, routeOptions]);
+    }, [showDone, position, points, routeOptions, startPos, endPos, colorInactive, colorActive, colorDone]);
 
     const cameraProps = useMemo(() => {
         // 1. Use explicit bounds prop if provided
