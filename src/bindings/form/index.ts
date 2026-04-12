@@ -1,5 +1,4 @@
 import { IFormPostBinding } from 'incyclist-services';
-import RNFS from 'react-native-fs';
 import { EventLogger } from 'gd-eventlog';
 
 export class FormBinding implements IFormPostBinding {
@@ -27,14 +26,14 @@ export class FormBinding implements IFormPostBinding {
                             continue;
                         }
 
-                        const base64 = await RNFS.readFile(path, 'base64');
-                        const byteChars = atob(base64);
-                        const uint8Array = new Uint8Array(byteChars.length);
-                        for (let i = 0; i < byteChars.length; i++) {
-                            uint8Array[i] = byteChars.charCodeAt(i);
-                        }
-                        const blob = new Blob([uint8Array.buffer], { type: 'application/octet-stream' });
-                        formData[key] = { value: blob, options: { filepath: path } };
+                        formData[key] = {
+                            value: {
+                                uri: path,
+                                type: 'application/octet-stream',
+                                name: path.split('/').pop() || 'upload',
+                            },
+                            options: { filepath: path },
+                        };
                     } else {
                         formData[key] = entry;
                     }
@@ -64,10 +63,8 @@ export class FormBinding implements IFormPostBinding {
             for (const [key, entry] of Object.entries(dataMap)) {
                 const value = entry as any;
                 if (value && typeof value === 'object' && 'value' in value && 'options' in value) {
-                    const fileEntry = value as { value: Blob; options: { filepath: string } };
-                    const filename = fileEntry.options.filepath.split('/').pop() || 'upload';
-                    // @ts-ignore - React Native's FormData.append supports Blob
-                    formData.append(key, fileEntry.value, filename);
+                    const fileEntry = value as { value: any; options: { filepath: string } };
+                    formData.append(key, fileEntry.value as any);
                 } else {
                     formData.append(key, String(value));
                 }
