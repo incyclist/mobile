@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
+import { View, StyleSheet, useWindowDimensions  } from 'react-native';
 import {
     IObserver,
     RoutePoint,
@@ -35,12 +35,6 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
     <Button id='menu' label='Menu' primary={true} onClick={onPress} />
 ));
 
-const RideViewPlaceholder = ({ message }: { message: string }) => (
-    <View style={styles.placeholderContainer}>
-        <MainBackground />
-        <Text style={styles.placeholderText}>{message}</Text>
-    </View>
-);
 
 export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const {
@@ -53,8 +47,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCancelStart,
     } = props;
 
-    const { gpx, route, startOverlayProps,menuProps} = displayProps??{};
-    const { rideView,position }  = gpx??{}
+    const { startOverlayProps,menuProps,rideView,route} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -98,23 +91,24 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         alignItems: 'center' as const,
     };
 
-    const transformPosition = useCallback((val: any): LatLng | undefined => {
+    const transformPosition = useCallback((val: any): LatLng|RoutePoint | undefined => {
         if (!val) return undefined;
         // position-update can emit number for other contexts
         if (typeof val === 'number') return undefined;
         const p = val?.position || val;
         return (p?.lat !== undefined && p?.lng !== undefined)
-            ? { lat: p.lat, lng: p.lng }
+            ? { lat: p.lat, lng: p.lng, routeDistance:p.routeDistance??val?.routeDistance }
             : undefined;
     }, []);
+
 
     return (
         <View style={styles.container} testID='gpx-tour-page-view'>
             {/* Main content layer, conditionally hidden by start overlay */}
             {!startOverlayProps && (
                 <View style={StyleSheet.absoluteFill}>
-                    {/* Render main view based on rideView */}
-                    {rideView === 'map' && (
+                    {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
+                    { (rideView === 'map' || rideView === 'sv' || rideView === 'sat') && (
                         <Dynamic
                             observer={rideObserver ?? undefined}
                             event='position-update'
@@ -123,21 +117,14 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         >
                             <FreeMap
                                 points={routeData?.points as RoutePoint[] ?? []}
-                                position={position}
+                                position={undefined}
                                 draggable={false}
                                 followPosition={true}
                                 zoomControl={false}
                                 scrollWheelZoom={false}
                                 style={styles.fullScreenMap}
-                                colorActive={colors.buttonPrimary}
-                                colorInactive={colors.disabled}
                             />
                         </Dynamic>
-                    )}
-
-                    {/* Placeholder for 'sv' and 'sat' */}
-                    {(rideView === 'sv' || rideView === 'sat') && (
-                        <RideViewPlaceholder message={`${rideView.toUpperCase()} view not yet implemented`} />
                     )}
 
                     {/* Dashboard */}

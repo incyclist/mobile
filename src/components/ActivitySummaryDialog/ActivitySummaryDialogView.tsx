@@ -255,8 +255,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
                         variant="info"
                         title="Delete Ride"
                         buttons={[
-                            { label: 'Cancel', onClick: onDeleteCancel },
-                            { label: 'Delete', onClick: onDeleteConfirm, attention: true },
+                            { label: 'No', onClick: onDeleteCancel },
+                            { label: 'Yes', onClick: onDeleteConfirm, attention: true },
                         ]}
                         onOutsideClick={onDeleteCancel}
                     >

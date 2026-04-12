@@ -54,7 +54,7 @@ export const ActiveRide: Story = {
             startGateProps: null,
             menuProps: null,
             route: sydneyRoute as any,
-            gpx: { rideView:'map' } as any,
+            rideView:'map'  as any,
         },
     },
 };
