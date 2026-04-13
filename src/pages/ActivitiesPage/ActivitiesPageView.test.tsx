@@ -2,6 +2,15 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ActivitiesPageView } from './ActivitiesPageView';
 
+jest.mock('incyclist-services', () => ({
+    formatDateTime: jest.fn((_, format) => {
+        if (format === '%d.%m.%Y') return '12.04.2025';
+        if (format === '%H:%M') return '10:00';
+        return '';
+    }),
+    ActivityInfoUI: {},
+}));
+
 // Mock components to isolate the view
 jest.mock('../../components', () => ({
     Dialog: ({ children }: any) => children,
