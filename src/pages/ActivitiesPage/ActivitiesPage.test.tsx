@@ -2,6 +2,14 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ActivitiesPage } from './ActivitiesPage';
 
+jest.mock('../../components/ActivityDetailsDialog', () => ({
+    ActivityDetailsDialog: () => null,
+}))
+
+jest.mock('../../services', () => ({
+    navigate: jest.fn(),
+}))
+
 jest.mock('incyclist-services', () => ({
     getActivitiesPageService: () => ({
         openPage: () => null,
@@ -16,12 +24,11 @@ jest.mock('incyclist-services', () => ({
     }),
 }));
 
-// Mock child components that might use services or have complex logic
 jest.mock('../../components', () => ({
-    Dialog: ({ children }: any) => children,
-    ActivityListItem: () => null,
-    ActivityDetailsDialog: () => null,
-}));
+    MainBackground: ({ children }: any) => children,
+    NavigationBar: () => null,
+    ActivitiesTable: () => null,
+}))
 
 describe('ActivitiesPage', () => {
     it('renders without crashing when observer is null', () => {
