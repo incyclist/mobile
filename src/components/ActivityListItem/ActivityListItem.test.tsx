@@ -19,7 +19,7 @@ const MOCK_FORMATTED: ActivityListItemProps = {
             startTime: 1744444800000,
             rideTime: 3720,
             distance: { value: 32.4, unit: 'km' },
-        },
+        } as any,
         details: undefined,
     },
     onPress: () => {},
@@ -33,7 +33,22 @@ const MOCK_RAW_DISTANCE: ActivityListItemProps = {
             startTime: 1744444800000,
             rideTime: 720,
             distance: 24500,
-        },
+        } as any,
+        details: undefined,
+    },
+    onPress: () => {},
+};
+
+const MOCK_NO_ELEVATION: ActivityListItemProps = {
+    activityInfo: {
+        summary: {
+            id: 'act-3',
+            title: 'No Elevation Ride',
+            startTime: 1744444800000,
+            rideTime: 600,
+            distance: 5000,
+            totalElevation: undefined,
+        } as any,
         details: undefined,
     },
     onPress: () => {},
@@ -50,5 +65,9 @@ describe('ActivityListItem', () => {
 
     it('renders in compact mode without crashing', () => {
         render(<ActivityListItem {...MOCK_FORMATTED} compact />);
+    });
+
+    it('renders without crashing with no elevation', () => {
+        render(<ActivityListItem {...MOCK_NO_ELEVATION} />);
     });
 });

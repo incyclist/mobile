@@ -23,7 +23,7 @@ export const Default: Story = {
                 startTime: 1744444800000,
                 rideTime: 3660,
                 distance: { value: 25.5, unit: 'km' },
-            },
+            } as any,
             details: undefined,
         },
     },
@@ -38,7 +38,7 @@ export const IncyclistRide: Story = {
                 startTime: 1744444800000,
                 rideTime: 1800,
                 distance: 12500,
-            },
+            } as any,
             details: {
                 route: {
                     title: 'Mont Ventoux',
@@ -62,7 +62,23 @@ export const Compact: Story = {
                 startTime: 1744444800000,
                 rideTime: 600,
                 distance: 5000,
-            },
+            } as any,
+            details: undefined,
+        },
+    },
+};
+
+export const WithElevation: Story = {
+    args: {
+        activityInfo: {
+            summary: {
+                id: '4',
+                title: 'Mountain Stage',
+                startTime: 1744444800000,
+                rideTime: 7200,
+                distance: { value: 45.2, unit: 'km' },
+                totalElevation: { value: 1250, unit: 'm' },
+            } as any,
             details: undefined,
         },
     },

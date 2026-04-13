@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { formatDateTime } from 'incyclist-services';
 import { ActivityListItemProps, ACTIVITY_LIST_ITEM_HEIGHT } from './types';
 import { ActivityGraphPreview } from '../ActivityGraphPreview';
@@ -33,6 +33,14 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
         distanceStr = `${(distance / 1000).toFixed(1)} km`;
     }
 
+    const elevation = (summary as any).totalElevation;
+    let elevationStr = '';
+    if (typeof elevation === 'object' && elevation !== null && 'value' in elevation && 'unit' in elevation) {
+        elevationStr = `${Math.round(elevation.value)} ${elevation.unit}`;
+    } else if (typeof elevation === 'number' && !isNaN(elevation)) {
+        elevationStr = `${Math.round(elevation)}m`;
+    }
+
     const hasLogs = details?.logs && details.logs.length > 0;
 
     return (
@@ -61,7 +69,18 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
 
             <View style={styles.rightSection}>
                 <Text style={styles.duration}>{durationStr}</Text>
-                <Text style={styles.distance}>{distanceStr}</Text>
+                <View style={styles.metric}>
+                    <Image source={require('../../assets/icons/length.gif')} style={styles.metricIcon} />
+                    <Text style={styles.metricLabel}>Distance</Text>
+                    <Text style={styles.metricValue}>{distanceStr}</Text>
+                </View>
+                {elevationStr !== '' && (
+                    <View style={styles.metric}>
+                        <Image source={require('../../assets/icons/up.gif')} style={styles.metricIcon} />
+                        <Text style={styles.metricLabel}>Elevation</Text>
+                        <Text style={styles.metricValue}>{elevationStr}</Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -111,10 +130,10 @@ const styles = StyleSheet.create({
     dateCompact: {
         fontSize: textSizes.smallText,
         fontWeight: 'normal',
-        color: colors.disabled,
+        color: colors.text,
     },
     dateTime: {
-        color: colors.disabled,
+        color: colors.text,
         fontSize: textSizes.smallText,
         marginTop: 4,
     },
@@ -128,9 +147,22 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '500',
     },
-    distance: {
-        color: colors.disabled,
+    metric: {
+        alignItems: 'flex-end',
+        marginTop: 2,
+    },
+    metricIcon: {
+        width: 16,
+        height: 16,
+        tintColor: colors.text,
+    },
+    metricLabel: {
+        color: colors.text,
         fontSize: textSizes.smallText,
-        marginTop: 4,
+    },
+    metricValue: {
+        color: colors.text,
+        fontSize: textSizes.smallText,
+        fontWeight: '500',
     },
 });
