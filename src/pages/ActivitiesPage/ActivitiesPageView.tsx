@@ -1,17 +1,18 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { ActivitiesPageDisplayProps } from 'incyclist-services';
-import { Dialog, ActivitiesTable } from '../../components';
+import { MainBackground, NavigationBar, ActivitiesTable, TNavigationItem } from '../../components';
 import { colors, textSizes } from '../../theme';
 
 export interface ActivitiesPageViewProps {
     props: ActivitiesPageDisplayProps | null;
     onSelectActivity: (id: string) => void;
-    onClose: () => void;
+    onNavigate: (item: TNavigationItem) => void;
 }
 
-export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: ActivitiesPageViewProps) => {
-    const buttons = useMemo(() => [{ label: 'Close', onClick: onClose }], [onClose]);
+export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: ActivitiesPageViewProps) => {
+    const { height } = useWindowDimensions();
+    const compact = height < 420;
 
     const content = useMemo(() => {
         const activities = props?.activities ?? [];
@@ -37,16 +38,77 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: Activit
     }, [props, onSelectActivity]);
 
     return (
-        <Dialog title="Activities" variant="full" onOutsideClick={onClose} buttons={buttons}>
-            <View style={styles.container}>{content}</View>
-        </Dialog>
+        <MainBackground>
+            <View style={[styles.container, compact && styles.containerCompact]}>
+                <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
+                    <NavigationBar
+                        compact={compact}
+                        selected="activities"
+                        onClick={onNavigate}
+                    />
+                </View>
+
+                <View style={styles.contentColumn}>
+                    <View style={styles.header}>
+                        <View style={styles.headerSide} />
+                        <Text style={styles.headerTitle}>ACTIVITIES</Text>
+                        <View style={styles.headerSide} />
+                    </View>
+
+                    <View style={styles.listArea}>
+                        {content}
+                    </View>
+                </View>
+            </View>
+        </MainBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        minHeight: 300,
+        flexDirection: 'row',
+    },
+    containerCompact: {
+        flexDirection: 'column',
+    },
+    navColumn: {
+        flexDirection: 'column',
+        alignSelf: 'stretch',
+    },
+    navColumnNormal: {
+        width: 150,
+    },
+    navColumnCompact: {
+        height: 56,
+        width: '100%',
+    },
+    contentColumn: {
+        flex: 1,
+        flexDirection: 'column',
+        overflow: 'hidden',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    headerTitle: {
+        color: colors.text,
+        fontSize: textSizes.pageTitle,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    headerSide: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+    },
+    listArea: {
+        flex: 1,
     },
     center: {
         flex: 1,

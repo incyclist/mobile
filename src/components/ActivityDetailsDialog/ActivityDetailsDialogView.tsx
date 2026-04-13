@@ -5,7 +5,7 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
 import { UploadPill } from '../UploadPill';
-import { ActivityDetailsDialogViewProps, isFormattedNumber } from './types';
+import { ActivityDetailsDialogViewProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -20,6 +20,9 @@ const safeNum = (v: any): number | undefined => {
     }
     return undefined;
 };
+
+const isFormattedNumber = (v: unknown): v is { value: number; unit: string } =>
+    typeof v === 'object' && v !== null && 'value' in v;
 
 export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps) => {
     const {

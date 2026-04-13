@@ -7,9 +7,8 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ActivitiesPageView } from './ActivitiesPageView';
-
-// Temporary stub — replaced by ActivityDetailsDialog import when T4 merges
-const ActivityDetailsDialog = (_props: any) => null;
+import { ActivityDetailsDialog, TNavigationItem } from '../../components';
+import { navigate } from '../../services';
 
 export interface ActivitiesPageProps {
     onClose: () => void;
@@ -25,7 +24,7 @@ const initialProps: ActivitiesPageDisplayProps = {
 const hashActivities = (activities: ActivityInfoUI[]) =>
     (activities ?? []).map(a => a.summary.id).join(',');
 
-export const ActivitiesPage = ({ onClose, onRideAgain }: ActivitiesPageProps) => {
+export const ActivitiesPage = ({ onRideAgain }: ActivitiesPageProps) => {
     const service = getActivitiesPageService();
     const { logError } = useLogging('ActivitiesPage');
     
@@ -84,16 +83,19 @@ export const ActivitiesPage = ({ onClose, onRideAgain }: ActivitiesPageProps) =>
         service.onCloseActivity();
     }, [service]);
 
+    const onNavigate = useCallback((item: TNavigationItem) => {
+        navigate(item);
+    }, []);
+
     return (
         <>
             <ActivitiesPageView 
                 props={props}
                 onSelectActivity={onSelectActivity}
-                onClose={onClose}
+                onNavigate={onNavigate}
             />
             {props.detailActivityId && (
                 <ActivityDetailsDialog 
-                    activityId={props.detailActivityId}
                     onClose={onCloseActivity}
                     onRideAgain={onRideAgain}
                 />
