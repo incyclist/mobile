@@ -14,7 +14,7 @@ jest.mock('incyclist-services', () => ({
 // Mock components to isolate the view
 jest.mock('../../components', () => ({
     Dialog: ({ children }: any) => children,
-    ActivityListItem: () => null,
+    ActivitiesTable: () => null,
 }));
 
 describe('ActivitiesPageView', () => {
