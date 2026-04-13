@@ -54,28 +54,25 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
             </View>
 
             <View style={styles.centerSection}>
-                <View style={styles.titleRow}>
-                    <Text style={styles.title} numberOfLines={1}>
-                        {displayTitle}
-                        {compact && <Text style={styles.dateCompact}> - {dateStr}</Text>}
-                    </Text>
-                </View>
+                <Text style={styles.title} numberOfLines={1}>
+                    {displayTitle}
+                    {compact && <Text style={styles.dateCompact}> - {dateStr}</Text>}
+                </Text>
                 {!compact && (
                     <Text style={styles.dateTime}>
-                        {dateStr} {timeStr}
+                        {dateStr}{'  '}{timeStr}{'  '}{durationStr}
                     </Text>
                 )}
             </View>
 
-            <View style={styles.rightSection}>
-                <Text style={styles.duration}>{durationStr}</Text>
-                <View style={styles.metric}>
+            <View style={styles.metricsSection}>
+                <View style={styles.metricColumn}>
                     <Image source={require('../../assets/icons/length.gif')} style={styles.metricIcon} />
                     <Text style={styles.metricLabel}>Distance</Text>
                     <Text style={styles.metricValue}>{distanceStr}</Text>
                 </View>
                 {elevationStr !== '' && (
-                    <View style={styles.metric}>
+                    <View style={styles.metricColumn}>
                         <Image source={require('../../assets/icons/up.gif')} style={styles.metricIcon} />
                         <Text style={styles.metricLabel}>Elevation</Text>
                         <Text style={styles.metricValue}>{elevationStr}</Text>
@@ -118,10 +115,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         justifyContent: 'center',
     },
-    titleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     title: {
         color: colors.text,
         fontSize: textSizes.normalText,
@@ -137,19 +130,16 @@ const styles = StyleSheet.create({
         fontSize: textSizes.smallText,
         marginTop: 4,
     },
-    rightSection: {
-        width: 100,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+    metricsSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 12,
+        paddingRight: 8,
     },
-    duration: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-        fontWeight: '500',
-    },
-    metric: {
-        alignItems: 'flex-end',
-        marginTop: 2,
+    metricColumn: {
+        alignItems: 'center',
+        minWidth: 56,
     },
     metricIcon: {
         width: 16,
