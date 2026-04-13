@@ -31,7 +31,7 @@ const MOCK_RAW_DISTANCE: ActivityListItemProps = {
             id: 'act-2',
             title: 'Incyclist Ride',
             startTime: 1744444800000,
-            rideTime: 720,
+            rideTime: 7200,
             distance: 24500,
         } as any,
         details: undefined,
@@ -61,10 +61,6 @@ describe('ActivityListItem', () => {
 
     it('renders without crashing with raw distance', () => {
         render(<ActivityListItem {...MOCK_RAW_DISTANCE} />);
-    });
-
-    it('renders in compact mode without crashing', () => {
-        render(<ActivityListItem {...MOCK_FORMATTED} compact />);
     });
 
     it('renders without crashing with no elevation', () => {

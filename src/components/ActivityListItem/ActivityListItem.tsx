@@ -6,7 +6,7 @@ import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors, textSizes } from '../../theme';
 
 export const ActivityListItem = memo((props: ActivityListItemProps) => {
-    const { activityInfo, onPress, compact } = props;
+    const { activityInfo, onPress } = props;
     const { summary, details } = activityInfo;
     const { id, title, startTime, rideTime, distance } = summary;
 
@@ -26,19 +26,25 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const minutes = Math.floor((rideTime % 3600) / 60);
     const durationStr = hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
 
-    let distanceStr = '';
+    let distanceValue = '';
+    let distanceUnit = '';
     if (typeof distance === 'object' && distance !== null && 'value' in distance && 'unit' in distance) {
-        distanceStr = `${distance.value.toFixed(1)} ${distance.unit}`;
+        distanceValue = distance.value.toFixed(1);
+        distanceUnit = distance.unit;
     } else if (typeof distance === 'number') {
-        distanceStr = `${(distance / 1000).toFixed(1)} km`;
+        distanceValue = (distance / 1000).toFixed(1);
+        distanceUnit = 'km';
     }
 
     const elevation = (summary as any).totalElevation;
-    let elevationStr = '';
+    let elevationValue = '';
+    let elevationUnit = '';
     if (typeof elevation === 'object' && elevation !== null && 'value' in elevation && 'unit' in elevation) {
-        elevationStr = `${Math.round(elevation.value)} ${elevation.unit}`;
+        elevationValue = Math.round(elevation.value).toString();
+        elevationUnit = elevation.unit;
     } else if (typeof elevation === 'number' && !isNaN(elevation)) {
-        elevationStr = `${Math.round(elevation)}m`;
+        elevationValue = Math.round(elevation).toString();
+        elevationUnit = 'm';
     }
 
     const hasLogs = details?.logs && details.logs.length > 0;
@@ -56,26 +62,23 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
             <View style={styles.centerSection}>
                 <Text style={styles.title} numberOfLines={1}>
                     {displayTitle}
-                    {compact && <Text style={styles.dateCompact}> - {dateStr}</Text>}
                 </Text>
-                {!compact && (
-                    <Text style={styles.dateTime}>
-                        {dateStr}{'  '}{timeStr}{'  '}{durationStr}
-                    </Text>
-                )}
+                <Text style={styles.dateTime}>
+                    {dateStr}{'  '}{timeStr}{'  '}{durationStr}
+                </Text>
             </View>
 
             <View style={styles.metricsSection}>
                 <View style={styles.metricColumn}>
                     <Image source={require('../../assets/icons/length.gif')} style={styles.metricIcon} />
-                    <Text style={styles.metricLabel}>Distance</Text>
-                    <Text style={styles.metricValue}>{distanceStr}</Text>
+                    <Text style={styles.metricValue}>{distanceValue}</Text>
+                    <Text style={styles.metricUnit}>{distanceUnit}</Text>
                 </View>
-                {elevationStr !== '' && (
+                {elevationValue !== '' && (
                     <View style={styles.metricColumn}>
                         <Image source={require('../../assets/icons/up.gif')} style={styles.metricIcon} />
-                        <Text style={styles.metricLabel}>Elevation</Text>
-                        <Text style={styles.metricValue}>{elevationStr}</Text>
+                        <Text style={styles.metricValue}>{elevationValue}</Text>
+                        <Text style={styles.metricUnit}>{elevationUnit}</Text>
                     </View>
                 )}
             </View>
@@ -120,11 +123,6 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '600',
     },
-    dateCompact: {
-        fontSize: textSizes.smallText,
-        fontWeight: 'normal',
-        color: colors.text,
-    },
     dateTime: {
         color: colors.text,
         fontSize: textSizes.smallText,
@@ -146,13 +144,17 @@ const styles = StyleSheet.create({
         height: 16,
         tintColor: colors.text,
     },
-    metricLabel: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-    },
     metricValue: {
         color: colors.text,
+        fontSize: textSizes.normalText,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginTop: 6,
+        marginBottom: 3
+    },
+    metricUnit: {
+        color: colors.disabled,
         fontSize: textSizes.smallText,
-        fontWeight: '500',
+        textAlign: 'center',
     },
 });

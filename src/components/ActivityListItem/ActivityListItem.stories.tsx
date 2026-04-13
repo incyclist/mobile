@@ -52,22 +52,6 @@ export const IncyclistRide: Story = {
     },
 };
 
-export const Compact: Story = {
-    args: {
-        compact: true,
-        activityInfo: {
-            summary: {
-                id: '3',
-                title: 'Quick Sprint',
-                startTime: 1744444800000,
-                rideTime: 600,
-                distance: 5000,
-            } as any,
-            details: undefined,
-        },
-    },
-};
-
 export const WithElevation: Story = {
     args: {
         activityInfo: {
