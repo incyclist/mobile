@@ -1,3 +1,5 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { UploadPill } from './UploadPill';
@@ -9,6 +11,13 @@ const meta: Meta<typeof UploadPill> = {
         onSynchronize: fn(),
         onOpen: fn(),
     },
+    decorators: [
+        (Story) => (
+            <View style={styles.decorator}>
+                <Story />
+            </View>
+        ),
+    ],
 };
 
 export default meta;
@@ -47,3 +56,10 @@ export const Synchronizing: Story = {
         synchronizing: true,
     },
 };
+
+const styles = StyleSheet.create({
+    decorator: {
+        padding: 16,
+        alignItems: 'flex-start',
+    },
+});

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { useLogging } from '../../hooks';
@@ -55,9 +55,18 @@ export const UploadPill = (props: UploadPillProps) => {
             disabled={synchronizing}
             activeOpacity={0.7}
         >
-            <Text style={[styles.text, dynamicTextStyle]}>
-                {text ?? type}
-            </Text>
+            <View style={styles.row}>
+                <Text style={[styles.text, dynamicTextStyle]}>
+                    {text ?? type}
+                </Text>
+                {synchronizing && (
+                    <ActivityIndicator 
+                        size="small" 
+                        color={textColor} 
+                        style={styles.spinner} 
+                    />
+                )}
+            </View>
         </TouchableOpacity>
     );
 };
@@ -71,11 +80,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         alignSelf: 'flex-start',
     },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
     text: {
         fontSize: textSizes.smallText,
         fontWeight: '600',
     },
     syncing: {
         opacity: 0.5,
+    },
+    spinner: {
+        marginLeft: 4,
     },
 });
