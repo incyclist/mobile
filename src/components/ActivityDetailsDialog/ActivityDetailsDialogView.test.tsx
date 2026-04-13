@@ -11,7 +11,7 @@ import { render } from '@testing-library/react-native';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { ActivityDetailsDialogViewProps } from './types';
 
-const MOCK_LOADING: ActivityDetailsDialogViewProps = {
+const MOCK_LOADING = {
     loading: true,
     showMap: false,
     activity: {} as any,
@@ -23,7 +23,7 @@ const MOCK_LOADING: ActivityDetailsDialogViewProps = {
     onShareFile: () => {},
     onUpload: () => {},
     onOpenUpload: () => {},
-};
+} as any
 
 describe('ActivityDetailsDialogView', () => {
     it('renders loading state without crashing', () => {
