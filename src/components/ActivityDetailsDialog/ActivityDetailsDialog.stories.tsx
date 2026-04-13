@@ -34,9 +34,9 @@ const meta: Meta<typeof ActivityDetailsDialogView> = {
         } as any,
         uploads: [
             { type: 'Strava', status: 'success', url: 'https://strava.com/activities/1' },
-            { type: 'TrainingPeaks', status: 'error' },
+            { type: 'TrainingPeaks', status: 'failed' },
         ],
-        units: { speed: 'km/h', distance: 'km', elevation: 'm' },
+        units: { speed: 'km/h', distance: 'km', elevation: 'm' } as any,
         onClose: fn(),
         onRideAgain: fn(),
         onShareFile: fn(),
@@ -66,6 +66,5 @@ export const Compact: Story = {
 export const NoMap: Story = {
     args: {
         showMap: false,
-        preview: 'https://via.placeholder.com/600x400',
     },
 };

@@ -25,7 +25,6 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     const {
         activity,
         showMap,
-        preview,
         units,
         loading,
         canStart,
@@ -245,8 +244,6 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
         <View style={isCompact ? styles.compactMapContainer : styles.mapContainer}>
             {showMap ? (
                 <FreeMap points={mapPoints} style={styles.map} />
-            ) : preview ? (
-                <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
             ) : (
                 <View style={styles.emptyPreview} />
             )}
@@ -256,13 +253,13 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             {StatsContent}
-            {(showMap || preview) && MapPreview}
+            {showMap && MapPreview}
             {GraphContent}
         </ScrollView>
     ) : (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             <View style={styles.topRow}>
-                {(showMap || preview) && MapPreview}
+                {showMap && MapPreview}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>

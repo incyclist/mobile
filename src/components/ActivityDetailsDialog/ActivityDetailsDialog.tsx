@@ -17,7 +17,7 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
     const refInitialized = useRef(false);
 
     const onUpdate = useCallback(() => {
-        const updated = service.openSelected();
+        const updated = service.getSelectedDisplayProps();
         if (updated) {
             setDisplayProps(updated);
         }
@@ -37,18 +37,16 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         refInitialized.current = true;
 
         const startService = () => {
-            const props = service.openSelected();
-            if (props) {
-                setDisplayProps(props);
-                if (typeof (props as any).on === 'function') {
-                    (props as any).on('updated', onUpdate);
-                }
+            const observer = service.openSelected();
+            if (observer && typeof observer.on === 'function') {
+                observer.on('updated', onUpdate);
             }
+            onUpdate();
             setLoading(false);
         };
 
         if (!activity.isComplete()) {
-            activity.load().then(startService).catch((err) => {
+            activity.load().then(startService).catch((err: Error) => {
                 logError(err, 'activity.load');
                 setLoading(false);
             });
@@ -105,8 +103,8 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         Linking.openURL(url).catch((err) => logError(err, 'handleOpenUpload'));
     }, [logError]);
 
-    const handleRideAgain = useCallback(() => {
-        const { canStart, route } = service.rideAgain();
+    const handleRideAgain = useCallback(async () => {
+        const { canStart, route } = await service.rideAgain();
         if (canStart) {
             onRideAgain(route);
             onClose();

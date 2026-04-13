@@ -1,3 +1,11 @@
+jest.mock('incyclist-services', () => ({
+    formatTime: jest.fn((v: number) => `${Math.floor(v / 60)}min`),
+    useUnitConverter: jest.fn(() => ({
+        convert: jest.fn((v: number) => v),
+        getUnit: jest.fn(() => 'km'),
+    })),
+}));
+
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
