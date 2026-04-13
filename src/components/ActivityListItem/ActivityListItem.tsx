@@ -149,6 +149,8 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '600',
         textAlign: 'center',
+        marginTop: 6,
+        marginBottom: 3
     },
     metricUnit: {
         color: colors.disabled,
