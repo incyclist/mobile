@@ -7,14 +7,8 @@ const meta: Meta<typeof ActivityDetailsDialogView> = {
     component: ActivityDetailsDialogView,
     args: {
         loading: false,
-        title: 'Morning Ride',
-        distance: 12.5,
-        duration: 3600,
-        elevation: 245,
-        started: new Date(),
         showMap: false,
         canStart: true,
-        canOpen: true,
         activity: {
             title: 'Morning Ride',
             startTime: new Date().toISOString(),

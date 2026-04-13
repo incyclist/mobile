@@ -15,11 +15,12 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
     const [displayProps, setDisplayProps] = useState<SelectedActivityDisplayProperties | null>(null);
     const [loading, setLoading] = useState(true);
     const refInitialized = useRef(false);
+    const refObserver = useRef<any>(null);
 
     const onUpdate = useCallback(() => {
-        const updated = service.getSelectedDisplayProps();
+        const updated = service.openSelected();
         if (updated) {
-            setDisplayProps(updated);
+            setDisplayProps(updated as SelectedActivityDisplayProperties);
         }
     }, [service]);
 
@@ -27,35 +28,27 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         if (refInitialized.current) {
             return;
         }
-
-        const activity = service.getSelected();
-        if (!activity) {
-            setLoading(false);
-            return;
-        }
-
         refInitialized.current = true;
 
-        const startService = () => {
-            const observer = service.openSelected();
-            if (observer && typeof observer.on === 'function') {
-                observer.on('updated', onUpdate);
-            }
-            onUpdate();
-            setLoading(false);
-        };
-
-        if (!activity.isComplete()) {
-            activity.load().then(startService).catch((err: Error) => {
-                logError(err, 'activity.load');
-                setLoading(false);
-            });
-        } else {
-            startService();
+        // initial display props
+        const props = service.openSelected();
+        if (props) {
+            setDisplayProps(props as SelectedActivityDisplayProperties);
         }
-    }, [service, onUpdate, logError]);
+
+        // subscribe to updates via the page observer
+        const observer = service.getObserver();
+        if (observer) {
+            observer.on('updated', onUpdate);
+            refObserver.current = observer;
+        }
+        setLoading(false);
+    }, [service, onUpdate]);
 
     useUnmountEffect(() => {
+        if (refObserver.current) {
+            refObserver.current.off('updated', onUpdate);
+        }
         service.closeSelected();
     });
 

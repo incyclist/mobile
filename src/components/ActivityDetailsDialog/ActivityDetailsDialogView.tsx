@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
@@ -253,13 +253,13 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             {StatsContent}
-            {showMap && MapPreview}
+            {MapPreview}
             {GraphContent}
         </ScrollView>
     ) : (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             <View style={styles.topRow}>
-                {showMap && MapPreview}
+                {MapPreview}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>
@@ -312,9 +312,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     map: {
-        flex: 1,
-    },
-    previewImage: {
         flex: 1,
     },
     emptyPreview: {

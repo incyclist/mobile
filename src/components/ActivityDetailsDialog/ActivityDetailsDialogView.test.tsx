@@ -13,18 +13,10 @@ import { ActivityDetailsDialogViewProps } from './types';
 
 const MOCK_LOADING: ActivityDetailsDialogViewProps = {
     loading: true,
-    title: 'Morning Ride',
-    distance: 0,
-    duration: 0,
-    elevation: 0,
-    started: new Date(),
     showMap: false,
-    points: [],
     activity: {} as any,
-    exports: [],
     uploads: [],
     canStart: false,
-    canOpen: false,
     units: {} as any,
     onClose: () => {},
     onRideAgain: () => {},
