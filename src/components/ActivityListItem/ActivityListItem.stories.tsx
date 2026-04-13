@@ -32,16 +32,25 @@ export const Default: Story = {
                 startTime: 1744444800000,
                 rideTime: 3720,
                 distance: { value: 32.4, unit: 'km' },
-            },
+            } as any,
             details: undefined,
         },
     },
 };
 
-export const Compact: Story = {
+export const WithElevation: Story = {
     args: {
-        ...Default.args,
-        compact: true,
+        activityInfo: {
+            summary: {
+                id: 'act-2',
+                title: 'Mountain Stage',
+                startTime: 1744444800000,
+                rideTime: 7200,
+                distance: 45000,
+                totalElevation: { value: 1250, unit: 'm' },
+            } as any,
+            details: undefined,
+        },
     },
 };
 
@@ -49,32 +58,17 @@ export const FallbackTitle: Story = {
     args: {
         activityInfo: {
             summary: {
-                id: 'act-2',
+                id: 'act-3',
                 title: 'Incyclist Ride',
                 startTime: 1744444800000,
                 rideTime: 1800,
                 distance: 15000,
-            },
+            } as any,
             details: {
                 route: {
                     title: 'Alpine Pass',
                 },
-            },
-        },
-    },
-};
-
-export const NoDetails: Story = {
-    args: {
-        activityInfo: {
-            summary: {
-                id: 'act-3',
-                title: 'No Data Ride',
-                startTime: 1744444800000,
-                rideTime: 600,
-                distance: 5000,
-            },
-            details: undefined,
+            } as any,
         },
     },
 };

@@ -1,12 +1,12 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ActivityInfoUI, formatDateTime } from 'incyclist-services';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { formatDateTime } from 'incyclist-services';
 import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { ActivityListItemProps, ACTIVITY_LIST_ITEM_HEIGHT } from './types';
 
-const ActivityListItemView = ({ activityInfo, onPress, compact }: ActivityListItemProps) => {
+const ActivityListItemView = ({ activityInfo, onPress }: ActivityListItemProps) => {
     const { summary, details } = activityInfo;
     const { id, title: summaryTitle, startTime, rideTime, distance } = summary;
 
@@ -30,15 +30,28 @@ const ActivityListItemView = ({ activityInfo, onPress, compact }: ActivityListIt
         return `${m}min`;
     };
 
-    const getDistanceText = (dist: any) => {
-        if (dist && typeof dist === 'object' && 'value' in dist && 'unit' in dist) {
-            return `${dist.value.toFixed(1)} ${dist.unit}`;
-        }
-        if (typeof dist === 'number') {
-            return `${(dist / 1000).toFixed(1)} km`;
-        }
-        return '';
-    };
+    const durationStr = getDurationText(rideTime);
+
+    let distanceValue = '';
+    let distanceUnit = '';
+    if (distance && typeof distance === 'object' && 'value' in distance && 'unit' in distance) {
+        distanceValue = (distance as any).value.toFixed(1);
+        distanceUnit = (distance as any).unit;
+    } else if (typeof distance === 'number') {
+        distanceValue = (distance / 1000).toFixed(1);
+        distanceUnit = 'km';
+    }
+
+    const elevation = (summary as any).totalElevation;
+    let elevationValue = '';
+    let elevationUnit = '';
+    if (elevation && typeof elevation === 'object' && 'value' in elevation && 'unit' in elevation) {
+        elevationValue = Math.round(elevation.value).toString();
+        elevationUnit = elevation.unit;
+    } else if (typeof elevation === 'number' && !isNaN(elevation)) {
+        elevationValue = Math.round(elevation).toString();
+        elevationUnit = 'm';
+    }
 
     const hasLogs = !!details?.logs && details.logs.length > 0;
     const showPreview = !!details && hasLogs;
@@ -61,22 +74,25 @@ const ActivityListItemView = ({ activityInfo, onPress, compact }: ActivityListIt
             <View style={styles.centerSection}>
                 <Text style={styles.title} numberOfLines={1}>
                     {title}
-                    {compact && <Text style={styles.dateCompact}>{` - ${dateStr}`}</Text>}
                 </Text>
-                {!compact && (
-                    <Text style={styles.subtitle} numberOfLines={1}>
-                        {`${dateStr} ${timeStr}`}
-                    </Text>
-                )}
+                <Text style={styles.dateTime} numberOfLines={1}>
+                    {`${dateStr}  ${timeStr}  ${durationStr}`}
+                </Text>
             </View>
 
-            <View style={styles.rightSection}>
-                <Text style={styles.metricText} numberOfLines={1}>
-                    {getDurationText(rideTime)}
-                </Text>
-                <Text style={styles.metricText} numberOfLines={1}>
-                    {getDistanceText(distance)}
-                </Text>
+            <View style={styles.metricsSection}>
+                <View style={styles.metricColumn}>
+                    <Image source={require('../../assets/icons/length.gif')} style={styles.metricIcon} />
+                    <Text style={styles.metricValue}>{distanceValue}</Text>
+                    <Text style={styles.metricUnit}>{distanceUnit}</Text>
+                </View>
+                {elevationValue !== '' && (
+                    <View style={styles.metricColumn}>
+                        <Image source={require('../../assets/icons/up.gif')} style={styles.metricIcon} />
+                        <Text style={styles.metricValue}>{elevationValue}</Text>
+                        <Text style={styles.metricUnit}>{elevationUnit}</Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -114,24 +130,37 @@ const styles = StyleSheet.create({
         fontSize: textSizes.listEntry,
         fontWeight: '600',
     },
-    dateCompact: {
-        fontSize: textSizes.normalText,
-        fontWeight: 'normal',
-        color: colors.disabled,
+    dateTime: {
+        color: colors.text,
+        fontSize: textSizes.smallText,
+        marginTop: 4,
     },
-    subtitle: {
-        color: colors.disabled,
-        fontSize: textSizes.normalText,
-        marginTop: 2,
+    metricsSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 12,
+        paddingRight: 8,
     },
-    rightSection: {
-        width: 100,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+    metricColumn: {
+        alignItems: 'center',
+        minWidth: 56,
     },
-    metricText: {
+    metricIcon: {
+        width: 16,
+        height: 16,
+        tintColor: colors.text,
+    },
+    metricValue: {
         color: colors.text,
         fontSize: textSizes.normalText,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    metricUnit: {
+        color: colors.disabled,
+        fontSize: textSizes.smallText,
+        textAlign: 'center',
     },
 });
 
