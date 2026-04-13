@@ -26,6 +26,7 @@ import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
 import { getMessageQueueBinding  } from './bindings/mq';
+import { isProdVariant } from './bindings/appInfo';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
@@ -118,7 +119,9 @@ export const App = ({ secretsStatus }: AppProps) => {
 
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);
-                logEvent({ message: 'Initializing App done' });
+
+                
+                logEvent({ message: 'Initializing App done', isProdVariant  });
                 setInitialized(true);
             } catch (err: any) {
                 logError(err, 'App.init');
