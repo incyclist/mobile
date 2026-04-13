@@ -14,6 +14,3 @@ export interface ActivityDetailsDialogProps {
     onClose: () => void;
     onRideAgain: (route: any) => void;
 }
-
-const isFormattedNumber = (v: unknown): v is { value: number; unit: string } =>
-    typeof v === 'object' && v !== null && 'value' in v;
