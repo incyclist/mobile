@@ -8,6 +8,9 @@ jest.mock('incyclist-services', () => ({
         if (format === '%H:%M') return '10:00';
         return '';
     }),
+    useActivityList: jest.fn(() => ({
+        getActivityDetails: jest.fn(() => ({ on: jest.fn() })),
+    })),
 }))
 
 const MOCK_FORMATTED = {

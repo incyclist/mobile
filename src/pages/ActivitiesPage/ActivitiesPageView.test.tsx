@@ -13,7 +13,8 @@ jest.mock('incyclist-services', () => ({
 
 // Mock components to isolate the view
 jest.mock('../../components', () => ({
-    Dialog: ({ children }: any) => children,
+    MainBackground: ({ children }: any) => children,
+    NavigationBar: () => null,
     ActivitiesTable: () => null,
 }));
 
@@ -24,7 +25,7 @@ describe('ActivitiesPageView', () => {
             <ActivitiesPageView 
                 props={props} 
                 onSelectActivity={jest.fn()} 
-                onClose={jest.fn()} 
+                onNavigate={jest.fn()} 
             />
         );
         expect(toJSON()).toBeDefined();
@@ -36,7 +37,7 @@ describe('ActivitiesPageView', () => {
             <ActivitiesPageView 
                 props={props} 
                 onSelectActivity={jest.fn()} 
-                onClose={jest.fn()} 
+                onNavigate={jest.fn()} 
             />
         );
         expect(getByText('No activities found')).toBeDefined();
@@ -56,7 +57,7 @@ describe('ActivitiesPageView', () => {
             <ActivitiesPageView 
                 props={props as any} 
                 onSelectActivity={jest.fn()} 
-                onClose={jest.fn()} 
+                onNavigate={jest.fn()} 
             />
         );
         expect(toJSON()).toBeDefined();

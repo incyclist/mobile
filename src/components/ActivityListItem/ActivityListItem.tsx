@@ -1,14 +1,26 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { formatDateTime } from 'incyclist-services';
+import { formatDateTime, useActivityList } from 'incyclist-services';
 import { ActivityListItemProps, ACTIVITY_LIST_ITEM_HEIGHT } from './types';
 import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors, textSizes } from '../../theme';
 
 export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const { activityInfo, onPress, outsideFold } = props;
-    const { summary, details } = activityInfo;
+    const { summary, details: initialDetails } = activityInfo;
     const { id, title, startTime, rideTime, distance } = summary;
+
+    const service = useActivityList();
+    const refInitialized = useRef(false);
+    const [details, setDetails] = useState(initialDetails);
+
+    useEffect(() => {
+        if (refInitialized.current) return;
+        refInitialized.current = true;
+        if (details?.logs?.length || !id) return;
+        const observer = service.getActivityDetails(id);
+        observer.on('loaded', (d: any) => setDetails(d));
+    }, []);
 
     const handlePress = useCallback(() => {
         onPress(id);
