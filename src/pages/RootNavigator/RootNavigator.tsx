@@ -1,20 +1,23 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ExitPage } from '../ExitPage';
 import { PairingPage } from '../PairingPage';
-import { navigationRef } from '../../services';
+import { navigationRef, navigate } from '../../services';
 import { RoutesPage } from '../RoutesPage/RoutesPage';
 import { RidePage } from '../RidePage';
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
+import { ActivitiesPage } from '../ActivitiesPage';
 
 const Stack = createNativeStackNavigator();
 
 const WorkoutsPage = ()=> <NotImplementedPage selected='workouts'/>
-const ActivitiesPage = ()=> <NotImplementedPage selected='activities'/>
 
 export const RootNavigator = () => {
+    const handleCloseActivities = useCallback(() => navigate('devices'), []);
+    const handleRideAgain = useCallback(() => navigate('pairingStart'), []);
+
     return (
         <NavigationContainer ref={navigationRef}>
             <Stack.Navigator initialRouteName="devices"                 
@@ -27,7 +30,9 @@ export const RootNavigator = () => {
                 <Stack.Screen name="user" component={NotImplementedPage} />
                 <Stack.Screen name="search" component={RoutesPage} />
                 <Stack.Screen name="routes" component={RoutesPage} />
-                <Stack.Screen name="activities" component={ActivitiesPage} />
+                <Stack.Screen name="activities">
+                    { ()=> <ActivitiesPage onClose={handleCloseActivities} onRideAgain={handleRideAgain} />}
+                </Stack.Screen>
                 <Stack.Screen name="workouts" component={WorkoutsPage} />
 
 
