@@ -7,7 +7,9 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ActivitiesPageView } from './ActivitiesPageView';
-import { ActivityDetailsDialog } from '../../components';
+
+// Temporary stub — replaced by ActivityDetailsDialog import when T4 merges
+const ActivityDetailsDialog = (_props: any) => null;
 
 export interface ActivitiesPageProps {
     onClose: () => void;

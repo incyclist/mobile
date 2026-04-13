@@ -19,9 +19,6 @@ export interface ActivitiesPageViewProps {
 }
 
 export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: ActivitiesPageViewProps) => {
-    const activities = props?.activities ?? [];
-    const isLoading = props?.loading ?? false;
-
     const renderItem: ListRenderItem<ActivityInfoUI> = useCallback(({ item }) => (
         <ActivityListItem 
             activityInfo={item} 
@@ -38,10 +35,13 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: Activit
     }), []);
 
     const buttons = useMemo(() => [
-        { label: 'Close', onPress: onClose, type: 'secondary' as const }
+        { label: 'Close', onClick: onClose }
     ], [onClose]);
 
     const content = useMemo(() => {
+        const activities = props?.activities ?? [];
+        const isLoading = props?.loading ?? false;
+
         if (isLoading && activities.length === 0) {
             return (
                 <View style={styles.center}>
@@ -69,7 +69,7 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: Activit
                 style={styles.list}
             />
         );
-    }, [isLoading, activities, renderItem, keyExtractor, getItemLayout]);
+    }, [props, renderItem, keyExtractor, getItemLayout]);
 
     return (
         <Dialog
