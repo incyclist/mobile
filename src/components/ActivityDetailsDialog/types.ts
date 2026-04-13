@@ -15,5 +15,5 @@ export interface ActivityDetailsDialogProps {
     onRideAgain: (route: any) => void;
 }
 
-export const isFormattedNumber = (v: unknown): v is { value: number; unit: string } =>
+const isFormattedNumber = (v: unknown): v is { value: number; unit: string } =>
     typeof v === 'object' && v !== null && 'value' in v;

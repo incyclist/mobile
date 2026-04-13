@@ -20,6 +20,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
         if (details?.logs?.length || !id) return;
         const observer = service.getActivityDetails(id);
         observer.on('loaded', (d: any) => setDetails(d));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handlePress = useCallback(() => {

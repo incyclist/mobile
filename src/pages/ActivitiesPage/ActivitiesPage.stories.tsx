@@ -7,7 +7,6 @@ const meta: Meta<typeof ActivitiesPageView> = {
     component: ActivitiesPageView,
     args: {
         onSelectActivity: fn(),
-        onClose: fn(),
     },
 };
 

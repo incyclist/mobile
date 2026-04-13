@@ -14,10 +14,10 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: Acti
     const { height } = useWindowDimensions();
     const compact = height < 420;
 
-    const activities = props?.activities ?? [];
-    const isLoading = props?.loading ?? false;
-
     const content = useMemo(() => {
+        const activities = props?.activities ?? [];
+        const isLoading = props?.loading ?? false;
+
         if (isLoading && activities.length === 0) {
             return (
                 <View style={styles.center}>
@@ -35,7 +35,7 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: Acti
         }
 
         return <ActivitiesTable activities={activities} onSelect={onSelectActivity} />;
-    }, [isLoading, activities, onSelectActivity]);
+    }, [props, onSelectActivity]);
 
     return (
         <MainBackground>
