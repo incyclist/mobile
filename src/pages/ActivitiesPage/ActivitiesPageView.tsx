@@ -1,15 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    ActivityIndicator,
-    FlatList,
-    ListRenderItem,
-} from 'react-native';
-import { ActivitiesPageDisplayProps, ActivityInfoUI } from 'incyclist-services';
-import { Dialog, ActivityListItem } from '../../components';
-import { ACTIVITY_LIST_ITEM_HEIGHT } from '../../components/ActivityListItem';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { ActivitiesPageDisplayProps } from 'incyclist-services';
+import { Dialog, ActivitiesTable } from '../../components';
 import { colors, textSizes } from '../../theme';
 
 export interface ActivitiesPageViewProps {
@@ -19,24 +11,7 @@ export interface ActivitiesPageViewProps {
 }
 
 export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: ActivitiesPageViewProps) => {
-    const renderItem: ListRenderItem<ActivityInfoUI> = useCallback(({ item }) => (
-        <ActivityListItem 
-            activityInfo={item} 
-            onPress={onSelectActivity} 
-        />
-    ), [onSelectActivity]);
-
-    const keyExtractor = useCallback((item: ActivityInfoUI) => item.summary.id, []);
-
-    const getItemLayout = useCallback((_: any, index: number) => ({
-        length: ACTIVITY_LIST_ITEM_HEIGHT,
-        offset: ACTIVITY_LIST_ITEM_HEIGHT * index,
-        index,
-    }), []);
-
-    const buttons = useMemo(() => [
-        { label: 'Close', onClick: onClose }
-    ], [onClose]);
+    const buttons = useMemo(() => [{ label: 'Close', onClick: onClose }], [onClose]);
 
     const content = useMemo(() => {
         const activities = props?.activities ?? [];
@@ -58,29 +33,12 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onClose }: Activit
             );
         }
 
-        return (
-            <FlatList
-                data={activities}
-                renderItem={renderItem}
-                keyExtractor={keyExtractor}
-                getItemLayout={getItemLayout}
-                windowSize={5}
-                initialNumToRender={10}
-                style={styles.list}
-            />
-        );
-    }, [props, renderItem, keyExtractor, getItemLayout]);
+        return <ActivitiesTable activities={activities} onSelect={onSelectActivity} />;
+    }, [props, onSelectActivity]);
 
     return (
-        <Dialog
-            title="Activities"
-            variant="full"
-            onOutsideClick={onClose}
-            buttons={buttons}
-        >
-            <View style={styles.container}>
-                {content}
-            </View>
+        <Dialog title="Activities" variant="full" onOutsideClick={onClose} buttons={buttons}>
+            <View style={styles.container}>{content}</View>
         </Dialog>
     );
 };
@@ -89,9 +47,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         minHeight: 300,
-    },
-    list: {
-        flex: 1,
     },
     center: {
         flex: 1,

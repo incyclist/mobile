@@ -6,13 +6,17 @@ import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors, textSizes } from '../../theme';
 
 export const ActivityListItem = memo((props: ActivityListItemProps) => {
-    const { activityInfo, onPress } = props;
+    const { activityInfo, onPress, outsideFold } = props;
     const { summary, details } = activityInfo;
     const { id, title, startTime, rideTime, distance } = summary;
 
     const handlePress = useCallback(() => {
         onPress(id);
     }, [id, onPress]);
+
+    if (outsideFold) {
+        return <View style={styles.outsideFold} />;
+    }
 
     const displayTitle =
         title === 'Incyclist Ride'
@@ -99,6 +103,11 @@ const styles = StyleSheet.create({
         marginHorizontal: 12,
         borderRadius: 8,
     },
+    outsideFold: {
+        height: ACTIVITY_LIST_ITEM_HEIGHT,
+        marginVertical: 4,
+        marginHorizontal: 12,
+    },
     leftSection: {
         width: 80,
         height: 64,
@@ -150,7 +159,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
         marginTop: 6,
-        marginBottom: 3
+        marginBottom: 3,
     },
     metricUnit: {
         color: colors.disabled,
