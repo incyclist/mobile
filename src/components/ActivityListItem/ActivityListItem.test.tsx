@@ -2,6 +2,14 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ActivityListItem } from './ActivityListItem';
 
+jest.mock('incyclist-services', () => ({
+    formatDateTime: jest.fn((_, format) => {
+        if (format === '%d.%m.%Y') return '12.04.2025';
+        if (format === '%H:%M') return '10:00';
+        return '';
+    }),
+}))
+
 const MOCK_FORMATTED = {
     activityInfo: {
         summary: {
