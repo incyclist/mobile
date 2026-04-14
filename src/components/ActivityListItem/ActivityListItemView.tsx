@@ -17,6 +17,7 @@ export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
         details,
         compact,
         outsideFold,
+        ftp,
         onPress,
     } = props;
 
@@ -34,7 +35,7 @@ export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
         <TouchableOpacity style={containerStyle} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.leftSection}>
                 {hasLogs ? (
-                    <ActivityGraphPreview width={80} height={64} activity={details} ftp={200} />
+                    <ActivityGraphPreview width={80} height={64} activity={details} ftp={ftp??200} />
                 ) : (
                     <View style={styles.placeholder} />
                 )}
