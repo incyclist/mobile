@@ -39,6 +39,10 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
             setDetails(data);
         };
         observer.on('loaded', onLoaded);
+
+        return () => {
+            observer.off('loaded', onLoaded);
+        };
     }, [id, service, outsideFold, details]);
 
     const handlePress = useCallback(() => {
