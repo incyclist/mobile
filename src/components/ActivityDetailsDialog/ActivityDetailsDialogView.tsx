@@ -29,6 +29,7 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
         activity,
         showMap,
         units,
+        ftp,
         loading,
         canStart,
         uploads = [],
@@ -236,6 +237,7 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
         <ErrorBoundary>
             <View style={graphContainerStyle}>
                 <ActivityGraph
+                    ftp={ftp}
                     activity={activity}
                     units={units as Record<string, string>}
                 />

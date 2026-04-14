@@ -2,6 +2,7 @@ import { SelectedActivityDisplayProperties } from 'incyclist-services';
 
 export interface ActivityDetailsDialogViewProps extends SelectedActivityDisplayProperties {
     loading?: boolean;
+    ftp?: number;
     onClose: () => void;
     onRideAgain: () => void;
     onShareFile: (path: string) => void;

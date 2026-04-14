@@ -3,7 +3,7 @@ import { Linking } from 'react-native';
 import Share from 'react-native-share';
 import { createMMKV } from 'react-native-mmkv';
 import RNFS from 'react-native-fs';
-import { useActivityList, SelectedActivityDisplayProperties } from 'incyclist-services';
+import { useActivityList, SelectedActivityDisplayProperties, useUserSettings } from 'incyclist-services';
 import { ActivityDetailsDialogProps } from './types';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { useLogging, useUnmountEffect } from '../../hooks';
@@ -11,18 +11,20 @@ import { ErrorBoundary } from '../ErrorBoundary';
 
 export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsDialogProps) => {
     const service = useActivityList();
+    const userSettings = useUserSettings()
+
     const { logError, logEvent } = useLogging('ActivityDetailsDialog');
     const [displayProps, setDisplayProps] = useState<SelectedActivityDisplayProperties | null>(null);
     const [loading, setLoading] = useState(true);
     const refInitialized = useRef(false);
     const refObserver = useRef<any>(null);
+    const ftp = userSettings.getValue('user.ftp',undefined)
 
-    const onUpdate = useCallback(() => {
-        const updated = service.openSelected();
+    const onUpdate = useCallback((updated: SelectedActivityDisplayProperties) => {
         if (updated) {
-            setDisplayProps(updated as SelectedActivityDisplayProperties);
+            setDisplayProps(updated);
         }
-    }, [service]);
+    }, []);
 
     useEffect(() => {
         if (refInitialized.current) {
@@ -108,6 +110,7 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         <ErrorBoundary>
             <ActivityDetailsDialogView
                 {...(displayProps || ({} as SelectedActivityDisplayProperties))}
+                ftp={ftp}
                 loading={loading}
                 onClose={onClose}
                 onRideAgain={handleRideAgain}

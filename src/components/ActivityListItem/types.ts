@@ -18,6 +18,7 @@ export interface ActivityListItemViewProps {
     details: ActivityDetails | undefined;
     compact: boolean;
     outsideFold: boolean;
+    ftp?:number
     onPress: () => void;
 }
 

@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
-import { formatDateTime, useActivityList, ActivityDetails  } from 'incyclist-services';
+import { formatDateTime, useActivityList, ActivityDetails, useUserSettings  } from 'incyclist-services';
 import { ActivityListItemProps } from './types';
 import { ActivityListItemView } from './ActivityListItemView';
 
@@ -11,6 +11,9 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const { id, startTime, rideTime, distance } = summary;
 
     const service = useActivityList();
+    const userSettings = useUserSettings();
+    const ftp = Number(userSettings.getValue('user.ftp', 200));
+
     const [details, setDetails] = useState<ActivityDetails | undefined>(undefined);
     const refInitialized = useRef(false);
 
@@ -94,6 +97,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
             distanceUnit={distanceUnit}
             elevationValue={elevationValue}
             elevationUnit={elevationUnit}
+            ftp={ftp}
             details={details}
             compact={false}
             outsideFold={outsideFold}

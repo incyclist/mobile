@@ -7,7 +7,7 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ActivitiesPageView } from './ActivitiesPageView';
-import { ActivityDetailsDialog, TNavigationItem } from '../../components';
+import { ActivityDetailsDialog, ErrorBoundary, TNavigationItem } from '../../components';
 import { navigate } from '../../services';
 
 export interface ActivitiesPageProps {
@@ -24,7 +24,8 @@ const initialProps: ActivitiesPageDisplayProps = {
 const hashActivities = (activities: ActivityInfoUI[]) =>
     (activities ?? []).map(a => a.summary.id).join(',');
 
-export const ActivitiesPage = ({ onRideAgain }: ActivitiesPageProps) => {
+
+export const ActivitiesPage = () => {
     const service = getActivitiesPageService();
     const { logError } = useLogging('ActivitiesPage');
     
@@ -86,9 +87,12 @@ export const ActivitiesPage = ({ onRideAgain }: ActivitiesPageProps) => {
     const onNavigate = useCallback((item: TNavigationItem) => {
         navigate(item);
     }, []);
+    
+    const handleRideAgain = useCallback(() => navigate('pairingStart'), []);
+
 
     return (
-        <>
+        <ErrorBoundary>
             <ActivitiesPageView 
                 props={props}
                 onSelectActivity={onSelectActivity}
@@ -97,9 +101,9 @@ export const ActivitiesPage = ({ onRideAgain }: ActivitiesPageProps) => {
             {props.detailActivityId && (
                 <ActivityDetailsDialog 
                     onClose={onCloseActivity}
-                    onRideAgain={onRideAgain}
+                    onRideAgain={handleRideAgain}
                 />
             )}
-        </>
+        </ErrorBoundary>
     );
 };
