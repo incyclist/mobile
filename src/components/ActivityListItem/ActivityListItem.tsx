@@ -37,11 +37,12 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
         const onLoaded = (data: ActivityDetails) => {
             detailsCache.set(id, data);
             setDetails(data);
+            observer.stop()
         };
-        observer.on('loaded', onLoaded);
+        observer.once('loaded', onLoaded);
 
         return () => {
-            observer.off('loaded', onLoaded);
+            observer.stop()
         };
     }, [id, service, outsideFold, details]);
 
