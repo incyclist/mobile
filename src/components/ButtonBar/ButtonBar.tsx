@@ -10,7 +10,7 @@ export const Button = ({ id,label, primary,attention, onClick }:ButtonProps) => 
     const isCompact = layout === 'compact'
     
     const onPress=()=> {
-        logEvent( {message:'button clicked', button:label??id  })
+        logEvent( {message:'button clicked', button:label??id, eventSource:'user'  })
         onClick()
     }
 

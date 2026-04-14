@@ -241,7 +241,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
         },
         container: {
             minWidth: minWidth ?? (variant === 'details' ? '50%' : undefined),
-            minHeight: minHeight ?? (variant === 'details' ? '80%' : undefined),
+            minHeight: minHeight ?? (variant === 'details' ? '80%' : 180),
             width,
             height,
             maxHeight: variant === 'full' ? '100%' : '80%',
@@ -272,6 +272,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
         },
         scrollArea: {
             flexShrink: 1,
+            flexGrow: variant === 'info' ? 0 : 1,
             padding: 8,
         },
         content: {
