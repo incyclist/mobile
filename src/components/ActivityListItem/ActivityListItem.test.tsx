@@ -15,6 +15,10 @@ jest.mock('incyclist-services', () => ({
             stop: jest.fn(),
         })),
     })),
+    useUserSettings: jest.fn(() => ({ 
+        getValue: jest.fn( (_, def)=> def)
+    }))
+
 }))
 
 const MOCK_FORMATTED = {
