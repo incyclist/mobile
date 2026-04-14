@@ -2,13 +2,13 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ActivitiesPage } from './ActivitiesPage';
 
-jest.mock('../../components/ActivityDetailsDialog', () => ({
-    ActivityDetailsDialog: () => null,
-}))
-
 jest.mock('../../services', () => ({
     navigate: jest.fn(),
-}))
+}));
+
+jest.mock('../../components/ActivityDetailsDialog', () => ({
+    ActivityDetailsDialog: () => null,
+}));
 
 jest.mock('incyclist-services', () => ({
     getActivitiesPageService: () => ({
@@ -28,7 +28,7 @@ jest.mock('../../components', () => ({
     MainBackground: ({ children }: any) => children,
     NavigationBar: () => null,
     ActivitiesTable: () => null,
-}))
+}));
 
 describe('ActivitiesPage', () => {
     it('renders without crashing when observer is null', () => {

@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { ActivityListItem } from './ActivityListItem';
+import { ActivityListItemView } from './ActivityListItemView';
 
-const meta: Meta<typeof ActivityListItem> = {
+const meta: Meta<typeof ActivityListItemView> = {
     title: 'Components/ActivityListItem',
-    component: ActivityListItem,
+    component: ActivityListItemView,
     args: {
         onPress: fn(),
     },
@@ -12,58 +12,60 @@ const meta: Meta<typeof ActivityListItem> = {
 
 export default meta;
 
-type Story = StoryObj<typeof ActivityListItem>;
+type Story = StoryObj<typeof ActivityListItemView>;
 
 export const Default: Story = {
     args: {
-        activityInfo: {
-            summary: {
-                id: '1',
-                title: 'Morning Ride',
-                startTime: 1744444800000,
-                rideTime: 3660,
-                distance: { value: 25.5, unit: 'km' },
-            } as any,
-            details: undefined,
-        },
+        title: 'Morning Ride',
+        dateStr: '12.04.2025',
+        timeStr: '08:00',
+        durationStr: '1h 1min',
+        distanceValue: '25.5',
+        distanceUnit: 'km',
+        elevationValue: '',
+        elevationUnit: '',
+        details: undefined,
+        compact: false,
+        outsideFold: false,
     },
 };
 
 export const IncyclistRide: Story = {
     args: {
-        activityInfo: {
-            summary: {
-                id: '2',
-                title: 'Incyclist Ride',
-                startTime: 1744444800000,
-                rideTime: 1800,
-                distance: 12500,
-            } as any,
-            details: {
-                route: {
-                    title: 'Mont Ventoux',
-                },
-                logs: [
-                    { distance: 0, power: 100 },
-                    { distance: 100, power: 150 },
-                ],
-            } as any,
-        },
+        title: 'Mont Ventoux',
+        dateStr: '12.04.2025',
+        timeStr: '10:00',
+        durationStr: '30min',
+        distanceValue: '12.5',
+        distanceUnit: 'km',
+        elevationValue: '0',
+        elevationUnit: 'm',
+        details: {
+            route: {
+                title: 'Mont Ventoux',
+            },
+            logs: [
+                { distance: 0, power: 100 },
+                { distance: 100, power: 150 },
+            ],
+        } as any,
+        compact: false,
+        outsideFold: false,
     },
 };
 
 export const WithElevation: Story = {
     args: {
-        activityInfo: {
-            summary: {
-                id: '4',
-                title: 'Mountain Stage',
-                startTime: 1744444800000,
-                rideTime: 7200,
-                distance: { value: 45.2, unit: 'km' },
-                totalElevation: { value: 1250, unit: 'm' },
-            } as any,
-            details: undefined,
-        },
+        title: 'Mountain Stage',
+        dateStr: '12.04.2025',
+        timeStr: '11:00',
+        durationStr: '2h 0min',
+        distanceValue: '45.2',
+        distanceUnit: 'km',
+        elevationValue: '1250',
+        elevationUnit: 'm',
+        details: undefined,
+        compact: false,
+        outsideFold: false,
     },
 };
