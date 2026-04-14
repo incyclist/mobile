@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useState, useEffect } from 'react';
-import { formatDateTime, useActivityList, ActivityDetails } from 'incyclist-services';
+import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
+import { formatDateTime, useActivityList, ActivityDetails  } from 'incyclist-services';
 import { ActivityListItemProps } from './types';
 import { ActivityListItemView } from './ActivityListItemView';
 
@@ -11,7 +11,8 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const { id, startTime, rideTime, distance } = summary;
 
     const service = useActivityList();
-    const [details, setDetails] = useState<ActivityDetails | undefined>(initialDetails);
+    const [details, setDetails] = useState<ActivityDetails | undefined>(undefined);
+    const refInitialized = useRef(false);
 
     // Sync from cache on ID change (FlashList recycling)
     useEffect(() => {
@@ -20,31 +21,30 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
         if (cached) {
             setDetails(cached);
         } else {
-            setDetails(initialDetails);
+            setDetails(undefined);
         }
     }, [id, initialDetails]);
 
     useEffect(() => {
-        // Sharp edge: check outsideFold first
         if (outsideFold) return;
-        if (details?.logs?.length || !id) return;
-        if (detailsCache.has(id)) {
-            setDetails(detailsCache.get(id));
+        if (refInitialized.current) return;
+        refInitialized.current = true;
+        if (!id) return;
+        const cached = detailsCache.get(id);
+        if (cached) {
+            setDetails(cached);
             return;
         }
-
         const observer = service.getActivityDetails(id);
         const onLoaded = (data: ActivityDetails) => {
             detailsCache.set(id, data);
             setDetails(data);
-            observer.stop()
+            observer.stop();
         };
         observer.once('loaded', onLoaded);
+        return () => { observer.stop(); };
+    }, [id, service, outsideFold]);
 
-        return () => {
-            observer.stop()
-        };
-    }, [id, service, outsideFold, details]);
 
     const handlePress = useCallback(() => {
         onPress(id);

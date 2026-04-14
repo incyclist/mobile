@@ -9,7 +9,11 @@ jest.mock('incyclist-services', () => ({
         return '';
     }),
     useActivityList: jest.fn(() => ({
-        getActivityDetails: jest.fn(() => ({ on: jest.fn() })),
+        getActivityDetails: jest.fn(() => ({ 
+            on: jest.fn(),
+            once: jest.fn(),
+            stop: jest.fn(),
+        })),
     })),
 }))
 
