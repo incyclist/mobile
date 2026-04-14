@@ -104,10 +104,6 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         }
     }, [service, onRideAgain, onClose]);
 
-    if (!service.getSelected()) {
-        return null;
-    }
-
     return (
         <ErrorBoundary>
             <ActivityDetailsDialogView

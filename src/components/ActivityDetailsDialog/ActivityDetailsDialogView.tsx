@@ -48,7 +48,7 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     if (loading || !activity) {
         return (
             <Dialog
-                variant="info"
+                variant="full"
                 title={activity?.title ?? 'Activity'}
                 buttons={[{ label: 'Close', onClick: onClose }]}
             >
