@@ -9,7 +9,7 @@ import type {
 import { domainToPixel } from './utils';
 import { colors } from '../../theme';
 
-export const ActivityGraphView = ({
+export const ActivityGraphView = React.memo( ({
     width,
     height,
     series,
@@ -25,6 +25,7 @@ export const ActivityGraphView = ({
     units,
     style,
 }: ActivityGraphViewProps) => {
+
     if (width <= 0 || height <= 0) return null;
 
     const margins = {
@@ -208,7 +209,13 @@ export const ActivityGraphView = ({
             </G>
         </Svg>
     );
-};
+}, (prev, next) => {
+    return prev.width === next.width &&
+           prev.series === next.series &&
+           prev.elevationPoints === next.elevationPoints &&
+           prev.xMin === next.xMin &&
+           prev.xMax === next.xMax;
+});
 
 const styles = StyleSheet.create({
     svg: {

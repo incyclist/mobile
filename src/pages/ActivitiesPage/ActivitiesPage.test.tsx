@@ -28,14 +28,15 @@ jest.mock('../../components', () => ({
     MainBackground: ({ children }: any) => children,
     NavigationBar: () => null,
     ActivitiesTable: () => null,
+    ErrorBoundary: ({ children }: any) => children,
 }));
 
 describe('ActivitiesPage', () => {
     it('renders without crashing when observer is null', () => {
         const { toJSON } = render(
             <ActivitiesPage 
-                onClose={jest.fn()} 
-                onRideAgain={jest.fn()} 
+                
+                
             />
         );
         expect(toJSON()).toBeDefined();

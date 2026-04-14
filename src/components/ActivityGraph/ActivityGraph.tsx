@@ -6,7 +6,7 @@ import { ActivityGraphProps, ActivityMetric, XAxisMode, ActivityGraphSeries } fr
 import { computeActivitySeries, computeElevationPoints, getAvailableMetrics } from './utils';
 import { ChipSelect } from '../ChipSelect';
 import { colors, textSizes } from '../../theme';
-import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
+import { useLogging, useUnmountEffect, useScreenLayout  } from '../../hooks';
 
 // Metric label mapping for UI display
 const METRIC_LABELS: Record<ActivityMetric, string> = {
@@ -25,6 +25,7 @@ const LABEL_METRICS: Record<string, ActivityMetric> = {
 export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProps) => {
     const { logEvent } = useLogging('ActivityGraph');
     const layout = useScreenLayout();
+
     // Compact axis font size (9) vs normal (11) derived from useScreenLayout
     const axisFontSize = layout === 'compact' ? textSizes.smallText - 3 : textSizes.smallText - 1;
 
@@ -37,6 +38,7 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
     // State for X-axis mode
     const [xMode, setXMode] = useState<XAxisMode>('distance');
 
+    
     // Layout states for measuring component dimensions
     const [containerLayout, setContainerLayout] = useState({ width: 0, height: 0 });
     const [yAxisControlsLayout, setYAxisControlsLayout] = useState({ height: 0 });
@@ -46,6 +48,27 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
+        const { width, height } = e.nativeEvent.layout;
+        setContainerLayout(prev => 
+            prev.width === width && prev.height === height ? prev : { width, height }
+        );
+    }, []);
+
+    const handleYAxisControlsLayout = useCallback((e: LayoutChangeEvent) => {
+        const { height } = e.nativeEvent.layout;
+        setYAxisControlsLayout(prev => 
+            prev.height === height ? prev : { height }
+        );
+    }, []);
+
+    const handleXAxisControlsLayout = useCallback((e: LayoutChangeEvent) => {
+        const { height } = e.nativeEvent.layout;
+        setXAxisControlsLayout(prev => 
+            prev.height === height ? prev : { height }
+        );
+    }, []);
 
     // Effect to clear toast timeout on component unmount
     useUnmountEffect(() => {
@@ -125,6 +148,7 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
         const logs = activity.logs;
         // Use provided ftp or activity's user ftp
         const effectiveFtp = ftp ?? activity.user?.ftp;
+        const ftpCeiling = (effectiveFtp ?? 200) * 1.1;
 
         // Compute all series for selected metrics
         const allSeries = computeActivitySeries(logs, selectedMetrics, xMode, containerLayout.width, effectiveFtp, units);
@@ -149,6 +173,17 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
                 seriesToRender.push(nonPowerSeries[1]);
             }
         }
+
+        seriesToRender = seriesToRender.map(s => {
+            if (s.metric === 'power') {
+                return {
+                    ...s,
+                    yMin: 0,
+                    yMax: Math.max(s.yMax, ftpCeiling),
+                };
+            }
+            return { ...s, yMin: 0 };
+        });        
 
         // Compute elevation points
         const elevationData = computeElevationPoints(logs, xMode, containerLayout.width);
@@ -203,16 +238,16 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
     // Render a message if no activity data is present
     if (!activity || !activity.logs || activity.logs.length === 0) {
         return (
-            <View style={[styles.container, style]} onLayout={(e: LayoutChangeEvent) => setContainerLayout(e.nativeEvent.layout)}>
+            <View style={[styles.container, style]} onLayout={handleContainerLayout}>
                 <Text style={styles.noDataText}>No activity data available.</Text>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, style]} onLayout={(e: LayoutChangeEvent) => setContainerLayout(e.nativeEvent.layout)}>
+        <View style={[styles.container, style]} onLayout={handleContainerLayout}>
             {/* Y-Axis Controls */}
-            <View onLayout={(e: LayoutChangeEvent) => setYAxisControlsLayout(e.nativeEvent.layout)}>
+            <View onLayout={handleYAxisControlsLayout}>
                 <ChipSelect
                     label="Y-Axis"
                     options={availableMetricOptions}
@@ -242,7 +277,7 @@ export const ActivityGraph = ({ activity, ftp, units, style }: ActivityGraphProp
             )}
 
             {/* X-Axis Controls */}
-            <View onLayout={(e: LayoutChangeEvent) => setXAxisControlsLayout(e.nativeEvent.layout)}>
+            <View onLayout={handleXAxisControlsLayout}>
                 <ChipSelect
                     label="X-Axis"
                     options={xModeOptions}

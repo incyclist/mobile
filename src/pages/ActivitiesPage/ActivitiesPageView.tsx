@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { ActivitiesPageDisplayProps } from 'incyclist-services';
 import { MainBackground, NavigationBar, ActivitiesTable, TNavigationItem } from '../../components';
@@ -13,29 +13,8 @@ export interface ActivitiesPageViewProps {
 export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: ActivitiesPageViewProps) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
-
-    const content = useMemo(() => {
-        const activities = props?.activities ?? [];
-        const isLoading = props?.loading ?? false;
-
-        if (isLoading && activities.length === 0) {
-            return (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={colors.tileActive} />
-                </View>
-            );
-        }
-
-        if (!isLoading && activities.length === 0) {
-            return (
-                <View style={styles.center}>
-                    <Text style={styles.emptyText}>No activities found</Text>
-                </View>
-            );
-        }
-
-        return <ActivitiesTable activities={activities} onSelect={onSelectActivity} />;
-    }, [props, onSelectActivity]);
+    const activities = props?.activities ?? [];
+    const isLoading = props?.loading ?? false;
 
     return (
         <MainBackground>
@@ -56,7 +35,21 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: Acti
                     </View>
 
                     <View style={styles.listArea}>
-                        {content}
+                        { isLoading && activities.length === 0 &&  
+                            <View style={styles.center}>
+                                <ActivityIndicator size="large" color={colors.tileActive} />
+                            </View>
+                        }
+                        { !isLoading && activities.length === 0 &&
+                            <View style={styles.center}>
+                                <Text style={styles.emptyText}>No activities found</Text>
+                            </View>
+                        }
+                        { !isLoading && activities.length >0 && 
+                            <ActivitiesTable activities={activities} onSelect={onSelectActivity} />                        
+                        }
+
+
                     </View>
                 </View>
             </View>
