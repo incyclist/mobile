@@ -9,14 +9,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var reactNativeDelegate: ReactNativeDelegate?
     var reactNativeFactory: RCTReactNativeFactory?
 
-    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+    func application(
+        _ application: UIApplication, 
+        supportedInterfaceOrientationsFor window: UIWindow? ) -> UIInterfaceOrientationMask {
       return .landscape
     }
 	
     func application(
         _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         let delegate = ReactNativeDelegate()
         let factory = RCTReactNativeFactory(delegate: delegate)
         delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -34,6 +35,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         return true
     }
+
+    func application(
+        _ application: UIApplication,
+        handleEventsForBackgroundURLSession identifier: String,
+        completionHandler: @escaping () -> Void) {
+        RNBackgroundDownloader.setCompletionHandlerWithIdentifier(identifier, completionHandler: completionHandler)
+    }    
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
