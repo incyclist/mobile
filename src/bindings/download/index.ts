@@ -1,6 +1,6 @@
 import RNFS from 'react-native-fs';
 import { EventEmitter } from 'events';
-import { createDownloadTask, getExistingDownloadTasks } from '@kesha-antonov/react-native-background-downloader';
+import { createDownloadTask } from '@kesha-antonov/react-native-background-downloader';
 import path from 'path-browserify';
 import { IDownloadManager, IDownloadSession, DownloadProps } from 'incyclist-services';
 
@@ -56,7 +56,7 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
             return;
         }
 
-        this.task.begin(({ expectedBytes }: { expectedBytes: number }) => {
+        this.task.begin(({ expectedBytes: _expectedBytes }: { expectedBytes: number }) => {
             if (this.stopped) {
                 return;
             }
@@ -104,24 +104,6 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
 export class MobileDownloadManager implements IDownloadManager {
     public createSession(url: string, fileName: string, _props?: DownloadProps): IDownloadSession {
         return new MobileDownloadSession(url, fileName);
-    }
-
-    /**
-     * Reconnects to an existing background task after app restart.
-     */
-    public async getActiveSession(sessionId: string): Promise<IDownloadSession | null> {
-        const tasks = await getExistingDownloadTasks();
-        const task = tasks.find(t => t.id === sessionId);
-        
-        if (task) {
-            const session = new MobileDownloadSession(task.url, task.destination);
-            // Inject existing task and attach handlers
-            (session as any).task = task;
-            (session as any).attachHandlers();
-            return session;
-        }
-        
-        return null;
     }
 
     /**
