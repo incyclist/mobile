@@ -14,6 +14,7 @@ import { getRepositoryBinding } from "./db"
 import { getFileLoaderBinding } from "./loader"
 import { getCryptoBinding } from "./crypto"
 import { getFormBinding } from './form';
+import { MobileDownloadManager } from './download';
 
 
 let _bindings:IncyclistBindings|undefined
@@ -43,9 +44,9 @@ export const initBindings = async  ()=> {
     bindings.loader = getFileLoaderBinding()
     bindings.crypto = getCryptoBinding()
     bindings.form = getFormBinding()
+    bindings.downloadManager = new MobileDownloadManager()
 
     
-    // bindings.downloadManager = DownloadManager.getInstance()
     // bindings.form = FormPostBinding.getInstance()
     // bindings.crypto = getCryptoBinding()
     // bindings.outh = OAuthBinding.getInstance()
