@@ -109,6 +109,7 @@ const config: StorybookConfig = {
                     'react-native-device-info': path.resolve(dirname, 'mocks/react-native-device-info.ts'),
                     '@zoontek/react-native-navigation-bar': path.resolve(dirname, 'mocks/react-native-navigation-bar.tsx'),
                     'react-native-permissions': path.resolve(dirname, 'mocks/react-native-permissions.ts'),
+                    '@kesha-antonov/react-native-background-downloader': path.resolve(dirname, 'mocks/react-native-background-downloader.ts'),
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
