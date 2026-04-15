@@ -62,7 +62,7 @@ const DownloadRow = ({ row, onStop, onRetry, onDelete }: DownloadRowProps) => {
     const buttonLabel = getButtonLabel(status);
 
     const dynamicStatusStyle = { color: statusColor };
-    const dynamicProgressFillStyle = { width: `${pct || 0}%` };
+    const dynamicProgressFillStyle = { width: `${pct || 0}%` as const };
 
     return (
         <View style={styles.row}>
@@ -96,7 +96,7 @@ export const DownloadModalView = ({
     onClose,
 }: DownloadModalViewProps) => {
     const buttons = [
-        { label: 'Close', onPress: onClose, type: 'secondary' as const },
+        { label: 'Close', onClick: onClose, type: 'secondary' as const },
     ];
 
     return (

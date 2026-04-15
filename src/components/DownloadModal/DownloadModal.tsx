@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouteList } from 'incyclist-services';
+import { useRouteList, RouteCard } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { DownloadModalView } from './DownloadModalView';
 import { DownloadModalProps, DownloadRowDisplayProps, DownloadStatus } from './types';
@@ -12,8 +12,12 @@ export const DownloadModal = ({ visible, onClose }: DownloadModalProps) => {
     const refInitialized = useRef(false);
 
     const updateRows = useCallback(() => {
-        const cards = service.getDownloadingCards();
-        const newRows = cards.map(card => {
+        const allRoutes = service.getAllRoutes();
+        const cardsWithDownloads = allRoutes
+            .map(route => service.getCard(route.description.id))
+            .filter((card): card is RouteCard => card !== undefined && card.getCurrentDownload() !== null);
+
+        const newRows = cardsWithDownloads.map(card => {
             const dl = card.getCurrentDownload();
             return {
                 routeId: card.getId(),
@@ -39,8 +43,12 @@ export const DownloadModal = ({ visible, onClose }: DownloadModalProps) => {
         if (refInitialized.current) return;
         refInitialized.current = true;
 
-        const cards = service.getDownloadingCards();
-        cards.forEach(card => {
+        const allRoutes = service.getAllRoutes();
+        const cardsWithDownloads = allRoutes
+            .map(route => service.getCard(route.description.id))
+            .filter((card): card is RouteCard => card !== undefined && card.getCurrentDownload() !== null);
+
+        cardsWithDownloads.forEach(card => {
             const onUpdate = () => updateRows();
             card.cardObserver.on('update', onUpdate);
             refUnsubs.current.push(() => card.cardObserver.off('update', onUpdate));

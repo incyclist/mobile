@@ -9,8 +9,8 @@ jest.mock('incyclist-services', () => ({
 
 describe('DownloadModal', () => {
     const mockService = {
-        getDownloadingCards: jest.fn().mockReturnValue([]),
-        getCard: jest.fn(),
+        getAllRoutes: jest.fn().mockReturnValue([]),
+        getCard: jest.fn().mockReturnValue(null),
     };
 
     beforeEach(() => {
@@ -23,14 +23,14 @@ describe('DownloadModal', () => {
     });
 
     it('renders empty state when rows=[]', () => {
-        mockService.getDownloadingCards.mockReturnValue([]);
+        mockService.getAllRoutes.mockReturnValue([]);
         render(<DownloadModal visible={true} onClose={jest.fn()} />);
     });
 
     it('renders all three status variants without crashing', () => {
         const createMockCard = (id: string, title: string, status: string) => ({
             getId: () => id,
-            getData: () => ({ description: { title } }),
+            getData: () => ({ description: { title, id } }),
             getCurrentDownload: () => ({ status, progress: 50, speed: '1MB/s', sizeLabel: '1/2GB' }),
             cardObserver: { on: jest.fn(), off: jest.fn() },
             stopDownload: jest.fn(),
@@ -38,12 +38,15 @@ describe('DownloadModal', () => {
             delete: jest.fn(),
         });
 
-        mockService.getDownloadingCards.mockReturnValue([
+        const cards = [
             createMockCard('r1', 'Route 1', 'downloading'),
             createMockCard('r2', 'Route 2', 'done'),
             createMockCard('r3', 'Route 3', 'failed'),
             createMockCard('r4', 'Route 4', 'required'),
-        ]);
+        ];
+
+        mockService.getAllRoutes.mockReturnValue(cards.map(c => c.getData()));
+        mockService.getCard.mockImplementation((id: string) => cards.find(c => c.getId() === id));
 
         render(<DownloadModal visible={true} onClose={jest.fn()} />);
     });
