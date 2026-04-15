@@ -5,6 +5,7 @@ import { colors } from '../../theme';
 import { getFlagEmoji } from '../../utils/flags';
 import { FreeMap } from '../FreeMap';
 import { ElevationGraph } from '../ElevationGraph';
+import { Icon } from '../Icon';
 
 // Conditional import to prevent Storybook Vite from crashing
 let Swipeable: any = View;
@@ -137,14 +138,15 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                 </View>
 
                 <View style={styles.rightColumn}>
-                    <View style={styles.statsHeaderSpace} />
 
                     <View style={styles.statsGrid}>
                         <View style={styles.statsCol}>
+                            <Icon name="distance" size={16} color={colors.text} />
                             <Text style={styles.statsValue}>{totalDistance.value}</Text>
                             <Text style={styles.statsUnit}>{totalDistance.unit}</Text>
                         </View>
                         <View style={styles.statsCol}>
+                            <Icon name="elevation" size={16} color={colors.text} />
                             <Text style={styles.statsValue}>{totalElevation.value}</Text>
                             <Text style={styles.statsUnit}>{totalElevation.unit}</Text>
                         </View>
@@ -249,30 +251,32 @@ const styles = StyleSheet.create({
 
     rightColumn: {
         width: 120,
-        justifyContent: 'center',
+        flexDirection: 'row',  // ← move row here
+        alignItems: 'flex-start',  // ← align to top
+        paddingTop: 0,
         borderLeftWidth: 1,
         borderLeftColor: 'rgba(255, 255, 255, 0.1)',
     },
-    statsHeaderSpace: {
-        height: 14,
+    statsCol: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: 4,
     },
     statsGrid: {
         flexDirection: 'row',
         flex: 1,
     },
-    statsCol: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     statsValue: {
         color: colors.text,
         fontSize: 16,
         fontWeight: '700',
+        marginTop: 4,  // space between icon and value
     },
     statsUnit: {
         color: colors.text,
         fontSize: 10,
+        marginTop: 1,
     },
     deleteAction: {
         backgroundColor: colors.error,

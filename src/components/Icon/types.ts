@@ -12,6 +12,8 @@ export type IconName =
     | 'heartrate'
     | 'cadence'
     | 'gear'
+    | 'distance'
+    | 'elevation'
     ;
 
 export interface IconProps {

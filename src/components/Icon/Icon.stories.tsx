@@ -45,6 +45,14 @@ export const Actions: Story = {
         </View>
     ),
 };
+export const Activity: Story = {
+    render: () => (
+        <View style={styles.row}>
+            <Icon name='distance' size={32} />
+            <Icon name='elevation' size={32} />
+        </View>
+    ),
+};
 
 export const Route: Story = {
     args: {

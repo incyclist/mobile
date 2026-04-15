@@ -1,5 +1,5 @@
 import React from 'react';
-import { Svg, Path, Circle, Defs, Mask, Rect } from 'react-native-svg';
+import { Svg, Path, Circle, Defs, Mask, Rect, Polygon,Line } from 'react-native-svg';
 import { colors } from '../../theme';
 import { IconProps, IconName } from './types';
 
@@ -153,7 +153,24 @@ const icons: Record<IconName, (color: string, size: number) => React.ReactElemen
             <Circle cx="9" cy="16" r="1.2" fill={color} />
             <Circle cx="15" cy="16" r="1.2" fill={color} />
         </Svg>
-    )
+    ),
+    'distance': (color: string, size: number) => (
+        <Svg viewBox="0 0 16 16" width={size} height={size}>
+            <Rect x="0" y="9" width="16" height="2" fill={color}/>
+            <Rect x="0" y="4" width="1.5" height="5" fill={color}/>
+            <Rect x="4" y="6" width="1.5" height="3" fill={color}/>
+            <Rect x="8" y="6" width="1.5" height="3" fill={color}/>
+            <Rect x="12" y="6" width="1.5" height="3" fill={color}/>
+            <Rect x="14.5" y="4" width="1.5" height="5" fill={color}/>
+        </Svg>
+    ),
+    'elevation': (color: string, size: number) => (
+    <Svg viewBox="0 0 16 16" width={size} height={size}>
+        <Polygon points="4,13 13,13 13,3" fill={color}/>
+        <Line x1="2" y1="3" x2="2" y2="13" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+        <Polygon points="2,1 0,5 4,5" fill={color}/>
+    </Svg>
+        ),    
 };
 
 export const Icon = ({ name, size = 24, color = colors.text }: IconProps) => {

@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ActivityListItemViewProps, ACTIVITY_LIST_ITEM_HEIGHT } from './types';
 import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors, textSizes } from '../../theme';
+import { Icon } from '../Icon';
 
 export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
     const {
@@ -52,13 +53,13 @@ export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
 
             <View style={styles.metricsSection}>
                 <View style={styles.metricColumn}>
-                    <Image source={require('../../assets/icons/length.gif')} style={styles.metricIcon} />
+                    <Icon name="distance" size={16} color={colors.text} />
                     <Text style={styles.metricValue}>{distanceValue}</Text>
                     <Text style={styles.metricUnit}>{distanceUnit}</Text>
                 </View>
                 {elevationValue !== '' && (
                     <View style={styles.metricColumn}>
-                        <Image source={require('../../assets/icons/up.gif')} style={styles.metricIcon} />
+                        <Icon name="elevation" size={16} color={colors.text} />
                         <Text style={styles.metricValue}>{elevationValue}</Text>
                         <Text style={styles.metricUnit}>{elevationUnit}</Text>
                     </View>
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
         marginBottom: 3,
     },
     metricUnit: {
-        color: colors.disabled,
+        color: colors.text,
         fontSize: textSizes.smallText,
         textAlign: 'center',
     },
