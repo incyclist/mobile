@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
+import RNFS from 'react-native-fs';
 import { 
     getRoutesPageService, 
     RoutePageDisplayProps, 
@@ -9,13 +10,14 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { MainBackground,RouteDetailsDialog,RouteImportDialog } from '../../components';
+import { MainBackground, RouteDetailsDialog, RouteImportDialog, DownloadModalView } from '../../components';
 import { navigate } from '../../services';
 
 
 const PageView = memo(RoutesPageView)
 const DetailsDialog = memo(RouteDetailsDialog)
 const ImportDialog = memo(RouteImportDialog)
+const DownloadModal = memo(DownloadModalView)
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
@@ -29,7 +31,8 @@ const initialProps: RoutePageDisplayProps = {
         routeSources: [],
     },
     detailRouteId: undefined,
-    filterVisible: false,    
+    filterVisible: false,
+    downloadRows: [],
 };
 
 const hashRoutes = (routes: RouteItemProps[]) =>
@@ -43,14 +46,15 @@ export const RoutesPage = () => {
     const compact = height < 420;
 
     const [props, setProps] = useState<RoutePageDisplayProps>(initialProps);
-    const [showImportDialog, setShowImportDialog] = useState(false); // Added local state
+    const [showImportDialog, setShowImportDialog] = useState(false);
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
 
     const refObserver = useRef<IObserver | null>(null);
     const refRoutes = useRef<RouteItemProps[]>([])
     const refRoutesHash = useRef<string>('')
     const refFilterOptions = useRef(props.filterOptions)
 
-    const { logError } = useLogging('RoutesPage');
+    const { logError, logEvent } = useLogging('RoutesPage');
 
 
 
@@ -71,12 +75,11 @@ export const RoutesPage = () => {
             refFilterOptions.current = updated.filterOptions
         }
 
-        // Spread updated props but replace routes and filterOptions
-        // with stabilized refs
         setProps({
             ...updated,
             routes: refRoutes.current,
             filterOptions: refFilterOptions.current,
+            downloadRows: updated.downloadRows ?? [],
         });
 
     }, [service]);
@@ -119,21 +122,45 @@ export const RoutesPage = () => {
     const onFilterToggle = useCallback( () => {
         const visible = !props.filterVisible
         setFilterVisible(visible);
-        service.onFilterVisibleChange(visible) // inform service ( to save state -- does not cause page refresh)
+        service.onFilterVisibleChange(visible)
         
     },[props.filterVisible, service, setFilterVisible])
 
-    // Modified: This now controls the local UI state for the ImportRouteDialog
     const onImportClicked = useCallback(() => {
         service.onImportClicked()
         setShowImportDialog(true)
     }, [service]);
 
-    // Added: Callback to close the ImportRouteDialog
     const onImportClose = useCallback(() => {
         setShowImportDialog(false)
-        //service.refreshRoutes(); // Refresh routes after import dialog closes
     }, []);
+
+    const onDownloadPillPress = useCallback(() => {
+        setShowDownloadModal(true);
+    }, []);
+
+    const onDownloadModalClose = useCallback(() => {
+        setShowDownloadModal(false);
+    }, []);
+
+    const onDownloadStop = useCallback((routeId: string) => {
+        logEvent({ message: 'button clicked', button: 'download-stop', route: routeId, eventSource: 'user' });
+        getRoutesPageService().getRouteList().getCard(routeId)?.stopDownload();
+    }, [logEvent]);
+
+    const onDownloadRetry = useCallback((routeId: string) => {
+        logEvent({ message: 'button clicked', button: 'download-retry', route: routeId, eventSource: 'user' });
+        const card = getRoutesPageService().getRouteList().getCard(routeId);
+        if (card) {
+            card.setVideoDir(RNFS.DocumentDirectoryPath + '/videos');
+            card.download();
+        }
+    }, [logEvent]);
+
+    const onDownloadDelete = useCallback((routeId: string) => {
+        logEvent({ message: 'button clicked', button: 'download-delete', route: routeId, eventSource: 'user' });
+        getRoutesPageService().getRouteList().getCard(routeId)?.delete();
+    }, [logEvent]);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)
@@ -142,6 +169,9 @@ export const RoutesPage = () => {
     if (!refObserver.current) {
         return <MainBackground />;
     }
+
+    const activeDownloadCount = (props.downloadRows ?? [])
+        .filter(r => r.status === 'downloading').length;
 
     return (
         <>
@@ -157,8 +187,16 @@ export const RoutesPage = () => {
             onImportClicked={onImportClicked}
             onNavigate={onNavigate}
             compact={compact}
-            showImportDialog={showImportDialog} // Pass to view
-            onImportClose={onImportClose}       // Pass to view
+            showImportDialog={showImportDialog}
+            onImportClose={onImportClose}
+            activeDownloadCount={activeDownloadCount}
+            downloadRows={props.downloadRows ?? []}
+            showDownloadModal={showDownloadModal}
+            onDownloadPillPress={onDownloadPillPress}
+            onDownloadModalClose={onDownloadModalClose}
+            onDownloadStop={onDownloadStop}
+            onDownloadRetry={onDownloadRetry}
+            onDownloadDelete={onDownloadDelete}
         />
         {props.detailRouteId && (
             <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
@@ -166,7 +204,16 @@ export const RoutesPage = () => {
         {props.showImportDialog && (
             <ImportDialog  />
         )}
-
+        {showDownloadModal && (
+            <DownloadModal
+                visible={showDownloadModal}
+                rows={props.downloadRows ?? []}
+                onStop={onDownloadStop}
+                onRetry={onDownloadRetry}
+                onDelete={onDownloadDelete}
+                onClose={onDownloadModalClose}
+            />
+        )}
         </>
     );
 };

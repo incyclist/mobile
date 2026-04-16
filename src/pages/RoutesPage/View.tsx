@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity
 } from 'react-native';
-import { RoutePageDisplayProps, SearchFilter } from 'incyclist-services';
+import { RoutePageDisplayProps, SearchFilter, DownloadRowDisplayProps } from 'incyclist-services';
 import {
     MainBackground,
     NavigationBar,
@@ -22,11 +22,19 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onFilterToggle: () => void;
     onNavigate: (item: TNavigationItem) => void;
     onImportClicked: () => void;
-    onFilterChanged: (filters:SearchFilter)=>void
+    onFilterChanged: (filters:SearchFilter)=>void;
     loading: boolean; 
     compact: boolean;
-    showImportDialog: boolean; // Added to props interface
-    onImportClose: () => void; // Added to props interface
+    showImportDialog: boolean;
+    onImportClose: () => void;
+    activeDownloadCount: number;
+    downloadRows: DownloadRowDisplayProps[];
+    showDownloadModal: boolean;
+    onDownloadPillPress: () => void;
+    onDownloadModalClose: () => void;
+    onDownloadStop: (routeId: string) => void;
+    onDownloadRetry: (routeId: string) => void;
+    onDownloadDelete: (routeId: string) => void;
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
@@ -42,6 +50,8 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onImportClicked,
         onNavigate,
         compact,
+        activeDownloadCount,
+        onDownloadPillPress,
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
@@ -58,7 +68,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                 </View>
 
                 <View style={styles.contentColumn}>
-                    {/* New Header Layout */}
                     <View style={styles.header}>
                         <View style={styles.headerSide}>
                             {synchronizing && (
@@ -71,6 +80,18 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         </View>
                         <Text style={styles.headerTitle}>ROUTES</Text>
                         <View style={styles.headerSide}>
+                            {activeDownloadCount > 0 && (
+                                <TouchableOpacity
+                                    style={styles.downloadPill}
+                                    onPress={() => {
+                                        logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
+                                        onDownloadPillPress();
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.downloadPillText}>↓ {activeDownloadCount}</Text>
+                                </TouchableOpacity>
+                            )}
                             {!loading && (
                                 <TouchableOpacity
                                     style={styles.importButton}
@@ -106,9 +127,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         ) : (
                             <RoutesTable
                                 routes={routes!}
-                                // As per instruction: Do NOT add onSelect or onDelete to RoutesTable directly
-                                // onSelect={() => {}} 
-                                // onDelete={() => {}}
                             />
                         )}
                     </View>
@@ -179,8 +197,20 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '600',
     },
+    downloadPill: {
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.buttonPrimary,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        marginRight: 8,
+    },
+    downloadPillText: {
+        color: colors.buttonPrimary,
+        fontSize: textSizes.normalText,
+        fontWeight: '600',
+    },
     filterArea: {
-        // Height determined by FilterPanel content
     },
     listArea: {
         flex: 1,
