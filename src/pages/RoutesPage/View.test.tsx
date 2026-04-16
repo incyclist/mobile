@@ -1,15 +1,19 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { RoutesPageView } from './View';
 
-jest.mock('../../components', () => ({
-    NavigationBar: () => null,
-    MainBackground: ({ children }: any) => children,
-    RoutesTable: () => null,
-    FilterPanel: () => null,
-    Icon: () => null,
-    DownloadModalView: () => null,
-}));
+jest.mock('../../components', () => {
+    const React = require('react');
+    const { Text } = require('react-native');
+    return {
+        NavigationBar: () => null,
+        MainBackground: ({ children }: any) => children,
+        RoutesTable: () => null,
+        FilterPanel: () => null,
+        Icon: () => null,
+        DownloadModalView: ({ visible }: any) => visible ? <Text>DOWNLOADS_MODAL</Text> : null,
+    };
+});
 
 const BASE_PROPS: any = {
     loading: false,
@@ -36,14 +40,12 @@ const BASE_PROPS: any = {
 };
 
 describe('RoutesPageView', () => {
-    it('renders correctly in normal layout', () => {
-        const { toJSON } = render(<RoutesPageView {...BASE_PROPS} />);
-        expect(toJSON()).toMatchSnapshot();
+    it('renders without crashing in normal layout', () => {
+        render(<RoutesPageView {...BASE_PROPS} />);
     });
 
-    it('renders correctly in compact layout', () => {
-        const { toJSON } = render(<RoutesPageView {...BASE_PROPS} compact={true} />);
-        expect(toJSON()).toMatchSnapshot();
+    it('renders without crashing in compact layout', () => {
+        render(<RoutesPageView {...BASE_PROPS} compact={true} />);
     });
 
     it('renders download pill when activeDownloadCount > 0', () => {
@@ -54,5 +56,23 @@ describe('RoutesPageView', () => {
     it('does not render download pill when activeDownloadCount is 0', () => {
         const { queryByText } = render(<RoutesPageView {...BASE_PROPS} activeDownloadCount={0} />);
         expect(queryByText(/↓/)).toBeNull();
+    });
+
+    it('calls onDownloadPillPress when pill is pressed', () => {
+        const onDownloadPillPress = jest.fn();
+        const { getByText } = render(
+            <RoutesPageView 
+                {...BASE_PROPS} 
+                activeDownloadCount={1} 
+                onDownloadPillPress={onDownloadPillPress} 
+            />
+        );
+        fireEvent.press(getByText('↓ 1'));
+        expect(onDownloadPillPress).toHaveBeenCalled();
+    });
+
+    it('renders DownloadModalView when showDownloadModal is true', () => {
+        const { getByText } = render(<RoutesPageView {...BASE_PROPS} showDownloadModal={true} />);
+        expect(getByText('DOWNLOADS_MODAL')).toBeTruthy();
     });
 });

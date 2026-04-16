@@ -49,6 +49,7 @@ export const RoutesPage = () => {
     const [props, setProps] = useState<RoutePageDisplayProps>(initialProps);
     const [showImportDialog, setShowImportDialog] = useState(false);
     const [showDownloadModal, setShowDownloadModal] = useState(false);
+    const [activeDownloadCount, setActiveDownloadCount] = useState(0);
 
     const refObserver = useRef<IObserver | null>(null);
     const refRoutes = useRef<RouteItemProps[]>([])
@@ -57,11 +58,12 @@ export const RoutesPage = () => {
 
     const { logError } = useLogging('RoutesPage');
 
-
-
     const onUpdate = useCallback(() => {
         const updated = service.getPageDisplayProps();
         if (!updated) return;
+
+        // Update active download count from service
+        setActiveDownloadCount(service.getDownloadingCardCount());
 
         // Stabilize routes reference using ID hash
         const newHash = hashRoutes(updated.routes ?? [])
@@ -167,9 +169,6 @@ export const RoutesPage = () => {
     if (!refObserver.current) {
         return <MainBackground />;
     }
-
-    const activeDownloadCount = (props.downloadRows ?? [])
-        .filter(r => r.status === 'downloading').length;
 
     return (
         <>
