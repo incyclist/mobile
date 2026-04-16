@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,13 +6,14 @@ import {
     ActivityIndicator,
     TouchableOpacity
 } from 'react-native';
-import { RoutePageDisplayProps, SearchFilter } from 'incyclist-services';
+import { RoutePageDisplayProps, SearchFilter, DownloadRowDisplayProps } from 'incyclist-services';
 import {
     MainBackground,
     NavigationBar,
     RoutesTable,
     FilterPanel,
     TNavigationItem,
+    DownloadModalView,
 } from '../../components';
 import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
@@ -22,11 +23,19 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onFilterToggle: () => void;
     onNavigate: (item: TNavigationItem) => void;
     onImportClicked: () => void;
-    onFilterChanged: (filters:SearchFilter)=>void
+    onFilterChanged: (filters:SearchFilter)=>void;
     loading: boolean; 
     compact: boolean;
-    showImportDialog: boolean; // Added to props interface
-    onImportClose: () => void; // Added to props interface
+    showImportDialog: boolean;
+    onImportClose: () => void;
+    activeDownloadCount: number;
+    downloadRows: DownloadRowDisplayProps[];
+    showDownloadModal: boolean;
+    onDownloadPillPress: () => void;
+    onDownloadModalClose: () => void;
+    onDownloadStop: (routeId: string) => void;
+    onDownloadRetry: (routeId: string) => void;
+    onDownloadDelete: (routeId: string) => void;
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
@@ -42,9 +51,27 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onImportClicked,
         onNavigate,
         compact,
+        activeDownloadCount,
+        onDownloadPillPress,
+        showDownloadModal,
+        downloadRows,
+        onDownloadModalClose,
+        onDownloadStop,
+        onDownloadRetry,
+        onDownloadDelete,
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
+
+    const handleDownloadPillPress = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
+        onDownloadPillPress();
+    }, [logEvent, onDownloadPillPress]);
+
+    const handleImportPress = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'import-route', eventSource: 'user' });
+        onImportClicked();
+    }, [logEvent, onImportClicked]);
 
     return (
         <MainBackground>
@@ -58,7 +85,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                 </View>
 
                 <View style={styles.contentColumn}>
-                    {/* New Header Layout */}
                     <View style={styles.header}>
                         <View style={styles.headerSide}>
                             {synchronizing && (
@@ -71,13 +97,19 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         </View>
                         <Text style={styles.headerTitle}>ROUTES</Text>
                         <View style={styles.headerSide}>
+                            {activeDownloadCount > 0 && (
+                                <TouchableOpacity
+                                    style={styles.downloadPill}
+                                    onPress={handleDownloadPillPress}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.downloadPillText}>↓ {activeDownloadCount}</Text>
+                                </TouchableOpacity>
+                            )}
                             {!loading && (
                                 <TouchableOpacity
                                     style={styles.importButton}
-                                    onPress={() => {
-                                        logEvent({ message: 'button clicked', button: 'import-route', eventSource: 'user' });
-                                        onImportClicked();
-                                    }}
+                                    onPress={handleImportPress}
                                     activeOpacity={0.7}
                                 >
                                     <Icon name="import-route" size={20} color={colors.buttonPrimary} />
@@ -106,14 +138,20 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         ) : (
                             <RoutesTable
                                 routes={routes!}
-                                // As per instruction: Do NOT add onSelect or onDelete to RoutesTable directly
-                                // onSelect={() => {}} 
-                                // onDelete={() => {}}
                             />
                         )}
                     </View>
                 </View>
             </View>
+
+            <DownloadModalView
+                visible={showDownloadModal}
+                rows={downloadRows}
+                onStop={onDownloadStop}
+                onRetry={onDownloadRetry}
+                onDelete={onDownloadDelete}
+                onClose={onDownloadModalClose}
+            />
 
         </MainBackground>
     );
@@ -179,8 +217,20 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '600',
     },
+    downloadPill: {
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.buttonPrimary,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        marginRight: 8,
+    },
+    downloadPillText: {
+        color: colors.buttonPrimary,
+        fontSize: textSizes.normalText,
+        fontWeight: '600',
+    },
     filterArea: {
-        // Height determined by FilterPanel content
     },
     listArea: {
         flex: 1,
