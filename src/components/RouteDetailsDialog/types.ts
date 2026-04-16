@@ -1,4 +1,4 @@
-import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
+import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
     routeId: string     
@@ -58,4 +58,15 @@ export interface RouteDetailsViewProps {
         showPrev?: boolean;
     }>;
     onUpdateStartPos: (value: number) => UIStartSettings | null;
+
+    // Download props
+    downloadButtonLabel?: string;
+    downloadButtonDisabled?: boolean;
+    onDownloadPress?: () => void;
+    showDownloadModal?: boolean;
+    onDownloadModalClose?: () => void;
+    downloadRows?: DownloadRowDisplayProps[];
+    onDownloadStop?: (routeId: string) => void;
+    onDownloadRetry?: (routeId: string) => void;
+    onDownloadDelete?: (routeId: string) => void;
 }

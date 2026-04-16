@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
+import RNFS from 'react-native-fs';
 import { useRouteList, useActivityList } from 'incyclist-services';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
@@ -16,18 +17,29 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
     
     const { logEvent } = useLogging('RouteDetailsDialog');
     const refMounted = useRef(true);
-    const refInitialized = useRef(false)
+    const refInitialized = useRef(false);
+    const refDownloadObserver = useRef<any>(null);
     
     const [cardProps, setCardProps] = useState(() => card?.openSettings());
     const [loading, setLoading] = useState(false);
     const [prevRides, setPrevRides] = useState<any[] | null>(null);
     const [showPrev, setShowPrev] = useState(false);
 
+    const route = card?.getData();
+    const routeDescr = route?.description;
+
+    const [downloadStatus, setDownloadStatus] = useState<'none' | 'downloading' | 'done' | 'failed'>(() => {
+        if (routeDescr?.isDownloaded) return 'done';
+        if (card?.getCurrentDownload()) return 'downloading';
+        return 'none';
+    });
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
+
     const refreshPrevRides = useCallback(async (settings: UIRouteSettings) => {
         if (!card) return { prevRides: undefined, showPrev: false };
-        const route = card.getData();
-        const routeHash = route.description.routeHash;
-        const rId = !routeHash ? route.description.id : undefined;
+        const data = card.getData();
+        const routeHash = data.description.routeHash;
+        const rId = !routeHash ? data.description.id : undefined;
         
         const prev = await activities.getPastActivitiesWithDetails({
             routeHash,
@@ -52,9 +64,9 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
         const currentProps = card.openSettings();
         setCardProps(currentProps);
         
-        const route = card.getData();
+        const data = card.getData();
         
-        if (!route.details) {
+        if (!data.details) {
             setLoading(true);
             service.getRouteDetails(routeId)
                 .then(() => { if (refMounted.current) setLoading(false); })
@@ -62,14 +74,49 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
         }
 
         refreshPrevRides(currentProps.settings as UIRouteSettings);
-        logEvent({ message: 'dialog shown', title:'select route',route: route.description.title });
+        logEvent({ message: 'dialog shown', title:'select route',route: data.description.title });
     }, [routeId, card, service, refreshPrevRides, logEvent]);
+
+    useEffect(() => {
+        if (!card) return;
+        
+        const subscribe = (observer: any) => {
+            if (!observer || refDownloadObserver.current === observer) return;
+            refDownloadObserver.current = observer;
+
+            const onProgress = () => setDownloadStatus('downloading');
+            const onDone = () => {
+                setDownloadStatus('done');
+                refDownloadObserver.current = null;
+            };
+            const onError = () => {
+                setDownloadStatus('failed');
+                refDownloadObserver.current = null;
+            };
+
+            observer.on('progress', onProgress);
+            observer.on('done', onDone);
+            observer.on('error', onError);
+
+            return () => {
+                observer.off('progress', onProgress);
+                observer.off('done', onDone);
+                observer.off('error', onError);
+                refDownloadObserver.current = null;
+            };
+        };
+
+        const currentObserver = card.getCurrentDownload();
+        if (currentObserver) {
+            return subscribe(currentObserver);
+        }
+    }, [card]);
 
     useUnmountEffect(() => {
         refMounted.current = false;
     });
 
-    if (!card || !cardProps) return null;
+    if (!card || !cardProps || !routeDescr) return null;
 
     const { 
         totalDistance, 
@@ -82,14 +129,71 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
         settings 
     } = cardProps;
 
-    const route = card.getData();
-    const routeDescr = route.description;
     const { hasVideo, hasGpx, isLoop, videoFormat, previewUrl, segments } = routeDescr;
     const points = route.details?.points ?? route.points;
     const routeType = `${hasVideo ? 'Video' : 'GPX'} - ${isLoop ? 'Loop' : 'Point to Point'}`;
     const isAvi = videoFormat?.toLowerCase() === 'avi';
-    const canStart = !isAvi && (cardCanStart ?? true);
+    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
     const canNotStartReason = isAvi ? 'AVI videos are not supported on mobile' : undefined;
+
+    const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
+    const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
+
+    let downloadButtonLabel: string | undefined;
+    let downloadButtonDisabled = false;
+
+    if (showDownloadButton) {
+        if (downloadStatus === 'downloading') {
+            downloadButtonLabel = 'Downloading…';
+            downloadButtonDisabled = true;
+        } else if (downloadStatus === 'done') {
+            downloadButtonLabel = 'Downloaded ✓';
+        } else if (downloadStatus === 'failed') {
+            downloadButtonLabel = 'Retry';
+        } else {
+            downloadButtonLabel = 'Download';
+        }
+    }
+
+    const onDownloadPress = useCallback(() => {
+        if (downloadStatus === 'none' || downloadStatus === 'failed') {
+            const videoDir = RNFS.DocumentDirectoryPath + '/videos';
+            card.setVideoDir(videoDir);
+            card.download();
+            logEvent({ 
+                message: 'button clicked', 
+                button: downloadStatus === 'failed' ? 'download-retry' : 'download', 
+                eventSource: 'user' 
+            });
+        } else {
+            logEvent({ message: 'button clicked', button: 'download', eventSource: 'user' });
+        }
+        setShowDownloadModal(true);
+    }, [card, downloadStatus, logEvent]);
+
+    const onDownloadModalClose = useCallback(() => {
+        setShowDownloadModal(false);
+    }, []);
+
+    const onDownloadStop = useCallback((id: string) => {
+        service.getCard(id)?.stopDownload();
+    }, [service]);
+
+    const onDownloadRetry = useCallback((id: string) => {
+        const c = service.getCard(id);
+        if (c) {
+            const videoDir = RNFS.DocumentDirectoryPath + '/videos';
+            c.setVideoDir(videoDir);
+            c.download();
+        }
+    }, [service]);
+
+    const onDownloadDelete = useCallback((id: string) => {
+        service.getCard(id)?.delete();
+    }, [service]);
+
+    // Obtain global download rows from service if possible
+    const downloadRows = (service as any).getPageDisplayProperties?.().downloadRows ?? [];
 
     return (
         <RouteDetailsView
@@ -116,7 +220,7 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
                 logEvent({ message: 'button clicked', button: 'start', eventSource: 'user' });
                 card.changeSettings(updatedSettings);
                 card.start();
-                onStart()
+                onStart();
             }}
             onCancel={() => {
                 logEvent({ message: 'button clicked', button: 'cancel', eventSource: 'user' });
@@ -137,6 +241,15 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
                     ...result
                 };
             }}
+            downloadButtonLabel={downloadButtonLabel}
+            downloadButtonDisabled={downloadButtonDisabled}
+            onDownloadPress={onDownloadPress}
+            showDownloadModal={showDownloadModal}
+            onDownloadModalClose={onDownloadModalClose}
+            downloadRows={downloadRows}
+            onDownloadStop={onDownloadStop}
+            onDownloadRetry={onDownloadRetry}
+            onDownloadDelete={onDownloadDelete}
         />
     );
 };
