@@ -11,14 +11,13 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { MainBackground, RouteDetailsDialog, RouteImportDialog, DownloadModalView } from '../../components';
+import { MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 
 const PageView = memo(RoutesPageView)
 const DetailsDialog = memo(RouteDetailsDialog)
 const ImportDialog = memo(RouteImportDialog)
-const DownloadModal = memo(DownloadModalView)
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
@@ -202,16 +201,6 @@ export const RoutesPage = () => {
         )}
         {props.showImportDialog && (
             <ImportDialog  />
-        )}
-        {showDownloadModal && (
-            <DownloadModal
-                visible={showDownloadModal}
-                rows={props.downloadRows ?? []}
-                onStop={onDownloadStop}
-                onRetry={onDownloadRetry}
-                onDelete={onDownloadDelete}
-                onClose={onDownloadModalClose}
-            />
         )}
         </>
     );

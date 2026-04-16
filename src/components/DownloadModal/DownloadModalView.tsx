@@ -1,11 +1,79 @@
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Dialog } from '../Dialog';
 import { colors, textSizes } from '../../theme';
 import { DownloadModalViewProps } from './types';
 import { DownloadRowDisplayProps } from 'incyclist-services';
 
-export const DownloadModalView = ({
+interface DownloadRowProps {
+    row: DownloadRowDisplayProps;
+    onStop: (routeId: string) => void;
+    onRetry: (routeId: string) => void;
+    onDelete: (routeId: string) => void;
+}
+
+const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) => {
+    const { routeId, title, status, pct } = row;
+
+    const handleStop = useCallback(() => onStop(routeId), [onStop, routeId]);
+    const handleRetry = useCallback(() => onRetry(routeId), [onRetry, routeId]);
+    const handleDelete = useCallback(() => onDelete(routeId), [onDelete, routeId]);
+
+    return (
+        <View style={styles.row}>
+            <View style={styles.rowInfo}>
+                <Text style={styles.routeTitle} numberOfLines={1}>
+                    {title}
+                </Text>
+                {status === 'downloading' && (
+                    <View style={styles.progressContainer}>
+                        <View style={[styles.progressBar, { width: `${pct ?? 0}%` }]} />
+                    </View>
+                )}
+                {status === 'done' && (
+                    <Text style={[styles.statusText, { color: colors.success }]}>
+                        Saved for offline riding
+                    </Text>
+                )}
+                {status === 'failed' && (
+                    <Text style={[styles.statusText, { color: colors.error }]}>
+                        Download failed
+                    </Text>
+                )}
+                {status === 'required' && (
+                    <Text style={[styles.statusText, { color: colors.warning }]}>
+                        Download required to ride
+                    </Text>
+                )}
+            </View>
+
+            <View style={styles.rowActions}>
+                {status === 'downloading' && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleStop}>
+                        <Text style={styles.actionButtonText}>Stop</Text>
+                    </TouchableOpacity>
+                )}
+                {status === 'done' && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleDelete}>
+                        <Text style={styles.actionButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                )}
+                {status === 'failed' && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleRetry}>
+                        <Text style={styles.actionButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                )}
+                {status === 'required' && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleRetry}>
+                        <Text style={styles.actionButtonText}>Download</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </View>
+    );
+});
+
+export const DownloadModalView = memo(({
     visible,
     rows,
     onStop,
@@ -13,63 +81,6 @@ export const DownloadModalView = ({
     onDelete,
     onClose,
 }: DownloadModalViewProps) => {
-    const renderRow = (row: DownloadRowDisplayProps) => {
-        const { routeId, title, status, pct } = row;
-
-        return (
-            <View key={routeId} style={styles.row}>
-                <View style={styles.rowInfo}>
-                    <Text style={styles.routeTitle} numberOfLines={1}>
-                        {title}
-                    </Text>
-                    {status === 'downloading' && (
-                        <View style={styles.progressContainer}>
-                            <View style={[styles.progressBar, { width: `${pct ?? 0}%` }]} />
-                        </View>
-                    )}
-                    {status === 'done' && (
-                        <Text style={[styles.statusText, { color: colors.success }]}>
-                            Saved for offline riding
-                        </Text>
-                    )}
-                    {status === 'failed' && (
-                        <Text style={[styles.statusText, { color: colors.error }]}>
-                            Download failed
-                        </Text>
-                    )}
-                    {status === 'required' && (
-                        <Text style={[styles.statusText, { color: colors.warning }]}>
-                            Download required to ride
-                        </Text>
-                    )}
-                </View>
-
-                <View style={styles.rowActions}>
-                    {status === 'downloading' && (
-                        <TouchableOpacity style={styles.actionButton} onPress={() => onStop(routeId)}>
-                            <Text style={styles.actionButtonText}>Stop</Text>
-                        </TouchableOpacity>
-                    )}
-                    {status === 'done' && (
-                        <TouchableOpacity style={styles.actionButton} onPress={() => onDelete(routeId)}>
-                            <Text style={styles.actionButtonText}>Delete</Text>
-                        </TouchableOpacity>
-                    )}
-                    {status === 'failed' && (
-                        <TouchableOpacity style={styles.actionButton} onPress={() => onRetry(routeId)}>
-                            <Text style={styles.actionButtonText}>Retry</Text>
-                        </TouchableOpacity>
-                    )}
-                    {status === 'required' && (
-                        <TouchableOpacity style={styles.actionButton} onPress={() => onRetry(routeId)}>
-                            <Text style={styles.actionButtonText}>Download</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
-        );
-    };
-
     return (
         <Dialog
             title="Downloads"
@@ -84,12 +95,20 @@ export const DownloadModalView = ({
                         <Text style={styles.emptyText}>No downloads</Text>
                     </View>
                 ) : (
-                    rows.map(renderRow)
+                    rows.map(row => (
+                        <DownloadRow
+                            key={row.routeId}
+                            row={row}
+                            onStop={onStop}
+                            onRetry={onRetry}
+                            onDelete={onDelete}
+                        />
+                    ))
                 )}
             </View>
         </Dialog>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {

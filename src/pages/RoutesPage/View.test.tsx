@@ -8,6 +8,7 @@ jest.mock('../../components', () => ({
     RoutesTable: () => null,
     FilterPanel: () => null,
     Icon: () => null,
+    DownloadModalView: () => null,
 }));
 
 const BASE_PROPS: any = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
     RoutesTable,
     FilterPanel,
     TNavigationItem,
+    DownloadModalView,
 } from '../../components';
 import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
@@ -52,9 +53,25 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         compact,
         activeDownloadCount,
         onDownloadPillPress,
+        showDownloadModal,
+        downloadRows,
+        onDownloadModalClose,
+        onDownloadStop,
+        onDownloadRetry,
+        onDownloadDelete,
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
+
+    const handleDownloadPillPress = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
+        onDownloadPillPress();
+    }, [logEvent, onDownloadPillPress]);
+
+    const handleImportPress = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'import-route', eventSource: 'user' });
+        onImportClicked();
+    }, [logEvent, onImportClicked]);
 
     return (
         <MainBackground>
@@ -83,10 +100,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                             {activeDownloadCount > 0 && (
                                 <TouchableOpacity
                                     style={styles.downloadPill}
-                                    onPress={() => {
-                                        logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
-                                        onDownloadPillPress();
-                                    }}
+                                    onPress={handleDownloadPillPress}
                                     activeOpacity={0.7}
                                 >
                                     <Text style={styles.downloadPillText}>↓ {activeDownloadCount}</Text>
@@ -95,10 +109,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                             {!loading && (
                                 <TouchableOpacity
                                     style={styles.importButton}
-                                    onPress={() => {
-                                        logEvent({ message: 'button clicked', button: 'import-route', eventSource: 'user' });
-                                        onImportClicked();
-                                    }}
+                                    onPress={handleImportPress}
                                     activeOpacity={0.7}
                                 >
                                     <Icon name="import-route" size={20} color={colors.buttonPrimary} />
@@ -132,6 +143,15 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                     </View>
                 </View>
             </View>
+
+            <DownloadModalView
+                visible={showDownloadModal}
+                rows={downloadRows}
+                onStop={onDownloadStop}
+                onRetry={onDownloadRetry}
+                onDelete={onDownloadDelete}
+                onClose={onDownloadModalClose}
+            />
 
         </MainBackground>
     );
