@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@fdfedin/react-native-native-mqtt": "^0.1.12",
+    "@kesha-antonov/react-native-background-downloader": "^4.5.4",
     "@maplibre/maplibre-react-native": "^10.4.2",
     "@pagopa/io-react-native-integrity": "^0.3.2",
     "@react-native-community/netinfo": "^12.0.1",
