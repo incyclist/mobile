@@ -90,7 +90,7 @@ export const DownloadModalView = memo(({
             buttons={[{ label: 'Close', onClick: onClose, primary: true }]}
         >
             <View style={styles.container}>
-                {rows.length === 0 ? (
+                {(rows??[]).length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>No downloads</Text>
                     </View>
