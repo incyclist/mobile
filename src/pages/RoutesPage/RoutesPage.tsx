@@ -3,6 +3,7 @@ import { useWindowDimensions } from 'react-native';
 import RNFS from 'react-native-fs';
 import { 
     getRoutesPageService, 
+    useRouteList,
     RoutePageDisplayProps, 
     IObserver, 
     SearchFilter,
@@ -41,6 +42,7 @@ const hashRoutes = (routes: RouteItemProps[]) =>
 
 export const RoutesPage = () => {
     const service = getRoutesPageService();
+    const routeList = useRouteList();
 
     const { height } = useWindowDimensions();
     const compact = height < 420;
@@ -54,7 +56,7 @@ export const RoutesPage = () => {
     const refRoutesHash = useRef<string>('')
     const refFilterOptions = useRef(props.filterOptions)
 
-    const { logError, logEvent } = useLogging('RoutesPage');
+    const { logError } = useLogging('RoutesPage');
 
 
 
@@ -144,23 +146,20 @@ export const RoutesPage = () => {
     }, []);
 
     const onDownloadStop = useCallback((routeId: string) => {
-        logEvent({ message: 'button clicked', button: 'download-stop', route: routeId, eventSource: 'user' });
-        getRoutesPageService().getRouteList().getCard(routeId)?.stopDownload();
-    }, [logEvent]);
+        routeList.getCard(routeId)?.stopDownload();
+    }, [routeList]);
 
     const onDownloadRetry = useCallback((routeId: string) => {
-        logEvent({ message: 'button clicked', button: 'download-retry', route: routeId, eventSource: 'user' });
-        const card = getRoutesPageService().getRouteList().getCard(routeId);
+        const card = routeList.getCard(routeId);
         if (card) {
             card.setVideoDir(RNFS.DocumentDirectoryPath + '/videos');
             card.download();
         }
-    }, [logEvent]);
+    }, [routeList]);
 
     const onDownloadDelete = useCallback((routeId: string) => {
-        logEvent({ message: 'button clicked', button: 'download-delete', route: routeId, eventSource: 'user' });
-        getRoutesPageService().getRouteList().getCard(routeId)?.delete();
-    }, [logEvent]);
+        routeList.getCard(routeId)?.delete();
+    }, [routeList]);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)

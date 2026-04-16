@@ -2,7 +2,6 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { DownloadModalView } from './DownloadModalView';
 import { DownloadRowDisplayProps } from 'incyclist-services';
-import { fn } from 'storybook/test';
 
 const MOCK_ROWS: DownloadRowDisplayProps[] = [
     { routeId: 'r1', title: 'Laon – Paris', status: 'downloading', pct: 62 },
@@ -14,10 +13,10 @@ const MOCK_ROWS: DownloadRowDisplayProps[] = [
 const MOCK_PROPS = {
     visible: true,
     rows: MOCK_ROWS,
-    onStop: fn(),
-    onRetry: fn(),
-    onDelete: fn(),
-    onClose: fn(),
+    onStop: jest.fn(),
+    onRetry: jest.fn(),
+    onDelete: jest.fn(),
+    onClose: jest.fn(),
 };
 
 describe('DownloadModalView', () => {

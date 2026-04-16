@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RoutesPageView } from './View';
-import { fn } from 'storybook/test';
 
 jest.mock('../../components', () => ({
     NavigationBar: () => null,
@@ -20,19 +19,19 @@ const BASE_PROPS: any = {
     filterVisible: false,
     compact: false,
     showImportDialog: false,
-    onFilterToggle: fn(),
-    onNavigate: fn(),
-    onImportClicked: fn(),
-    onFilterChanged: fn(),
-    onImportClose: fn(),
+    onFilterToggle: jest.fn(),
+    onNavigate: jest.fn(),
+    onImportClicked: jest.fn(),
+    onFilterChanged: jest.fn(),
+    onImportClose: jest.fn(),
     activeDownloadCount: 0,
     downloadRows: [],
     showDownloadModal: false,
-    onDownloadPillPress: fn(),
-    onDownloadModalClose: fn(),
-    onDownloadStop: fn(),
-    onDownloadRetry: fn(),
-    onDownloadDelete: fn(),
+    onDownloadPillPress: jest.fn(),
+    onDownloadModalClose: jest.fn(),
+    onDownloadStop: jest.fn(),
+    onDownloadRetry: jest.fn(),
+    onDownloadDelete: jest.fn(),
 };
 
 describe('RoutesPageView', () => {
