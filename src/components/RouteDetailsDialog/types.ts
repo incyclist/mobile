@@ -44,6 +44,7 @@ export interface RouteDetailsViewProps {
     showWorkout: boolean;
     showPrev: boolean;
     loading: boolean;
+    downloadButtonPrimary?: boolean
 
     // Settings
     initialSettings: UIRouteSettings;

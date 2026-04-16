@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import RNFS from 'react-native-fs';
 import { useRouteList, useActivityList } from 'incyclist-services';
-import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
+import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
@@ -149,7 +149,7 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
         } else if (downloadStatus === 'done') {
             downloadButtonLabel = 'Downloaded ✓';
         } else if (downloadStatus === 'failed') {
-            downloadButtonLabel = 'Retry';
+            downloadButtonLabel = 'Retry Download';
         } else {
             downloadButtonLabel = 'Download';
         }
@@ -192,8 +192,13 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
         service.getCard(id)?.delete();
     }, [service]);
 
-    // Obtain global download rows from service if possible
-    const downloadRows = (service as any).getPageDisplayProperties?.().downloadRows ?? [];
+    const downloadRows: DownloadRowDisplayProps[] = downloadStatus !== 'none' ? [{
+        routeId,
+        title: routeDescr.title ?? '',
+        status: downloadStatus,
+    }] : []
+
+    const downloadButtonPrimary = routeDescr.requiresDownload === true
 
     return (
         <RouteDetailsView
@@ -211,23 +216,21 @@ export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps )
             canNotStartReason={canNotStartReason}
             showLoopOverwrite={!!showLoopOverwrite}
             showNextOverwrite={!!showNextOverwrite}
+            downloadButtonPrimary={downloadButtonPrimary}
             showWorkout={!hasWorkout}
             showPrev={showPrev}
             loading={loading}
             initialSettings={settings as UIRouteSettings}
             prevRides={prevRides ?? undefined}
             onStart={(updatedSettings) => {
-                logEvent({ message: 'button clicked', button: 'start', eventSource: 'user' });
                 card.changeSettings(updatedSettings);
                 card.start();
                 onStart();
             }}
             onCancel={() => {
-                logEvent({ message: 'button clicked', button: 'cancel', eventSource: 'user' });
                 card.cancel();
             }}
             onStartWithWorkout={(updatedSettings) => {
-                logEvent({ message: 'button clicked', button: 'start-with-workout', eventSource: 'user' });
                 card.changeSettings(updatedSettings);
                 card.addWorkout();
             }}

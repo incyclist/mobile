@@ -28,6 +28,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         totalElevation, routeType, canStart, canNotStartReason,
         showLoopOverwrite, showNextOverwrite, showWorkout, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
+        downloadButtonPrimary,
         onStart, onCancel, onStartWithWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
@@ -259,19 +260,21 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         );
     };
 
-    const dialogButtons = [
-        { label: 'Cancel', onClick: onCancel },
-        ...(downloadButtonLabel ? [{
-            label: downloadButtonLabel,
-            disabled: downloadButtonDisabled,
-            onClick: onDownloadPress ?? (() => {}),
-            primary: downloadButtonLabel === 'Download',
-        }] : []),
-        ...(canStart ? [
-            { label: 'Start', primary: true, onClick: () => onStart(data) },
-            ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
-        ] : [])
-    ];
+    const cancelButton = { label: 'Cancel', onClick: onCancel }
+
+    const startButtons = canStart ? [
+        { label: 'Start', primary: true, onClick: () => onStart(data) },
+        ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
+    ] : []
+
+    const downloadButton = downloadButtonLabel ? [{
+        label: downloadButtonLabel,
+        disabled: downloadButtonDisabled,
+        onClick: onDownloadPress ?? (() => {}),
+        primary: downloadButtonPrimary ?? false,
+    }] : []
+
+    const dialogButtons = [cancelButton, ...startButtons, ...downloadButton]
 
     if (compact) {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
@@ -333,6 +336,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             <DownloadModalView
                 visible={!!showDownloadModal}
                 rows={downloadRows ?? []}
+                nested={true}
                 onStop={onDownloadStop ?? (() => {})}
                 onRetry={onDownloadRetry ?? (() => {})}
                 onDelete={onDownloadDelete ?? (() => {})}

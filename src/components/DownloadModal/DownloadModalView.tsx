@@ -76,6 +76,7 @@ const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) 
 export const DownloadModalView = memo(({
     visible,
     rows,
+    nested,
     onStop,
     onRetry,
     onDelete,
@@ -84,6 +85,7 @@ export const DownloadModalView = memo(({
     return (
         <Dialog
             title="Downloads"
+            nested={nested}
             visible={visible}
             variant="details"
             onOutsideClick={onClose}

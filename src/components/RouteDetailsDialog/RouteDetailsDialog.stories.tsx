@@ -117,3 +117,65 @@ export const CompactWithMap: Story = {
         ],
     }),
 };
+export const DownloadRequired: Story = {
+    args: mockRouteProps({
+        canStart: false,
+        downloadButtonLabel: 'Download',
+        downloadButtonPrimary: true,
+        downloadButtonDisabled: false,
+        onDownloadPress: fn(),
+        onDownloadModalClose: fn(),
+        downloadRows: [],
+        onDownloadStop: fn(),
+        onDownloadRetry: fn(),
+        onDownloadDelete: fn(),
+    }),
+};
+
+export const WithDownloadButton: Story = {
+    args: mockRouteProps({
+        downloadButtonLabel: 'Download',
+        downloadButtonDisabled: false,
+        onDownloadPress: fn(),
+    }),
+};
+
+export const Downloading: Story = {
+    args: mockRouteProps({
+        downloadButtonLabel: 'Downloading…',
+        downloadButtonDisabled: true,
+        onDownloadPress: fn(),
+    }),
+};
+
+export const Downloaded: Story = {
+    args: mockRouteProps({
+        downloadButtonLabel: 'Downloaded ✓',
+        downloadButtonDisabled: false,
+        onDownloadPress: fn(),
+    }),
+};
+
+export const DownloadFailed: Story = {
+    args: mockRouteProps({
+        downloadButtonLabel: 'Retry Download',
+        downloadButtonDisabled: false,
+        onDownloadPress: fn(),
+    }),
+};
+
+export const DownloadModalOpen: Story = {
+    args: mockRouteProps({
+        downloadButtonLabel: 'Downloading…',
+        downloadButtonDisabled: true,
+        onDownloadPress: fn(),
+        showDownloadModal: true,
+        onDownloadModalClose: fn(),
+        downloadRows: [
+            { routeId: 'r1', title: 'Alblasserwaard (SD)', status: 'downloading', pct: 45 },
+        ],
+        onDownloadStop: fn(),
+        onDownloadRetry: fn(),
+        onDownloadDelete: fn(),
+    }),
+};

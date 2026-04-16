@@ -28,6 +28,7 @@ export const Dialog = ({
     buttons,
     children,
     visible = true,
+    nested = false,
     onOutsideClick,
     slideFrom,
 }: PropsWithChildren<DialogProps>) => {
@@ -114,7 +115,7 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight });
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight,nested });
 
     const gradientColors = colors.dialogBackground;
 
@@ -226,10 +227,11 @@ type StyleProps = {
     height: number | undefined,
     minWidth: DimensionValue | undefined,
     minHeight: DimensionValue | undefined,
-    variant?: DialogVariant
+    variant?: DialogVariant,
+    nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, stripHeight }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, stripHeight,nested=false }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
     const isInfoVariant = variant === 'info';
     
     return StyleSheet.create({
@@ -249,15 +251,14 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             overflow: 'hidden',
             color: colors.text,
             // Shadow and thin white frame for info variant only
-            ...(isInfoVariant && {
+            ...( (isInfoVariant||nested) && {
                 borderWidth: 1,
                 borderColor: 'white',
-                // Subtle shadow to create floating effect
                 shadowColor: '#000',
-                shadowOffset: { width: 4, height: 4 },
+                shadowOffset: { width: 4, height: 8 },
                 shadowOpacity: 0.75,
-                shadowRadius: 12,
-                elevation: 5,
+                shadowRadius: 16,
+                elevation: 24,
             }),
         },
         header: {
