@@ -1,54 +1,152 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
+import RNFS from 'react-native-fs';
+import { useRouteList, useActivityList } from 'incyclist-services';
+import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
-import { useLogging, useUnmountEffect } from '../../hooks';
-import { getRouteListService } from '../../services';
-import { UIStartSettings, UIRouteSettings, DownloadRowDisplayProps } from 'incyclist-services';
-import RNFS from 'react-native-fs';
 
-export const RouteDetailsDialog = ({
-    routeDescr,
-    onClose,
-    onStart,
-    onCancel,
-    onEdit,
-    onDelete,
-    onShare,
-    onExport,
-    onDuplicate,
-    onImport,
-    onImportGpx,
-}: RouteDetailsDialogProps) => {
-    const { logEvent, logError } = useLogging('RouteDetailsDialog');
-    const service = getRouteListService();
-    const card = service?.getCard(routeDescr.id);
-    const routeId = routeDescr.id;
-
-    const [downloadStatus, setDownloadStatus] = useState<'none' | 'downloading' | 'done' | 'failed'>('none');
-    const [showDownloadModal, setShowDownloadModal] = useState(false);
-    const refObserver = useRef<any>(null);
+export const RouteDetailsDialog = ({ routeId,onStart }:RouteDetailsDialogProps ) => {
+    const { height } = useWindowDimensions();
+    const compact = height < 420;
+    
+    const service = useRouteList();
+    const activities = useActivityList();
+    const card = service.getCard(routeId);
+    
+    const { logEvent } = useLogging('RouteDetailsDialog');
+    const refMounted = useRef(true);
     const refInitialized = useRef(false);
+    const refDownloadObserver = useRef<any>(null);
+    
+    const [cardProps, setCardProps] = useState(() => card?.openSettings());
+    const [loading, setLoading] = useState(false);
+    const [prevRides, setPrevRides] = useState<any[] | null>(null);
+    const [showPrev, setShowPrev] = useState(false);
 
-    const canStart = routeDescr.canStart ?? false;
-    const canEdit = routeDescr.canEdit ?? false;
-    const canDelete = routeDescr.canDelete ?? false;
-    const canShare = routeDescr.canShare ?? false;
-    const canExport = routeDescr.canExport ?? false;
-    const canDuplicate = routeDescr.canDuplicate ?? false;
-    const canImport = routeDescr.canImport ?? false;
-    const canImportGpx = routeDescr.canImportGpx ?? false;
+    const route = card?.getData();
+    const routeDescr = route?.description;
 
-    const hasDownloadableVideo = routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://'));
-    const showDownloadButton = hasDownloadableVideo || routeDescr.requiresDownload === true;
+    const [downloadStatus, setDownloadStatus] = useState<'none' | 'downloading' | 'done' | 'failed'>(() => {
+        if (routeDescr?.isDownloaded) return 'done';
+        if (card?.getCurrentDownload()) return 'downloading';
+        return 'none';
+    });
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
 
-    // Determine download button label and disabled state
+    const refreshPrevRides = useCallback(async (settings: UIRouteSettings) => {
+        if (!card) return { prevRides: undefined, showPrev: false };
+        const data = card.getData();
+        const routeHash = data.description.routeHash;
+        const rId = !routeHash ? data.description.id : undefined;
+        
+        const prev = await activities.getPastActivitiesWithDetails({
+            routeHash,
+            routeId: rId,
+            startPos: settings.startPos?.value,
+            endPos: settings.endPos?.value,
+            realityFactor: settings.realityFactor
+        });
+
+        if (!refMounted.current) return { prevRides: undefined, showPrev: false };
+        
+        const hasPrev = prev?.length > 0;
+        setPrevRides(hasPrev ? prev : null);
+        setShowPrev(hasPrev);
+        return { prevRides: hasPrev ? prev : undefined, showPrev: hasPrev };
+    }, [card, activities]);
+
+    useEffect(() => {
+        if (!card || refInitialized.current) return;
+        refInitialized.current = true;
+        
+        const currentProps = card.openSettings();
+        setCardProps(currentProps);
+        
+        const data = card.getData();
+        
+        if (!data.details) {
+            setLoading(true);
+            service.getRouteDetails(routeId)
+                .then(() => { if (refMounted.current) setLoading(false); })
+                .catch(() => { if (refMounted.current) setLoading(false); });
+        }
+
+        refreshPrevRides(currentProps.settings as UIRouteSettings);
+        logEvent({ message: 'dialog shown', title:'select route',route: data.description.title });
+    }, [routeId, card, service, refreshPrevRides, logEvent]);
+
+    useEffect(() => {
+        if (!card) return;
+        
+        const subscribe = (observer: any) => {
+            if (!observer || refDownloadObserver.current === observer) return;
+            refDownloadObserver.current = observer;
+
+            const onProgress = () => setDownloadStatus('downloading');
+            const onDone = () => {
+                setDownloadStatus('done');
+                refDownloadObserver.current = null;
+            };
+            const onError = () => {
+                setDownloadStatus('failed');
+                refDownloadObserver.current = null;
+            };
+
+            observer.on('progress', onProgress);
+            observer.on('done', onDone);
+            observer.on('error', onError);
+
+            return () => {
+                observer.off('progress', onProgress);
+                observer.off('done', onDone);
+                observer.off('error', onError);
+                refDownloadObserver.current = null;
+            };
+        };
+
+        const currentObserver = card.getCurrentDownload();
+        if (currentObserver) {
+            return subscribe(currentObserver);
+        }
+    }, [card]);
+
+    useUnmountEffect(() => {
+        refMounted.current = false;
+    });
+
+    if (!card || !cardProps || !routeDescr) return null;
+
+    const { 
+        totalDistance, 
+        totalElevation, 
+        showLoopOverwrite, 
+        showNextOverwrite, 
+        hasWorkout, 
+        canStart: cardCanStart, 
+        updateStartPos, 
+        settings 
+    } = cardProps;
+
+    const { hasVideo, hasGpx, isLoop, videoFormat, previewUrl, segments } = routeDescr;
+    const points = route.details?.points ?? route.points;
+    const routeType = `${hasVideo ? 'Video' : 'GPX'} - ${isLoop ? 'Loop' : 'Point to Point'}`;
+    const isAvi = videoFormat?.toLowerCase() === 'avi';
+    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
+    const canNotStartReason = isAvi ? 'AVI videos are not supported on mobile' : undefined;
+
+    const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
+    const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
+
     let downloadButtonLabel: string | undefined;
     let downloadButtonDisabled = false;
+
     if (showDownloadButton) {
         if (downloadStatus === 'downloading') {
             downloadButtonLabel = 'Downloading…';
             downloadButtonDisabled = true;
-        } else if (routeDescr.isDownloaded) {
+        } else if (downloadStatus === 'done') {
             downloadButtonLabel = 'Downloaded ✓';
         } else if (downloadStatus === 'failed') {
             downloadButtonLabel = 'Retry';
@@ -57,132 +155,101 @@ export const RouteDetailsDialog = ({
         }
     }
 
-    const startDisabled = downloadStatus === 'downloading';
-
-    // Subscribe to download observer
-    useEffect(() => {
-        if (!card || refInitialized.current) return;
-        refInitialized.current = true;
-
-        const observer = card.getCurrentDownload();
-        if (observer) {
-            refObserver.current = observer;
-            setDownloadStatus('downloading');
-
-            observer.on('progress', () => {
-                setDownloadStatus('downloading');
-            });
-            observer.on('done', () => {
-                setDownloadStatus('done');
-                refObserver.current = null;
-            });
-            observer.on('error', () => {
-                setDownloadStatus('failed');
-                refObserver.current = null;
-            });
-        } else if (routeDescr.isDownloaded) {
-            setDownloadStatus('done');
-        } else {
-            setDownloadStatus('none');
-        }
-    }, [card, routeDescr.isDownloaded]);
-
-    useUnmountEffect(() => {
-        if (refObserver.current) {
-            refObserver.current.removeAllListeners();
-            refObserver.current = null;
-        }
-    });
-
-    const handleDownloadPress = useCallback(() => {
-        if (!card) return;
-
-        if (downloadStatus === 'failed' || downloadStatus === 'none') {
+    const onDownloadPress = useCallback(() => {
+        if (downloadStatus === 'none' || downloadStatus === 'failed') {
             const videoDir = RNFS.DocumentDirectoryPath + '/videos';
             card.setVideoDir(videoDir);
             card.download();
+            logEvent({ 
+                message: 'button clicked', 
+                button: downloadStatus === 'failed' ? 'download-retry' : 'download', 
+                eventSource: 'user' 
+            });
+        } else {
             logEvent({ message: 'button clicked', button: 'download', eventSource: 'user' });
-        } else if (downloadStatus === 'failed') {
-            card.download();
-            logEvent({ message: 'button clicked', button: 'download-retry', eventSource: 'user' });
         }
-
         setShowDownloadModal(true);
     }, [card, downloadStatus, logEvent]);
 
-    const handleDownloadModalClose = useCallback(() => {
+    const onDownloadModalClose = useCallback(() => {
         setShowDownloadModal(false);
     }, []);
 
-    const handleStart = useCallback((settings: UIStartSettings) => {
-        onStart(settings);
-    }, [onStart]);
+    const onDownloadStop = useCallback((id: string) => {
+        service.getCard(id)?.stopDownload();
+    }, [service]);
 
-    const handleCancel = useCallback(() => {
-        onCancel();
-    }, [onCancel]);
+    const onDownloadRetry = useCallback((id: string) => {
+        const c = service.getCard(id);
+        if (c) {
+            const videoDir = RNFS.DocumentDirectoryPath + '/videos';
+            c.setVideoDir(videoDir);
+            c.download();
+        }
+    }, [service]);
 
-    const handleEdit = useCallback((settings: UIRouteSettings) => {
-        onEdit(settings);
-    }, [onEdit]);
+    const onDownloadDelete = useCallback((id: string) => {
+        service.getCard(id)?.delete();
+    }, [service]);
 
-    const handleDelete = useCallback(() => {
-        onDelete();
-    }, [onDelete]);
-
-    const handleShare = useCallback(() => {
-        onShare();
-    }, [onShare]);
-
-    const handleExport = useCallback(() => {
-        onExport();
-    }, [onExport]);
-
-    const handleDuplicate = useCallback(() => {
-        onDuplicate();
-    }, [onDuplicate]);
-
-    const handleImport = useCallback(() => {
-        onImport();
-    }, [onImport]);
-
-    const handleImportGpx = useCallback(() => {
-        onImportGpx();
-    }, [onImportGpx]);
-
-    const downloadRows: DownloadRowDisplayProps[] = downloadStatus !== 'none' ? [{
-        routeId,
-        title: routeDescr.title ?? '',
-        status: downloadStatus,
-    }] : [];
+    // Obtain global download rows from service if possible
+    const downloadRows = (service as any).getPageDisplayProperties?.().downloadRows ?? [];
 
     return (
         <RouteDetailsView
-            data={routeDescr}
+            title={routeDescr.title ?? ''}
+            compact={compact}
+            hasGpx={hasGpx ?? false}
+            points={points}
+            previewUrl={previewUrl}
+            totalDistance={totalDistance}
+            totalElevation={totalElevation}
+            routeType={routeType}
+            videoFormat={videoFormat}
+            segments={segments}
             canStart={canStart}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            canShare={canShare}
-            canExport={canExport}
-            canDuplicate={canDuplicate}
-            canImport={canImport}
-            canImportGpx={canImportGpx}
-            startDisabled={startDisabled}
-            onStart={handleStart}
-            onCancel={handleCancel}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onShare={handleShare}
-            onExport={handleExport}
-            onDuplicate={handleDuplicate}
-            onImport={handleImport}
-            onImportGpx={handleImportGpx}
+            canNotStartReason={canNotStartReason}
+            showLoopOverwrite={!!showLoopOverwrite}
+            showNextOverwrite={!!showNextOverwrite}
+            showWorkout={!hasWorkout}
+            showPrev={showPrev}
+            loading={loading}
+            initialSettings={settings as UIRouteSettings}
+            prevRides={prevRides ?? undefined}
+            onStart={(updatedSettings) => {
+                logEvent({ message: 'button clicked', button: 'start', eventSource: 'user' });
+                card.changeSettings(updatedSettings);
+                card.start();
+                onStart();
+            }}
+            onCancel={() => {
+                logEvent({ message: 'button clicked', button: 'cancel', eventSource: 'user' });
+                card.cancel();
+            }}
+            onStartWithWorkout={(updatedSettings) => {
+                logEvent({ message: 'button clicked', button: 'start-with-workout', eventSource: 'user' });
+                card.changeSettings(updatedSettings);
+                card.addWorkout();
+            }}
+            onSettingsChanged={refreshPrevRides}
+            onUpdateStartPos={(value) => {
+                if (!updateStartPos) return null;
+                const result = updateStartPos(value);
+                if (!result) return null;
+                return {
+                    ...(cardProps.settings as UIStartSettings),
+                    ...result
+                };
+            }}
             downloadButtonLabel={downloadButtonLabel}
             downloadButtonDisabled={downloadButtonDisabled}
-            onDownloadPress={handleDownloadPress}
+            onDownloadPress={onDownloadPress}
             showDownloadModal={showDownloadModal}
-            onDownloadModalClose={handleDownloadModalClose}
+            onDownloadModalClose={onDownloadModalClose}
             downloadRows={downloadRows}
+            onDownloadStop={onDownloadStop}
+            onDownloadRetry={onDownloadRetry}
+            onDownloadDelete={onDownloadDelete}
         />
     );
 };
