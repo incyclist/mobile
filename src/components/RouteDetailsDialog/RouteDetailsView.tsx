@@ -264,7 +264,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         ...(downloadButtonLabel ? [{
             label: downloadButtonLabel,
             disabled: downloadButtonDisabled,
-            onClick: onDownloadPress,
+            onClick: onDownloadPress ?? (() => {}),
             primary: downloadButtonLabel === 'Download',
         }] : []),
         ...(canStart ? [

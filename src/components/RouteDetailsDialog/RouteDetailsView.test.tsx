@@ -11,7 +11,8 @@ jest.mock('incyclist-services', () => ({
 jest.mock('../../bindings/ui', () => ({}));
 jest.mock('../../hooks', () => ({
     useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
-    useUnmountEffect: jest.fn((cb) => cb()),
+    useUnmountEffect: jest.fn(),
+    useScreenLayout: () => ({ compact: false }),
 }));
 
 jest.mock('@maplibre/maplibre-react-native', () => ({
@@ -22,14 +23,13 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
     setAccessToken: jest.fn(),
     default: { createFragment: jest.fn() },
 }));
-jest.mock('../../hooks', () => ({
-    useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
-    useUnmountEffect: jest.fn(),
-    useScreenLayout: () => ({ compact: false }),
-}));
-jest.mock('../DownloadModal', () => ({
-    DownloadModalView: 'DownloadModalView',
-}));
+
+jest.mock('../DownloadModal', () => {
+    const { Text } = require('react-native');
+    return {
+        DownloadModalView: ({ visible }: any) => visible ? <Text>DownloadModalView</Text> : null,
+    };
+});
 
 const MOCK_SETTINGS = {
     startPos: { value: 0, unit: 'km' },
