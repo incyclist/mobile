@@ -231,7 +231,7 @@ type StyleProps = {
     nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, stripHeight,nested=false }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
     const isInfoVariant = variant === 'info';
     
     return StyleSheet.create({
@@ -293,7 +293,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             flexDirection: isCompact ? 'column' : 'row',
         },
         strip: {
-            height: isCompact ? stripHeight : '100%',
+            height: isCompact ? 0 : '100%',
             width: isCompact ? '100%' : 150,
         },
         fullContentArea: {
