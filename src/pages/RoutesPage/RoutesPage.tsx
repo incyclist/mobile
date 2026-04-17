@@ -192,7 +192,7 @@ export const RoutesPage = () => {
             <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
         )}
         {showImportDialog && (
-            <ImportDialog onClose={onImportClose} />
+            <ImportDialog />
         )}
         </>
     );
