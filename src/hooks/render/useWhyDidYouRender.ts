@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
+import { useLogging } from '../logging'
 
-export const useWhyDidYouRender = (componentName: string, props: Record<string, any>) => {
+export const useWhyDidYouRender = (componentName: string, props: Record<string, any>, useEventLog?:boolean) => {
     const prevProps = useRef<Record<string, any>>({})
+    const {logEvent} = useLogging(componentName)
 
     useEffect(() => {
         const changedProps: Record<string, { from: any, to: any }> = {}
@@ -17,11 +19,22 @@ export const useWhyDidYouRender = (componentName: string, props: Record<string, 
 
         if (Object.keys(changedProps).length > 0) {
             try {
-                console.log(`# [${componentName}] re-render caused by:`, 
-                    Object.keys(changedProps).map(key => 
-                        `${key}: ${typeof changedProps[key].from} → ${typeof changedProps[key].to}`
-                    ).join(', ')
-                )
+
+                if (useEventLog) {
+                    logEvent( {message:'re-render', componentName, cause: Object.keys(changedProps).map(key => 
+                            `${key}: ${typeof changedProps[key].from} → ${typeof changedProps[key].to}`
+                        ).join(', ') })
+
+                }
+                else {
+                    console.log(`# [${componentName}] re-render caused by:`, 
+                        Object.keys(changedProps).map(key => 
+                            `${key}: ${typeof changedProps[key].from} → ${typeof changedProps[key].to}`
+                        ).join(', ')
+                    )
+
+                }
+
             } catch {}
         }
 
