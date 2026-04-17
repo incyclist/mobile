@@ -18,6 +18,7 @@ import { BinarySelect } from '../BinarySelect';
 import { EditNumber } from '../EditNumber';
 import { ChipSelect } from '../ChipSelect';
 import { SingleSelect } from '../SingleSelect';
+import { DownloadModalView } from '../DownloadModal';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -27,7 +28,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         totalElevation, routeType, canStart, canNotStartReason,
         showLoopOverwrite, showNextOverwrite, showWorkout, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
-        onStart, onCancel, onStartWithWorkout, onSettingsChanged, onUpdateStartPos
+        downloadButtonPrimary,
+        onStart, onCancel, onStartWithWorkout, onSettingsChanged, onUpdateStartPos,
+        downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
+        showDownloadModal, onDownloadModalClose, downloadRows,
+        onDownloadStop, onDownloadRetry, onDownloadDelete
     } = props;
 
     const { logEvent } = useLogging('RouteDetailsView');
@@ -255,13 +260,21 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         );
     };
 
-    const dialogButtons = [
-        { label: 'Cancel', onClick: onCancel },
-        ...(canStart ? [
-            { label: 'Start', primary: true, onClick: () => onStart(data) },
-            ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
-        ] : [])
-    ];
+    const cancelButton = { label: 'Cancel', onClick: onCancel }
+
+    const startButtons = canStart ? [
+        { label: 'Start', primary: true, onClick: () => onStart(data) },
+        ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
+    ] : []
+
+    const downloadButton = downloadButtonLabel ? [{
+        label: downloadButtonLabel,
+        disabled: downloadButtonDisabled,
+        onClick: onDownloadPress ?? (() => {}),
+        primary: downloadButtonPrimary ?? false,
+    }] : []
+
+    const dialogButtons = [cancelButton, ...startButtons, ...downloadButton]
 
     if (compact) {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
@@ -284,6 +297,14 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </Text>
                     {canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
                 </View>
+                <DownloadModalView
+                    visible={!!showDownloadModal}
+                    rows={downloadRows ?? []}
+                    onStop={onDownloadStop ?? (() => {})}
+                    onRetry={onDownloadRetry ?? (() => {})}
+                    onDelete={onDownloadDelete ?? (() => {})}
+                    onClose={onDownloadModalClose ?? (() => {})}
+                />
             </Dialog>
         );
     }
@@ -312,6 +333,15 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 {renderForm()}
                 {canNotStartReason && <Text style={styles.fullErrorText}>{canNotStartReason}</Text>}
             </View>
+            <DownloadModalView
+                visible={!!showDownloadModal}
+                rows={downloadRows ?? []}
+                nested={true}
+                onStop={onDownloadStop ?? (() => {})}
+                onRetry={onDownloadRetry ?? (() => {})}
+                onDelete={onDownloadDelete ?? (() => {})}
+                onClose={onDownloadModalClose ?? (() => {})}
+            />
         </Dialog>
     );
 };

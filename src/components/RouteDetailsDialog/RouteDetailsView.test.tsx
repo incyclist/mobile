@@ -11,7 +11,8 @@ jest.mock('incyclist-services', () => ({
 jest.mock('../../bindings/ui', () => ({}));
 jest.mock('../../hooks', () => ({
     useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
-    useUnmountEffect: jest.fn((cb) => cb()),
+    useUnmountEffect: jest.fn(),
+    useScreenLayout: () => ({ compact: false }),
 }));
 
 jest.mock('@maplibre/maplibre-react-native', () => ({
@@ -22,11 +23,14 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
     setAccessToken: jest.fn(),
     default: { createFragment: jest.fn() },
 }));
-jest.mock('../../hooks', () => ({
-    useLogging: () => ({ logError: jest.fn(), logEvent: jest.fn() }),
-    useUnmountEffect: jest.fn(),
-    useScreenLayout: () => ({ compact: false }),
-}));
+
+jest.mock('../DownloadModal', () => {
+    const { Text } = require('react-native');
+    return {
+        DownloadModalView: ({ visible }: any) => visible ? <Text>DownloadModalView</Text> : null,
+    };
+});
+
 const MOCK_SETTINGS = {
     startPos: { value: 0, unit: 'km' },
     realityFactor: 100,
@@ -58,6 +62,15 @@ const MOCK_PROPS = {
     onUpdateStartPos: jest.fn((value: number) => {
         return { startPos: { value, unit: 'km' } } as unknown as UIStartSettings;
     }),
+    downloadButtonLabel: undefined,
+    downloadButtonDisabled: false,
+    onDownloadPress: jest.fn(),
+    showDownloadModal: false,
+    onDownloadModalClose: jest.fn(),
+    downloadRows: [],
+    onDownloadStop: jest.fn(),
+    onDownloadRetry: jest.fn(),
+    onDownloadDelete: jest.fn(),
 };
 
 describe('RouteDetailsView', () => {
@@ -98,5 +111,27 @@ describe('RouteDetailsView', () => {
 
     it('renders with loading state', () => {
         render(<RouteDetailsView {...MOCK_PROPS} loading={true} />);
+    });
+
+    it('renders with download button', () => {
+        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} downloadButtonLabel="Download" />);
+        expect(getByText('Download')).toBeTruthy();
+    });
+
+    it('renders with disabled download button', () => {
+        const { getByText } = render(
+            <RouteDetailsView 
+                {...MOCK_PROPS} 
+                downloadButtonLabel="Downloading…" 
+                downloadButtonDisabled={true} 
+            />
+        );
+        expect(getByText('Downloading…')).toBeTruthy();
+    });
+
+    it('renders with DownloadModal when showDownloadModal is true', () => {
+        const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} showDownloadModal={true} />);
+        // The mock renders the name of the component
+        expect(getByText('DownloadModalView')).toBeTruthy();
     });
 });

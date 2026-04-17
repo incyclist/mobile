@@ -4,6 +4,7 @@ import { Dialog } from '../Dialog';
 import { colors, textSizes } from '../../theme';
 import { DownloadModalViewProps } from './types';
 import { DownloadRowDisplayProps } from 'incyclist-services';
+import { useLogging } from '../../hooks';
 
 interface DownloadRowProps {
     row: DownloadRowDisplayProps;
@@ -13,11 +14,25 @@ interface DownloadRowProps {
 }
 
 const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) => {
+    const {logEvent} = useLogging('RoutesDownload')
     const { routeId, title, status, pct } = row;
 
-    const handleStop = useCallback(() => onStop(routeId), [onStop, routeId]);
-    const handleRetry = useCallback(() => onRetry(routeId), [onRetry, routeId]);
-    const handleDelete = useCallback(() => onDelete(routeId), [onDelete, routeId]);
+    const handleStop = useCallback(() => {
+        logEvent( {message:'button clicked', button:'stop', routeId, eventSource:'user'  })
+        onStop(routeId)
+    },[logEvent, onStop, routeId]);
+
+    const handleRetry = useCallback(() => { 
+        logEvent( {message:'button clicked', button:'retry',routeId, eventSource:'user'  })
+        onRetry(routeId)
+    },[logEvent, onRetry, routeId]);
+
+    const handleDelete = useCallback(() => {
+        logEvent( {message:'button clicked', button:'delete',routeId,  eventSource:'user'  })
+        onDelete(routeId)
+    },[logEvent, onDelete, routeId]);
+
+    const progressWidth = `${Math.min(100, Math.max(0, pct ?? 0))}%` as `${number}%`;
 
     return (
         <View style={styles.row}>
@@ -26,9 +41,12 @@ const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) 
                     {title}
                 </Text>
                 {status === 'downloading' && (
-                    <View style={styles.progressContainer}>
-                        <View style={[styles.progressBar, { width: `${pct ?? 0}%` }]} />
-                    </View>
+                    <>
+                        <View style={styles.progressContainer}>
+                            <View style={[styles.progressBar, { width: progressWidth }]} />
+                        </View>
+                        <Text style={styles.pctText}>{pct ?? 0}%</Text>
+                    </>
                 )}
                 {status === 'done' && (
                     <Text style={[styles.statusText, { color: colors.success }]}>
@@ -60,7 +78,7 @@ const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) 
                 )}
                 {status === 'failed' && (
                     <TouchableOpacity style={styles.actionButton} onPress={handleRetry}>
-                        <Text style={styles.actionButtonText}>Retry</Text>
+                        <Text style={styles.actionButtonText}>Retry Download</Text>
                     </TouchableOpacity>
                 )}
                 {status === 'required' && (
@@ -76,6 +94,7 @@ const DownloadRow = memo(({ row, onStop, onRetry, onDelete }: DownloadRowProps) 
 export const DownloadModalView = memo(({
     visible,
     rows,
+    nested,
     onStop,
     onRetry,
     onDelete,
@@ -84,6 +103,7 @@ export const DownloadModalView = memo(({
     return (
         <Dialog
             title="Downloads"
+            nested={nested}
             visible={visible}
             variant="details"
             onOutsideClick={onClose}
@@ -143,6 +163,11 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: textSizes.smallText,
+    },
+    pctText: {
+        color: colors.disabled,
+        fontSize: textSizes.smallText,
+        marginTop: 2,
     },
     progressContainer: {
         height: 4,
