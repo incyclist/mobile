@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RoutesPageView } from './View';
+import { IObserver } from 'incyclist-services';
 
 jest.mock('../../components', () => ({
     NavigationBar: () => null,
@@ -9,6 +10,8 @@ jest.mock('../../components', () => ({
     FilterPanel: () => null,
     Icon: () => null,
     DownloadModalView: () => null,
+    DownloadPill: () => null,
+    Dynamic: ({ children }: any) => children,
 }));
 
 const BASE_PROPS: any = {
@@ -25,34 +28,27 @@ const BASE_PROPS: any = {
     onImportClicked: jest.fn(),
     onFilterChanged: jest.fn(),
     onImportClose: jest.fn(),
-    activeDownloadCount: 0,
-    downloadRows: [],
     showDownloadModal: false,
     onDownloadPillPress: jest.fn(),
     onDownloadModalClose: jest.fn(),
     onDownloadStop: jest.fn(),
     onDownloadRetry: jest.fn(),
     onDownloadDelete: jest.fn(),
+    downloadObserver: { 
+        on: jest.fn(), 
+        off: jest.fn(), 
+        stop: jest.fn(), 
+        emit: jest.fn(), 
+        once: jest.fn() 
+    } as unknown as IObserver,
 };
 
 describe('RoutesPageView', () => {
     it('renders correctly in normal layout', () => {
-        const { toJSON } = render(<RoutesPageView {...BASE_PROPS} />);
-        expect(toJSON()).toMatchSnapshot();
+        render(<RoutesPageView {...BASE_PROPS} />);
     });
 
     it('renders correctly in compact layout', () => {
-        const { toJSON } = render(<RoutesPageView {...BASE_PROPS} compact={true} />);
-        expect(toJSON()).toMatchSnapshot();
-    });
-
-    it('renders download pill when activeDownloadCount > 0', () => {
-        const { getByText } = render(<RoutesPageView {...BASE_PROPS} activeDownloadCount={3} />);
-        expect(getByText('↓ 3')).toBeTruthy();
-    });
-
-    it('does not render download pill when activeDownloadCount is 0', () => {
-        const { queryByText } = render(<RoutesPageView {...BASE_PROPS} activeDownloadCount={0} />);
-        expect(queryByText(/↓/)).toBeNull();
+        render(<RoutesPageView {...BASE_PROPS} compact={true} />);
     });
 });

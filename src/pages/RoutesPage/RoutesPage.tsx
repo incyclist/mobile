@@ -31,7 +31,6 @@ const initialProps: RoutePageDisplayProps = {
     },
     detailRouteId: undefined,
     filterVisible: false,
-    downloadRows: [],
 };
 
 const hashRoutes = (routes: RouteItemProps[]) =>
@@ -79,7 +78,6 @@ export const RoutesPage = () => {
             ...updated,
             routes: refRoutes.current,
             filterOptions: refFilterOptions.current,
-            downloadRows: updated.downloadRows ?? [],
         });
 
     }, [service]);
@@ -166,9 +164,6 @@ export const RoutesPage = () => {
         return <MainBackground />;
     }
 
-    const activeDownloadCount = (props.downloadRows ?? [])
-        .filter(r => r.status === 'downloading').length;
-
     return (
         <>
         <PageView
@@ -185,8 +180,7 @@ export const RoutesPage = () => {
             compact={compact}
             showImportDialog={showImportDialog}
             onImportClose={onImportClose}
-            activeDownloadCount={activeDownloadCount}
-            downloadRows={props.downloadRows ?? []}
+            downloadObserver={props.downloadObserver}
             showDownloadModal={showDownloadModal}
             onDownloadPillPress={onDownloadPillPress}
             onDownloadModalClose={onDownloadModalClose}
@@ -197,8 +191,8 @@ export const RoutesPage = () => {
         {props.detailRouteId && (
             <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
         )}
-        {props.showImportDialog && (
-            <ImportDialog  />
+        {showImportDialog && (
+            <ImportDialog />
         )}
         </>
     );

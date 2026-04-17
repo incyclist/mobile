@@ -57,8 +57,7 @@ const meta: Meta<typeof RoutesPageView> = {
         onNavigate: fn(),
         filters: {},
         filterOptions: mockFilterOptions,
-        activeDownloadCount: 0,
-        downloadRows: [],
+        downloadObserver: undefined,
         showDownloadModal: false,
         onDownloadPillPress: fn(),
         onDownloadModalClose: fn(),
@@ -129,11 +128,6 @@ export const WithActiveDownload: Story = {
         synchronizing: false,
         filterVisible: false,
         compact: false,
-        activeDownloadCount: 2,
-        downloadRows: [
-            { routeId: 'r1', title: 'Laon – Paris', status: 'downloading', pct: 62 },
-            { routeId: 'r2', title: 'Col du Tourmalet', status: 'downloading', pct: 15 },
-        ],
     },
 };
 
@@ -144,12 +138,6 @@ export const WithDownloadModal: Story = {
         synchronizing: false,
         filterVisible: false,
         compact: false,
-        activeDownloadCount: 2,
-        downloadRows: [
-            { routeId: 'r1', title: 'Laon – Paris', status: 'downloading', pct: 62 },
-            { routeId: 'r2', title: 'Col du Tourmalet', status: 'done' },
-            { routeId: 'r3', title: "Alpe d'Huez", status: 'failed' },
-        ],
         showDownloadModal: true,
     },
 };
