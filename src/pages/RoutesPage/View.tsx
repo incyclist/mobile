@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity
 } from 'react-native';
-import { RoutePageDisplayProps, SearchFilter, Observer } from 'incyclist-services';
+import { RoutePageDisplayProps, SearchFilter, IObserver } from 'incyclist-services';
 import {
     MainBackground,
     NavigationBar,
@@ -36,7 +36,7 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onDownloadStop: (routeId: string) => void;
     onDownloadRetry: (routeId: string) => void;
     onDownloadDelete: (routeId: string) => void;
-    downloadObserver?: Observer;
+    downloadObserver?: IObserver;
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {

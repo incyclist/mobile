@@ -74,11 +74,8 @@ export const RoutesPage = () => {
             refFilterOptions.current = updated.filterOptions
         }
 
-        // Destructure to omit downloadRows from local state to isolate re-renders
-        const { downloadRows: _dr, ...displayProps } = updated;
-
         setProps({
-            ...displayProps,
+            ...updated,
             routes: refRoutes.current,
             filterOptions: refFilterOptions.current,
         });
@@ -194,8 +191,8 @@ export const RoutesPage = () => {
         {props.detailRouteId && (
             <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
         )}
-        {props.showImportDialog && (
-            <ImportDialog  />
+        {showImportDialog && (
+            <ImportDialog onClose={onImportClose} />
         )}
         </>
     );
