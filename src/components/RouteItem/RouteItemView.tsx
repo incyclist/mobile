@@ -140,16 +140,17 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                 <View style={styles.rightColumn}>
 
                     <View style={styles.statsGrid}>
-                        <View style={styles.statsCol}>
+                        {totalDistance!==undefined && totalDistance!==null && <View style={styles.statsCol}>
                             <Icon name="distance" size={16} color={colors.text} />
                             <Text style={styles.statsValue}>{totalDistance.value}</Text>
                             <Text style={styles.statsUnit}>{totalDistance.unit}</Text>
-                        </View>
-                        <View style={styles.statsCol}>
+                        </View> }
+                        
+                        {totalElevation!==undefined && totalElevation!==null && <View style={styles.statsCol}>
                             <Icon name="elevation" size={16} color={colors.text} />
                             <Text style={styles.statsValue}>{totalElevation.value}</Text>
                             <Text style={styles.statsUnit}>{totalElevation.unit}</Text>
-                        </View>
+                        </View>}
                     </View>
                 </View>
             </TouchableOpacity>
