@@ -100,7 +100,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                             {downloadObserver && (
                                 <>
                                     <Dynamic
-                                        observer={downloadObserver as any}
+                                        observer={downloadObserver}
                                         event="download-update"
                                         prop="activeDownloadCount"
                                         transform={(data: any) => data.count}
@@ -112,7 +112,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                                     </Dynamic>
 
                                     <Dynamic
-                                        observer={downloadObserver as any}
+                                        observer={downloadObserver}
                                         event="download-update"
                                         prop="rows"
                                         transform={(data: any) => data.rows}

@@ -31,7 +31,6 @@ const initialProps: RoutePageDisplayProps = {
     },
     detailRouteId: undefined,
     filterVisible: false,
-    downloadRows: [],
 };
 
 const hashRoutes = (routes: RouteItemProps[]) =>
