@@ -115,18 +115,29 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
 }
 
 export class MobileDownloadManager implements IDownloadManager {
+    protected logger = new EventLogger('DownloadManager')
+
     public createSession(url: string, fileName: string, _props?: DownloadProps): IDownloadSession {
+        this.logger.logEvent({message: 'DownloadManager createSession', url, fileName})
         return new MobileDownloadSession(url, fileName);
     }
 
     public getVideoDir(): string {
+        this.logger.logEvent({message: 'DownloadManager getVideoDir'})
         return getDownloadVideoDir()
     }
 }
 
 
 export const getDownloadVideoDir = ():string =>  {
-    return (Platform.OS === 'android'
+
+    const logger = new EventLogger('DownloadManager')
+
+    const videoDir = (Platform.OS === 'android'
         ? RNFS.ExternalDirectoryPath
         : RNFS.DocumentDirectoryPath) + '/videos'
+
+
+    logger.logEvent({message: 'getDownloadVideoDir', platform: Platform.OS, videoDir})
+    return videoDir
 }
