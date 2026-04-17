@@ -75,11 +75,13 @@ export const RoutesPage = () => {
             refFilterOptions.current = updated.filterOptions
         }
 
+        // Destructure to omit downloadRows from local state to isolate re-renders
+        const { downloadRows: _dr, ...displayProps } = updated;
+
         setProps({
-            ...updated,
+            ...displayProps,
             routes: refRoutes.current,
             filterOptions: refFilterOptions.current,
-            downloadRows: updated.downloadRows ?? [],
         });
 
     }, [service]);
@@ -166,9 +168,6 @@ export const RoutesPage = () => {
         return <MainBackground />;
     }
 
-    const activeDownloadCount = (props.downloadRows ?? [])
-        .filter(r => r.status === 'downloading').length;
-
     return (
         <>
         <PageView
@@ -185,8 +184,7 @@ export const RoutesPage = () => {
             compact={compact}
             showImportDialog={showImportDialog}
             onImportClose={onImportClose}
-            activeDownloadCount={activeDownloadCount}
-            downloadRows={props.downloadRows ?? []}
+            downloadObserver={props.downloadObserver}
             showDownloadModal={showDownloadModal}
             onDownloadPillPress={onDownloadPillPress}
             onDownloadModalClose={onDownloadModalClose}

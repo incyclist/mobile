@@ -6,7 +6,7 @@ import {
     ActivityIndicator,
     TouchableOpacity
 } from 'react-native';
-import { RoutePageDisplayProps, SearchFilter, DownloadRowDisplayProps } from 'incyclist-services';
+import { RoutePageDisplayProps, SearchFilter, Observer } from 'incyclist-services';
 import {
     MainBackground,
     NavigationBar,
@@ -14,6 +14,8 @@ import {
     FilterPanel,
     TNavigationItem,
     DownloadModalView,
+    Dynamic,
+    DownloadPill,
 } from '../../components';
 import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
@@ -28,14 +30,13 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     compact: boolean;
     showImportDialog: boolean;
     onImportClose: () => void;
-    activeDownloadCount: number;
-    downloadRows: DownloadRowDisplayProps[];
     showDownloadModal: boolean;
     onDownloadPillPress: () => void;
     onDownloadModalClose: () => void;
     onDownloadStop: (routeId: string) => void;
     onDownloadRetry: (routeId: string) => void;
     onDownloadDelete: (routeId: string) => void;
+    downloadObserver?: Observer;
 }
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
@@ -51,14 +52,13 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onImportClicked,
         onNavigate,
         compact,
-        activeDownloadCount,
         onDownloadPillPress,
         showDownloadModal,
-        downloadRows,
         onDownloadModalClose,
         onDownloadStop,
         onDownloadRetry,
         onDownloadDelete,
+        downloadObserver,
     } = props;
 
     const { logEvent } = useLogging('RoutesPageView');
@@ -97,14 +97,37 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         </View>
                         <Text style={styles.headerTitle}>ROUTES</Text>
                         <View style={styles.headerSide}>
-                            {activeDownloadCount > 0 && (
-                                <TouchableOpacity
-                                    style={styles.downloadPill}
-                                    onPress={handleDownloadPillPress}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.downloadPillText}>↓ {activeDownloadCount}</Text>
-                                </TouchableOpacity>
+                            {downloadObserver && (
+                                <>
+                                    <Dynamic
+                                        observer={downloadObserver as any}
+                                        event="download-update"
+                                        prop="activeDownloadCount"
+                                        transform={(data: any) => data.count}
+                                    >
+                                        <DownloadPill
+                                            activeDownloadCount={0}
+                                            onPress={handleDownloadPillPress}
+                                        />
+                                    </Dynamic>
+
+                                    <Dynamic
+                                        observer={downloadObserver as any}
+                                        event="download-update"
+                                        prop="rows"
+                                        transform={(data: any) => data.rows}
+                                    >
+                                        <DownloadModalView
+                                            rows={[]}
+                                            visible={showDownloadModal}
+                                            onStop={onDownloadStop}
+                                            onRetry={onDownloadRetry}
+                                            onDelete={onDownloadDelete}
+                                            onClose={onDownloadModalClose}
+                                            nested={false}
+                                        />
+                                    </Dynamic>
+                                </>
                             )}
                             {!loading && (
                                 <TouchableOpacity
@@ -143,15 +166,6 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                     </View>
                 </View>
             </View>
-
-            <DownloadModalView
-                visible={showDownloadModal}
-                rows={downloadRows}
-                onStop={onDownloadStop}
-                onRetry={onDownloadRetry}
-                onDelete={onDownloadDelete}
-                onClose={onDownloadModalClose}
-            />
 
         </MainBackground>
     );
@@ -213,19 +227,6 @@ const styles = StyleSheet.create({
         borderColor: colors.buttonPrimary,
     },
     importButtonText: {
-        color: colors.buttonPrimary,
-        fontSize: textSizes.normalText,
-        fontWeight: '600',
-    },
-    downloadPill: {
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.buttonPrimary,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        marginRight: 8,
-    },
-    downloadPillText: {
         color: colors.buttonPrimary,
         fontSize: textSizes.normalText,
         fontWeight: '600',
