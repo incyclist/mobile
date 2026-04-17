@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import RNFS from 'react-native-fs';
 import { 
     getRoutesPageService, 
     useRouteList,
@@ -151,13 +150,12 @@ export const RoutesPage = () => {
     const onDownloadRetry = useCallback((routeId: string) => {
         const card = routeList.getCard(routeId);
         if (card) {
-            card.setVideoDir(RNFS.DocumentDirectoryPath + '/videos');
             card.download();
         }
     }, [routeList]);
 
     const onDownloadDelete = useCallback((routeId: string) => {
-        routeList.getCard(routeId)?.delete();
+        routeList.getCard(routeId)?.deleteDownload();
     }, [routeList]);
 
     const onNavigate= useCallback( (page:string)=> {
