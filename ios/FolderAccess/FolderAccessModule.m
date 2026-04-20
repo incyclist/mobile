@@ -27,6 +27,4 @@ RCT_EXTERN_METHOD(
     reject:(RCTPromiseRejectBlock)reject
 )
 
-+ (BOOL)requiresMainQueueSetup;
-
 @end
