@@ -67,10 +67,10 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
         service.initPage().then(type => {
             const props = service.getPageDisplayProps();
             if (props?.startGateProps) {
-                refPendingType.current = type;
+                refPendingType.current = type??null;
                 setStartGateProps(props.startGateProps);
             } else {
-                setRideType(type);
+                setRideType(type??null);
             }
         });
     }, [service]);

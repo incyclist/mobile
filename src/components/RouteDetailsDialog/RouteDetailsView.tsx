@@ -71,8 +71,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             handleApplySettings({
                 ...data,
                 segment: segName,
-                startPos: { value: converter.convert(Number(seg.start), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' }), unit: data.startPos?.unit ?? 'km' },
-                endPos: { value: converter.convert(Number(seg.end), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' }), unit: data.startPos?.unit ?? 'km' }
+                startPos: { value: converter.convert(Number(seg.start), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' })??Number(seg.start), unit: data.startPos?.unit ?? 'km' },
+                endPos: { value: converter.convert(Number(seg.end), 'distance', { from: 'm', to: data.startPos?.unit ?? 'km' })??Number(seg.end), unit: data.startPos?.unit ?? 'km' }
             });
         }
     }, [data, segments, converter, handleApplySettings, logEvent]);
@@ -123,7 +123,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         const displayValue = converter.convert(
             distanceMeters, 'distance',
             { from: 'm', to: data.startPos?.unit ?? 'km' }
-        );
+        )??distanceMeters;
         const result = onUpdateStartPos(displayValue);
         if (result) {
             handleApplySettings({ ...data, ...result });
