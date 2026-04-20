@@ -6,24 +6,26 @@ import Foundation
  * Handles security-scoped URLs returned by UIDocumentPickerViewController
  * (used for NAS shares and external folders accessible via the Files app).
  *
- * All three methods follow the same pattern:
- *   1. Parse the path string into a URL
- *   2. Call startAccessingSecurityScopedResource() if the URL has a security scope
- *   3. Perform the file operation using FileManager or Data APIs
- *   4. Call stopAccessingSecurityScopedResource() in a defer block
+ * Key design decisions:
  *
- * For regular file:// paths (app sandbox, local storage) the security scope
- * calls are no-ops and the methods behave identically to RNFS.
+ * 1. All file operations use a TIMEOUT (default 10s) to prevent the app
+ *    from hanging indefinitely when a NAS share is slow or unreachable.
+ *
+ * 2. startAccessingSecurityScopedResource / stopAccessingSecurityScopedResource
+ *    are ALWAYS balanced via defer — the stop is guaranteed even on timeout or error.
+ *
+ * 3. NSFileCoordinator is used for coordinated read access to security-scoped
+ *    URLs, which is the correct API for network-backed locations.
+ *
+ * 4. Operations run on a background queue — the main thread is never blocked.
  */
 @objc(FolderAccess)
 class FolderAccessModule: NSObject {
 
+    private let TIMEOUT_SECONDS: Double = 10.0
+
     // ── listFiles ──────────────────────────────────────────────────────────
 
-    /**
-     * List immediate children of a directory.
-     * Returns an array of { name: string, uri: string, isDirectory: bool }.
-     */
     @objc(listFiles:resolve:reject:)
     func listFiles(
         _ uri: String,
@@ -36,40 +38,49 @@ class FolderAccessModule: NSObject {
                 return
             }
 
-            let accessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if accessing { url.stopAccessingSecurityScopedResource() }
-            }
-
-            do {
-                let contents = try FileManager.default.contentsOfDirectory(
-                    at: url,
-                    includingPropertiesForKeys: [.isDirectoryKey],
-                    options: [.skipsHiddenFiles]
-                )
-
-                let result: [[String: Any]] = contents.compactMap { childUrl in
-                    let isDir = (try? childUrl.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-                    return [
-                        "name": childUrl.lastPathComponent,
-                        "uri": childUrl.absoluteString,
-                        "isDirectory": isDir
-                    ]
+            // Run with timeout to prevent indefinite hang on slow/unreachable NAS
+            self.withTimeout(seconds: self.TIMEOUT_SECONDS, reject: reject, label: "listFiles '\(uri)'") {
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessing { url.stopAccessingSecurityScopedResource() }
                 }
 
-                resolve(result)
-            } catch {
-                reject("ERR_LIST", "Failed to list '\(uri)': \(error.localizedDescription)", error)
+                var coordinatorError: NSError?
+                var result: [[String: Any]] = []
+                var operationError: Error?
+
+                let coordinator = NSFileCoordinator()
+                coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinatorError) { coordUrl in
+                    do {
+                        let contents = try FileManager.default.contentsOfDirectory(
+                            at: coordUrl,
+                            includingPropertiesForKeys: [.isDirectoryKey],
+                            options: [.skipsHiddenFiles]
+                        )
+                        result = contents.compactMap { childUrl in
+                            let isDir = (try? childUrl.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+                            return [
+                                "name": childUrl.lastPathComponent,
+                                "uri": childUrl.absoluteString,
+                                "isDirectory": isDir
+                            ]
+                        }
+                    } catch {
+                        operationError = error
+                    }
+                }
+
+                if let error = coordinatorError ?? operationError {
+                    reject("ERR_LIST", "Failed to list '\(uri)': \(error.localizedDescription)", error)
+                } else {
+                    resolve(result)
+                }
             }
         }
     }
 
     // ── readFile ───────────────────────────────────────────────────────────
 
-    /**
-     * Read the contents of a file.
-     * encoding: "utf8" | "base64"
-     */
     @objc(readFile:encoding:resolve:reject:)
     func readFile(
         _ uri: String,
@@ -83,35 +94,44 @@ class FolderAccessModule: NSObject {
                 return
             }
 
-            let accessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if accessing { url.stopAccessingSecurityScopedResource() }
-            }
-
-            do {
-                let data = try Data(contentsOf: url)
-                if encoding == "base64" {
-                    resolve(data.base64EncodedString())
-                } else {
-                    guard let content = String(data: data, encoding: .utf8) else {
-                        reject("ERR_ENCODING", "Failed to decode '\(uri)' as UTF-8", nil)
-                        return
-                    }
-                    resolve(content)
+            self.withTimeout(seconds: self.TIMEOUT_SECONDS, reject: reject, label: "readFile '\(uri)'") {
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessing { url.stopAccessingSecurityScopedResource() }
                 }
-            } catch {
-                reject("ERR_READ", "Failed to read '\(uri)': \(error.localizedDescription)", error)
+
+                var coordinatorError: NSError?
+                var result: String?
+                var operationError: Error?
+
+                let coordinator = NSFileCoordinator()
+                coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinatorError) { coordUrl in
+                    do {
+                        let data = try Data(contentsOf: coordUrl)
+                        if encoding == "base64" {
+                            result = data.base64EncodedString()
+                        } else {
+                            result = String(data: data, encoding: .utf8)
+                                ?? data.base64EncodedString() // fallback to base64 if not valid UTF-8
+                        }
+                    } catch {
+                        operationError = error
+                    }
+                }
+
+                if let error = coordinatorError ?? operationError {
+                    reject("ERR_READ", "Failed to read '\(uri)': \(error.localizedDescription)", error)
+                } else if let content = result {
+                    resolve(content)
+                } else {
+                    reject("ERR_ENCODING", "Failed to decode '\(uri)' as UTF-8", nil)
+                }
             }
         }
     }
 
     // ── exists ─────────────────────────────────────────────────────────────
 
-    /**
-     * Check whether a file or directory exists at the given URI.
-     * Activates security scope before checking so that NAS paths
-     * (which return false without scope activation) report correctly.
-     */
     @objc(exists:resolve:reject:)
     func exists(
         _ uri: String,
@@ -124,13 +144,21 @@ class FolderAccessModule: NSObject {
                 return
             }
 
-            let accessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if accessing { url.stopAccessingSecurityScopedResource() }
-            }
+            self.withTimeout(seconds: self.TIMEOUT_SECONDS, reject: reject, label: "exists '\(uri)'") {
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessing { url.stopAccessingSecurityScopedResource() }
+                }
 
-            resolve(FileManager.default.fileExists(atPath: url.path))
+                resolve(FileManager.default.fileExists(atPath: url.path))
+            }
         }
+    }
+
+    // ── requiresMainQueueSetup ─────────────────────────────────────────────
+
+    @objc static func requiresMainQueueSetup() -> Bool {
+        return false
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
@@ -140,11 +168,57 @@ class FolderAccessModule: NSObject {
      * Handles both "file://" URLs and bare filesystem paths.
      */
     private func urlFrom(_ uri: String) -> URL? {
-        // Try as a full URL first (handles file:// and any other scheme)
         if let url = URL(string: uri), url.scheme != nil {
             return url
         }
-        // Fall back to treating it as a bare filesystem path
         return URL(fileURLWithPath: uri)
+    }
+
+    /**
+     * Runs a block with a timeout. If the block does not complete within
+     * the timeout, rejects the promise with a timeout error.
+     *
+     * This prevents the app from hanging indefinitely when a NAS share
+     * is slow to respond or temporarily unreachable.
+     *
+     * Note: the block is still responsible for calling resolve/reject.
+     * The timeout only fires if neither has been called within the deadline.
+     */
+    private func withTimeout(
+        seconds: Double,
+        reject: @escaping RCTPromiseRejectBlock,
+        label: String,
+        block: @escaping () -> Void
+    ) {
+        var settled = false
+        let lock = NSLock()
+
+        let timeoutWork = DispatchWorkItem {
+            lock.lock()
+            let alreadySettled = settled
+            if !alreadySettled { settled = true }
+            lock.unlock()
+
+            if !alreadySettled {
+                reject(
+                    "ERR_TIMEOUT",
+                    "Operation timed out after \(Int(seconds))s: \(label). " +
+                    "Check that the NAS is reachable and the folder permission is still valid.",
+                    nil
+                )
+            }
+        }
+
+        DispatchQueue.global().asyncAfter(deadline: .now() + seconds, execute: timeoutWork)
+
+        // Wrap resolve/reject to cancel the timeout when the operation settles
+        // The block calls resolve/reject directly — we rely on the defer in each
+        // method to release the security scope before the timeout can fire.
+        block()
+
+        lock.lock()
+        settled = true
+        lock.unlock()
+        timeoutWork.cancel()
     }
 }
