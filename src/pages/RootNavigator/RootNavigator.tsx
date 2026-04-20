@@ -9,6 +9,7 @@ import { RidePage } from '../RidePage';
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
 import { ActivitiesPage } from '../ActivitiesPage';
+import { FolderAccessTestPage } from '../FolderAccessTest/FolderAccessTestPage';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,8 +30,9 @@ export const RootNavigator = () => {
                 <Stack.Screen name="search" component={RoutesPage} />
                 <Stack.Screen name="routes" component={RoutesPage} />
                 <Stack.Screen name="activities" component={ActivitiesPage} />
-                <Stack.Screen name="workouts" component={WorkoutsPage} />
+                <Stack.Screen name="_workouts" component={WorkoutsPage} />
 
+                <Stack.Screen name="workouts" component={FolderAccessTestPage} />
 
                 <Stack.Screen name="devices" component={PairingPage} />
                 <Stack.Screen name="pairing" component={PairingPage} />
