@@ -77,10 +77,10 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
             displayUnit = value.unit;
         } else if (typeof value === 'number') {
             if (unitKey === 'distance') {
-                displayValue = converter.convert(value, 'distance', { from: 'm' }).toFixed(1);
+                displayValue = (converter.convert(value, 'distance', { from: 'm' })??value).toFixed(1);
                 displayUnit = converter.getUnit('distance');
             } else if (unitKey === 'elevation') {
-                displayValue = Math.round(converter.convert(value, 'elevation', { from: 'm' })).toString();
+                displayValue = Math.round(converter.convert(value, 'elevation', { from: 'm' })??value).toString();
                 displayUnit = converter.getUnit('elevation');
             } else if (unitKey === 'time') {
                 displayValue = formatTime(value as number, true);
@@ -131,9 +131,9 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
 
             if (label === 'Speed') {
                 currentDisplayUnit = converter.getUnit('speed');
-                avgValue = avg !== undefined ? converter.convert(avg, 'speed', { from: 'km/h' }).toFixed(1) : '--';
-                minValue = min !== undefined ? converter.convert(min, 'speed', { from: 'km/h' }).toFixed(1) : '--';
-                maxValue = max !== undefined ? converter.convert(max, 'speed', { from: 'km/h' }).toFixed(1) : '--';
+                avgValue = avg !== undefined ? (converter.convert(avg, 'speed', { from: 'km/h' })??avg).toFixed(1) : '--';
+                minValue = min !== undefined ? (converter.convert(min, 'speed', { from: 'km/h' })??min).toFixed(1) : '--';
+                maxValue = max !== undefined ? (converter.convert(max, 'speed', { from: 'km/h' })??max).toFixed(1) : '--';
             } else {
                 avgValue = avg !== undefined ? avg.toFixed(1) : '--';
                 minValue = min !== undefined ? min.toFixed(0) : '--';
