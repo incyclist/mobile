@@ -102,6 +102,18 @@ export function FolderAccessTestPage() {
             }
             catch(err:any) {
                 logs.push('Error:'+err.message)
+
+
+                try {
+                    const folderContents = await RNFS.readDir(decodeURIComponent(result.selected!));
+                    if (folderContents)
+                        logs.push("2nd atempt: Found sub-folders");
+                    else
+                        logs.push("2nd attempt: nothing found");
+                }
+                catch(err1:any) {
+                    logs.push('2nd attempt Error:'+err1.message)
+                }
             }
         } 
 
