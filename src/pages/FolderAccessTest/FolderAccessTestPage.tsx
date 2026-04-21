@@ -89,44 +89,53 @@ export function FolderAccessTestPage() {
         const logs:Array<string> = []
         if (!result.canceled) {
             try {
-                const folderContents = await RNFS.readDir(result.selected!);
+                logs.push('RNFS raw:')
 
-                folderContents.forEach(item => {
-                    
-                    if (item.isDirectory()) {
-                        logs.push("Found sub-folder:", item.name);
-                    } else {
-                        logs.push("Found file:", item.name);
-                    }
-                });
+                const folderContents = await RNFS.readDir(result.selected!);
+                if (folderContents?.length) {
+                    folderContents.forEach(e => {
+                        logs.push(`${e.isDirectory() ? '📁' : '📄'} ${e.name}`)
+                    })
+                }
+                else
+                    logs.push("nothing found");
+            
             }
             catch(err:any) {
                 logs.push('Error:'+err.message)
-
-
-                try {
-                    const folderContents = await RNFS.readDir(decodeURIComponent(result.selected!));
-                    if (folderContents) {
-                        folderContents.forEach(item => {
-                            if (item.isDirectory()) {
-                                logs.push("2nd attempt Found sub-folder:", item.name);
-                            } else {
-                                logs.push("2nd attempt Found file:", item.name);
-                            }
-                        })
-                    }
-                    else
-                        logs.push("2nd attempt: nothing found");
-                }
-                catch(err1:any) {
-                    logs.push('2nd attempt Error:'+err1.message)
-                }
             }
 
 
             try {
+                logs.push('RNFS decoded:')
+                const folderContents = await RNFS.readDir(decodeURIComponent(result.selected!));
+                if (folderContents?.length) {
+                    folderContents.forEach(e => {
+                        logs.push(`${e.isDirectory() ? '📁' : '📄'} ${e.name}`)
+                    })
+                }
+                else
+                    logs.push("nothing found");
+            }
+            catch(err1:any) {
+                logs.push('Error:'+err1.message)
+            }
+            
+
+
+            try {
+                logs.push('NFA raw:')
                 const entries1 = await NativeFolderAccess.listFiles(result.selected!)                
                 logs.push(  `NativeFolderAccess (raw) : ${entries1.length}` )
+
+            }
+            catch(err2:any) {
+                logs.push('NativeFolderAccess Error:'+err2.message)
+            }
+
+
+            try {
+                logs.push('NFA decoded:')
                 const entries2 = await NativeFolderAccess.listFiles(decodeURIComponent(result.selected!))                
                 logs.push(  `NativeFolderAccess (decoded) : ${entries2.length}` )
 
@@ -134,6 +143,7 @@ export function FolderAccessTestPage() {
             catch(err2:any) {
                 logs.push('NativeFolderAccess Error:'+err2.message)
             }
+
         } 
 
 
