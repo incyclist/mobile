@@ -86,16 +86,23 @@ export function FolderAccessTestPage() {
     const runT1 = useCallback(() => run('T1', async () => {
         const result = await getUIBinding().selectDirectory()
 
+        const logs:Array<string> = []
         if (!result.canceled) {
-            const folderContents = await RNFS.readDir(result.selected!);
+            try {
+                const folderContents = await RNFS.readDir(result.selected!);
 
-            folderContents.forEach(item => {
-                if (item.isDirectory()) {
-                    console.log("Found sub-folder:", item.name);
-                } else {
-                    console.log("Found file:", item.name);
-                }
-            });
+                folderContents.forEach(item => {
+                    
+                    if (item.isDirectory()) {
+                        logs.push("Found sub-folder:", item.name);
+                    } else {
+                        logs.push("Found file:", item.name);
+                    }
+                });
+            }
+            catch(err:any) {
+                logs.push('Error:'+err.message)
+            }
         } 
 
 
@@ -112,6 +119,7 @@ export function FolderAccessTestPage() {
         return [
             `URI: ${result.selected}`,
             `displayName: ${(result as any).displayName ?? '(undefined)'}`,
+            ...logs
         ].join('\n')
     }), [run])
 
@@ -119,6 +127,7 @@ export function FolderAccessTestPage() {
     const runT2 = useCallback(() => {
         if (!activeUri) { set('T2', { status: 'fail', detail: 'Run T1 first' }); return }
         run('T2', async () => {
+            
             const entries = await NativeFolderAccess.listFiles(activeUri)
             if (!Array.isArray(entries)) throw new Error(`listFiles returned ${typeof entries}`)
             if (entries.length === 0) throw new Error('0 entries — check URI is a directory with permission')
