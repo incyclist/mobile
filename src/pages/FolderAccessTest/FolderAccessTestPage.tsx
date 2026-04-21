@@ -106,14 +106,33 @@ export function FolderAccessTestPage() {
 
                 try {
                     const folderContents = await RNFS.readDir(decodeURIComponent(result.selected!));
-                    if (folderContents)
-                        logs.push("2nd atempt: Found sub-folders");
+                    if (folderContents) {
+                        folderContents.forEach(item => {
+                            if (item.isDirectory()) {
+                                logs.push("2nd attempt Found sub-folder:", item.name);
+                            } else {
+                                logs.push("2nd attempt Found file:", item.name);
+                            }
+                        })
+                    }
                     else
                         logs.push("2nd attempt: nothing found");
                 }
                 catch(err1:any) {
                     logs.push('2nd attempt Error:'+err1.message)
                 }
+            }
+
+
+            try {
+                const entries1 = await NativeFolderAccess.listFiles(result.selected!)                
+                logs.push(  `NativeFolderAccess (raw) : ${entries1.length}` )
+                const entries2 = await NativeFolderAccess.listFiles(decodeURIComponent(result.selected!))                
+                logs.push(  `NativeFolderAccess (decoded) : ${entries2.length}` )
+
+            }
+            catch(err2:any) {
+                logs.push('NativeFolderAccess Error:'+err2.message)
             }
         } 
 
