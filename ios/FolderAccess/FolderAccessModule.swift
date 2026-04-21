@@ -51,65 +51,70 @@ class FolderAccessModule: NSObject {
 
         NSLog("[FolderAccess] listFiles start: %@", uri)
 
-        // startAccessingSecurityScopedResource is called here, on the calling
-        // thread, and stopped via defer — guaranteed to execute even if the
-        // work item times out or is cancelled.
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessing {
-                url.stopAccessingSecurityScopedResource()
-                NSLog("[FolderAccess] listFiles: security scope released")
-            }
-        }
-
-        var result: [[String: Any]] = []
         var settled = false
         let lock = NSLock()
+        var dirHandle: UnsafeMutablePointer<DIR>? = nil
+        let dirHandleLock = NSLock()
 
         let workItem = DispatchWorkItem {
-            NSLog("[FolderAccess] listFiles: creating enumerator")
-
-            let enumerator = FileManager.default.enumerator(
-                at: url,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants],
-                errorHandler: { failedUrl, error in
-                    NSLog("[FolderAccess] listFiles enumerator error at %@: %@",
-                          failedUrl.path, error.localizedDescription)
-                    return true // continue on error
+            // Security scope must be started and stopped inside the work item
+            // so it stays alive for the full duration of the I/O.
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessing {
+                    url.stopAccessingSecurityScopedResource()
+                    NSLog("[FolderAccess] listFiles: security scope released")
                 }
-            )
+            }
 
-            guard let enumerator = enumerator else {
+            let path = url.path
+            NSLog("[FolderAccess] listFiles: opening dir %@", path)
+
+            dirHandleLock.lock()
+            dirHandle = opendir(path)
+            dirHandleLock.unlock()
+
+            guard let dir = dirHandle else {
+                let errMsg = String(cString: strerror(errno))
+                NSLog("[FolderAccess] listFiles: opendir failed: %@", errMsg)
                 lock.lock()
                 let alreadySettled = settled
                 settled = true
                 lock.unlock()
                 if !alreadySettled {
-                    reject("ERR_LIST", "Could not create enumerator for: \(uri)", nil)
+                    reject("ERR_LIST", "Cannot open directory '\(uri)': \(errMsg)", nil)
                 }
                 return
             }
 
-            NSLog("[FolderAccess] listFiles: enumerator created, iterating")
+            NSLog("[FolderAccess] listFiles: dir opened, reading entries")
 
-            while let childUrl = enumerator.nextObject() as? URL {
-                // Check for cancellation between each entry so the timeout
-                // can interrupt a slow mid-enumeration network stall.
-                if Thread.current.isCancelled {
-                    NSLog("[FolderAccess] listFiles: cancelled mid-enumeration")
-                    break
+            var result: [[String: Any]] = []
+
+            while let entry = readdir(dir) {
+                if Thread.current.isCancelled { break }
+
+                let name = withUnsafeBytes(of: entry.pointee.d_name) { ptr -> String in
+                    let buf = ptr.bindMemory(to: CChar.self)
+                    return String(cString: buf.baseAddress!)
                 }
 
-                let isDir = (try? childUrl.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+                if name == "." || name == ".." { continue }
+
+                let childUrl = url.appendingPathComponent(name)
+                let isDir = entry.pointee.d_type == DT_DIR
                 result.append([
-                    "name": childUrl.lastPathComponent,
+                    "name": name,
                     "uri": childUrl.absoluteString,
                     "isDirectory": isDir
                 ])
-                NSLog("[FolderAccess] listFiles: found '%@' isDir=%d",
-                      childUrl.lastPathComponent, isDir ? 1 : 0)
+                NSLog("[FolderAccess] listFiles: found '%@' isDir=%d", name, isDir ? 1 : 0)
             }
+
+            dirHandleLock.lock()
+            closedir(dir)
+            dirHandle = nil
+            dirHandleLock.unlock()
 
             lock.lock()
             let alreadySettled = settled
@@ -122,8 +127,6 @@ class FolderAccessModule: NSObject {
             }
         }
 
-        // Timeout: cancels the work item and rejects the promise if the
-        // I/O hasn't completed within the deadline.
         DispatchQueue.global().asyncAfter(deadline: .now() + TIMEOUT_SECONDS) { [weak self] in
             guard let self = self else { return }
             lock.lock()
@@ -133,6 +136,13 @@ class FolderAccessModule: NSObject {
 
             if !alreadySettled {
                 NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.TIMEOUT_SECONDS)
+                // Close the dir handle to unblock readdir on the other thread
+                dirHandleLock.lock()
+                if let dir = dirHandle {
+                    closedir(dir)
+                    dirHandle = nil
+                }
+                dirHandleLock.unlock()
                 workItem.cancel()
                 reject(
                     "ERR_TIMEOUT",
@@ -145,6 +155,7 @@ class FolderAccessModule: NSObject {
 
         DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
     }
+
 
     // ── readFile ───────────────────────────────────────────────────────────
 
