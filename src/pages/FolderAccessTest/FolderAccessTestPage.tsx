@@ -23,6 +23,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import RNFS from 'react-native-fs';
 import {
     View,
     Text,
@@ -84,6 +85,20 @@ export function FolderAccessTestPage() {
     // ── T1: Pick folder ────────────────────────────────────────────────────
     const runT1 = useCallback(() => run('T1', async () => {
         const result = await getUIBinding().selectDirectory()
+
+        if (!result.canceled) {
+            const folderContents = await RNFS.readDir(result.selected!);
+
+            folderContents.forEach(item => {
+                if (item.isDirectory()) {
+                    console.log("Found sub-folder:", item.name);
+                } else {
+                    console.log("Found file:", item.name);
+                }
+            });
+        } 
+
+
         if (result.canceled || !result.selected) throw new Error('Cancelled or no URI returned')
         setPickedUri(result.selected)
         setFirstFileUri(null)
