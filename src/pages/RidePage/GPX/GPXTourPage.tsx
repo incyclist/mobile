@@ -15,9 +15,11 @@ import { MainBackground, ErrorBoundary } from '../../../components';
 interface GPXTourPageProps {
     simulate?: boolean;
     onRideTypeChange: (updated: RideType) => void;
+    onCancelStart: () => void;
+    onClose: () => void;
 }
 
-export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageProps) => {
+export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,onClose }: GPXTourPageProps) => {
     const [displayProps, setDisplayProps] = useState<GPXRidePageDisplayProps | null>(null);
 
     const refService = useRef<RidePageService | null>(null);
@@ -66,13 +68,13 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
-    const onCancelStart = useCallback(() => {
+    const handleCancelStart = useCallback(() => {
         setDisplayProps(current => {
             if (!current) return current;
             return { ...current, startOverlayProps: null };
         });
-        refService.current?.onCancelStart();
-    }, []);
+        onCancelStart()        
+    }, [onCancelStart]);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -90,9 +92,10 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange }: GPXTourPageP
                 rideObserver={refRideObserver.current}
                 onMenuOpen={onMenuOpen}
                 onMenuClose={onMenuClose}
+                onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
-                onCancelStart={onCancelStart}
+                onCancelStart={handleCancelStart}
             />
         </ErrorBoundary>
     );

@@ -7,6 +7,7 @@ import { GPXTourPage } from './GPX'; // New import for GPXTourPage
 import { colors } from '../../theme';
 import { textSizes } from '../../theme';
 import { initSecrets } from '../../bindings/secret';
+import { useLogging, useUnmountEffect } from '../../hooks';
 
 interface RidePageProps {
     simulate?: boolean;
@@ -30,10 +31,15 @@ const NotImplementedView = ({ onBack }: NotImplementedViewProps) => {
 
 export const RidePage = ({ simulate = false }: RidePageProps) => {
     const refInitialized = useRef(false);
+    const refMounted = useRef(false);
     const refPendingType = useRef<RideType | null>(null);
+
     const [rideType, setRideType] = useState<RideType | null>(null);
     const [startGateProps, setStartGateProps] = useState<StartGateProps | null>(null);
+    const [closePageRequested, setClosePageRequested] = useState(false)
+
     const service = getRidePageService();
+    const {logEvent} = useLogging('RidePage')
 
     const onRideTypeChange = useCallback((updated: RideType) => {
         setRideType(updated);
@@ -42,6 +48,23 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     const onEndRide = useCallback(() => {
         service.onEndRide();
     }, [service]);
+
+    const onClose = useCallback(() =>  {
+        logEvent({message:'ride page close request'})
+        setClosePageRequested(true)
+        setTimeout(() => {
+            if (!refMounted.current) return
+            service.onEndRide()
+        })
+    }, [logEvent, service] );
+    
+    const onCancelStart = useCallback(() => {
+        setClosePageRequested(true)
+        setTimeout(() => {
+            if (!refMounted.current) return
+            service.onCancelStart()
+        }, 0)
+    }, [service])
 
     const onRefreshSecrets = useCallback(async () => {
         await initSecrets({ timeout: 10000 });
@@ -61,6 +84,8 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }, [service]);
 
     useEffect(() => {
+        refMounted.current = true
+
         if (refInitialized.current) return;
         refInitialized.current = true;
 
@@ -74,6 +99,22 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
             }
         });
     }, [service]);
+
+    useUnmountEffect( ()=> {
+        refMounted.current = false
+        refPendingType.current = null
+    })
+
+
+    if (closePageRequested) {
+        logEvent({message:'render empty ride page'})
+
+        return (
+            <View style={styles.empty}>
+                <MainBackground />
+            </View>
+        )
+    }
 
     if (rideType === null) {
         return (
@@ -96,11 +137,13 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }
 
     if (rideType === 'Video') {
-        return <VideoRidePage simulate={simulate} onRideTypeChange={onRideTypeChange} />;
+        logEvent({message:'render video ride page'})
+        return <VideoRidePage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
     }
 
     if (rideType === 'GPX') { // Handle GPX ride type
-        return <GPXTourPage simulate={simulate} onRideTypeChange={onRideTypeChange} />;
+        logEvent({message:'render gox ride page'})
+        return <GPXTourPage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
     }
 
     // Default case for any other rideType not explicitly handled
@@ -110,6 +153,9 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    empty: { 
+        flex: 1, backgroundColor: colors.background 
     },
     content: {
         ...StyleSheet.absoluteFill,

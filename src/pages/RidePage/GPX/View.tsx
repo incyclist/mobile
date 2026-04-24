@@ -24,6 +24,8 @@ export interface GPXTourPageViewProps {
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
+    onCloseRidePage: ()=>void;
+
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -42,6 +44,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         rideObserver,
         onMenuOpen,
         onMenuClose,
+        onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
         onCancelStart,
@@ -171,13 +174,16 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         />
                     </View>
 
-                    {/* Ride Menu */}
-                    {menuProps && (
-                        <RideMenu
-                            visible={true}
-                            onClose={onMenuClose}
-                        />
-                    )}
+                {/* Ride Menu */}
+                {menuProps && (
+                    <RideMenu
+                        visible={true}
+                        onClose={onMenuClose}
+                        onCloseRidePage={onCloseRidePage}
+                    />
+                )}
+
+
                 </View>
             )}
 

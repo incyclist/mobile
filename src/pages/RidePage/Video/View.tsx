@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps } from 'incyclist-services';
 import {
@@ -15,13 +15,14 @@ import {
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
-import { useScreenLayout } from '../../../hooks';
+import { useLogging, useScreenLayout, useUnmountEffect } from '../../../hooks';
 
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
+    onCloseRidePage: ()=>void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -39,12 +40,15 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         rideObserver,
         onMenuOpen,
         onMenuClose,
+        onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
         onCancelStart
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
+
+    const {logEvent} = useLogging('VideoRideView')
 
     // Derived properties
     const routeData = route?.details;
@@ -105,6 +109,15 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             : undefined;
     }, []);
 
+    useUnmountEffect( ()=> {
+        logEvent({message:'ride view unmounted',menuProps,startOverlayProps})    
+    })
+
+    useEffect( ()=> {
+        logEvent({message:'render ride view completed',menuProps,startOverlayProps})    
+    })
+
+    logEvent({message:'render ride view',menuProps,startOverlayProps})
 
     return (
         <View style={styles.container}>
@@ -203,6 +216,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     <RideMenu
                         visible={true}
                         onClose={onMenuClose}
+                        onCloseRidePage={onCloseRidePage}
                     />
                 )}
             </View>
