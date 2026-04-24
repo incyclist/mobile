@@ -175,13 +175,22 @@ export const Video = (props: VideoProps) => {
     }, [onLoadError, onPlaybackError]);
 
     const handleEnd = useCallback(() => {
+        if (loop) {
+            // Video will loop natively via repeat={loop} on RNVideo
+            // Reset position tracking but don't stop playback
+            refInfo.current.ended = false;
+            refInfo.current.currentTime = 0;
+            return;
+        }
+
+
         refInfo.current.ended = true;
         refInfo.current.playing = false;
         refInfo.current.currentRate = 0;
         setPaused(true);
         setRateState(0);
         onEnded?.();
-    }, [onEnded]);
+    }, [loop, onEnded]);
 
     useEffect(() => {
         if (refInitialized.current) {
