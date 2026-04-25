@@ -4,7 +4,7 @@ import { getRidePageService } from 'incyclist-services';
 import { RideMenuView } from './RideMenuView';
 import { useLogging } from '../../hooks';
 
-export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
+export const RideMenu = ({ visible, onClose,onCloseRidePage=()=>{} }: RideMenuProps) => {
     const { logEvent } = useLogging('RideMenu');
     const service = getRidePageService();
 
@@ -31,9 +31,8 @@ export const RideMenu = ({ visible, onClose }: RideMenuProps) => {
 
     const handleExitFromSummary = useCallback(() => {
         setActiveDialog(null);
-        // Delay calling service.onEndRide to allow dialog to animate out
-        setTimeout(() => service.onEndRide(), 0);
-    }, [service]);
+        onCloseRidePage(); 
+    }, [onCloseRidePage]);
 
     const handleGearSettings = useCallback(() => {
         setActiveDialog('gearSettings');

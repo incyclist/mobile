@@ -10,6 +10,7 @@ export type TNavigationItem =
 
 export interface NavigationBarProps {
     selected?: TNavigationItem;
+    disabled?: boolean
     onClick: (item: TNavigationItem) => void;
     compact?: boolean;
 }
@@ -17,6 +18,7 @@ export interface NavigationBarProps {
 export interface NavigationBarViewProps {
     selected?: TNavigationItem;
     onClick: (item: TNavigationItem) => void;
+    disabled?: boolean;
     compact?: boolean;
     iconSize: number;
     navWidth: number;
@@ -25,6 +27,7 @@ export interface NavigationBarViewProps {
 
 export interface NavigationBarViewCompactProps {
     selected?: TNavigationItem;
+    disabled?: boolean;
     onClick: (item: TNavigationItem) => void;
     showExit: boolean;
 }

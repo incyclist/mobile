@@ -2,7 +2,6 @@ import React, { memo } from 'react';
 import { StyleSheet, View, DimensionValue } from 'react-native';
 import RNVideo, { ResizeMode } from 'react-native-video';
 import { VideoViewProps } from './types';
-import { useWhyDidYouRender } from '../../hooks';
 
 export const VideoView = memo((props: VideoViewProps) => {
     const {
@@ -23,9 +22,6 @@ export const VideoView = memo((props: VideoViewProps) => {
         onBuffer,
     } = props;
     
-    useWhyDidYouRender('VideoView',props)
-
-    console.log('# [Video] render', src)
     return (
         <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, hidden && styles.hidden]}>
             <RNVideo

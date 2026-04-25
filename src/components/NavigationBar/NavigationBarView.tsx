@@ -20,7 +20,8 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
     const { 
         selected, 
         onClick, 
-        compact, 
+        compact,
+        disabled = false, 
         iconSize, 
         navWidth, 
         showExit
@@ -29,7 +30,8 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
     // The showBackOnly mode and associated rendering logic have been removed.
 
     const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
-        const color = isSelected ? colors.iconSelected : colors.icon;
+        const colorEnabled = isSelected ? colors.iconSelected : colors.icon
+        const color = disabled? colors.iconDisabled : colorEnabled
         const iconProps = { fill: color, width: iconSize, height: iconSize };
 
         switch (item) {
@@ -53,6 +55,7 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
                     selected={selected === 'user'}
                     onPress={onClick}
                     compact={compact}
+                    disabled={disabled}
                 >
                     {renderIcon('user', selected === 'user')}
                 </NavigationItem>
@@ -66,6 +69,7 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
                         selected={selected === item}
                         onPress={onClick}
                         compact={compact}
+                        disabled={disabled}
                     >
                         {renderIcon(item, selected === item)}
                     </NavigationItem>
@@ -79,6 +83,7 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
                         selected={selected === 'exit'}
                         onPress={onClick}
                         compact={compact}
+                        disabled={disabled}
                     >
                         {renderIcon('exit', selected === 'exit')}
                     </NavigationItem>

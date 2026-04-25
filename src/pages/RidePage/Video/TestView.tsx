@@ -19,6 +19,7 @@ interface VideoRidePageViewProps {
     dbLayout: 'icon-left' | 'icon-top'
     onMenuOpen: () => void;
     onMenuClose: () => void;
+    onCloseRidePage: ()=>void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -46,6 +47,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         dbLayout = 'icon-left',
         onMenuOpen,
         onMenuClose,
+        onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
         onCancelStart
@@ -169,6 +171,8 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                     <RideMenu
                         visible={true}
                         onClose={onMenuClose}
+                        onCloseRidePage={onCloseRidePage}
+
                     />
                 )}
 
