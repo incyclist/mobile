@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { getRidePageService, RideType, StartGateProps } from 'incyclist-services';
-import { MainBackground, Button, Dialog } from '../../components';
+import { MainBackground, Button, Dialog,PageTransition } from '../../components';
 import { VideoRidePage } from './Video';
 import { GPXTourPage } from './GPX'; // New import for GPXTourPage
 import { colors } from '../../theme';
@@ -109,11 +109,7 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     if (closePageRequested) {
         logEvent({message:'render empty ride page'})
 
-        return (
-            <View style={styles.empty}>
-                <MainBackground />
-            </View>
-        )
+        return <PageTransition/>
     }
 
     if (rideType === null) {

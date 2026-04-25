@@ -14,8 +14,8 @@ import {
 export const COMPACT_NAV_HEIGHT = textSizes.smallText + 16;
 
 // Helper for rendering icons based on the TNavigationItem
-const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
-    const color = isSelected ? colors.iconSelected : colors.background;
+const renderIcon = (item: TNavigationItem, isSelected: boolean, disabled:boolean=false) => {
+    const color = isSelected ? colors.iconSelected : (disabled? colors.iconDisabled : colors.background);
     const iconProps = { fill: color, width: textSizes.smallText, height: textSizes.smallText };
 
     switch (item) {
@@ -33,10 +33,11 @@ interface CompactNavItemProps {
     item: TNavigationItem;
     label?: string;
     selected: boolean;
+    disabled?: boolean,
     onPress: (item: TNavigationItem) => void;
 }
 
-const CompactNavItem = ({ item, label, selected, onPress }: CompactNavItemProps) => {
+const CompactNavItem = ({ item, label, selected,disabled=false, onPress }: CompactNavItemProps) => {
     return (
         <TouchableOpacity
             style={styles.navItemContainer}
@@ -46,9 +47,9 @@ const CompactNavItem = ({ item, label, selected, onPress }: CompactNavItemProps)
             accessibilityLabel={label || item}
         >
             <View style={styles.content}>
-                <View style={styles.iconWrapper}>{renderIcon(item, selected)}</View>
+                <View style={styles.iconWrapper}>{renderIcon(item, selected,disabled)}</View>
                 {label && (
-                    <Text style={[styles.itemLabel, selected && styles.itemLabelSelected]}>
+                    <Text style={[styles.itemLabel, disabled && styles.itemLabelDisabled, selected && styles.itemLabelSelected]}>
                         {label}
                     </Text>
                 )}
@@ -67,7 +68,7 @@ const leftItems: { item: TNavigationItem; label: string }[] = [
 const rightItems: TNavigationItem[] = ['settings', 'user'];
 
 export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) => {
-    const { selected, onClick } = props;
+    const { selected, disabled=false, onClick } = props;
 
     return (
         <View style={styles.container}>
@@ -78,6 +79,7 @@ export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) =
                         item={item}
                         label={label}
                         selected={selected === item}
+                        disabled={disabled}
                         onPress={onClick}
                     />
                 ))}
@@ -88,6 +90,7 @@ export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) =
                         key={item}
                         item={item}
                         selected={selected === item}
+                        disabled={disabled}
                         onPress={onClick}
                     />
                 ))}
@@ -142,4 +145,8 @@ const styles = StyleSheet.create({
     itemLabelSelected: {
         color: colors.iconSelected,
     },
+    itemLabelDisabled: {
+        color: colors.iconDisabled,
+    },
+
 });
