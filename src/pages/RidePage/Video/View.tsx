@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { IObserver, VideoRidePageDisplayProps } from 'incyclist-services';
 import {
@@ -15,7 +15,7 @@ import {
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
-import { useLogging, useScreenLayout, useUnmountEffect } from '../../../hooks';
+import { useScreenLayout  } from '../../../hooks';
 
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
@@ -47,8 +47,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
-
-    const {logEvent} = useLogging('VideoRideView')
 
     // Derived properties
     const routeData = route?.details;
@@ -108,16 +106,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             ? { lat: p.lat, lng: p.lng }
             : undefined;
     }, []);
-
-    useUnmountEffect( ()=> {
-        logEvent({message:'ride view unmounted',menuProps,startOverlayProps})    
-    })
-
-    useEffect( ()=> {
-        logEvent({message:'render ride view completed',menuProps,startOverlayProps})    
-    })
-
-    logEvent({message:'render ride view',menuProps,startOverlayProps})
 
     return (
         <View style={styles.container}>

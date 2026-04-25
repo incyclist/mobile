@@ -68,10 +68,11 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+
     const handleCancelStart = useCallback(() => {
         setDisplayProps(current => {
             if (!current) return current;
-            return { ...current, startOverlayProps: null };
+            return { ...current, startOverlayProps: null,menuProps:null };
         });
         onCancelStart()        
     }, [onCancelStart]);
@@ -95,7 +96,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
                 onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
-                onCancelStart={handleCancelStart}
+                onCancelStart={onCancelStart}
             />
         </ErrorBoundary>
     );

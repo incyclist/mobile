@@ -32,10 +32,6 @@ export const RideMenu = ({ visible, onClose,onCloseRidePage=()=>{} }: RideMenuPr
     const handleExitFromSummary = useCallback(() => {
         setActiveDialog(null);
         onCloseRidePage(); 
-        // Delay calling service.onEndRide to allow dialog to animate out
-        //setTimeout(() => {
-            //service.onEndRide()
-        //}, 0);
     }, [onCloseRidePage]);
 
     const handleGearSettings = useCallback(() => {

@@ -7,7 +7,7 @@ import { GPXTourPage } from './GPX'; // New import for GPXTourPage
 import { colors } from '../../theme';
 import { textSizes } from '../../theme';
 import { initSecrets } from '../../bindings/secret';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { useUnmountEffect } from '../../hooks';
 
 interface RidePageProps {
     simulate?: boolean;
@@ -39,7 +39,6 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     const [closePageRequested, setClosePageRequested] = useState(false)
 
     const service = getRidePageService();
-    const {logEvent} = useLogging('RidePage')
 
     const onRideTypeChange = useCallback((updated: RideType) => {
         setRideType(updated);
@@ -50,13 +49,12 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }, [service]);
 
     const onClose = useCallback(() =>  {
-        logEvent({message:'ride page close request'})
         setClosePageRequested(true)
         setTimeout(() => {
             if (!refMounted.current) return
             service.onEndRide()
         })
-    }, [logEvent, service] );
+    }, [service] );
     
     const onCancelStart = useCallback(() => {
         setClosePageRequested(true)
@@ -107,8 +105,6 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
 
 
     if (closePageRequested) {
-        logEvent({message:'render empty ride page'})
-
         return <PageTransition/>
     }
 
@@ -133,12 +129,10 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }
 
     if (rideType === 'Video') {
-        logEvent({message:'render video ride page'})
         return <VideoRidePage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
     }
 
     if (rideType === 'GPX') { // Handle GPX ride type
-        logEvent({message:'render gox ride page'})
         return <GPXTourPage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
     }
 
