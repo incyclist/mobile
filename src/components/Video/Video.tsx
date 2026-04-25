@@ -31,7 +31,7 @@ export const Video = (props: VideoProps) => {
 
     const [internalHidden, setInternalHidden] = useState(true);
     const [paused, setPaused] = useState(false);
-    const [rate, setRateState] = useState(0);
+    const [rate, setRate] = useState(0);
 
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
@@ -50,8 +50,8 @@ export const Video = (props: VideoProps) => {
         bufferedTime: 0,
     });
 
-    const setRate = useCallback((newRate: number) => {
-        if (newRate === null || newRate === undefined || isNaN(newRate) || !isFinite(newRate)) {
+    const handleRateChangeRequest = useCallback((newRate: number) => {
+        if (newRate === null || newRate === undefined || Number.isNaN(newRate) || !Number.isFinite(newRate)) {
             return;
         }
         if (newRate === refInfo.current.currentRate) {
@@ -59,7 +59,7 @@ export const Video = (props: VideoProps) => {
         }
 
         refInfo.current.currentRate = newRate;
-        setRateState(newRate);
+        setRate(newRate);
 
         if (newRate > 0 && !refHidden.current) {
             setPaused(false);
@@ -69,7 +69,7 @@ export const Video = (props: VideoProps) => {
     }, []);
 
     const seekTo = useCallback((time: number) => {
-        if (time === null || time === undefined || isNaN(time) || !isFinite(time)) {
+        if (time === null || time === undefined || Number.isNaN(time) || !Number.isFinite(time)) {
             return;
         }
         refVideo.current?.seek(time);
@@ -159,7 +159,8 @@ export const Video = (props: VideoProps) => {
     }, [onWaiting]);
 
     const handleError = useCallback((error: OnVideoErrorData) => {
-        const code = error?.error?.errorCode !== undefined 
+        const hasErrorCode = error?.error?.errorCode !== undefined
+        const code = hasErrorCode
             ? Number(error.error.errorCode) 
             : undefined;
 
@@ -188,7 +189,7 @@ export const Video = (props: VideoProps) => {
         refInfo.current.playing = false;
         refInfo.current.currentRate = 0;
         setPaused(true);
-        setRateState(0);
+        setRate(0);
         onEnded?.();
     }, [loop, onEnded]);
 
@@ -206,9 +207,9 @@ export const Video = (props: VideoProps) => {
         refInfo.current.bufferedTime = 0;
 
         observer
-            ?.on('rate-update', setRate)
+            ?.on('rate-update', handleRateChangeRequest)
             ?.on('time-update', seekTo);
-    }, [observer, setRate, seekTo]);
+    }, [observer, handleRateChangeRequest, seekTo]);
 
     useEffect(() => {
         if (!refInfo.current.loaded) {
@@ -230,7 +231,7 @@ export const Video = (props: VideoProps) => {
 
     useUnmountEffect(() => {
         observer
-            ?.off('rate-update', setRate)
+            ?.off('rate-update', handleRateChangeRequest)
             ?.off('time-update', seekTo);
         refInfo.current.currentRate = 0;
         setPaused(true);
