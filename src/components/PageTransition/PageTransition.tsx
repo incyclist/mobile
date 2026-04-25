@@ -64,5 +64,5 @@ export const PageTransition = () => {
     const sourcePage = appState.getPersistedState('page')
     const selected = sourcePage.startsWith('/') ? sourcePage.substring(1) : sourcePage;
 
-    return <PageTransitionView selected={selected!} />;
+    return <PageTransitionView selected={selected} />;
 };

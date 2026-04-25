@@ -15,7 +15,9 @@ export const COMPACT_NAV_HEIGHT = textSizes.smallText + 16;
 
 // Helper for rendering icons based on the TNavigationItem
 const renderIcon = (item: TNavigationItem, isSelected: boolean, disabled:boolean=false) => {
-    const color = isSelected ? colors.iconSelected : (disabled? colors.iconDisabled : colors.background);
+    const colorUnselected = disabled? colors.iconDisabled : colors.background
+    const color = isSelected ? colors.iconSelected : colorUnselected;
+
     const iconProps = { fill: color, width: textSizes.smallText, height: textSizes.smallText };
 
     switch (item) {
@@ -48,7 +50,7 @@ const CompactNavItem = ({ item, label, selected,disabled=false, onPress }: Compa
         >
             <View style={styles.content}>
                 <View style={styles.iconWrapper}>{renderIcon(item, selected,disabled)}</View>
-                {label && (
+                {label!=null && (
                     <Text style={[styles.itemLabel, disabled && styles.itemLabelDisabled, selected && styles.itemLabelSelected]}>
                         {label}
                     </Text>

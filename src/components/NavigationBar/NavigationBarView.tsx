@@ -30,7 +30,8 @@ export const NavigationBarView = (props: NavigationBarViewProps) => {
     // The showBackOnly mode and associated rendering logic have been removed.
 
     const renderIcon = (item: TNavigationItem, isSelected: boolean) => {
-        const color = disabled? colors.iconDisabled : (isSelected ? colors.iconSelected : colors.icon);
+        const colorEnabled = isSelected ? colors.iconSelected : colors.icon
+        const color = disabled? colors.iconDisabled : colorEnabled
         const iconProps = { fill: color, width: iconSize, height: iconSize };
 
         switch (item) {
