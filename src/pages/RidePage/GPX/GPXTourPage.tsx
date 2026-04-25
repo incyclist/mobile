@@ -69,14 +69,6 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
 
-    const handleCancelStart = useCallback(() => {
-        setDisplayProps(current => {
-            if (!current) return current;
-            return { ...current, startOverlayProps: null,menuProps:null };
-        });
-        onCancelStart()        
-    }, [onCancelStart]);
-
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
         return (
