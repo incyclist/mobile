@@ -100,12 +100,13 @@ export class UIBinding implements INativeUI {
 
     // open a dialog that allows user to select a directory (to e.g. define where files should be downloaded)
     async selectDirectory(): Promise<SelectDirectoryResult> {
-                try {
+        try {
             // Uses system picker to let user define a target location
             const result = await pickDirectory({requestLongTermAccess: true});
             return {
                 canceled: false,
                 selected: result.uri,
+                displayName: result.name,
             };
         } catch  {
             return { canceled: true };

@@ -1,5 +1,6 @@
 import RNFS from 'react-native-fs';
-import { IFileSystem } from 'incyclist-services';
+import { IFileSystem, ReadDirResult } from 'incyclist-services';
+import { FolderAccess } from '../folderAccess';
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
@@ -75,6 +76,9 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async existsFile(path: string): Promise<boolean> {
+        if (path && path.startsWith('content://')) {
+            return await FolderAccess.exists(path);
+        }
         return await RNFS.exists(path);
     }
 
@@ -93,14 +97,55 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
-    async readdir ( path: string, options?: any): Promise<string[]> {
-        if (options) {
-            // TODO: options.recursive
+    async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
+        const isExtended = options?.extended === true;
+        const isRecursive = options?.recursive === true;
+
+        const results: any[] = [];
+        const stack: string[] = [path];
+
+        while (stack.length > 0) {
+            const currentPath = stack.pop()!;
+            let entries: ReadDirResult[] = [];
+
+            try {
+                if (currentPath.startsWith('content://')) {
+                    entries = await FolderAccess.listContents(currentPath);
+                } else {
+                    const fsEntries = await RNFS.readDir(currentPath);
+                    entries = fsEntries.map(e => ({
+                        name: e.name,
+                        uri: `file://${e.path}`,
+                        isDirectory: e.isDirectory(),
+                    }));
+                }
+            } catch (err) {
+                // If the root directory fails, throw. Otherwise, skip and continue (recursive case)
+                if (currentPath === path) {
+                    throw err;
+                }
+                continue;
+            }
+
+            for (const entry of entries) {
+                if (isExtended) {
+                    results.push(entry);
+                } else {
+                    results.push(entry.name);
+                }
+
+                if (isRecursive && entry.isDirectory) {
+                    stack.push(entry.uri);
+                }
+            }
+
+            if (!isRecursive) {
+                break;
+            }
         }
 
-        const res = await RNFS.readdir(path);
-        return res;
-    };    
+        return results;
     }
+}
 
 export const getFileSystemBinding = () => new FileSystemBinding();
