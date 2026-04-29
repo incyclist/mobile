@@ -135,9 +135,8 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
-    // eslint-disable-next-line no-dupe-class-members
-    async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;
-    // eslint-disable-next-line no-dupe-class-members
+    /* eslint-disable no-dupe-class-members */
+    async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;    
     async readdir(path: string, options: { recursive?: boolean; extended: true }): Promise<ReadDirResult[]>;
     async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
         const isExtended = options?.extended === true;
@@ -174,6 +173,7 @@ export class FileSystemBinding implements IFileSystem {
 
         return results;
     }
+    /* eslint-enable no-dupe-class-members */
 }
 
 export const getFileSystemBinding = () => new FileSystemBinding();

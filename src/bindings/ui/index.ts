@@ -107,8 +107,8 @@ export class UIBinding implements INativeUI {
             
             // Derive displayName from result.uri by extracting the last path segment, URL-decoded
             const decodedUri = decodeURIComponent(uri);
-            // Replaced .filter(...).pop() with .findLast() as requested in PR feedback
-            const displayName = decodedUri.split('/').findLast(s => s.length > 0) ?? 'Folder';
+            const segments = decodedUri.split('/')
+            const displayName = segments.filter((s: string) => s.length > 0).pop() ?? 'Folder'            
 
             return {
                 canceled: false,
