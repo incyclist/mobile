@@ -31,6 +31,8 @@ class MainApplication : Application(), ReactApplication {
 
                 val packages = PackageList(this).packages.toMutableList()
                 packages.add(ExitPackage()) // Add manual package here
+                packages.add(SAFPackage()) 
+
                 return packages
             }
 
@@ -69,6 +71,7 @@ class MainApplication : Application(), ReactApplication {
         // IMPORTANT: Manually merge ExitPackage into the host's package list
         val packages = PackageList(this).packages.toMutableList()
         packages.add(ExitPackage())
+        packages.add(SAFPackage()) 
 
         getDefaultReactHost(
             context = applicationContext,

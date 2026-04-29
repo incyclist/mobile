@@ -119,6 +119,9 @@
   "codegenConfig": {
     "name": "AppSpecs",
     "type": "all",
-    "jsSrcsDir": "src"
+    "jsSrcsDir": "src",
+    "android": {
+        "javaPackageName": "com.incyclist.app"
+    }  
   }
 }
