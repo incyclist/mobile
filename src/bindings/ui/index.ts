@@ -79,7 +79,7 @@ export class UIBinding implements INativeUI {
             
         } catch (err: any) {
             const logger = new EventLogger('UIBinding')
-            logger.logEvent({message:'error', fn:'takeScreenshot', error:err.mesage, stack:err.stack})            
+            logger.logEvent({message:'error', fn:'takeScreenshot', error:err.message, stack:err.stack})            
         }
         return ''
     }
@@ -103,10 +103,17 @@ export class UIBinding implements INativeUI {
         try {
             // Uses system picker to let user define a target location
             const result = await pickDirectory({requestLongTermAccess: true});
+            const uri = result.uri;
+            
+            // Derive displayName from result.uri by extracting the last path segment, URL-decoded
+            const decodedUri = decodeURIComponent(uri);
+            const segments = decodedUri.split('/');
+            const displayName = segments.filter(s => s.length > 0).pop() || 'Folder';
+
             return {
                 canceled: false,
-                selected: result.uri,
-                displayName: result.name,
+                selected: uri,
+                displayName,
             };
         } catch  {
             return { canceled: true };
@@ -127,7 +134,7 @@ export class UIBinding implements INativeUI {
             });
         } catch (err:any) {
             const logger = new EventLogger('UIBinding')
-            logger.logEvent({message:'error', fn:'showItemInFolder', error:err.mesage, stack:err.stack})
+            logger.logEvent({message:'error', fn:'showItemInFolder', error:err.message, stack:err.stack})
             
         }
     }

@@ -1,6 +1,11 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
-import { FolderAccess } from '../folderAccess';
+import { TurboModuleRegistry } from 'react-native';
+
+const SAF = TurboModuleRegistry.getEnforcing<{
+    listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
+    exists(uri: string): Promise<boolean>
+}>('SAF');
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
@@ -76,8 +81,8 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async existsFile(path: string): Promise<boolean> {
-        if (path && path.startsWith('content://')) {
-            return await FolderAccess.exists(path);
+        if (path?.startsWith('content://')) {
+            return await SAF.exists(path);
         }
         return await RNFS.exists(path);
     }
@@ -97,6 +102,21 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
+    private async listSafEntries(uri: string): Promise<ReadDirResult[]> {
+        return await SAF.listFiles(uri);
+    }
+
+    private async listLocalEntries(path: string): Promise<ReadDirResult[]> {
+        const fsEntries = await RNFS.readDir(path);
+        return fsEntries.map(e => ({
+            name: e.name,
+            uri: `file://${e.path}`,
+            isDirectory: e.isDirectory(),
+        }));
+    }
+
+    async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;
+    async readdir(path: string, options: { recursive?: boolean; extended: true }): Promise<ReadDirResult[]>;
     async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
         const isExtended = options?.extended === true;
         const isRecursive = options?.recursive === true;
@@ -105,19 +125,26 @@ export class FileSystemBinding implements IFileSystem {
         const stack: string[] = [path];
 
         while (stack.length > 0) {
-            const currentPath = stack.pop()!;
-            let entries: ReadDirResult[] = [];
+            const currentPath = stack.pop();
+            if (!currentPath) {
+                continue;
+            }
 
             try {
-                if (currentPath.startsWith('content://')) {
-                    entries = await FolderAccess.listContents(currentPath);
-                } else {
-                    const fsEntries = await RNFS.readDir(currentPath);
-                    entries = fsEntries.map(e => ({
-                        name: e.name,
-                        uri: `file://${e.path}`,
-                        isDirectory: e.isDirectory(),
-                    }));
+                const entries = currentPath.startsWith('content://') 
+                    ? await this.listSafEntries(currentPath)
+                    : await this.listLocalEntries(currentPath);
+
+                for (const entry of entries) {
+                    if (isExtended) {
+                        results.push(entry);
+                    } else {
+                        results.push(entry.name);
+                    }
+
+                    if (isRecursive && entry.isDirectory) {
+                        stack.push(entry.uri);
+                    }
                 }
             } catch (err) {
                 // If the root directory fails, throw. Otherwise, skip and continue (recursive case)
@@ -125,18 +152,6 @@ export class FileSystemBinding implements IFileSystem {
                     throw err;
                 }
                 continue;
-            }
-
-            for (const entry of entries) {
-                if (isExtended) {
-                    results.push(entry);
-                } else {
-                    results.push(entry.name);
-                }
-
-                if (isRecursive && entry.isDirectory) {
-                    stack.push(entry.uri);
-                }
             }
 
             if (!isRecursive) {
