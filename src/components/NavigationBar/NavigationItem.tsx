@@ -8,12 +8,13 @@ interface Props {
     item: TNavigationItem;
     selected?: boolean;
     compact?: boolean;
+    disabled?: boolean;
     onPress: (item: TNavigationItem) => void;
     children: React.ReactNode;
 }
 
 export const NavigationItem = (props: Props) => {
-    const { item, selected, compact, onPress, children } = props;
+    const { item, selected, compact, onPress, children,disabled=false } = props;
     const {logEvent} = useLogging('Incyclist')
 
     const value = item.toString();
@@ -34,7 +35,7 @@ export const NavigationItem = (props: Props) => {
                 <View>{children}</View>
                 {!compact && (
                     <View>
-                        <Text style={[styles.label, selected && styles.labelSelected]}>
+                        <Text style={[styles.label, selected&&disabled && styles.labelDisabled, selected&&!disabled && styles.labelSelected]}>
                             {displayText}
                         </Text>
                     </View>
@@ -71,4 +72,8 @@ const styles = StyleSheet.create({
     labelSelected: {
         color: colors.iconSelected,
     },
+    labelDisabled: {
+        color: colors.iconDisabled
+    },
+
 });

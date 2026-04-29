@@ -1,6 +1,7 @@
 export interface RideMenuProps {
     visible: boolean;
     onClose: () => void;
+    onCloseRidePage?:()=> void;
 }
 
 export type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | null;

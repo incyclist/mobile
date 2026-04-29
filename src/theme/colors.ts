@@ -12,6 +12,7 @@ export const colors = {
     textPrimary: '#FFFFFF',
     icon:  '#FFFFFF',
     iconSelected: "#000000",
+    iconDisabled: '#EEEEEE',    
     
     
     tileFooter: '#1E1E1E',

@@ -14,7 +14,7 @@ import { AppDisplayProps } from '../AppsSettings/types';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 export const NavigationBar = (props: NavigationBarProps) => {
-    const { selected, onClick, compact } = props;
+    const { selected, onClick, compact,disabled } = props;
     const screenLayout = useScreenLayout();
     const { height } = useWindowDimensions();
     const appsService = useAppsService();
@@ -108,12 +108,14 @@ export const NavigationBar = (props: NavigationBarProps) => {
                     selected={selected}
                     onClick={handleOnClick}
                     showExit={false}
+                    disabled={disabled}
                 />
             ) : (
                 <NavigationBarView
                     selected={selected}
                     onClick={handleOnClick}
                     compact={compact}
+                    disabled={disabled}
                     iconSize={verticalIconSize}
                     navWidth={verticalNavWidth}
                     showExit={showExitForVertical}

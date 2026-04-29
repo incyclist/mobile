@@ -32,6 +32,14 @@ export const Default: Story = {
     }
 };
 
+export const Disabled: Story = {
+    args: {
+        selected: 'routes',
+        disabled: true,
+    }
+};
+
+
 export const CompactSidebar: Story = {
     args: {
         compact: true,
@@ -40,6 +48,28 @@ export const CompactSidebar: Story = {
         selected: 'activities',
     }
 };
+
+export const DisabledCompact: Story = {
+    render: (args) => (
+        <NavigationBarViewCompact
+            selected={args.selected as any}
+            disabled={true}
+            onClick={args.onClick}
+            showExit={false}
+        />
+    ),
+    args: {
+        selected: 'routes',        
+        onClick: fn(),
+    },
+    parameters: {
+        viewport: {
+            defaultViewport: 'iphone6p',
+        },
+        layout: 'fullscreen',
+    }
+};
+
 
 export const CompactHorizontal: Story = {
     render: (args) => (

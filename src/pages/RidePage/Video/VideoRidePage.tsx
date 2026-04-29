@@ -15,9 +15,11 @@ import { MainBackground, ErrorBoundary } from '../../../components';
 interface VideoRidePageProps {
     simulate?: boolean;
     onRideTypeChange: (updated: RideType) => void;
+    onCancelStart: () => void;
+    onClose:()=>void,
 }
 
-export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRidePageProps) => {
+export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStart,onClose }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
 
     const refService = useRef<RidePageService | null>(null);
@@ -82,13 +84,6 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
-    const onCancelStart = useCallback(() => {
-        setDisplayProps( current => {
-            const prev = current??{}
-            return {...prev,startOverlayProps:null } as VideoRidePageDisplayProps
-        })
-        refService.current?.onCancelStart()
-    }, []);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -106,6 +101,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange }: VideoRideP
                 rideObserver={refRideObserver.current}
                 onMenuOpen={onMenuOpen}
                 onMenuClose={onMenuClose}
+                onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
                 onCancelStart={onCancelStart}

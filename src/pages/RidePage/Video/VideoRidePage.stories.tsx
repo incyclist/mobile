@@ -17,6 +17,7 @@ const MOCK_START_GATE_PROPS: StartGateProps = {
 const callbacks = {
     onMenuOpen: fn(),
     onMenuClose: fn(),
+    onCloseRidePage: fn(),
     onPause: fn(),
     onResume: fn(),
     onEndRide: fn(),

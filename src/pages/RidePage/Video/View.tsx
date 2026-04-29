@@ -15,13 +15,14 @@ import {
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
-import { useScreenLayout } from '../../../hooks';
+import { useScreenLayout  } from '../../../hooks';
 
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
     rideObserver: IObserver | null;
     onMenuOpen: () => void;
     onMenuClose: () => void;
+    onCloseRidePage: ()=>void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
@@ -39,6 +40,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         rideObserver,
         onMenuOpen,
         onMenuClose,
+        onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
         onCancelStart
@@ -104,7 +106,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             ? { lat: p.lat, lng: p.lng }
             : undefined;
     }, []);
-
 
     return (
         <View style={styles.container}>
@@ -203,6 +204,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     <RideMenu
                         visible={true}
                         onClose={onMenuClose}
+                        onCloseRidePage={onCloseRidePage}
                     />
                 )}
             </View>
