@@ -4,6 +4,7 @@ import { useFilePicker } from '../../hooks/files';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import {  DialogPhase, RouteImportProps } from './types';
 import { RouteImportDialogView } from './RouteImportDialogView';
+import { v4 } from "uuid";
 
 export const RouteImportDialog = ( props:RouteImportProps) => {
     const [phase, setPhase] = useState<DialogPhase>('idle');
@@ -33,30 +34,35 @@ export const RouteImportDialog = ( props:RouteImportProps) => {
 
 
             logEvent({ message: 'file selected', fileName: fileInfo.name });
-            
+
+            const id = v4()
+            const fileName = fileInfo.base
+
+            setImports([{id,status:'idle',fileName}])
+
             // Start the actual import process via the service
-            const observer = service.startImport(fileInfo);
+            const observer = service.importSingleRoute(fileInfo);
+
+            observer.once('parsing',()=> {
+                setImports([{id,status:'parsing',fileName}])
+            })
+
+            observer.once('success',()=> {
+                setImports([{id,status:'success',fileName}])
+
+                observer.stop()
+                refObserver.current = null
+                setPhase('done');
+            })
+            observer.once('error',(reason:string)=> {
+                setImports([{id,status:'error',fileName,error:reason}])
+
+                observer.stop()
+                refObserver.current = null
+                setPhase('done');
+            })
+
             refObserver.current = observer;
-
-            const onUpdate = ()=>{
-                const props = service.getImportDisplayProps();
-                if (!props) return;
-
-                const items = Array.isArray(props) ? props : [props];
-                setImports(items);
-
-                const allDone = items.every(
-                    i => i.status === 'success' || i.status === 'error'
-                );
-                if (allDone) {
-                    setPhase('done');
-                }
-            }
-
-            // Subscribe to updates from the service
-            observer.on('update', onUpdate);
-            onUpdate()
-
 
         } catch (err: any) {
             // This catches errors during file picking or initial service calls
@@ -69,7 +75,7 @@ export const RouteImportDialog = ( props:RouteImportProps) => {
             }]);
             setPhase('done');
         }
-    }, [pickFile, logEvent, logError, service]);
+    }, [logEvent, pickFile, service, logError]);
 
 
     // Cleanup on unmount (component unmounts, not just hidden)

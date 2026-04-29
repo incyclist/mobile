@@ -10,7 +10,7 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
+import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 
@@ -73,6 +73,9 @@ export const RoutesPage = () => {
             JSON.stringify(refFilterOptions.current)) {
             refFilterOptions.current = updated.filterOptions
         }
+        if (updated.showImportDialog!==showImportDialog) {
+            setShowImportDialog(updated.showImportDialog!)
+        }
 
         setProps({
             ...updated,
@@ -80,7 +83,11 @@ export const RoutesPage = () => {
             filterOptions: refFilterOptions.current,
         });
 
-    }, [service]);
+    }, [service, showImportDialog]);
+
+    const onImportClose = useCallback(() => {
+        setShowImportDialog(false)
+    }, []);
 
     useEffect(() => {
         if (!service || refObserver.current) return;
@@ -88,13 +95,15 @@ export const RoutesPage = () => {
         try {
             refObserver.current = service.openPage();
             if (refObserver.current) {
-                refObserver.current.on('page-update', onUpdate);
+                refObserver.current
+                    .on('page-update', onUpdate)
+                    .on('import-closed',onImportClose)
             }
             onUpdate();
         } catch (err: any) {
             logError(err, 'init');
         }
-    }, [service, logError, onUpdate]);
+    }, [service, logError, onUpdate, onImportClose]);
 
     useUnmountEffect(() => {
         service.closePage();
@@ -129,9 +138,6 @@ export const RoutesPage = () => {
         setShowImportDialog(true)
     }, [service]);
 
-    const onImportClose = useCallback(() => {
-        setShowImportDialog(false)
-    }, []);
 
     const onDownloadPillPress = useCallback(() => {
         setShowDownloadModal(true);
@@ -164,36 +170,37 @@ export const RoutesPage = () => {
         return <MainBackground />;
     }
 
+    console.log('# render routes', showImportDialog, props.routes?.length)
     return (
-        <>
-        <PageView
-            loading={props.loading}
-            synchronizing={props.synchronizing ?? false}
-            routes={(props.routes as RouteItemProps[]) ?? []}
-            filters={props.filters}
-            filterOptions={props.filterOptions!}
-            filterVisible={props.filterVisible}            
-            onFilterChanged={onFilterChanged}
-            onFilterToggle={onFilterToggle}
-            onImportClicked={onImportClicked}
-            onNavigate={onNavigate}
-            compact={compact}
-            showImportDialog={showImportDialog}
-            onImportClose={onImportClose}
-            downloadObserver={props.downloadObserver}
-            showDownloadModal={showDownloadModal}
-            onDownloadPillPress={onDownloadPillPress}
-            onDownloadModalClose={onDownloadModalClose}
-            onDownloadStop={onDownloadStop}
-            onDownloadRetry={onDownloadRetry}
-            onDownloadDelete={onDownloadDelete}
-        />
-        {props.detailRouteId && (
-            <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
-        )}
-        {showImportDialog && (
-            <ImportDialog />
-        )}
-        </>
+        <ErrorBoundary>
+            <PageView
+                loading={props.loading}
+                synchronizing={props.synchronizing ?? false}
+                routes={(props.routes as RouteItemProps[]) ?? []}
+                filters={props.filters}
+                filterOptions={props.filterOptions!}
+                filterVisible={props.filterVisible}            
+                onFilterChanged={onFilterChanged}
+                onFilterToggle={onFilterToggle}
+                onImportClicked={onImportClicked}
+                onNavigate={onNavigate}
+                compact={compact}
+                showImportDialog={showImportDialog}
+                onImportClose={onImportClose}
+                downloadObserver={props.downloadObserver}
+                showDownloadModal={showDownloadModal}
+                onDownloadPillPress={onDownloadPillPress}
+                onDownloadModalClose={onDownloadModalClose}
+                onDownloadStop={onDownloadStop}
+                onDownloadRetry={onDownloadRetry}
+                onDownloadDelete={onDownloadDelete}
+            />
+            {props.detailRouteId && (
+                <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
+            )}
+            {showImportDialog && (
+                <ImportDialog />
+            )}
+        </ErrorBoundary>
     );
 };
