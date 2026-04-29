@@ -1,11 +1,14 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
-import { TurboModuleRegistry } from 'react-native';
+import { TurboModuleRegistry, TurboModule } from 'react-native';
 
-const SAF = TurboModuleRegistry.getEnforcing<{
+// Define the interface for SAF native module
+interface SAFSpec extends TurboModule {
     listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
     exists(uri: string): Promise<boolean>
-}>('SAF');
+}
+
+const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
@@ -81,7 +84,8 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async existsFile(path: string): Promise<boolean> {
-        if (path?.startsWith('content://')) {
+        // Path is guaranteed to be a string, no need for optional chaining
+        if (path.startsWith('content://')) {
             return await SAF.exists(path);
         }
         return await RNFS.exists(path);
@@ -115,7 +119,25 @@ export class FileSystemBinding implements IFileSystem {
         }));
     }
 
+    // New helper method to encapsulate entry listing and error handling
+    private async listEntriesForPathSegment(segmentPath: string, rootPath: string): Promise<ReadDirResult[]> {
+        try {
+            const entries = segmentPath.startsWith('content://') 
+                ? await this.listSafEntries(segmentPath)
+                : await this.listLocalEntries(segmentPath);
+            return entries;
+        } catch (err) {
+            // If the root directory fails, re-throw. Otherwise, return empty for recursive cases.
+            if (segmentPath === rootPath) {
+                throw err;
+            }
+            return [];
+        }
+    }
+
+    // eslint-disable-next-line no-dupe-class-members
     async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;
+    // eslint-disable-next-line no-dupe-class-members
     async readdir(path: string, options: { recursive?: boolean; extended: true }): Promise<ReadDirResult[]>;
     async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
         const isExtended = options?.extended === true;
@@ -130,30 +152,21 @@ export class FileSystemBinding implements IFileSystem {
                 continue;
             }
 
-            try {
-                const entries = currentPath.startsWith('content://') 
-                    ? await this.listSafEntries(currentPath)
-                    : await this.listLocalEntries(currentPath);
+            const entries = await this.listEntriesForPathSegment(currentPath, path); // Use the new helper
 
-                for (const entry of entries) {
-                    if (isExtended) {
-                        results.push(entry);
-                    } else {
-                        results.push(entry.name);
-                    }
+            for (const entry of entries) {
+                if (isExtended) {
+                    results.push(entry);
+                } else {
+                    results.push(entry.name);
+                }
 
-                    if (isRecursive && entry.isDirectory) {
-                        stack.push(entry.uri);
-                    }
+                if (isRecursive && entry.isDirectory) {
+                    stack.push(entry.uri);
                 }
-            } catch (err) {
-                // If the root directory fails, throw. Otherwise, skip and continue (recursive case)
-                if (currentPath === path) {
-                    throw err;
-                }
-                continue;
             }
-
+            
+            // If not recursive, we're done after processing the first level
             if (!isRecursive) {
                 break;
             }
