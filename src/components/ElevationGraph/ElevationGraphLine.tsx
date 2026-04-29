@@ -26,13 +26,19 @@ export const ElevationGraphLine = ({
 }: Props) => {
     if (graphPoints.length < 2) return null;
 
-    const points = graphPoints.map(p => ({
-        x: domainToPixel(p.x, domain.xMin, domain.xMax, 0, plotWidth),
-        y: domainToPixel(p.y, domain.yMin, domain.yMax, plotHeight, 0),
-    }));
+    // Map to pixel coordinates and filter any non-finite values before they
+    // reach react-native-svg — NaN in a path string causes a fatal Android crash.
+    const points = graphPoints
+        .map(p => ({
+            x: domainToPixel(p.x, domain.xMin, domain.xMax, 0, plotWidth),
+            y: domainToPixel(p.y, domain.yMin, domain.yMax, plotHeight, 0),
+        }))
+        .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+    if (points.length < 2) return null;
 
     const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    
+
     // Closed path for fill area
     const areaPath = `${linePath} L ${points[points.length - 1].x} ${plotHeight} L ${points[0].x} ${plotHeight} Z`;
 

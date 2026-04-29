@@ -38,6 +38,9 @@ export const getDistance = (position: number | RoutePoint | undefined | null): n
 };
 
 const enrichPoints = (original: RoutePoint[], dpp: number): RoutePoint[] => {
+    // Guard: dpp must be a positive finite number or we cannot safely interpolate
+    if (!Number.isFinite(dpp) || dpp <= 0) return original;
+
     const points: RoutePoint[] = [];
     let prev: RoutePoint | null = null;
 
@@ -59,7 +62,15 @@ const enrichPoints = (original: RoutePoint[], dpp: number): RoutePoint[] => {
                     newPoint.routeDistance = prev.routeDistance + dpp;
                 }
 
-                newPoint.elevation = (prev.slope ?? 0) * (newPoint.routeDistance - prev.routeDistance) / 100 + prev.elevation;
+                // Guard: slope may be undefined or NaN — default to 0
+                const slope = isFinite(prev.slope ?? NaN) ? (prev.slope ?? 0) : 0;
+                newPoint.elevation = slope * (newPoint.routeDistance - prev.routeDistance) / 100 + prev.elevation;
+
+                // Guard: if elevation went NaN (e.g. prev.elevation was NaN), inherit parent
+                if (!isFinite(newPoint.elevation)) {
+                    newPoint.elevation = prev.elevation;
+                }
+
                 points.push(newPoint);
                 prev = newPoint;
                 distance = p.routeDistance - newPoint.routeDistance;
@@ -103,6 +114,8 @@ export const domainToPixel = (
     pixelMin: number,
     pixelMax: number
 ): number => {
+    // Guard: any NaN/Infinity input returns pixelMin to avoid SVG path corruption
+    if (!isFinite(value) || !isFinite(domainMin) || !isFinite(domainMax)) return pixelMin;
     if (domainMax === domainMin) return pixelMin;
     return pixelMin + ((value - domainMin) / (domainMax - domainMin)) * (pixelMax - pixelMin);
 };
@@ -140,8 +153,8 @@ export const computeGraphPoints = (
 
     if (!routeData || width === 0) return emptyResult;
 
-    const totalDistance = routeData.distance??0;
-    const rawPoints = routeData.points ??  [];
+    const totalDistance = routeData.distance ?? 0;
+    const rawPoints = routeData.points ?? [];
     if (rawPoints.length === 0 || totalDistance === 0) return emptyResult;
 
     let start = 0;
@@ -160,9 +173,11 @@ export const computeGraphPoints = (
         }
     }
 
-    const cntPoints = width;
+    // Floor width to a safe integer — float width causes out-of-bounds bucket access
+    // and NaN elevation values in enrichPoints (see sharp edges)
+    const cntPoints = Math.max(1, Math.floor(width));
     const dpp = (stop - start) / cntPoints;
-    
+
     const graphPoints: GraphPoint[] = [];
     let prevX: number | undefined;
 
@@ -183,9 +198,15 @@ export const computeGraphPoints = (
             
             // Deduplicate/decimate to roughly dpp using tolerance
             if (prevX === undefined || (virtualX - prevX) >= dpp * 0.99) {
+                const x = virtualX * xScale.value;
+                const y = p.elevation * yScale.value;
+
+                // Guard: skip any point with non-finite coordinates — these corrupt SVG paths
+                if (!isFinite(x) || !isFinite(y)) continue;
+
                 graphPoints.push({
-                    x: virtualX * xScale.value,
-                    y: p.elevation * yScale.value,
+                    x,
+                    y,
                     slope: p.slope ?? 0,
                     color: getSlopeColor(p.slope, pctReality),
                 });

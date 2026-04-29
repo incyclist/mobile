@@ -32,6 +32,9 @@ export const ElevationGraphBars = ({
                 const y = domainToPixel(p.y, domain.yMin, domain.yMax, plotHeight, 0);
                 const height = Math.max(0, plotHeight - y);
 
+                // Guard: skip any rect with non-finite coordinates — NaN crashes Android SVG renderer
+                if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(height)) return null;
+
                 return (
                     <Rect
                         key={i}
