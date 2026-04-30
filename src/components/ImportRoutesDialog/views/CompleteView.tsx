@@ -14,12 +14,15 @@ interface CompleteViewProps {
     onDone: () => void;
 }
 
-const SummaryItem = ({ label, count, color = colors.text }: { label: string; count: number; color?: string }) => (
-    <View style={styles.summaryItem}>
-        <Text style={[styles.summaryCount, { color }]}>{count}</Text>
-        <Text style={styles.summaryLabel}>{label}</Text>
-    </View>
-);
+const SummaryItem = ({ label, count, color = colors.text }: { label: string; count: number; color?: string }) => {
+    const summaryCountStyle = { color };
+    return (
+        <View style={styles.summaryItem}>
+            <Text style={[styles.summaryCount, summaryCountStyle]}>{count}</Text>
+            <Text style={styles.summaryLabel}>{label}</Text>
+        </View>
+    );
+};
 
 export const CompleteView = ({
     compact,
@@ -39,12 +42,6 @@ export const CompleteView = ({
         { label: 'Done', onClick: onDone, primary: true }
     ], [onDone]);
 
-    const toggleStyle = useMemo(() => ({
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        paddingVertical: 12,
-    }), []);
-
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
             <Text style={[styles.title, compact && styles.titleCompact]}>
@@ -59,7 +56,7 @@ export const CompleteView = ({
 
             {errors > 0 && (
                 <View style={styles.errorSection}>
-                    <TouchableOpacity onPress={toggleErrors} style={toggleStyle}>
+                    <TouchableOpacity onPress={toggleErrors} style={styles.toggle}>
                         <Text style={styles.toggleText}>Show Errors</Text>
                         <Icon name={showErrors ? 'chevron-up' : 'chevron-down'} size={20} color={colors.text} />
                     </TouchableOpacity>
@@ -105,7 +102,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     titleCompact: {
-        fontSize: 20,
+        fontSize: textSizes.listEntry,
         marginBottom: 12,
     },
     summaryRow: {
@@ -122,15 +119,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     summaryCount: {
-        fontSize: 24,
+        fontSize: textSizes.dialogTitle,
         fontWeight: 'bold',
         marginBottom: 4,
     },
     summaryLabel: {
-        fontSize: 12,
+        fontSize: textSizes.smallText,
         color: colors.text,
         opacity: 0.7,
         textTransform: 'uppercase',
+    },
+    toggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
     },
     errorSection: {
         width: '100%',
@@ -156,12 +158,12 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     errorRouteName: {
-        fontSize: 14,
+        fontSize: textSizes.normalText,
         color: colors.error,
         fontWeight: '600',
     },
     errorReason: {
-        fontSize: 12,
+        fontSize: textSizes.smallText,
         color: colors.text,
         opacity: 0.8,
     },

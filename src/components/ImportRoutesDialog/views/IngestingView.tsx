@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, DimensionValue } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { ButtonBar } from '../../ButtonBar';
 
@@ -21,7 +21,8 @@ export const IngestingView = ({
     onCancel,
 }: IngestingViewProps) => {
     const progress = total > 0 ? (current / total) * 100 : 0;
-    const progressStyle = { width: `${Math.min(100, Math.max(0, progress))}%` };
+    const progressWidth = `${Math.min(100, Math.max(0, progress))}%` as DimensionValue;
+    const progressStyle = { width: progressWidth };
 
     const buttons = useMemo(() => [
         { label: 'Cancel', onClick: onCancel, attention: true }
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     titleCompact: {
-        fontSize: 18,
+        fontSize: textSizes.listEntry,
         marginBottom: 12,
     },
     progressContainer: {
