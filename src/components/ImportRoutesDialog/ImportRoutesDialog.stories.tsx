@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { ImportRoutesDialogView } from './ImportRoutesDialogView';
@@ -11,7 +10,6 @@ const meta: Meta<typeof ImportRoutesDialogView> = {
         displayProps: {
             phase: 'landing',
             routes: [],
-            failedRoutes: [],
         },
         selectedIds: [],
         onAddGpx: fn(),
@@ -43,7 +41,6 @@ export const Landing: Story = {
         displayProps: {
             phase: 'landing',
             routes: [],
-            failedRoutes: [],
         },
     },
 };
@@ -54,7 +51,6 @@ export const Scanning: Story = {
             phase: 'scanning',
             scanProgress: { scannedFolders: 12 },
             routes: [],
-            failedRoutes: [],
         },
     },
 };
@@ -68,7 +64,6 @@ export const Parsing: Story = {
                 { label: 'Route 1', distance: 10000, format: 'gpx', importable: true, alreadyImported: false },
                 { label: 'Route 2', distance: 5000, format: 'video', importable: true, alreadyImported: false },
             ] as any,
-            failedRoutes: [],
         },
     },
 };
@@ -83,7 +78,6 @@ export const Selecting: Story = {
                 { label: 'Broken File', distance: 0, format: 'gpx', importable: false, errorReason: 'Corrupt file' },
                 { label: 'Existing Route', distance: 12000, format: 'gpx', importable: true, alreadyImported: true },
             ] as any,
-            failedRoutes: [],
         },
         selectedIds: [],
     },
@@ -93,9 +87,8 @@ export const Ingesting: Story = {
     args: {
         displayProps: {
             phase: 'ingesting',
-            ingestProgress: { current: 2, total: 4, currentName: 'Forest Trail', errorCount: 0 },
+            ingestProgress: { current: 2, total: 4, currentName: 'Forest Trail' },
             routes: [],
-            failedRoutes: [],
         },
     },
 };
@@ -104,10 +97,14 @@ export const Complete: Story = {
     args: {
         displayProps: {
             phase: 'complete',
-            importSummary: { imported: 3, skipped: 1, errors: 1 },
-            failedRoutes: [
-                { name: 'Mountain Pass', reason: 'Access denied' },
-            ],
+            completionSummary: {
+                imported: 3,
+                skipped: 1,
+                errors: 1,
+                failedRoutes: [
+                    { name: 'Mountain Pass', reason: 'Access denied' },
+                ],
+            },
             routes: [],
         },
     },
@@ -117,9 +114,8 @@ export const ResultSuccess: Story = {
     args: {
         displayProps: {
             phase: 'result',
-            singleResult: { success: true, routeName: 'Evening Ride' },
+            resultSuccess: { routeName: 'Evening Ride' },
             routes: [],
-            failedRoutes: [],
         },
     },
 };
@@ -128,9 +124,8 @@ export const ResultError: Story = {
     args: {
         displayProps: {
             phase: 'result',
-            singleResult: { success: false, error: 'File is not a valid GPX.' },
+            error: 'File is not a valid GPX.',
             routes: [],
-            failedRoutes: [],
         },
     },
 };
@@ -143,7 +138,6 @@ export const Compact: Story = {
             routes: [
                 { label: 'Route 1', distance: 10000, format: 'gpx', importable: true, alreadyImported: false },
             ] as any,
-            failedRoutes: [],
         },
     },
 };

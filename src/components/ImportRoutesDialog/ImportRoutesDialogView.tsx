@@ -33,9 +33,9 @@ export const ImportRoutesDialogView = ({
         parseProgress,
         ingestProgress,
         routes,
-        failedRoutes,
-        importSummary,
-        singleResult,
+        completionSummary,
+        resultSuccess,
+        error,
     } = displayProps;
 
     const renderContent = () => {
@@ -83,7 +83,7 @@ export const ImportRoutesDialogView = ({
                         current={ingestProgress?.current ?? 0}
                         total={ingestProgress?.total ?? 0}
                         currentName={ingestProgress?.currentName ?? ''}
-                        errorCount={ingestProgress?.errorCount ?? 0}
+                        errorCount={0}
                         onCancel={onCancel}
                     />
                 );
@@ -92,10 +92,10 @@ export const ImportRoutesDialogView = ({
                 return (
                     <CompleteView
                         compact={compact}
-                        imported={importSummary?.imported ?? 0}
-                        skipped={importSummary?.skipped ?? 0}
-                        errors={importSummary?.errors ?? 0}
-                        failedRoutes={failedRoutes}
+                        imported={completionSummary?.imported ?? 0}
+                        skipped={completionSummary?.skipped ?? 0}
+                        errors={completionSummary?.errors ?? 0}
+                        failedRoutes={completionSummary?.failedRoutes ?? []}
                         onDone={onDone}
                     />
                 );
@@ -104,9 +104,9 @@ export const ImportRoutesDialogView = ({
                 return (
                     <ResultView
                         compact={compact}
-                        success={singleResult?.success ?? false}
-                        routeName={singleResult?.routeName}
-                        error={singleResult?.error}
+                        success={resultSuccess != null}
+                        routeName={resultSuccess?.routeName}
+                        error={error}
                         onDone={onDone}
                         onTryAgain={onTryAgain}
                         onCancel={onCancel}

@@ -8,7 +8,6 @@ const defaultProps: ImportRoutesDialogViewProps = {
     displayProps: {
         phase: 'landing',
         routes: [],
-        failedRoutes: [],
     },
     selectedIds: [],
     onAddGpx: jest.fn(),
@@ -73,7 +72,7 @@ describe('ImportRoutesDialogView', () => {
                 displayProps={{
                     ...defaultProps.displayProps,
                     phase: 'ingesting',
-                    ingestProgress: { current: 1, total: 5, currentName: 'Route 1', errorCount: 0 },
+                    ingestProgress: { current: 1, total: 5, currentName: 'Route 1' },
                 }}
             />
         );
@@ -86,7 +85,7 @@ describe('ImportRoutesDialogView', () => {
                 displayProps={{
                     ...defaultProps.displayProps,
                     phase: 'complete',
-                    importSummary: { imported: 3, skipped: 1, errors: 1 },
+                    completionSummary: { imported: 3, skipped: 1, errors: 1, failedRoutes: [] },
                 }}
             />
         );
@@ -99,7 +98,7 @@ describe('ImportRoutesDialogView', () => {
                 displayProps={{
                     ...defaultProps.displayProps,
                     phase: 'result',
-                    singleResult: { success: true, routeName: 'Test Route' },
+                    resultSuccess: { routeName: 'Test Route' },
                 }}
             />
         );

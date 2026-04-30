@@ -2,7 +2,8 @@ import React, { useCallback, useMemo } from 'react';
 import { Dialog } from '../Dialog';
 import { ImportRoutesDialogView } from './ImportRoutesDialogView';
 import { ImportRoutesDialogProps } from './types';
-import { useImportRoutes, useScreenLayout } from '../../hooks';
+import { useScreenLayout } from '../../hooks';
+import { useImportRoutes } from '../../hooks/useImportRoutes';
 
 /**
  * Smart component for the Import Routes dialog.
