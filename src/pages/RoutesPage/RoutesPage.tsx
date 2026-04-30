@@ -166,7 +166,6 @@ export const RoutesPage = () => {
         return <MainBackground />;
     }
 
-    console.log('# render routes', showImportDialog, props.routes?.length)
     return (
         <ErrorBoundary>
             <PageView
@@ -194,7 +193,9 @@ export const RoutesPage = () => {
             {props.detailRouteId && (
                 <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
             )}
-            <ImportDialog visible={showImportDialog} onClose={onImportClose} />
+            {showImportDialog && (
+                <ImportDialog onClose={onImportClose} />
+            )}
         </ErrorBoundary>
     );
 };

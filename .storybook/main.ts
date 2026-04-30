@@ -115,6 +115,7 @@ const config: StorybookConfig = {
                     '@settings':                     'react-native-web/dist/exports/View',
                     'react-native-maps': path.resolve(dirname, './mocks/react-native-maps.tsx'),
                     'react-native-inappbrowser-reborn': path.resolve(dirname, './mocks/react-native-inappbrowser-reborn.ts'),
+                    'react-native-view-shot': path.resolve(dirname, './mocks/react-native-view-shot.ts'),
 
                     // ── native TurboModule stubs ──────────────────────────────────
                     '@pagopa/io-react-native-integrity': path.resolve(dirname, 'mocks/io-react-native-integrity.ts'),
