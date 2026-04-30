@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { ImportDisplayProps } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { ImportRoutesDialogView } from './ImportRoutesDialogView';
 import { ImportRoutesDialogProps } from './types';
@@ -9,11 +10,11 @@ import { useImportRoutes } from '../../hooks/useImportRoutes';
  * Smart component for the Import Routes dialog.
  * Owns service subscriptions via useImportRoutes hook and wires up the view.
  */
-export const ImportRoutesDialog = ({ visible, onClose }: ImportRoutesDialogProps) => {
+export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
     const {
-        displayProps,
+        displayProps: hookDisplayProps,
         selectedIds,
         onAddGpx,
         onAddVideoRoute,
@@ -26,6 +27,8 @@ export const ImportRoutesDialog = ({ visible, onClose }: ImportRoutesDialogProps
         onDone,
     } = useImportRoutes(onClose);
 
+    // Fallback for initial render or when hook hasn't populated yet
+    const displayProps: ImportDisplayProps = hookDisplayProps ?? { phase: 'landing', routes: [] };
     const { phase } = displayProps;
 
     // Non-dismissable during active processing phases
@@ -52,19 +55,14 @@ export const ImportRoutesDialog = ({ visible, onClose }: ImportRoutesDialogProps
     }, [phase]);
 
     // Handle 'Try Again' by triggering the GPX picker again if in result phase
-    // In a more complex scenario, this could check if the previous attempt was GPX or Video
     const handleTryAgain = useCallback(() => {
         onAddGpx();
     }, [onAddGpx]);
 
-    if (!visible) {
-        return null;
-    }
-
     return (
         <Dialog
             title={title}
-            visible={visible}
+            visible={true}
             onOutsideClick={onOutsideClick}
             variant="details"
         >

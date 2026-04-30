@@ -35,6 +35,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         outsideFold,
         onSelect,
         onDelete,
+        sourceTreeUri,
     } = props;
 
     if (outsideFold) {
@@ -119,6 +120,11 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                     </View>
 
                     <View style={styles.pillContainer}>
+                        {!!sourceTreeUri && (
+                            <View style={[styles.pill, styles.pillExternal]}>
+                                <Icon name="import-route" size={10} color={colors.text} />
+                            </View>
+                        )}
                         {isNew && (
                             <View style={[styles.pill, styles.pillNew]}>
                                 <Text style={styles.pillText}>New</Text>
@@ -247,6 +253,7 @@ const styles = StyleSheet.create({
     pillNew: { backgroundColor: '#FFBF00' },
     pillActive: { backgroundColor: '#4CAF50' },
     pillDemo: { backgroundColor: '#8BC34A' },
+    pillExternal: { backgroundColor: colors.tileIdle },
     pillText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
     pillTextActive: { color: '#000000', fontSize: 10, fontWeight: 'bold' },
 

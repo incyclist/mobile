@@ -136,7 +136,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                                     activeOpacity={0.7}
                                 >
                                     <Icon name="import-route" size={20} color={colors.buttonPrimary} />
-                                    <Text style={styles.importButtonText}>Import Route</Text>
+                                    <Text style={styles.importButtonText}>Import Routes</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     importButtonText: {
         color: colors.buttonPrimary,
         fontSize: textSizes.normalText,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     filterArea: {
     },

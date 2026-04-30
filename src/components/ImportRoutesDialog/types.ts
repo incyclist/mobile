@@ -1,7 +1,6 @@
 import { ImportDisplayProps } from 'incyclist-services';
 
 export interface ImportRoutesDialogProps {
-    visible: boolean;
     onClose: () => void;
 }
 
