@@ -130,8 +130,9 @@ export const RoutesPage = () => {
     },[props.filterVisible, service, setFilterVisible])
 
     const onImportClicked = useCallback(() => {
+        service.onImportClicked();
         setShowImportDialog(true)
-    }, []);
+    }, [service]);
 
 
     const onDownloadPillPress = useCallback(() => {
@@ -193,9 +194,7 @@ export const RoutesPage = () => {
             {props.detailRouteId && (
                 <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
             )}
-            {showImportDialog && (
-                <ImportDialog onClose={onImportClose} />
-            )}
+            <ImportDialog visible={showImportDialog} onClose={onImportClose} />
         </ErrorBoundary>
     );
 };
