@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     importButtonText: {
         color: colors.buttonPrimary,
         fontSize: textSizes.normalText,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     filterArea: {
     },
