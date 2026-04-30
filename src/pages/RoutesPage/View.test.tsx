@@ -51,4 +51,9 @@ describe('RoutesPageView', () => {
     it('renders correctly in compact layout', () => {
         render(<RoutesPageView {...BASE_PROPS} compact={true} />);
     });
+
+    it('renders import button with correct label', () => {
+        const { getByText } = render(<RoutesPageView {...BASE_PROPS} />);
+        expect(getByText('Import Routes')).toBeTruthy();
+    });
 });

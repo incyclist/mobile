@@ -10,13 +10,13 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
+import { ErrorBoundary, MainBackground, RouteDetailsDialog, ImportRoutesDialog } from '../../components';
 import { navigate } from '../../services';
 
 
 const PageView = memo(RoutesPageView)
 const DetailsDialog = memo(RouteDetailsDialog)
-const ImportDialog = memo(RouteImportDialog)
+const ImportDialog = memo(ImportRoutesDialog)
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
@@ -73,9 +73,6 @@ export const RoutesPage = () => {
             JSON.stringify(refFilterOptions.current)) {
             refFilterOptions.current = updated.filterOptions
         }
-        if (updated.showImportDialog!==showImportDialog) {
-            setShowImportDialog(updated.showImportDialog!)
-        }
 
         setProps({
             ...updated,
@@ -83,7 +80,7 @@ export const RoutesPage = () => {
             filterOptions: refFilterOptions.current,
         });
 
-    }, [service, showImportDialog]);
+    }, [service]);
 
     const onImportClose = useCallback(() => {
         setShowImportDialog(false)
@@ -97,13 +94,12 @@ export const RoutesPage = () => {
             if (refObserver.current) {
                 refObserver.current
                     .on('page-update', onUpdate)
-                    .on('import-closed',onImportClose)
             }
             onUpdate();
         } catch (err: any) {
             logError(err, 'init');
         }
-    }, [service, logError, onUpdate, onImportClose]);
+    }, [service, logError, onUpdate]);
 
     useUnmountEffect(() => {
         service.closePage();
@@ -134,9 +130,8 @@ export const RoutesPage = () => {
     },[props.filterVisible, service, setFilterVisible])
 
     const onImportClicked = useCallback(() => {
-        service.onImportClicked()
         setShowImportDialog(true)
-    }, [service]);
+    }, []);
 
 
     const onDownloadPillPress = useCallback(() => {
@@ -199,7 +194,7 @@ export const RoutesPage = () => {
                 <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />
             )}
             {showImportDialog && (
-                <ImportDialog />
+                <ImportDialog onClose={onImportClose} />
             )}
         </ErrorBoundary>
     );

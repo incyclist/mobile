@@ -9,6 +9,7 @@ export interface FormattedNumber {
 
 export interface RouteItemDisplayProps extends RouteItemProps {
     outsideFold?: boolean;
+    sourceTreeUri?: string;
 }
 
 export interface RouteItemViewProps extends RouteItemDisplayProps {

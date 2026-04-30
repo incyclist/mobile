@@ -136,7 +136,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                                     activeOpacity={0.7}
                                 >
                                     <Icon name="import-route" size={20} color={colors.buttonPrimary} />
-                                    <Text style={styles.importButtonText}>Import Route</Text>
+                                    <Text style={styles.importButtonText}>Import Routes</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
