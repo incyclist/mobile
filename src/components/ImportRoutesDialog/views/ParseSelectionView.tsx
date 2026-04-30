@@ -1,0 +1,298 @@
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import type { RouteDisplayItem } from 'incyclist-services';
+import { colors, textSizes } from '../../../theme';
+import { ButtonBar } from '../../ButtonBar';
+import { Icon } from '../../Icon';
+
+interface ParseSelectionViewProps {
+    compact: boolean;
+    routes: RouteDisplayItem[];
+    parseProgress?: { parsed: number; total: number };
+    selectedIds: string[];
+    onToggle: (id: string) => void;
+    onSelectAll: () => void;
+    onDeselectAll: () => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const Checkbox = ({ checked, disabled, onToggle }: { checked: boolean; disabled?: boolean; onToggle: () => void }) => {
+    const boxStyle = [
+        styles.checkbox,
+        checked && styles.checkboxChecked,
+        disabled && styles.checkboxDisabled
+    ];
+    
+    return (
+        <TouchableOpacity 
+            onPress={onToggle} 
+            disabled={disabled} 
+            style={boxStyle}
+            activeOpacity={0.7}
+        >
+            {checked && <View style={styles.checkmark} />}
+        </TouchableOpacity>
+    );
+};
+
+const WarningIndicator = () => (
+    <View style={styles.warningIndicator}>
+        <Text style={styles.warningChar}>!</Text>
+    </View>
+);
+
+const RouteRow = ({ 
+    item, 
+    isSelected, 
+    onToggle, 
+    compact 
+}: { 
+    item: RouteDisplayItem; 
+    isSelected: boolean; 
+    onToggle: (id: string) => void;
+    compact: boolean;
+}) => {
+    const handleToggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
+    const isImportable = item.importable !== false;
+
+    return (
+        <View style={[styles.row, !isImportable && styles.rowDisabled]}>
+            <Checkbox 
+                checked={isSelected} 
+                disabled={!isImportable} 
+                onToggle={handleToggle} 
+            />
+            <View style={styles.rowContent}>
+                <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1}>
+                    {item.label}
+                </Text>
+                <View style={styles.details}>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.format.toUpperCase()}</Text>
+                    </View>
+                    {item.distance !== undefined && (
+                        <View style={styles.distance}>
+                            <Icon name="distance" size={14} color={colors.text} />
+                            <Text style={styles.distanceText}>{item.distance.toFixed(1)} km</Text>
+                        </View>
+                    )}
+                </View>
+                {!isImportable && item.errorReason && (
+                    <Text style={styles.errorText}>{item.errorReason}</Text>
+                )}
+            </View>
+            {!isImportable && <WarningIndicator />}
+        </View>
+    );
+};
+
+export const ParseSelectionView = ({
+    compact,
+    routes,
+    parseProgress,
+    selectedIds,
+    onToggle,
+    onSelectAll,
+    onDeselectAll,
+    onConfirm,
+    onCancel,
+}: ParseSelectionViewProps) => {
+    const isParsing = !!parseProgress;
+    
+    const renderItem = useCallback(({ item }: { item: RouteDisplayItem }) => (
+        <RouteRow 
+            item={item} 
+            isSelected={selectedIds.includes(item.id)} 
+            onToggle={onToggle}
+            compact={compact}
+        />
+    ), [selectedIds, onToggle, compact]);
+
+    const buttons = [
+        {
+            label: `Import (${selectedIds.length})`,
+            onClick: isParsing ? () => {} : onConfirm,
+            primary: true,
+        },
+        {
+            label: 'Cancel',
+            onClick: onCancel,
+            primary: false,
+        },
+    ];
+
+    return (
+        <View style={[styles.container, compact && styles.containerCompact]}>
+            <View style={styles.header}>
+                {isParsing ? (
+                    <Text style={styles.title}>
+                        Found {parseProgress.total} files... Parsing: {parseProgress.parsed}/{parseProgress.total}
+                    </Text>
+                ) : (
+                    <Text style={styles.title}>Select routes to import</Text>
+                )}
+            </View>
+
+            <View style={styles.bulkActions}>
+                <TouchableOpacity onPress={onSelectAll} style={styles.bulkButton}>
+                    <Text style={styles.bulkText}>Select All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onDeselectAll} style={styles.bulkButton}>
+                    <Text style={styles.bulkText}>Deselect All</Text>
+                </TouchableOpacity>
+            </View>
+
+            <FlatList
+                data={routes}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+            />
+
+            <View style={[styles.footer, isParsing && styles.footerDisabled]}>
+                <ButtonBar buttons={buttons} />
+            </View>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        minHeight: 400,
+    },
+    containerCompact: {
+        minHeight: 300,
+    },
+    header: {
+        paddingHorizontal: 20,
+        paddingTop: 16,
+    },
+    title: {
+        fontSize: textSizes.normalText,
+        color: colors.text,
+        fontWeight: 'bold',
+    },
+    bulkActions: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        gap: 16,
+    },
+    bulkButton: {
+        paddingVertical: 4,
+    },
+    bulkText: {
+        color: colors.buttonPrimary,
+        fontSize: textSizes.smallText,
+        fontWeight: 'bold',
+    },
+    list: {
+        flex: 1,
+    },
+    listContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.listSeparator,
+    },
+    rowDisabled: {
+        opacity: 0.7,
+    },
+    rowContent: {
+        flex: 1,
+    },
+    label: {
+        fontSize: textSizes.listEntry,
+        color: colors.text,
+        fontWeight: '500',
+    },
+    labelCompact: {
+        fontSize: textSizes.normalText,
+    },
+    details: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    badge: {
+        backgroundColor: colors.listItemBackground,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: colors.tileIdle,
+    },
+    badgeText: {
+        fontSize: 10,
+        color: colors.text,
+        fontWeight: 'bold',
+    },
+    distance: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    distanceText: {
+        fontSize: textSizes.smallText,
+        color: colors.text,
+        marginLeft: 4,
+    },
+    errorText: {
+        fontSize: 11,
+        color: colors.error,
+        marginTop: 4,
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderWidth: 2,
+        borderColor: colors.buttonPrimary,
+        borderRadius: 4,
+        marginRight: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkboxChecked: {
+        backgroundColor: colors.buttonPrimary,
+    },
+    checkboxDisabled: {
+        borderColor: colors.disabled,
+        backgroundColor: 'transparent',
+    },
+    checkmark: {
+        width: 10,
+        height: 10,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 2,
+    },
+    warningIndicator: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: colors.warning,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    warningChar: {
+        color: '#000000',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    footer: {
+        borderTopWidth: 1,
+        borderTopColor: colors.listSeparator,
+        paddingTop: 8,
+    },
+    footerDisabled: {
+        opacity: 0.5,
+    },
+});
