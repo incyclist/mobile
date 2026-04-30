@@ -33,6 +33,8 @@ export const useImportRoutes = (onClose: () => void) => {
     const refIngestObserver = useRef<IObserver | null>(null);
     const refSingleObserver = useRef<IObserver | null>(null);
 
+    // --- Stable Event Handlers ---
+
     const onUpdate = useCallback(() => {
         const updated = getRoutesPageService().getImportDisplayProps();
         if (updated) {
@@ -40,16 +42,95 @@ export const useImportRoutes = (onClose: () => void) => {
         }
     }, []);
 
-    const cleanUpObservers = useCallback(() => {
-        refScanObserver.current?.removeAllListeners();
-        refScanObserver.current = null;
-        refParseObserver.current?.removeAllListeners();
-        refParseObserver.current = null;
-        refIngestObserver.current?.removeAllListeners();
-        refIngestObserver.current = null;
-        refSingleObserver.current?.removeAllListeners();
-        refSingleObserver.current = null;
+    const onScanProgress = useCallback(() => onUpdate(), [onUpdate]);
+    const onParseProgress = useCallback(() => onUpdate(), [onUpdate]);
+    const onIngestProgress = useCallback(() => onUpdate(), [onUpdate]);
+    
+    const onParseResult = useCallback((parsed: ParsedRoute) => {
+        refParsedRoutes.current = [...refParsedRoutes.current, parsed];
     }, []);
+
+    const onSingleResult = useCallback(() => {
+        const obs = refSingleObserver.current;
+        if (obs) {
+            obs.off('success', onSingleResult);
+            obs.off('error', onSingleResult);
+            refSingleObserver.current = null;
+        }
+        onUpdate();
+    }, [onUpdate]);
+
+    const onIngestComplete = useCallback(() => {
+        const obs = refIngestObserver.current;
+        if (obs) {
+            obs.off('ingest-progress', onIngestProgress);
+            obs.off('ingest-complete', onIngestComplete);
+            refIngestObserver.current = null;
+        }
+        onUpdate();
+    }, [onUpdate, onIngestProgress]);
+
+    const onParseComplete = useCallback(() => {
+        const obs = refParseObserver.current;
+        if (obs) {
+            obs.off('parse-progress', onParseProgress);
+            obs.off('parse-result', onParseResult);
+            obs.off('parse-complete', onParseComplete);
+            refParseObserver.current = null;
+        }
+        onUpdate();
+    }, [onUpdate, onParseProgress, onParseResult]);
+
+    const onScanComplete = useCallback((scannedRoutes: ScannedRoute[]) => {
+        const obs = refScanObserver.current;
+        if (obs) {
+            obs.off('scan-progress', onScanProgress);
+            obs.off('scan-complete', onScanComplete);
+            refScanObserver.current = null;
+        }
+
+        const parseObserver = getRoutesPageService().startLibraryParse(scannedRoutes);
+        refParseObserver.current = parseObserver;
+        parseObserver.on('parse-progress', onParseProgress);
+        parseObserver.on('parse-result', onParseResult);
+        parseObserver.on('parse-complete', onParseComplete);
+        onUpdate();
+    }, [onUpdate, onScanProgress, onParseProgress, onParseResult, onParseComplete]);
+
+    const cleanUpObservers = useCallback(() => {
+        if (refScanObserver.current) {
+            refScanObserver.current.off('scan-progress', onScanProgress);
+            refScanObserver.current.off('scan-complete', onScanComplete);
+            refScanObserver.current = null;
+        }
+        if (refParseObserver.current) {
+            refParseObserver.current.off('parse-progress', onParseProgress);
+            refParseObserver.current.off('parse-result', onParseResult);
+            refParseObserver.current.off('parse-complete', onParseComplete);
+            refParseObserver.current = null;
+        }
+        if (refIngestObserver.current) {
+            refIngestObserver.current.off('ingest-progress', onIngestProgress);
+            refIngestObserver.current.off('ingest-complete', onIngestComplete);
+            refIngestObserver.current = null;
+        }
+        if (refSingleObserver.current) {
+            refSingleObserver.current.off('success', onSingleResult);
+            refSingleObserver.current.off('error', onSingleResult);
+            refSingleObserver.current = null;
+        }
+    }, [
+        onScanProgress, 
+        onScanComplete, 
+        onParseProgress, 
+        onParseResult, 
+        onParseComplete, 
+        onIngestProgress, 
+        onIngestComplete, 
+        onSingleResult
+    ]);
+
+    // --- Action Handlers ---
 
     const resetToLanding = useCallback(() => {
         cleanUpObservers();
@@ -92,28 +173,26 @@ export const useImportRoutes = (onClose: () => void) => {
             
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
             refSingleObserver.current = observer;
-            observer.on('page-update', onUpdate);
-            observer.on('ingest-complete', onUpdate);
+            observer.on('success', onSingleResult);
+            observer.on('error', onSingleResult);
         } catch (err) {
             logError(err, 'onAddGpx');
         }
-    }, [pickFile, onUpdate, logError]);
+    }, [pickFile, onSingleResult, logError]);
 
     const onAddVideoRoute = useCallback(async () => {
         try {
-            // Note: useFilePicker currently doesn't support extension filtering in its signature.
-            // Requirement for .epm/.rlv/.xml filtering is noted but relies on system picker behavior or service-side validation.
             const fileInfo = await pickFile();
             if (!fileInfo) return;
             
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
             refSingleObserver.current = observer;
-            observer.on('page-update', onUpdate);
-            observer.on('ingest-complete', onUpdate);
+            observer.on('success', onSingleResult);
+            observer.on('error', onSingleResult);
         } catch (err) {
             logError(err, 'onAddVideoRoute');
         }
-    }, [pickFile, onUpdate, logError]);
+    }, [pickFile, onSingleResult, logError]);
 
     const onSelectFolder = useCallback(async () => {
         try {
@@ -122,34 +201,15 @@ export const useImportRoutes = (onClose: () => void) => {
 
             const scanObserver = getRoutesPageService().startLibraryScan({ 
                 uri: result.selected, 
-                name: result.displayName || 'Folder' 
+                displayName: result.displayName || 'Folder' 
             });
             refScanObserver.current = scanObserver;
-            scanObserver.on('page-update', onUpdate);
-            
-            scanObserver.on('scan-complete', (scannedRoutes: ScannedRoute[]) => {
-                // Independently clean up scan phase
-                refScanObserver.current?.removeAllListeners();
-                refScanObserver.current = null;
-                
-                const parseObserver = getRoutesPageService().startLibraryParse(scannedRoutes);
-                refParseObserver.current = parseObserver;
-                parseObserver.on('page-update', onUpdate);
-                
-                parseObserver.on('parse-result', (parsed: ParsedRoute[]) => {
-                    refParsedRoutes.current = [...refParsedRoutes.current, ...parsed];
-                });
-                
-                parseObserver.on('parse-complete', () => {
-                    refParseObserver.current?.removeAllListeners();
-                    refParseObserver.current = null;
-                    onUpdate();
-                });
-            });
+            scanObserver.on('scan-progress', onScanProgress);
+            scanObserver.on('scan-complete', onScanComplete);
         } catch (err) {
             logError(err, 'onSelectFolder');
         }
-    }, [onUpdate, logError]);
+    }, [onScanProgress, onScanComplete, logError]);
 
     const onToggleRoute = useCallback((id: string) => {
         setSelectedIds(prev => 
@@ -158,30 +218,28 @@ export const useImportRoutes = (onClose: () => void) => {
     }, []);
 
     const onSelectAll = useCallback(() => {
-        const importableIds = displayProps.parsedRoutes
-            ?.filter(r => r.importable)
-            .map(r => r.id) || [];
+        const importableIds = refParsedRoutes.current
+            .filter(r => !r.parseError)
+            .map(r => r.route.description.id);
         setSelectedIds(importableIds);
-    }, [displayProps.parsedRoutes]);
+    }, []);
 
     const onDeselectAll = useCallback(() => {
         setSelectedIds([]);
     }, []);
 
     const onConfirmSelection = useCallback(() => {
-        const selected = refParsedRoutes.current.filter(route => 
-            selectedIds.includes(route.id)
+        const selected = refParsedRoutes.current.filter(r => 
+            selectedIds.includes(r.route.description.id)
         );
         
         const observer = getRoutesPageService().importSelected(selected);
         refIngestObserver.current = observer;
-        observer.on('page-update', onUpdate);
-        observer.on('ingest-complete', () => {
-            refIngestObserver.current?.removeAllListeners();
-            refIngestObserver.current = null;
-            onUpdate();
-        });
-    }, [selectedIds, onUpdate]);
+        observer.on('ingest-progress', onIngestProgress);
+        observer.on('ingest-complete', onIngestComplete);
+    }, [selectedIds, onIngestProgress, onIngestComplete]);
+
+    // --- Lifecycle ---
 
     useEffect(() => {
         if (!refInitialized.current) {
