@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { IconName } from '../../Icon/types';
@@ -63,13 +63,15 @@ export const LandingView = ({
                     onPress={onAddGpx} 
                     compact={compact} 
                 />
-                <OptionTile 
-                    icon='plus' 
-                    title='Add Video Route' 
-                    subtitle='EPM, RLV or XML file' 
-                    onPress={onAddVideoRoute} 
-                    compact={compact} 
-                />
+                {Platform.OS === 'ios' && (
+                    <OptionTile 
+                        icon='plus' 
+                        title='Add Video Route' 
+                        subtitle='EPM, RLV or XML file' 
+                        onPress={onAddVideoRoute} 
+                        compact={compact} 
+                    />
+                )}
                 <OptionTile 
                     icon='import-route' 
                     title='Import Video Library' 
@@ -129,6 +131,6 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     tileSubtitleCompact: {
-        fontSize: 10,
+        fontSize: textSizes.smallText,
     },
 });

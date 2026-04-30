@@ -37,9 +37,15 @@ export const ResultView = ({
 
     const statusColor = success ? colors.success : colors.error;
     const title = success ? 'Import Successful' : 'Import Failed';
-    const message = success 
-        ? (routeName ? `Route "${routeName}" has been added.` : 'The route has been added to your library.')
-        : (error || 'An unexpected error occurred during import.');
+    
+    let message: string;
+    if (success) {
+        message = routeName
+            ? `Route "${routeName}" has been added.`
+            : 'The route has been added to your library.';
+    } else {
+        message = error || 'An unexpected error occurred during import.';
+    }
 
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
