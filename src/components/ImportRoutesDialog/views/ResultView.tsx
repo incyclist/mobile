@@ -47,10 +47,12 @@ export const ResultView = ({
         message = error || 'An unexpected error occurred during import.';
     }
 
+    const iconCircleStyle = { borderColor: statusColor };
+
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
             <View style={styles.content}>
-                <View style={[styles.iconCircle, { borderColor: statusColor }]}>
+                <View style={[styles.iconCircle, iconCircleStyle]}>
                     <Icon 
                         name={success ? 'import-route' : 'funnel'} 
                         size={compact ? 40 : 64} 
