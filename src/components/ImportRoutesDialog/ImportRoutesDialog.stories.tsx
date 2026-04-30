@@ -23,13 +23,6 @@ const meta: Meta<typeof ImportRoutesDialogView> = {
         onTryAgain: fn(),
         onCancel: fn(),
     },
-    argTypes: {
-        compact: { control: 'boolean' },
-        'displayProps.phase': {
-            control: 'select',
-            options: ['landing', 'scanning', 'parsing', 'selecting', 'ingesting', 'complete', 'result'],
-        },
-    },
 };
 
 export default meta;
