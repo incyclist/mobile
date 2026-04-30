@@ -74,8 +74,8 @@ export const CompleteView = ({
                 </View>
             )}
 
-            <Text style={styles.note}>
-                Note: Videos are referenced in place and not copied.
+            <Text style={[styles.note, compact && styles.noteCompact]}>
+                Videos are not copied — they play from their original location.
             </Text>
 
             <View style={styles.buttonWrapper}>
@@ -174,6 +174,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
         marginBottom: 16,
+    },
+    noteCompact: {
+        marginBottom: 8,
     },
     buttonWrapper: {
         width: '100%',
