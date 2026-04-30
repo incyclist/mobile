@@ -55,16 +55,18 @@ const RouteRow = ({
 }) => {
     const handleToggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
     const isImportable = item.importable !== false;
+    const rowStyle = [styles.row, !isImportable && styles.rowDisabled];
+    const labelStyle = [styles.label, compact && styles.labelCompact];
 
     return (
-        <View style={[styles.row, !isImportable && styles.rowDisabled]}>
+        <View style={rowStyle}>
             <Checkbox 
                 checked={isSelected} 
                 disabled={!isImportable} 
                 onToggle={handleToggle} 
             />
             <View style={styles.rowContent}>
-                <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1}>
+                <Text style={labelStyle} numberOfLines={1}>
                     {item.label}
                 </Text>
                 <View style={styles.details}>
@@ -101,6 +103,7 @@ export const ParseSelectionView = ({
     onCancel,
 }: ParseSelectionViewProps) => {
     const isParsing = !!parseProgress;
+    const noop = useCallback(() => {}, []);
     
     const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
         <RouteRow 
@@ -114,7 +117,7 @@ export const ParseSelectionView = ({
     const buttons = [
         {
             label: `Import (${selectedIds.length})`,
-            onClick: isParsing ? () => {} : onConfirm,
+            onClick: isParsing ? noop : onConfirm,
             primary: true,
         },
         {
@@ -124,8 +127,11 @@ export const ParseSelectionView = ({
         },
     ];
 
+    const containerStyle = [styles.container, compact && styles.containerCompact];
+    const footerStyle = [styles.footer, isParsing && styles.footerDisabled];
+
     return (
-        <View style={[styles.container, compact && styles.containerCompact]}>
+        <View style={containerStyle}>
             <View style={styles.header}>
                 {isParsing ? (
                     <Text style={styles.title}>
@@ -153,7 +159,7 @@ export const ParseSelectionView = ({
                 contentContainerStyle={styles.listContent}
             />
 
-            <View style={[styles.footer, isParsing && styles.footerDisabled]}>
+            <View style={footerStyle}>
                 <ButtonBar buttons={buttons} />
             </View>
         </View>

@@ -19,6 +19,8 @@ export const ScanningView = ({ compact, scannedFolders, onCancel }: ScanningView
     ];
 
     const containerStyle = [styles.container, compact && styles.containerCompact];
+    const titleStyle = [styles.title, compact && styles.titleCompact];
+    const textStyle = [styles.text, compact && styles.textCompact];
 
     return (
         <View style={containerStyle}>
@@ -27,10 +29,10 @@ export const ScanningView = ({ compact, scannedFolders, onCancel }: ScanningView
                 color={colors.buttonPrimary} 
                 style={styles.spinner} 
             />
-            <Text style={[styles.title, compact && styles.titleCompact]}>
+            <Text style={titleStyle}>
                 Scanning for routes...
             </Text>
-            <Text style={[styles.text, compact && styles.textCompact]}>
+            <Text style={textStyle}>
                 Folders scanned: {scannedFolders}
             </Text>
             <View style={styles.footer}>

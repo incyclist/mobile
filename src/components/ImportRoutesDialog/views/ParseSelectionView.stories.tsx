@@ -1,13 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { ParseSelectionView } from './ParseSelectionView';
+import type { RouteDisplayItem } from 'incyclist-services';
 
-const mockRoutes = [
+const mockRoutes: RouteDisplayItem[] = [
     { 
         id: '1', 
         label: 'Sunday Ride to the Lake', 
         format: 'gpx', 
-        distance: { value: 42.5, unit: 'km' }, 
+        distance: { value: 42.5, unit: 'km' as any }, 
         importable: true, 
         alreadyImported: false 
     },
@@ -15,7 +16,7 @@ const mockRoutes = [
         id: '2', 
         label: 'Mountain Pass Challenge', 
         format: 'fit', 
-        distance: { value: 120.2, unit: 'km' }, 
+        distance: { value: 120.2, unit: 'km' as any }, 
         importable: true, 
         alreadyImported: false 
     },
@@ -23,7 +24,7 @@ const mockRoutes = [
         id: '3', 
         label: 'Invalid Route File', 
         format: 'txt', 
-        distance: { value: 0, unit: 'km' }, 
+        distance: { value: 0, unit: 'km' as any }, 
         importable: false, 
         alreadyImported: false, 
         errorReason: 'Unsupported format' 
@@ -32,7 +33,7 @@ const mockRoutes = [
         id: '4', 
         label: 'Already In Library', 
         format: 'gpx', 
-        distance: { value: 15.0, unit: 'km' }, 
+        distance: { value: 15.0, unit: 'km' as any }, 
         importable: true, 
         alreadyImported: true 
     },
