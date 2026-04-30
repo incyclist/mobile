@@ -73,8 +73,10 @@ const RouteRow = ({
                     </View>
                     {item.distance !== undefined && (
                         <View style={styles.distance}>
-                            <Icon name="distance" size={14} color={colors.text} />
-                            <Text style={styles.distanceText}>{item.distance.toFixed(1)} km</Text>
+                            <Icon name='distance' size={14} color={colors.text} />
+                            <Text style={styles.distanceText}>
+                                {item.distance.value} {item.distance.unit}
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -100,10 +102,10 @@ export const ParseSelectionView = ({
 }: ParseSelectionViewProps) => {
     const isParsing = !!parseProgress;
     
-    const renderItem = useCallback(({ item }: { item: RouteDisplayItem }) => (
+    const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
         <RouteRow 
-            item={item} 
-            isSelected={selectedIds.includes(item.id)} 
+            item={routeItem} 
+            isSelected={selectedIds.includes(routeItem.id)} 
             onToggle={onToggle}
             compact={compact}
         />

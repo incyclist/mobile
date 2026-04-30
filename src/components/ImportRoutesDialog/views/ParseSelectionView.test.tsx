@@ -3,8 +3,23 @@ import { render } from '@testing-library/react-native';
 import { ParseSelectionView } from './ParseSelectionView';
 
 const mockRoutes = [
-    { id: '1', label: 'Route 1', format: 'gpx', distance: 10, importable: true },
-    { id: '2', label: 'Route 2', format: 'fit', distance: 15, importable: false, errorReason: 'Invalid file' },
+    { 
+        id: '1', 
+        label: 'Route 1', 
+        format: 'gpx', 
+        distance: { value: 10, unit: 'km' }, 
+        importable: true, 
+        alreadyImported: false 
+    },
+    { 
+        id: '2', 
+        label: 'Route 2', 
+        format: 'fit', 
+        distance: { value: 15, unit: 'km' }, 
+        importable: false, 
+        alreadyImported: false, 
+        errorReason: 'Invalid file' 
+    },
 ];
 
 describe('ParseSelectionView', () => {

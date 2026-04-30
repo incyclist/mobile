@@ -3,10 +3,39 @@ import { fn } from 'storybook/test';
 import { ParseSelectionView } from './ParseSelectionView';
 
 const mockRoutes = [
-    { id: '1', label: 'Sunday Ride to the Lake', format: 'gpx', distance: 42.5, importable: true },
-    { id: '2', label: 'Mountain Pass Challenge', format: 'fit', distance: 120.2, importable: true },
-    { id: '3', label: 'Invalid Route File', format: 'txt', distance: 0, importable: false, errorReason: 'Unsupported format' },
-    { id: '4', label: 'Already In Library', format: 'gpx', distance: 15.0, importable: true, alreadyImported: true },
+    { 
+        id: '1', 
+        label: 'Sunday Ride to the Lake', 
+        format: 'gpx', 
+        distance: { value: 42.5, unit: 'km' }, 
+        importable: true, 
+        alreadyImported: false 
+    },
+    { 
+        id: '2', 
+        label: 'Mountain Pass Challenge', 
+        format: 'fit', 
+        distance: { value: 120.2, unit: 'km' }, 
+        importable: true, 
+        alreadyImported: false 
+    },
+    { 
+        id: '3', 
+        label: 'Invalid Route File', 
+        format: 'txt', 
+        distance: { value: 0, unit: 'km' }, 
+        importable: false, 
+        alreadyImported: false, 
+        errorReason: 'Unsupported format' 
+    },
+    { 
+        id: '4', 
+        label: 'Already In Library', 
+        format: 'gpx', 
+        distance: { value: 15.0, unit: 'km' }, 
+        importable: true, 
+        alreadyImported: true 
+    },
 ];
 
 const meta: Meta<typeof ParseSelectionView> = {
