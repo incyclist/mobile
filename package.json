@@ -10,6 +10,7 @@
     "release:android": "APP_VARIANT=release  react-native run-android --mode release",
     "ios": "react-native run-ios",
     "lint": "eslint src/",
+    "lint-ready": "eslint src/ --quiet",
     "start": "react-native start --reset-cache",
     "start:debug": "APP_VARIANT=debug react-native start",
     "test": "jest",
@@ -34,7 +35,7 @@
     "@zoontek/react-native-navigation-bar": "^1.1.0",
     "events": "^3.3.0",
     "gd-eventlog": "^0.1.27",
-    "incyclist-services": "^1.7.52",
+    "incyclist-services": "^1.7.53",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "react": "^19.2.4",
@@ -121,7 +122,7 @@
     "type": "all",
     "jsSrcsDir": "src",
     "android": {
-        "javaPackageName": "com.incyclist.app"
-    }  
+      "javaPackageName": "com.incyclist.app"
+    }
   }
 }
