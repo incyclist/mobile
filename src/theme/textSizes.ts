@@ -5,4 +5,7 @@ export const textSizes = {
     normalText: 16,
     noDataText: 24,
     smallText: 12,
+    subtitle: 14,
+    tinyText: 11,
+    microText: 10,
 };

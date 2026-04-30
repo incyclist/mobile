@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
         borderColor: colors.tileIdle,
     },
     badgeText: {
-        fontSize: 10,
+        fontSize: textSizes.microText,
         color: colors.text,
         fontWeight: 'bold',
     },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
     errorText: {
-        fontSize: 11,
+        fontSize: textSizes.tinyText,
         color: colors.error,
         marginTop: 4,
     },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     checkmark: {
         width: 10,
         height: 10,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.text,
         borderRadius: 2,
     },
     warningIndicator: {
@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     warningChar: {
-        color: '#000000',
-        fontSize: 14,
+        color: colors.iconSelected,
+        fontSize: textSizes.subtitle,
         fontWeight: 'bold',
     },
     footer: {
