@@ -219,8 +219,8 @@ export const useImportRoutes = (onClose: () => void) => {
 
     const onSelectAll = useCallback(() => {
         const importableIds = refParsedRoutes.current
-            .filter(r => !r.parseError)
-            .map(r => r.route.description.id);
+            .filter(r => !r.parseError && r.route?.description?.id != null)
+            .map(r => r.route.description.id as string);
         setSelectedIds(importableIds);
     }, []);
 
@@ -230,7 +230,8 @@ export const useImportRoutes = (onClose: () => void) => {
 
     const onConfirmSelection = useCallback(() => {
         const selected = refParsedRoutes.current.filter(r => 
-            selectedIds.includes(r.route.description.id)
+            r.route?.description?.id != null &&
+            selectedIds.includes(r.route.description.id as string)
         );
         
         const observer = getRoutesPageService().importSelected(selected);
