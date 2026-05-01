@@ -12,6 +12,7 @@ import { ImportRoutesDialogProps } from './types';
 import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
+import { SingleImportingView } from './views/SingleImportingView';
 
 /**
  * Smart component for the Import Routes dialog.
@@ -27,6 +28,7 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
         getRoutesPageService().getImportDisplayProps()
     );
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isSingleImporting, setIsSingleImporting] = useState(false);
 
     const refParsedRoutes = useRef<ParsedRoute[]>([]);
     const refInitialized = useRef(false);
@@ -64,6 +66,7 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
             obs.off('error', onSingleResult);
             refSingleObserver.current = null;
         }
+        setIsSingleImporting(false);
         onUpdate();
     }, [onUpdate]);
 
@@ -181,30 +184,30 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
             const fileInfo = await pickFile();
             if (!fileInfo) return;
 
+            setIsSingleImporting(true);
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
             refSingleObserver.current = observer;
             observer.on('success', onSingleResult);
             observer.on('error', onSingleResult);
-            onUpdate();
         } catch (err) {
             logError(err, 'onAddGpx');
         }
-    }, [pickFile, onSingleResult, logError, onUpdate]);
+    }, [pickFile, onSingleResult, logError]);
 
     const onAddVideoRoute = useCallback(async () => {
         try {
             const fileInfo = await pickFile();
             if (!fileInfo) return;
 
+            setIsSingleImporting(true);
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
             refSingleObserver.current = observer;
             observer.on('success', onSingleResult);
             observer.on('error', onSingleResult);
-            onUpdate();
         } catch (err) {
             logError(err, 'onAddVideoRoute');
         }
-    }, [pickFile, onSingleResult, logError, onUpdate]);
+    }, [pickFile, onSingleResult, logError]);
 
     const onSelectFolder = useCallback(async () => {
         try {
@@ -274,10 +277,13 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
     const { phase } = displayProps;
 
     // Non-dismissable during active processing phases
-    const isDismissable = phase !== 'scanning' && phase !== 'parsing' && phase !== 'ingesting';
+    const isDismissable = !isSingleImporting && phase !== 'scanning' && phase !== 'parsing' && phase !== 'ingesting';
     const onOutsideClick = isDismissable ? onCancel : undefined;
 
     const title = useMemo(() => {
+        if (isSingleImporting) {
+            return 'Importing...';
+        }
         switch (phase) {
             case 'scanning':
                 return 'Scanning Folders...';
@@ -294,25 +300,29 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
             default:
                 return 'Import Routes';
         }
-    }, [phase]);
+    }, [phase, isSingleImporting]);
 
     return (
         <Dialog title={title} visible={true} onOutsideClick={onOutsideClick} variant="details">
-            <ImportRoutesDialogView
-                compact={isCompact}
-                displayProps={displayProps}
-                selectedIds={selectedIds}
-                onAddGpx={onAddGpx}
-                onAddVideoRoute={onAddVideoRoute}
-                onSelectFolder={onSelectFolder}
-                onToggleRoute={onToggleRoute}
-                onSelectAll={onSelectAll}
-                onDeselectAll={onDeselectAll}
-                onConfirmSelection={onConfirmSelection}
-                onDone={onDone}
-                onTryAgain={handleTryAgain}
-                onCancel={onCancel}
-            />
+            {isSingleImporting ? (
+                <SingleImportingView compact={isCompact} />
+            ) : (
+                <ImportRoutesDialogView
+                    compact={isCompact}
+                    displayProps={displayProps}
+                    selectedIds={selectedIds}
+                    onAddGpx={onAddGpx}
+                    onAddVideoRoute={onAddVideoRoute}
+                    onSelectFolder={onSelectFolder}
+                    onToggleRoute={onToggleRoute}
+                    onSelectAll={onSelectAll}
+                    onDeselectAll={onDeselectAll}
+                    onConfirmSelection={onConfirmSelection}
+                    onDone={onDone}
+                    onTryAgain={handleTryAgain}
+                    onCancel={onCancel}
+                />
+            )}
         </Dialog>
     );
 };
