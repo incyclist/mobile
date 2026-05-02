@@ -1,32 +1,34 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ImportRoutesDialogViewProps } from './types';
+import { RouteImportDialogViewProps } from './types';
 import { LandingView } from './views/LandingView';
 import { ScanningView } from './views/ScanningView';
 import { ParseSelectionView } from './views/ParseSelectionView';
 import { IngestingView } from './views/IngestingView';
 import { CompleteView } from './views/CompleteView';
 import { ResultView } from './views/ResultView';
+import { SingleImportingView } from './views/SingleImportingView';
+import { Dialog } from '../Dialog';
 
 /**
  * Pure view component for the Import Routes dialog.
  * Switches between sub-views based on the current import phase.
  */
-export const ImportRoutesDialogView = ({
+export const RouteImportDialogView = ({
     compact,
     displayProps,
     selectedIds,
+    isSingleImporting,
+    title,
+    buttons,
+    onOutsideClick,
     onAddGpx,
     onAddVideoRoute,
     onSelectFolder,
     onToggleRoute,
     onSelectAll,
     onDeselectAll,
-    onConfirmSelection,
-    onDone,
-    onTryAgain,
-    onCancel,
-}: ImportRoutesDialogViewProps) => {
+}: RouteImportDialogViewProps) => {
     const {
         phase,
         scanProgress,
@@ -39,6 +41,9 @@ export const ImportRoutesDialogView = ({
     } = displayProps;
 
     const renderContent = () => {
+        if (isSingleImporting) {
+            return <SingleImportingView compact={compact} />;
+        }
         switch (phase) {
             case 'landing':
                 return (
@@ -47,7 +52,6 @@ export const ImportRoutesDialogView = ({
                         onAddGpx={onAddGpx}
                         onAddVideoRoute={onAddVideoRoute}
                         onSelectFolder={onSelectFolder}
-                        onCancel={onCancel}
                     />
                 );
 
@@ -56,7 +60,6 @@ export const ImportRoutesDialogView = ({
                     <ScanningView
                         compact={compact}
                         scannedFolders={scanProgress?.scannedFolders ?? 0}
-                        onCancel={onCancel}
                     />
                 );
 
@@ -71,8 +74,6 @@ export const ImportRoutesDialogView = ({
                         onToggle={onToggleRoute}
                         onSelectAll={onSelectAll}
                         onDeselectAll={onDeselectAll}
-                        onConfirm={onConfirmSelection}
-                        onCancel={onCancel}
                     />
                 );
 
@@ -84,7 +85,6 @@ export const ImportRoutesDialogView = ({
                         total={ingestProgress?.total ?? 0}
                         currentName={ingestProgress?.currentName ?? ''}
                         errorCount={0}
-                        onCancel={onCancel}
                     />
                 );
 
@@ -96,7 +96,6 @@ export const ImportRoutesDialogView = ({
                         skipped={completionSummary?.skipped ?? 0}
                         errors={completionSummary?.errors ?? 0}
                         failedRoutes={completionSummary?.failedRoutes ?? []}
-                        onDone={onDone}
                     />
                 );
 
@@ -107,9 +106,6 @@ export const ImportRoutesDialogView = ({
                         success={resultSuccess != null}
                         routeName={resultSuccess?.routeName}
                         error={error}
-                        onDone={onDone}
-                        onTryAgain={onTryAgain}
-                        onCancel={onCancel}
                     />
                 );
 
@@ -119,14 +115,22 @@ export const ImportRoutesDialogView = ({
     };
 
     return (
-        <View style={styles.container}>
-            {renderContent()}
-        </View>
+        <Dialog
+            title={title}
+            visible={true}
+            onOutsideClick={onOutsideClick}
+            variant="details"
+            buttons={buttons}
+        >
+            <View style={styles.container}>
+                {renderContent()}
+            </View>
+        </Dialog>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        // Leave empty as per requirements
     },
 });

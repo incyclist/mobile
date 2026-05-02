@@ -55,8 +55,6 @@ const meta: Meta<typeof ParseSelectionView> = {
         onToggle: fn(),
         onSelectAll: fn(),
         onDeselectAll: fn(),
-        onConfirm: fn(),
-        onCancel: fn(),
     },
 };
 

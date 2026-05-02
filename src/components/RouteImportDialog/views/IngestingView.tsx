@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, DimensionValue } from 'react-native';
 import { colors, textSizes } from '../../../theme';
-import { ButtonBar } from '../../ButtonBar';
 
 interface IngestingViewProps {
     compact: boolean;
@@ -9,7 +8,6 @@ interface IngestingViewProps {
     total: number;
     currentName: string;
     errorCount: number;
-    onCancel: () => void;
 }
 
 export const IngestingView = ({
@@ -18,15 +16,10 @@ export const IngestingView = ({
     total,
     currentName,
     errorCount,
-    onCancel,
 }: IngestingViewProps) => {
     const progress = total > 0 ? (current / total) * 100 : 0;
     const progressWidth = `${Math.min(100, Math.max(0, progress))}%` as DimensionValue;
     const progressStyle = { width: progressWidth };
-
-    const buttons = useMemo(() => [
-        { label: 'Cancel', onClick: onCancel, attention: true }
-    ], [onCancel]);
 
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
@@ -48,10 +41,6 @@ export const IngestingView = ({
                     {`Errors: ${errorCount}`}
                 </Text>
             )}
-
-            <View style={styles.buttonWrapper}>
-                <ButtonBar buttons={buttons} />
-            </View>
         </View>
     );
 };
@@ -103,9 +92,5 @@ const styles = StyleSheet.create({
         color: colors.error,
         marginTop: 8,
         fontWeight: 'bold',
-    },
-    buttonWrapper: {
-        marginTop: 12,
-        width: '100%',
     },
 });

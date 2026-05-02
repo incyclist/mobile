@@ -9,7 +9,6 @@ describe('LandingView', () => {
         onAddGpx: jest.fn(),
         onAddVideoRoute: jest.fn(),
         onSelectFolder: jest.fn(),
-        onCancel: jest.fn(),
     };
 
     it('renders without crashing in normal mode', () => {

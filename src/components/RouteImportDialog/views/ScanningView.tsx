@@ -1,23 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { colors, textSizes } from '../../../theme';
-import { ButtonBar } from '../../ButtonBar';
 
 interface ScanningViewProps {
     compact: boolean;
     scannedFolders: number;
-    onCancel: () => void;
 }
 
-export const ScanningView = ({ compact, scannedFolders, onCancel }: ScanningViewProps) => {
-    const buttons = [
-        {
-            label: 'Cancel',
-            onClick: onCancel,
-            primary: false,
-        },
-    ];
-
+export const ScanningView = ({ compact, scannedFolders }: ScanningViewProps) => {
     const containerStyle = [styles.container, compact && styles.containerCompact];
     const titleStyle = [styles.title, compact && styles.titleCompact];
     const textStyle = [styles.text, compact && styles.textCompact];
@@ -35,9 +25,6 @@ export const ScanningView = ({ compact, scannedFolders, onCancel }: ScanningView
             <Text style={textStyle}>
                 Folders scanned: {scannedFolders}
             </Text>
-            <View style={styles.footer}>
-                <ButtonBar buttons={buttons} />
-            </View>
         </View>
     );
 };
@@ -76,9 +63,5 @@ const styles = StyleSheet.create({
     textCompact: {
         fontSize: textSizes.smallText,
         marginBottom: 16,
-    },
-    footer: {
-        width: '100%',
-        marginTop: 'auto',
     },
 });

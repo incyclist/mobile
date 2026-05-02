@@ -1,15 +1,18 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ImportRoutesDialogView } from './RouteImportDialogView';
-import { ImportRoutesDialogViewProps } from './types';
+import { RouteImportDialogView } from './RouteImportDialogView';
+import { RouteImportDialogViewProps } from './types';
 
-const defaultProps: ImportRoutesDialogViewProps = {
+const defaultProps: RouteImportDialogViewProps = {
     compact: false,
     displayProps: {
         phase: 'landing',
         routes: [],
     },
     selectedIds: [],
+    isSingleImporting: false,
+    title: 'Import Routes',
+    buttons: [],
     onAddGpx: jest.fn(),
     onAddVideoRoute: jest.fn(),
     onSelectFolder: jest.fn(),
@@ -22,14 +25,14 @@ const defaultProps: ImportRoutesDialogViewProps = {
     onCancel: jest.fn(),
 };
 
-describe('ImportRoutesDialogView', () => {
+describe('RouteImportDialogView', () => {
     it('renders landing phase without crashing', () => {
-        render(<ImportRoutesDialogView {...defaultProps} />);
+        render(<RouteImportDialogView {...defaultProps} />);
     });
 
     it('renders scanning phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -42,7 +45,7 @@ describe('ImportRoutesDialogView', () => {
 
     it('renders parsing phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -55,7 +58,7 @@ describe('ImportRoutesDialogView', () => {
 
     it('renders selecting phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -67,7 +70,7 @@ describe('ImportRoutesDialogView', () => {
 
     it('renders ingesting phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -80,7 +83,7 @@ describe('ImportRoutesDialogView', () => {
 
     it('renders complete phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -93,7 +96,7 @@ describe('ImportRoutesDialogView', () => {
 
     it('renders result phase without crashing', () => {
         render(
-            <ImportRoutesDialogView
+            <RouteImportDialogView
                 {...defaultProps}
                 displayProps={{
                     ...defaultProps.displayProps,
@@ -105,6 +108,6 @@ describe('ImportRoutesDialogView', () => {
     });
 
     it('renders correctly in compact mode', () => {
-        render(<ImportRoutesDialogView {...defaultProps} compact={true} />);
+        render(<RouteImportDialogView {...defaultProps} compact={true} />);
     });
 });

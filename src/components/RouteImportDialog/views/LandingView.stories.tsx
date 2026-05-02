@@ -10,7 +10,6 @@ const meta: Meta<typeof LandingView> = {
         onAddGpx: fn(),
         onAddVideoRoute: fn(),
         onSelectFolder: fn(),
-        onCancel: fn(),
     },
 };
 

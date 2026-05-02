@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { ImportRoutesDialogView } from './RouteImportDialogView';
+import { RouteImportDialogView } from './RouteImportDialogView';
 
-const meta: Meta<typeof ImportRoutesDialogView> = {
+const meta: Meta<typeof RouteImportDialogView> = {
     title: 'Components/RouteImportDialog',
-    component: ImportRoutesDialogView,
+    component: RouteImportDialogView,
     args: {
         compact: false,
         displayProps: {
@@ -12,6 +12,10 @@ const meta: Meta<typeof ImportRoutesDialogView> = {
             routes: [],
         },
         selectedIds: [],
+        isSingleImporting: false,
+        title: 'Import Routes',
+        buttons: [],
+        onOutsideClick: fn(),
         onAddGpx: fn(),
         onAddVideoRoute: fn(),
         onSelectFolder: fn(),
@@ -27,7 +31,7 @@ const meta: Meta<typeof ImportRoutesDialogView> = {
 
 export default meta;
 
-type Story = StoryObj<typeof ImportRoutesDialogView>;
+type Story = StoryObj<typeof RouteImportDialogView>;
 
 export const Landing: Story = {
     args: {
@@ -35,6 +39,7 @@ export const Landing: Story = {
             phase: 'landing',
             routes: [],
         },
+        title: 'Import Routes',
     },
 };
 
@@ -45,6 +50,8 @@ export const Scanning: Story = {
             scanProgress: { scannedFolders: 12 },
             routes: [],
         },
+        title: 'Scanning Folders...',
+        buttons: [{ label: 'Cancel', onClick: fn() }],
     },
 };
 
@@ -58,6 +65,11 @@ export const Parsing: Story = {
                 { label: 'Route 2', distance: 5000, format: 'video', importable: true, alreadyImported: false },
             ] as any,
         },
+        title: 'Parsing Routes...',
+        buttons: [
+            { label: 'Import (0)', onClick: fn(), primary: true, disabled: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
     },
 };
 
@@ -72,7 +84,12 @@ export const Selecting: Story = {
                 { label: 'Existing Route', distance: 12000, format: 'gpx', importable: true, alreadyImported: true },
             ] as any,
         },
-        selectedIds: [],
+        selectedIds: ['1', '2'],
+        title: 'Select Routes',
+        buttons: [
+            { label: 'Import (2)', onClick: fn(), primary: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
     },
 };
 
@@ -83,6 +100,8 @@ export const Ingesting: Story = {
             ingestProgress: { current: 2, total: 4, currentName: 'Forest Trail' },
             routes: [],
         },
+        title: 'Importing...',
+        buttons: [{ label: 'Cancel', onClick: fn() }],
     },
 };
 
@@ -100,6 +119,8 @@ export const Complete: Story = {
             },
             routes: [],
         },
+        title: 'Import Summary',
+        buttons: [{ label: 'Done', onClick: fn(), primary: true }],
     },
 };
 
@@ -110,6 +131,8 @@ export const ResultSuccess: Story = {
             resultSuccess: { routeName: 'Evening Ride' },
             routes: [],
         },
+        title: 'Import Result',
+        buttons: [{ label: 'Done', onClick: fn(), primary: true }],
     },
 };
 
@@ -120,6 +143,11 @@ export const ResultError: Story = {
             error: 'File is not a valid GPX.',
             routes: [],
         },
+        title: 'Import Result',
+        buttons: [
+            { label: 'Try Again', onClick: fn(), primary: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
     },
 };
 
@@ -132,5 +160,10 @@ export const Compact: Story = {
                 { label: 'Route 1', distance: 10000, format: 'gpx', importable: true, alreadyImported: false },
             ] as any,
         },
+        title: 'Select Routes',
+        buttons: [
+            { label: 'Import (0)', onClick: fn(), primary: true, disabled: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
     },
 };

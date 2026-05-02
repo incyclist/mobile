@@ -10,13 +10,13 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RoutesPageView } from './View';
-import { ErrorBoundary, MainBackground, RouteDetailsDialog, ImportRoutesDialog } from '../../components';
+import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 
 const PageView = memo(RoutesPageView)
 const DetailsDialog = memo(RouteDetailsDialog)
-const ImportDialog = memo(ImportRoutesDialog)
+const ImportDialog = memo(RouteImportDialog)
 
 const initialProps: RoutePageDisplayProps = {
     loading: true,
