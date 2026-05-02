@@ -49,13 +49,9 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const onParseProgress = useCallback(() => onUpdate(), [onUpdate]);
     const onIngestProgress = useCallback(() => onUpdate(), [onUpdate]);
 
-    const onParseResult = useCallback(
-        (parsed: ParsedRoute) => {
-            refParsedRoutes.current = [...refParsedRoutes.current, parsed];
-            onUpdate();
-        },
-        [onUpdate]
-    );
+    const onParseResult = useCallback((parsed: ParsedRoute) => {
+        refParsedRoutes.current = [...refParsedRoutes.current, parsed];
+    }, []);
 
     const onSingleResult = useCallback(() => {
         const obs = refSingleObserver.current;
