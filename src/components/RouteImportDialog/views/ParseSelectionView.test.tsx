@@ -1,19 +1,19 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+import { ParseSelectionView } from './ParseSelectionView';
 import type { RouteDisplayItem } from 'incyclist-services';
 
-// Mock hooks before importing the component
 jest.mock('../../../hooks', () => ({
-    useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
-    useUnmountEffect: (fn: () => void) => { /* no-op */ },
+    useLogging: () => ({
+        logEvent: jest.fn(),
+        logError: jest.fn(),
+    }),
+    useUnmountEffect: (fn: () => void) => { /* no-op in tests */ },
 }));
 
-// Mock services to avoid ESM/uuid issues in Jest
 jest.mock('incyclist-services', () => ({
     getRoutesPageService: jest.fn(),
 }));
-
-import { ParseSelectionView } from './ParseSelectionView';
 
 const mockObserver = { on: jest.fn(), off: jest.fn(), emit: jest.fn() };
 
@@ -40,31 +40,32 @@ const mockRoutes: RouteDisplayItem[] = [
 ];
 
 describe('ParseSelectionView', () => {
+    const onToggle = jest.fn();
+    const onSelectAll = jest.fn();
+    const onDeselectAll = jest.fn();
+
+    const defaultProps = {
+        compact: false,
+        routes: mockRoutes,
+        selectedIds: [],
+        onToggle,
+        onSelectAll,
+        onDeselectAll,
+    };
+
     it('renders without crashing', () => {
-        render(
-            <ParseSelectionView
-                compact={false}
-                routes={mockRoutes}
-                selectedIds={[]}
-                onToggle={jest.fn()}
-                onSelectAll={jest.fn()}
-                onDeselectAll={jest.fn()}
-            />
-        );
+        render(<ParseSelectionView {...defaultProps} />);
     });
 
-    it('renders the correct number of routes', () => {
-        const { getByText } = render(
-            <ParseSelectionView
-                compact={false}
-                routes={mockRoutes}
-                selectedIds={[]}
-                onToggle={jest.fn()}
-                onSelectAll={jest.fn()}
-                onDeselectAll={jest.fn()}
-            />
-        );
-        expect(getByText('Route 1')).toBeTruthy();
-        expect(getByText('Route 2')).toBeTruthy();
+    it('calls onSelectAll when Select All is pressed', () => {
+        const { getByText } = render(<ParseSelectionView {...defaultProps} />);
+        fireEvent.press(getByText('Select All'));
+        expect(onSelectAll).toHaveBeenCalled();
+    });
+
+    it('calls onDeselectAll when Deselect All is pressed', () => {
+        const { getByText } = render(<ParseSelectionView {...defaultProps} />);
+        fireEvent.press(getByText('Deselect All'));
+        expect(onDeselectAll).toHaveBeenCalled();
     });
 });
