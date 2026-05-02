@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { SingleImportingView } from './SingleImportingView';
 
 describe('SingleImportingView', () => {
-    it('renders correctly', () => {
+    it('renders without crashing', () => {
         render(<SingleImportingView compact={false} />);
     });
 

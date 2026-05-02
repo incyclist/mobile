@@ -6,6 +6,9 @@ interface SingleImportingViewProps {
     compact: boolean;
 }
 
+/**
+ * Pure view component shown during a single file import.
+ */
 export const SingleImportingView = ({ compact }: SingleImportingViewProps) => {
     const containerStyle = [styles.container, compact && styles.containerCompact];
     const titleStyle = [styles.title, compact && styles.titleCompact];
