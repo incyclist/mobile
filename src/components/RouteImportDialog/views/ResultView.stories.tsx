@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { ResultView } from './ResultView';
 
 const meta: Meta<typeof ResultView> = {
@@ -9,9 +8,6 @@ const meta: Meta<typeof ResultView> = {
         compact: false,
         success: true,
         routeName: 'Alpe d\'Huez',
-        onDone: fn(),
-        onTryAgain: fn(),
-        onCancel: fn(),
     },
 };
 

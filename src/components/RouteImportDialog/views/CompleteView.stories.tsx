@@ -1,13 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { CompleteView } from './CompleteView';
 
 const meta: Meta<typeof CompleteView> = {
     title: 'Components/ImportRoutesDialog/CompleteView',
     component: CompleteView,
-    args: {
-        onDone: fn(),
-    },
+    args: {},
 };
 
 export default meta;
