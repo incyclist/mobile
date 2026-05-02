@@ -7,7 +7,7 @@ interface SingleImportingViewProps {
 }
 
 /**
- * Pure view component shown during a single file import.
+ * Pure view shown when a single file is being imported after selection.
  */
 export const SingleImportingView = ({ compact }: SingleImportingViewProps) => {
     const containerStyle = [styles.container, compact && styles.containerCompact];
@@ -15,10 +15,10 @@ export const SingleImportingView = ({ compact }: SingleImportingViewProps) => {
 
     return (
         <View style={containerStyle}>
-            <ActivityIndicator 
-                size="large" 
-                color={colors.buttonPrimary} 
-                style={styles.spinner} 
+            <ActivityIndicator
+                size="large"
+                color={colors.buttonPrimary}
+                style={styles.spinner}
             />
             <Text style={titleStyle}>
                 Importing route...

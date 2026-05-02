@@ -187,7 +187,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
             refSingleObserver.current = observer;
             observer.on('success', onSingleResult);
             observer.on('error', onSingleResult);
-            // Fix: No immediate onUpdate here to avoid race with app resume
+            // No immediate onUpdate here to avoid race with app resume
         } catch (err) {
             logError(err, 'onAddGpx');
         }
@@ -203,7 +203,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
             refSingleObserver.current = observer;
             observer.on('success', onSingleResult);
             observer.on('error', onSingleResult);
-            // Fix: No immediate onUpdate here to avoid race with app resume
+            // No immediate onUpdate here to avoid race with app resume
         } catch (err) {
             logError(err, 'onAddVideoRoute');
         }
