@@ -8,7 +8,7 @@ jest.mock('../../../hooks', () => ({
         logEvent: jest.fn(),
         logError: jest.fn(),
     }),
-    useUnmountEffect: (fn: () => void) => { /* no-op in tests */ },
+    useUnmountEffect: jest.fn(),
 }));
 
 jest.mock('incyclist-services', () => ({
