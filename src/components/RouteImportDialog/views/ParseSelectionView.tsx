@@ -4,6 +4,7 @@ import type { RouteDisplayItem } from 'incyclist-services';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { useLogging } from '../../../hooks';
+import { Dynamic } from '../../Dynamic';
 
 interface ParseSelectionViewProps {
     compact: boolean;
@@ -133,12 +134,19 @@ export const ParseSelectionView = ({
     }, [logEvent, onDeselectAll]);
     
     const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
-        <RouteRow 
-            item={routeItem} 
-            isSelected={selectedIds.includes(routeItem.id)} 
-            onToggle={onToggle}
-            compact={compact}
-        />
+        <Dynamic
+            observer={routeItem.observer}
+            event="updated"
+            prop="item"
+            transform={(updated: RouteDisplayItem) => updated}
+        >
+            <RouteRow 
+                item={routeItem} 
+                isSelected={selectedIds.includes(routeItem.id)} 
+                onToggle={onToggle}
+                compact={compact}
+            />
+        </Dynamic>
     ), [selectedIds, onToggle, compact]);
 
     const containerStyle = [styles.container, compact && styles.containerCompact];
