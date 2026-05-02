@@ -3,11 +3,30 @@ import path from 'path-browserify';
 
 export class PathBinding implements IPathBinding {
     join(...paths: string[]): string {
-        return path.join(...paths);
+        if (paths[0]?.startsWith('content://')) {
+            return paths.join('%2F')
+        }
+        if (paths[0]?.startsWith('file://')) {
+            return 'file://' + path.join(...paths.map((p, i) => i === 0 ? p.slice(7) : p))
+        }
+        return path.join(...paths)
     }
 
     parse(pathString: string): any {
-        return path.parse(pathString);
+        if (pathString.startsWith('content://')) {
+            const parts = pathString.split('%2F')
+            const encoded = parts.pop() ?? ''
+            const base = decodeURIComponent(encoded)
+            const dir = parts.join('%2F')
+            const dotIndex = base.lastIndexOf('.')
+            const ext = dotIndex >= 0 ? base.slice(dotIndex) : ''
+            const name = dotIndex >= 0 ? base.slice(0, dotIndex) : base
+            return { root: 'content://', dir, base, ext, name }
+        }        
+        if (pathString.startsWith('file://')) {
+            return path.parse(pathString.slice(7))
+        }
+        return path.parse(pathString)
     }
 }
 

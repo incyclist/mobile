@@ -58,7 +58,11 @@ class SAFModule(reactContext: ReactApplicationContext) :
     override fun readFile(uri: String, encoding: String, promise: Promise) {
         scope.launch {
             try {
+
                 val parsed = Uri.parse(uri)
+
+                android.util.Log.d("SAFModule", "Readfile (${parsed},${encoding})")
+
                 val bytes: ByteArray = when (parsed.scheme) {
                     ContentResolver.SCHEME_CONTENT -> {
                         reactApplicationContext.contentResolver
@@ -78,6 +82,8 @@ class SAFModule(reactContext: ReactApplicationContext) :
                 }
                 promise.resolve(result)
             } catch (e: Exception) {
+                android.util.Log.d("SAFModule", "Readfile Error: ${e.message}")
+
                 promise.reject("ERR_READ", "Failed to read '$uri': ${e.message}", e)
             }
         }
@@ -115,11 +121,11 @@ class SAFModule(reactContext: ReactApplicationContext) :
         val contentResolver = reactApplicationContext.contentResolver
 
         val treeDocumentId = try {
-            DocumentsContract.getTreeDocumentId(treeUri)
-        } catch (e: Exception) {
             DocumentsContract.getDocumentId(treeUri)
+        } catch (e: Exception) {
+            DocumentsContract.getTreeDocumentId(treeUri)
         }
-
+        
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
             treeUri,
             treeDocumentId

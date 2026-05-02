@@ -6,13 +6,13 @@ import { TurboModuleRegistry, TurboModule } from 'react-native';
 interface SAFSpec extends TurboModule {
     listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
     exists(uri: string): Promise<boolean>
+    readFile(uri: string, encoding: string): Promise<string>
 }
 
 const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
-        console.log('# write file', path);
         
         if (Buffer.isBuffer(data)) {
             // Buffer already contains raw bytes — convert to base64 for RNFS
@@ -29,6 +29,10 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string> {
+        if (path.startsWith('content://')) {
+            return await SAF.readFile(path, encoding ?? 'utf8')
+        }
+
         let rnfsEncoding: string = 'utf8';
     
         if (encoding === 'base64') {
@@ -141,7 +145,6 @@ export class FileSystemBinding implements IFileSystem {
     async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
         const isExtended = options?.extended === true;
         const isRecursive = options?.recursive === true;
-
         const results: any[] = [];
         const stack: string[] = [path];
 
