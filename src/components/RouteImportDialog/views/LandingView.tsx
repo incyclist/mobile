@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { IconName } from '../../Icon/types';
+import { useLogging } from '../../../hooks';
 
 interface LandingViewProps {
     compact: boolean;
@@ -46,6 +47,23 @@ export const LandingView = ({
     onAddVideoRoute, 
     onSelectFolder, 
 }: LandingViewProps) => {
+    const { logEvent } = useLogging('LandingView');
+
+    const handleAddGpx = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'add-gpx', eventSource: 'user' });
+        onAddGpx();
+    }, [logEvent, onAddGpx]);
+
+    const handleAddVideoRoute = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'add-video-route', eventSource: 'user' });
+        onAddVideoRoute();
+    }, [logEvent, onAddVideoRoute]);
+
+    const handleSelectFolder = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'import-library', eventSource: 'user' });
+        onSelectFolder();
+    }, [logEvent, onSelectFolder]);
+
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
             <View style={styles.optionsContainer}>
@@ -53,7 +71,7 @@ export const LandingView = ({
                     icon='plus' 
                     title='Add GPX' 
                     subtitle='Individual route file' 
-                    onPress={onAddGpx} 
+                    onPress={handleAddGpx} 
                     compact={compact} 
                 />
                 {Platform.OS === 'ios' && (
@@ -61,7 +79,7 @@ export const LandingView = ({
                         icon='plus' 
                         title='Add Video Route' 
                         subtitle='EPM, RLV or XML file' 
-                        onPress={onAddVideoRoute} 
+                        onPress={handleAddVideoRoute} 
                         compact={compact} 
                     />
                 )}
@@ -69,7 +87,7 @@ export const LandingView = ({
                     icon='import-route' 
                     title='Import Video Library' 
                     subtitle='Scan folder for videos' 
-                    onPress={onSelectFolder} 
+                    onPress={handleSelectFolder} 
                     compact={compact} 
                 />
             </View>

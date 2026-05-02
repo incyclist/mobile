@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import type { RouteDisplayItem } from 'incyclist-services';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
+import { useLogging } from '../../../hooks';
 
 interface ParseSelectionViewProps {
     compact: boolean;
@@ -39,6 +40,17 @@ const WarningIndicator = () => (
     </View>
 );
 
+const friendlyError = (error: string): string => {
+    const lower = error.toLowerCase();
+    if (lower.includes('could not open file') || lower.includes('could not read')) {
+        return 'Could not read file';
+    }
+    if (lower.includes('could not parse')) {
+        return 'Invalid file format';
+    }
+    return 'Import not supported';
+};
+
 const RouteRow = ({ 
     item, 
     isSelected, 
@@ -50,7 +62,17 @@ const RouteRow = ({
     onToggle: (id: string) => void;
     compact: boolean;
 }) => {
-    const handleToggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
+    const { logEvent } = useLogging('ParseSelectionView');
+    const handleToggle = useCallback(() => {
+        logEvent({
+            message: isSelected ? 'option deselected' : 'option selected',
+            field: 'route',
+            value: item.label,
+            eventSource: 'user'
+        });
+        onToggle(item.id);
+    }, [isSelected, item.label, item.id, onToggle, logEvent]);
+
     const isImportable = item.importable !== false;
     const rowStyle = [styles.row, !isImportable && styles.rowDisabled];
     const labelStyle = [styles.label, compact && styles.labelCompact];
@@ -80,7 +102,7 @@ const RouteRow = ({
                     )}
                 </View>
                 {!isImportable && item.errorReason && (
-                    <Text style={styles.errorText}>{item.errorReason}</Text>
+                    <Text style={styles.errorText}>{friendlyError(item.errorReason)}</Text>
                 )}
             </View>
             {!isImportable && <WarningIndicator />}
@@ -97,7 +119,18 @@ export const ParseSelectionView = ({
     onSelectAll,
     onDeselectAll,
 }: ParseSelectionViewProps) => {
+    const { logEvent } = useLogging('ParseSelectionView');
     const isParsing = !!parseProgress;
+
+    const handleSelectAll = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'select-all', eventSource: 'user' });
+        onSelectAll();
+    }, [logEvent, onSelectAll]);
+
+    const handleDeselectAll = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'deselect-all', eventSource: 'user' });
+        onDeselectAll();
+    }, [logEvent, onDeselectAll]);
     
     const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
         <RouteRow 
@@ -123,10 +156,10 @@ export const ParseSelectionView = ({
             </View>
 
             <View style={styles.bulkActions}>
-                <TouchableOpacity onPress={onSelectAll} style={styles.bulkButton}>
+                <TouchableOpacity onPress={handleSelectAll} style={styles.bulkButton}>
                     <Text style={styles.bulkText}>Select All</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={onDeselectAll} style={styles.bulkButton}>
+                <TouchableOpacity onPress={handleDeselectAll} style={styles.bulkButton}>
                     <Text style={styles.bulkText}>Deselect All</Text>
                 </TouchableOpacity>
             </View>
