@@ -4,9 +4,9 @@ export interface ButtonBarProps {
 
 export interface ButtonProps {
     id?: string
-    label: string,
+    label: string
     primary?: boolean
-    attention?: boolean,
-    onClick: ()=>void
+    attention?: boolean
+    onClick: () => void
+    disabled?: boolean
 }
-
