@@ -12,7 +12,7 @@ export interface DialogProps {
     width?: number;
     onOutsideClick?: () => void;
     visible?: boolean;
-    buttons?: Array<ButtonProps>;
+    buttons?: Array<ButtonProps & { disabled?: boolean }>;
     style?: StyleProp<ViewStyle>;
     nested?: boolean;
     titleStyle?: StyleProp<TextStyle>;

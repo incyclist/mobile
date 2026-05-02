@@ -5,9 +5,7 @@ import { CompleteView } from './CompleteView';
 const meta: Meta<typeof CompleteView> = {
     title: 'Components/ImportRoutesDialog/CompleteView',
     component: CompleteView,
-    args: {
-        onDone: fn(),
-    },
+    args: {},
 };
 
 export default meta;

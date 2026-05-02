@@ -5,9 +5,7 @@ import { IngestingView } from './IngestingView';
 const meta: Meta<typeof IngestingView> = {
     title: 'Components/ImportRoutesDialog/IngestingView',
     component: IngestingView,
-    args: {
-        onCancel: fn(),
-    },
+    args: {},
 };
 
 export default meta;

@@ -33,8 +33,6 @@ describe('ParseSelectionView', () => {
                 onToggle={() => {}}
                 onSelectAll={() => {}}
                 onDeselectAll={() => {}}
-                onConfirm={() => {}}
-                onCancel={() => {}}
             />
         );
         expect(getByText('Route 1')).toBeTruthy();
@@ -51,8 +49,6 @@ describe('ParseSelectionView', () => {
                 onToggle={() => {}}
                 onSelectAll={() => {}}
                 onDeselectAll={() => {}}
-                onConfirm={() => {}}
-                onCancel={() => {}}
             />
         );
         expect(getByText(/Parsing: 5\/10/)).toBeTruthy();

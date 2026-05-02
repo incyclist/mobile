@@ -8,7 +8,6 @@ const meta: Meta<typeof ScanningView> = {
     args: {
         compact: false,
         scannedFolders: 0,
-        onCancel: fn(),
     },
 };
 
