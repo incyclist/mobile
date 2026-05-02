@@ -1,13 +1,18 @@
 import { ImportDisplayProps } from 'incyclist-services';
+import { ButtonProps } from '../ButtonBar/types';
 
-export interface ImportRoutesDialogProps {
+export interface RouteImportDialogProps {
     onClose: () => void;
 }
 
-export interface ImportRoutesDialogViewProps {
+export interface RouteImportDialogViewProps {
     compact: boolean;
     displayProps: ImportDisplayProps;
     selectedIds: string[];
+    isSingleImporting: boolean;
+    title: string;
+    buttons: ButtonProps[];
+    onOutsideClick?: () => void;
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;

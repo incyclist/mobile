@@ -6,22 +6,20 @@ import {
     ScannedRoute,
     IObserver,
 } from 'incyclist-services';
-import { Dialog } from '../Dialog';
-import { ImportRoutesDialogView } from './RouteImportDialogView';
-import { ImportRoutesDialogProps } from './types';
+import { RouteImportDialogView } from './RouteImportDialogView';
+import { RouteImportDialogProps } from './types';
 import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
-import { SingleImportingView } from './views/SingleImportingView';
 
 /**
  * Smart component for the Import Routes dialog.
  * Owns service subscriptions and lifecycle directly.
  */
-export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
+export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logError } = useLogging('ImportRoutesDialog');
+    const { logError } = useLogging('RouteImportDialog');
     const { pickFile } = useFilePicker();
 
     const [displayProps, setDisplayProps] = useState<ImportDisplayProps>(() =>
@@ -263,7 +261,6 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
 
     useEffect(() => {
         if (!refInitialized.current) {
-            getRoutesPageService().onImportClicked();
             onUpdate();
             refInitialized.current = true;
         }
@@ -302,27 +299,68 @@ export const ImportRoutesDialog = ({ onClose }: ImportRoutesDialogProps) => {
         }
     }, [phase, isSingleImporting]);
 
+    const buttons = useMemo(() => {
+        if (isSingleImporting) return [];
+        switch (phase) {
+            case 'landing':
+                return [];
+            case 'scanning':
+                return [{ label: 'Cancel', onClick: onCancel }];
+            case 'parsing':
+            case 'selecting':
+                return [
+                    {
+                        label: `Import (${selectedIds.length})`,
+                        onClick: onConfirmSelection,
+                        primary: true,
+                        disabled: phase === 'parsing' || selectedIds.length === 0,
+                    },
+                    { label: 'Cancel', onClick: onCancel },
+                ];
+            case 'ingesting':
+                return [{ label: 'Cancel', onClick: onCancel }];
+            case 'complete':
+                return [{ label: 'Done', onClick: onDone, primary: true }];
+            case 'result':
+                return displayProps.resultSuccess
+                    ? [{ label: 'Done', onClick: onDone, primary: true }]
+                    : [
+                          { label: 'Try Again', onClick: handleTryAgain, primary: true },
+                          { label: 'Cancel', onClick: onCancel },
+                      ];
+            default:
+                return [];
+        }
+    }, [
+        phase,
+        isSingleImporting,
+        selectedIds.length,
+        displayProps.resultSuccess,
+        onCancel,
+        onConfirmSelection,
+        onDone,
+        handleTryAgain,
+    ]);
+
     return (
-        <Dialog title={title} visible={true} onOutsideClick={onOutsideClick} variant="details">
-            {isSingleImporting ? (
-                <SingleImportingView compact={isCompact} />
-            ) : (
-                <ImportRoutesDialogView
-                    compact={isCompact}
-                    displayProps={displayProps}
-                    selectedIds={selectedIds}
-                    onAddGpx={onAddGpx}
-                    onAddVideoRoute={onAddVideoRoute}
-                    onSelectFolder={onSelectFolder}
-                    onToggleRoute={onToggleRoute}
-                    onSelectAll={onSelectAll}
-                    onDeselectAll={onDeselectAll}
-                    onConfirmSelection={onConfirmSelection}
-                    onDone={onDone}
-                    onTryAgain={handleTryAgain}
-                    onCancel={onCancel}
-                />
-            )}
-        </Dialog>
+        <RouteImportDialogView
+            compact={isCompact}
+            title={title}
+            buttons={buttons}
+            isSingleImporting={isSingleImporting}
+            onOutsideClick={onOutsideClick}
+            displayProps={displayProps}
+            selectedIds={selectedIds}
+            onAddGpx={onAddGpx}
+            onAddVideoRoute={onAddVideoRoute}
+            onSelectFolder={onSelectFolder}
+            onToggleRoute={onToggleRoute}
+            onSelectAll={onSelectAll}
+            onDeselectAll={onDeselectAll}
+            onConfirmSelection={onConfirmSelection}
+            onDone={onDone}
+            onTryAgain={handleTryAgain}
+            onCancel={onCancel}
+        />
     );
 };

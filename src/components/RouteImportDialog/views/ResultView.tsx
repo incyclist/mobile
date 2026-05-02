@@ -1,17 +1,13 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
-import { ButtonBar } from '../../ButtonBar/ButtonBar';
 
 interface ResultViewProps {
     compact: boolean;
     success: boolean;
     routeName?: string;
     error?: string;
-    onDone: () => void;
-    onTryAgain: () => void;
-    onCancel: () => void;
 }
 
 export const ResultView = ({ 
@@ -19,22 +15,7 @@ export const ResultView = ({
     success, 
     routeName, 
     error, 
-    onDone, 
-    onTryAgain, 
-    onCancel 
 }: ResultViewProps) => {
-    const buttons = useMemo(() => {
-        if (success) {
-            return [
-                { label: 'Done', primary: true, onClick: onDone }
-            ];
-        }
-        return [
-            { label: 'Try Again', primary: true, onClick: onTryAgain },
-            { label: 'Cancel', onClick: onCancel }
-        ];
-    }, [success, onDone, onTryAgain, onCancel]);
-
     const statusColor = success ? colors.success : colors.error;
     const title = success ? 'Import Successful' : 'Import Failed';
     
@@ -62,7 +43,6 @@ export const ResultView = ({
                 <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
                 <Text style={[styles.message, compact && styles.messageCompact]}>{message}</Text>
             </View>
-            <ButtonBar buttons={buttons} />
         </View>
     );
 };
