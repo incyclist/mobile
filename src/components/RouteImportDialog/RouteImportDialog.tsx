@@ -7,7 +7,7 @@ import {
     IObserver,
 } from 'incyclist-services';
 import { Dialog } from '../Dialog';
-import { ImportRoutesDialogView } from './ImportRoutesDialogView';
+import { ImportRoutesDialogView } from './RouteImportDialogView';
 import { ImportRoutesDialogProps } from './types';
 import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';

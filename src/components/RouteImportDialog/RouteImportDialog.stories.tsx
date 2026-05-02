@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { ImportRoutesDialogView } from './ImportRoutesDialogView';
+import { ImportRoutesDialogView } from './RouteImportDialogView';
 
 const meta: Meta<typeof ImportRoutesDialogView> = {
-    title: 'Components/ImportRoutesDialog',
+    title: 'Components/RouteImportDialog',
     component: ImportRoutesDialogView,
     args: {
         compact: false,

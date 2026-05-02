@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ImportRoutesDialogView } from './ImportRoutesDialogView';
+import { ImportRoutesDialogView } from './RouteImportDialogView';
 import { ImportRoutesDialogViewProps } from './types';
 
 const defaultProps: ImportRoutesDialogViewProps = {
