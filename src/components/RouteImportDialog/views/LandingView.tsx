@@ -1,16 +1,14 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { IconName } from '../../Icon/types';
-import { ButtonBar } from '../../ButtonBar/ButtonBar';
 
 interface LandingViewProps {
     compact: boolean;
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;
-    onCancel: () => void;
 }
 
 const OptionTile = ({ 
@@ -47,12 +45,7 @@ export const LandingView = ({
     onAddGpx, 
     onAddVideoRoute, 
     onSelectFolder, 
-    onCancel 
 }: LandingViewProps) => {
-    const buttons = useMemo(() => [
-        { label: 'Cancel', onClick: onCancel }
-    ], [onCancel]);
-
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
             <View style={styles.optionsContainer}>
@@ -80,7 +73,6 @@ export const LandingView = ({
                     compact={compact} 
                 />
             </View>
-            <ButtonBar buttons={buttons} />
         </View>
     );
 };

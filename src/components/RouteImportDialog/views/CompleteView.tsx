@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, textSizes } from '../../../theme';
-import { ButtonBar } from '../../ButtonBar';
 import { Icon } from '../../Icon';
 import type { FailedRoute } from 'incyclist-services';
 
@@ -11,7 +10,6 @@ interface CompleteViewProps {
     skipped: number;
     errors: number;
     failedRoutes: FailedRoute[];
-    onDone: () => void;
 }
 
 const SummaryItem = ({ label, count, color = colors.text }: { label: string; count: number; color?: string }) => {
@@ -30,17 +28,12 @@ export const CompleteView = ({
     skipped,
     errors,
     failedRoutes,
-    onDone,
 }: CompleteViewProps) => {
     const [showErrors, setShowErrors] = useState(false);
 
     const toggleErrors = useCallback(() => {
         setShowErrors(prev => !prev);
     }, []);
-
-    const buttons = useMemo(() => [
-        { label: 'Done', onClick: onDone, primary: true }
-    ], [onDone]);
 
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
@@ -77,10 +70,6 @@ export const CompleteView = ({
             <Text style={[styles.note, compact && styles.noteCompact]}>
                 Videos are not copied — they play from their original location.
             </Text>
-
-            <View style={styles.buttonWrapper}>
-                <ButtonBar buttons={buttons} />
-            </View>
         </View>
     );
 };
@@ -177,8 +166,5 @@ const styles = StyleSheet.create({
     },
     noteCompact: {
         marginBottom: 8,
-    },
-    buttonWrapper: {
-        width: '100%',
     },
 });

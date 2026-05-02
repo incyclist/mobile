@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import type { RouteDisplayItem } from 'incyclist-services';
 import { colors, textSizes } from '../../../theme';
-import { ButtonBar } from '../../ButtonBar';
 import { Icon } from '../../Icon';
 
 interface ParseSelectionViewProps {
@@ -13,8 +12,6 @@ interface ParseSelectionViewProps {
     onToggle: (id: string) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;
-    onConfirm: () => void;
-    onCancel: () => void;
 }
 
 const Checkbox = ({ checked, disabled, onToggle }: { checked: boolean; disabled?: boolean; onToggle: () => void }) => {
@@ -99,11 +96,8 @@ export const ParseSelectionView = ({
     onToggle,
     onSelectAll,
     onDeselectAll,
-    onConfirm,
-    onCancel,
 }: ParseSelectionViewProps) => {
     const isParsing = !!parseProgress;
-    const noop = useCallback(() => {}, []);
     
     const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
         <RouteRow 
@@ -114,21 +108,7 @@ export const ParseSelectionView = ({
         />
     ), [selectedIds, onToggle, compact]);
 
-    const buttons = [
-        {
-            label: `Import (${selectedIds.length})`,
-            onClick: isParsing ? noop : onConfirm,
-            primary: true,
-        },
-        {
-            label: 'Cancel',
-            onClick: onCancel,
-            primary: false,
-        },
-    ];
-
     const containerStyle = [styles.container, compact && styles.containerCompact];
-    const footerStyle = [styles.footer, isParsing && styles.footerDisabled];
 
     return (
         <View style={containerStyle}>
@@ -158,10 +138,6 @@ export const ParseSelectionView = ({
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
             />
-
-            <View style={footerStyle}>
-                <ButtonBar buttons={buttons} />
-            </View>
         </View>
     );
 };
@@ -294,13 +270,5 @@ const styles = StyleSheet.create({
         color: colors.iconSelected,
         fontSize: textSizes.subtitle,
         fontWeight: 'bold',
-    },
-    footer: {
-        borderTopWidth: 1,
-        borderTopColor: colors.listSeparator,
-        paddingTop: 8,
-    },
-    footerDisabled: {
-        opacity: 0.5,
     },
 });
