@@ -40,6 +40,17 @@ const WarningIndicator = () => (
     </View>
 );
 
+const friendlyError = (error: string): string => {
+    const lower = error.toLowerCase();
+    if (lower.includes('could not open file') || lower.includes('could not read')) {
+        return 'Could not read file';
+    }
+    if (lower.includes('could not parse')) {
+        return 'Invalid file format';
+    }
+    return 'Import not supported';
+};
+
 const RouteRow = ({ 
     item, 
     isSelected, 
@@ -91,7 +102,7 @@ const RouteRow = ({
                     )}
                 </View>
                 {!isImportable && item.errorReason && (
-                    <Text style={styles.errorText}>{item.errorReason}</Text>
+                    <Text style={styles.errorText}>{friendlyError(item.errorReason)}</Text>
                 )}
             </View>
             {!isImportable && <WarningIndicator />}
