@@ -1,18 +1,19 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ParseSelectionView } from './ParseSelectionView';
 import type { RouteDisplayItem } from 'incyclist-services';
 
+// Mock hooks before importing the component
+jest.mock('../../../hooks', () => ({
+    useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
+    useUnmountEffect: (fn: () => void) => { /* no-op */ },
+}));
+
+// Mock services to avoid ESM/uuid issues in Jest
 jest.mock('incyclist-services', () => ({
     getRoutesPageService: jest.fn(),
 }));
 
-jest.mock('../../../hooks', () => ({
-    useLogging: () => ({
-        logEvent: jest.fn(),
-        logError: jest.fn(),
-    }),
-}));
+import { ParseSelectionView } from './ParseSelectionView';
 
 const mockObserver = { on: jest.fn(), off: jest.fn(), emit: jest.fn() };
 
@@ -50,5 +51,20 @@ describe('ParseSelectionView', () => {
                 onDeselectAll={jest.fn()}
             />
         );
+    });
+
+    it('renders the correct number of routes', () => {
+        const { getByText } = render(
+            <ParseSelectionView
+                compact={false}
+                routes={mockRoutes}
+                selectedIds={[]}
+                onToggle={jest.fn()}
+                onSelectAll={jest.fn()}
+                onDeselectAll={jest.fn()}
+            />
+        );
+        expect(getByText('Route 1')).toBeTruthy();
+        expect(getByText('Route 2')).toBeTruthy();
     });
 });
