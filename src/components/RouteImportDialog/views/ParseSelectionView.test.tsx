@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ParseSelectionView } from './ParseSelectionView';
-import type { RouteDisplayItem } from 'incyclist-services';
+import { Observer, type RouteDisplayItem } from 'incyclist-services';
 
 const mockRoutes: RouteDisplayItem[] = [
     { 
@@ -10,7 +10,8 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'gpx', 
         distance: { value: 10, unit: 'km' as any }, 
         importable: true, 
-        alreadyImported: false 
+        alreadyImported: false,
+        observer:new Observer()
     },
     { 
         id: '2', 
@@ -19,7 +20,8 @@ const mockRoutes: RouteDisplayItem[] = [
         distance: { value: 15, unit: 'km' as any }, 
         importable: false, 
         alreadyImported: false, 
-        errorReason: 'Invalid file' 
+        errorReason: 'Invalid file' ,
+        observer:new Observer()
     },
 ];
 

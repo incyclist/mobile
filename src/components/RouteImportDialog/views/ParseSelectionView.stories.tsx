@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { ParseSelectionView } from './ParseSelectionView';
-import type { RouteDisplayItem } from 'incyclist-services';
+import { Observer, type RouteDisplayItem } from 'incyclist-services';
 
 const mockRoutes: RouteDisplayItem[] = [
     { 
@@ -10,7 +10,8 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'gpx', 
         distance: { value: 42.5, unit: 'km' as any }, 
         importable: true, 
-        alreadyImported: false 
+        alreadyImported:false,
+        observer: new Observer(),
     },
     { 
         id: '2', 
@@ -18,7 +19,8 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'fit', 
         distance: { value: 120.2, unit: 'km' as any }, 
         importable: true, 
-        alreadyImported: false 
+        alreadyImported: false ,
+        observer: new Observer(),
     },
     { 
         id: '3', 
@@ -27,7 +29,9 @@ const mockRoutes: RouteDisplayItem[] = [
         distance: { value: 0, unit: 'km' as any }, 
         importable: false, 
         alreadyImported: false, 
-        errorReason: 'Unsupported format' 
+        errorReason: 'Unsupported format' ,
+        observer: new Observer(),
+
     },
     { 
         id: '4', 
@@ -35,7 +39,9 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'gpx', 
         distance: { value: 15.0, unit: 'km' as any }, 
         importable: true, 
-        alreadyImported: true 
+        alreadyImported: true,
+        observer: new Observer(),
+
     },
 ];
 
