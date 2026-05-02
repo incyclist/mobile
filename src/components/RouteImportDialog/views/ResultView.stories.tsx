@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
 import { ResultView } from './ResultView';
 
 const meta: Meta<typeof ResultView> = {
