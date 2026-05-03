@@ -125,9 +125,11 @@
       "javaPackageName": "com.incyclist.app"
     },
     "ios": {
-        "modulesProvider": {
-            "SAF": "RCTSAFModule"
+        "modules": {
+            "SAF": {
+                "className": "RCTSAFModule"
+            }
         }
-    }
+    }    
   }
 }
