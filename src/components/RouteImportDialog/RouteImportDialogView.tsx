@@ -119,7 +119,7 @@ export const RouteImportDialogView = ({
             title={title}
             visible={true}
             onOutsideClick={onOutsideClick}
-            variant="details"
+            variant="full"
             buttons={buttons}
         >
             <View style={styles.container}>

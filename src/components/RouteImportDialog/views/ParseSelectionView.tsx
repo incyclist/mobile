@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import type { RouteDisplayItem } from 'incyclist-services';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
@@ -43,6 +43,10 @@ const WarningIndicator = () => (
 
 const friendlyError = (error: string): string => {
     const lower = error.toLowerCase();
+
+    if (lower.includes('avi') && lower.includes('not supported')) {
+        return 'AVI video not supported. Please convert to MP4.'    
+    }
     if (lower.includes('could not open file') || lower.includes('could not read')) {
         return 'Could not read file';
     }
@@ -133,21 +137,6 @@ export const ParseSelectionView = ({
         onDeselectAll();
     }, [logEvent, onDeselectAll]);
     
-    const renderItem = useCallback(({ item: routeItem }: { item: RouteDisplayItem }) => (
-        <Dynamic
-            observer={routeItem.observer}
-            event="updated"
-            prop="item"
-            transform={(updated: RouteDisplayItem) => updated}
-        >
-            <RouteRow 
-                item={routeItem} 
-                isSelected={selectedIds.includes(routeItem.id)} 
-                onToggle={onToggle}
-                compact={compact}
-            />
-        </Dynamic>
-    ), [selectedIds, onToggle, compact]);
 
     const containerStyle = [styles.container, compact && styles.containerCompact];
 
@@ -172,13 +161,25 @@ export const ParseSelectionView = ({
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                data={routes}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                style={styles.list}
-                contentContainerStyle={styles.listContent}
-            />
+            <View>
+                {routes.map((routeItem) => (
+                    <Dynamic
+                        key={routeItem.id}
+                        observer={routeItem.observer}
+                        event="updated"
+                        prop="item"
+                        transform={(updated: RouteDisplayItem) => updated}
+                    >
+                        <RouteRow
+                            item={routeItem}
+                            isSelected={selectedIds.includes(routeItem.id)}
+                            onToggle={onToggle}
+                            compact={compact}
+                        />
+                    </Dynamic>
+                ))}
+            </View>
+
         </View>
     );
 };

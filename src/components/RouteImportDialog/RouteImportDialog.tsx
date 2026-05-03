@@ -301,7 +301,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         if (isSingleImporting) return [];
         switch (phase) {
             case 'landing':
-                return [];
+                return [{ label: 'Close', onClick: onDone }];
             case 'scanning':
                 return [{ label: 'Cancel', onClick: onCancel }];
             case 'parsing':
