@@ -1,15 +1,11 @@
 import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
-import { TurboModuleRegistry, TurboModule } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
+import type { Spec as SAFSpec } from '../../specs/NativeSAF';
 
-// Define the interface for SAF native module
-interface SAFSpec extends TurboModule {
-    listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
-    exists(uri: string): Promise<boolean>
-    readFile(uri: string, encoding: string): Promise<string>
-}
-
-const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
+const SAF: SAFSpec | null = Platform.OS === 'android'
+    ? TurboModuleRegistry.getEnforcing<SAFSpec>('SAF')
+    : null;
 
 export class FileLoaderBinding implements IFileLoader {
     async open(file: FileInfo): Promise<FileLoaderResult> {
@@ -18,10 +14,16 @@ export class FileLoaderBinding implements IFileLoader {
 
             const readFileWithEncoding = async (path: string, encoding?: string): Promise<string|Buffer> => {
                 const readRaw = async (enc: string): Promise<string> => {
-                    return path.startsWith('content://')
-                        ? await SAF.readFile(path, enc)
-                        : await RNFS.readFile(path, enc)
-                }
+                    if (path.startsWith('content://')) {
+                        if (!SAF) {
+                            throw new Error(
+                                `content:// URIs are only supported on Android (got ${path} on ${Platform.OS})`
+                            );
+                        }
+                        return await SAF.readFile(path, enc);
+                    }
+                    return await RNFS.readFile(path, enc);
+                };
 
                 if (encoding === 'base64') {
                     return readRaw('base64')
