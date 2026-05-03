@@ -66,13 +66,16 @@ describe('FileSystemBinding', () => {
                 expect(result).toBe('aGVsbG8=');
             });
 
-            it("encoding 'binary' → reads as base64 then decodes via Buffer", async () => {
+            it("encoding 'binary' → reads as base64 then returns Buffer", async () => {
                 const original = 'hello';
                 const base64 = Buffer.from(original, 'binary').toString('base64');
                 rnfs.readFile.mockResolvedValue(base64);
                 const result = await fs.readFile('/some/file.bin', 'binary');
                 expect(rnfs.readFile).toHaveBeenCalledWith('/some/file.bin', 'base64');
-                expect(result).toBe(original);
+                
+                expect(Buffer.isBuffer(result)).toBe(true);
+                expect(result.toString()).toBe(original)
+
             });
 
             it("encoding 'latin1' → reads as base64 then decodes via Buffer", async () => {
@@ -110,14 +113,15 @@ describe('FileSystemBinding', () => {
                 expect(result).toBe('aGVsbG8=');
             });
 
-            it("encoding 'binary' → reads as base64 then decodes via Buffer", async () => {
+            it("encoding 'binary' → reads as base64 then returns Buffer", async () => {
                 const original = 'hello';
                 const base64 = Buffer.from(original, 'binary').toString('base64');
                 saf.readFile.mockResolvedValue(base64);
                 const result = await fs.readFile('content://some/uri', 'binary');
                 expect(saf.readFile).toHaveBeenCalledWith('content://some/uri', 'base64');
                 expect(rnfs.readFile).not.toHaveBeenCalled();
-                expect(result).toBe(original);
+                expect(Buffer.isBuffer(result)).toBe(true);
+                expect(result.toString()).toBe(original)
             });
         });
     });

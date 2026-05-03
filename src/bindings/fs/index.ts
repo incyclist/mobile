@@ -28,7 +28,7 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
-    async readFile(path: string, encoding?: string): Promise<string> {
+    async readFile(path: string, encoding?: string): Promise<string|Buffer> {
         const readRaw = path.startsWith('content://')
             ? (enc: string) => SAF.readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)
@@ -37,7 +37,7 @@ export class FileSystemBinding implements IFileSystem {
             const base64 = await readRaw('base64')
             const buffer = Buffer.from(base64, 'base64')
             if (encoding==='binary') {
-
+                return buffer
             }
             return buffer.toString(encoding as BufferEncoding)
         }
