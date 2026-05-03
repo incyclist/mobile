@@ -28,22 +28,20 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
-    async readFile(path: string, encoding?: string): Promise<string> {
-        if (path.startsWith('content://')) {
-            return await SAF.readFile(path, encoding ?? 'utf8')
-        }
+    async readFile(path: string, encoding?: string): Promise<string|Buffer> {
+        const readRaw = path.startsWith('content://')
+            ? (enc: string) => SAF.readFile(path, enc)
+            : (enc: string) => RNFS.readFile(path, enc)
 
-        let rnfsEncoding: string = 'utf8';
-    
-        if (encoding === 'base64') {
-            rnfsEncoding = 'base64';
-        } else if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
-            // Read as base64, then decode to the requested encoding via Buffer
-            const base64 = await RNFS.readFile(path, 'base64');
-            return Buffer.from(base64, 'base64').toString(encoding as BufferEncoding);
+        if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+            const base64 = await readRaw('base64')
+            const buffer = Buffer.from(base64, 'base64')
+            if (encoding==='binary') {
+                return buffer
+            }
+            return buffer.toString(encoding as BufferEncoding)
         }
-        // 'utf8', 'utf-8', undefined all map to 'utf8'
-        return await RNFS.readFile(path, rnfsEncoding);
+        return readRaw(encoding === 'base64' ? 'base64' : 'utf8')
     }
 
     async appendFile(path: string, data: string, encoding?: string): Promise<void> {

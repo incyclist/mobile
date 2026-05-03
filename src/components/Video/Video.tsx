@@ -115,7 +115,7 @@ export const Video = (props: VideoProps) => {
         
         setPaused(true);
         if (data.currentTime===(startTime ?? 0)) {
-            done()
+            sleep(5).then(done)
         }
         else {
             seekTo(startTime ?? 0);            
