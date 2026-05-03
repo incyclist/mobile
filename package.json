@@ -123,13 +123,5 @@
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.incyclist.app"
-    },
-    "ios": {
-        "modules": {
-            "SAF": {
-                "className": "RCTSAFModule"
-            }
-        }
-    }    
-  }
+    }
 }
