@@ -20,9 +20,9 @@ export class FileLoaderBinding implements IFileLoader {
                                 `content:// URIs are only supported on Android (got ${path} on ${Platform.OS})`
                             );
                         }
-                        return await SAF.readFile(path, enc);
+                        return SAF.readFile(path, enc);
                     }
-                    return await RNFS.readFile(path, enc);
+                    return RNFS.readFile(path, enc);
                 };
 
                 if (encoding === 'base64') {

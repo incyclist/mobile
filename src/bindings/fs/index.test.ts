@@ -1,3 +1,18 @@
+jest.mock('react-native', () => {
+    const saf = {
+        readFile: jest.fn(),
+        exists: jest.fn(),
+        listFiles: jest.fn(),
+    };
+    return {
+        Platform: { OS: 'android' },
+        TurboModule: {},
+        TurboModuleRegistry: {
+            getEnforcing: jest.fn(() => saf),
+        },
+    };
+});
+
 import RNFS from 'react-native-fs';
 import { TurboModuleRegistry } from 'react-native';
 import { FileSystemBinding } from './index';
@@ -14,20 +29,6 @@ jest.mock('react-native-fs', () => ({
         appendFile: jest.fn(),
     },
 }));
-
-jest.mock('react-native', () => {
-    const saf = {
-        readFile: jest.fn(),
-        exists: jest.fn(),
-        listFiles: jest.fn(),
-    };
-    return {
-        TurboModule: {},
-        TurboModuleRegistry: {
-            getEnforcing: jest.fn().mockReturnValue(saf),
-        },
-    };
-});
 
 const rnfs = RNFS as jest.Mocked<typeof RNFS>;
 // getEnforcing always returns the same SAF mock object, so calling it here gives us a stable reference
