@@ -4,7 +4,7 @@ import { Observer } from 'incyclist-services';
 import { RoutesTableProps } from './types';
 import { RouteItem } from '../RouteItem';
  import { Dynamic } from '../Dynamic';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { colors, textSizes } from '../../theme';
 
 const LOOKAHEAD = 5;
@@ -15,6 +15,7 @@ export const RoutesTable = ({
 }: RoutesTableProps) => {
     const refObserver = useRef<Observer | null>(null);
     const refInitialized = useRef(false);
+    const {logEvent} = useLogging('RoutesTable')
 
     // Synchronously compute initial fold state during render
     const estimatedVisible = Math.ceil(600 / ITEM_HEIGHT);
@@ -26,6 +27,7 @@ export const RoutesTable = ({
 
     // Track current fold state in a ref for the onScroll handler
     const refElementsOutsideFold = useRef<boolean[]>(initialFoldState);
+
 
     // Initialize observer on mount
     useEffect(() => {
@@ -39,6 +41,10 @@ export const RoutesTable = ({
         refObserver.current = null;
         refInitialized.current = false;
     });
+
+    useEffect( ()=>{
+        logEvent({message:'RoutesTable render done'})
+    },[logEvent])
 
     const onScroll = useCallback((event: any) => {
         if (!refObserver.current || !refElementsOutsideFold.current) return;
@@ -68,6 +74,8 @@ export const RoutesTable = ({
         );
     }
 
+    logEvent({message:'RoutesTable render',cnt:routes?.length})
+
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -87,7 +95,7 @@ export const RoutesTable = ({
                         <RouteItem
                             key={route.id}
                             {...route} 
-                            outsideFold={false}
+                            outsideFold={index>10}
                         />
                     </Dynamic> 
                 ))}
