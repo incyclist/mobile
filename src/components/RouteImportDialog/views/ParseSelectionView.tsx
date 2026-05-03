@@ -75,8 +75,10 @@ const RouteRow = ({
             value: item.label,
             eventSource: 'user'
         });
+        if (!item.importable)
+            return
         onToggle(item.id);
-    }, [isSelected, item.label, item.id, onToggle, logEvent]);
+    }, [isSelected, item.label, item.id,item.importable, onToggle, logEvent]);
 
     const isImportable = item.importable !== false;
     const rowStyle = [styles.row, !isImportable && styles.rowDisabled];
@@ -89,7 +91,7 @@ const RouteRow = ({
                 disabled={!isImportable} 
                 onToggle={handleToggle} 
             />
-            <View style={styles.rowContent}>
+            <TouchableOpacity onPress={handleToggle} style={styles.rowContent}>
                 <Text style={labelStyle} numberOfLines={1}>
                     {item.label}
                 </Text>
@@ -109,7 +111,7 @@ const RouteRow = ({
                 {!isImportable && item.errorReason && (
                     <Text style={styles.errorText}>{friendlyError(item.errorReason)}</Text>
                 )}
-            </View>
+            </TouchableOpacity>
             {!isImportable && <WarningIndicator />}
         </View>
     );

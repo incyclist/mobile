@@ -14,6 +14,7 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     
     const [details, setDetails] = useState<RouteDetailUIItem | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
+    const [deleted,setDeleted] = useState(false)
     
     const service = useRouteList();
     const page = getRoutesPageService()
@@ -42,6 +43,7 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
                 if (routeDetails) {
                     detailsCache.set(id!, routeDetails as RouteDetailUIItem);
                     setDetails(routeDetails as RouteDetailUIItem);
+
                 }
             })
             .catch(err => {
@@ -54,7 +56,10 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
 
 
     const onSelect = useCallback( (routeId:string) => { page.onSelect(routeId)} ,[page])
-    const onDelete = useCallback( (routeId:string) => { page.onDelete(routeId)} ,[page])
+    const onDelete = useCallback( (routeId:string) => { 
+        page.onDelete(routeId)
+        setDeleted(true)
+    } ,[page])
 
     const points = details?.points ?? props.points;
     const previewUrl = details?.previewUrl ?? props.previewUrl;
@@ -66,6 +71,9 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
         loaded: loaded || !!points || !!previewUrl,
         outsideFold,
     };
+
+    if(deleted)
+        return null;
 
     return <RouteItemView {...displayProps} onSelect={onSelect} onDelete={onDelete} />;
 };
