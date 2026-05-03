@@ -1,15 +1,11 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
-import { TurboModuleRegistry, TurboModule } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
+import type { Spec as SAFSpec } from '../../specs/NativeSAF';
 
-// Define the interface for SAF native module
-interface SAFSpec extends TurboModule {
-    listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
-    exists(uri: string): Promise<boolean>
-    readFile(uri: string, encoding: string): Promise<string>
-}
-
-const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
+const SAF: SAFSpec | null = Platform.OS === 'android'
+    ? TurboModuleRegistry.getEnforcing<SAFSpec>('SAF')
+    : null;
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
@@ -29,19 +25,27 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
-        const readRaw = path.startsWith('content://')
-            ? (enc: string) => SAF.readFile(path, enc)
-            : (enc: string) => RNFS.readFile(path, enc)
+        const readRaw = async (enc: string): Promise<string> => {
+            if (path.startsWith('content://')) {
+                if (!SAF) {
+                    throw new Error(
+                        `content:// URIs are only supported on Android (got ${path} on ${Platform.OS})`
+                    );
+                }
+                return SAF.readFile(path, enc);
+            }
+            return RNFS.readFile(path, enc);
+        };
 
         if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
-            const base64 = await readRaw('base64')
-            const buffer = Buffer.from(base64, 'base64')
-            if (encoding==='binary') {
-                return buffer
+            const base64 = await readRaw('base64');
+            const buffer = Buffer.from(base64, 'base64');
+            if (encoding === 'binary') {
+                return buffer;
             }
-            return buffer.toString(encoding as BufferEncoding)
+            return buffer.toString(encoding as BufferEncoding);
         }
-        return readRaw(encoding === 'base64' ? 'base64' : 'utf8')
+        return readRaw(encoding === 'base64' ? 'base64' : 'utf8');
     }
 
     async appendFile(path: string, data: string, encoding?: string): Promise<void> {
@@ -88,6 +92,11 @@ export class FileSystemBinding implements IFileSystem {
     async existsFile(path: string): Promise<boolean> {
         // Path is guaranteed to be a string, no need for optional chaining
         if (path.startsWith('content://')) {
+            if (!SAF) {
+                throw new Error(
+                    `content:// URIs are only supported on Android (got ${path} on ${Platform.OS})`
+                );
+            }
             return await SAF.exists(path);
         }
         return await RNFS.exists(path);
@@ -109,6 +118,11 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     private async listSafEntries(uri: string): Promise<ReadDirResult[]> {
+        if (!SAF) {
+            throw new Error(
+                `content:// URIs are only supported on Android (got ${uri} on ${Platform.OS})`
+            );
+        }
         return await SAF.listFiles(uri);
     }
 
