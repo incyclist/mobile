@@ -1,5 +1,5 @@
 import type { TurboModule } from 'react-native';
-import { TurboModuleRegistry } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
     listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>;
@@ -7,4 +7,7 @@ export interface Spec extends TurboModule {
     exists(uri: string): Promise<boolean>;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('SAF');
+let spec
+if (Platform.OS==='android')
+    spec = TurboModuleRegistry.getEnforcing<Spec>('SAF');
+export default spec

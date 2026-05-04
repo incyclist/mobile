@@ -1,1 +1,0 @@
-RCT_EXTERN_MODULE(SAF, NSObject)
