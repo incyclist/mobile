@@ -43,9 +43,6 @@ export const RouteItemView = (props: RouteItemViewProps) => {
     }
 
     const renderMedia = () => {
-        if (!loaded) {
-            return <ActivityIndicator size="small" color={colors.text} />;
-        }
 
         if (hasVideo && previewUrl) {
             return <Image source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
@@ -62,6 +59,10 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                 />
             );
         }
+        if (!loaded) {
+            return <ActivityIndicator size="small" color={colors.text} />;
+        }
+
         return null;
     };
 

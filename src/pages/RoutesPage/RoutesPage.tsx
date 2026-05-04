@@ -169,7 +169,6 @@ export const RoutesPage = () => {
     if (!refObserver.current) {
         return <MainBackground />;
     }
-    logEvent({message:'RoutesPage render', loading:props?.loading, routes:props.routes?.length})
 
     return (
         <ErrorBoundary>
