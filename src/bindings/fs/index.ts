@@ -1,19 +1,17 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
-import { TurboModuleRegistry, TurboModule } from 'react-native';
+import FolderAccess from '../../specs/NativeFolderAccess';
 
-// Define the interface for SAF native module
-interface SAFSpec extends TurboModule {
-    listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
-    exists(uri: string): Promise<boolean>
-    readFile(uri: string, encoding: string): Promise<string>
-}
-
-const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
+const requireFolderAccess = () => {
+    if (!FolderAccess) {
+        throw new Error('FolderAccess native module is not available on this platform');
+    }
+    return FolderAccess;
+};
 
 export class FileSystemBinding implements IFileSystem {
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
-        
+
         if (Buffer.isBuffer(data)) {
             // Buffer already contains raw bytes — convert to base64 for RNFS
             return await RNFS.writeFile(path, data.toString('base64'), 'base64');
@@ -30,7 +28,7 @@ export class FileSystemBinding implements IFileSystem {
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
         const readRaw = path.startsWith('content://')
-            ? (enc: string) => SAF.readFile(path, enc)
+            ? (enc: string) => requireFolderAccess().readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)
 
         if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
@@ -88,7 +86,7 @@ export class FileSystemBinding implements IFileSystem {
     async existsFile(path: string): Promise<boolean> {
         // Path is guaranteed to be a string, no need for optional chaining
         if (path.startsWith('content://')) {
-            return await SAF.exists(path);
+            return await requireFolderAccess().exists(path);
         }
         return await RNFS.exists(path);
     }
@@ -109,7 +107,7 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     private async listSafEntries(uri: string): Promise<ReadDirResult[]> {
-        return await SAF.listFiles(uri);
+        return await requireFolderAccess().listFiles(uri);
     }
 
     private async listLocalEntries(path: string): Promise<ReadDirResult[]> {
@@ -124,7 +122,7 @@ export class FileSystemBinding implements IFileSystem {
     // New helper method to encapsulate entry listing and error handling
     private async listEntriesForPathSegment(segmentPath: string, rootPath: string): Promise<ReadDirResult[]> {
         try {
-            const entries = segmentPath.startsWith('content://') 
+            const entries = segmentPath.startsWith('content://')
                 ? await this.listSafEntries(segmentPath)
                 : await this.listLocalEntries(segmentPath);
             return entries;
@@ -138,7 +136,7 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     /* eslint-disable no-dupe-class-members */
-    async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;    
+    async readdir(path: string, options?: { recursive?: boolean }): Promise<string[]>;
     async readdir(path: string, options: { recursive?: boolean; extended: true }): Promise<ReadDirResult[]>;
     async readdir(path: string, options?: { recursive?: boolean; extended?: boolean }): Promise<string[] | ReadDirResult[]> {
         const isExtended = options?.extended === true;
@@ -152,7 +150,7 @@ export class FileSystemBinding implements IFileSystem {
                 continue;
             }
 
-            const entries = await this.listEntriesForPathSegment(currentPath, path); // Use the new helper
+            const entries = await this.listEntriesForPathSegment(currentPath, path);
 
             for (const entry of entries) {
                 if (isExtended) {
@@ -165,7 +163,7 @@ export class FileSystemBinding implements IFileSystem {
                     stack.push(entry.uri);
                 }
             }
-            
+
             // If not recursive, we're done after processing the first level
             if (!isRecursive) {
                 break;

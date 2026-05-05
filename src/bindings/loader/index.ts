@@ -1,15 +1,13 @@
 import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
-import { TurboModuleRegistry, TurboModule } from 'react-native';
+import FolderAccess from '../../specs/NativeFolderAccess';
 
-// Define the interface for SAF native module
-interface SAFSpec extends TurboModule {
-    listFiles(uri: string): Promise<Array<{ name: string; uri: string; isDirectory: boolean }>>
-    exists(uri: string): Promise<boolean>
-    readFile(uri: string, encoding: string): Promise<string>
-}
-
-const SAF = TurboModuleRegistry.getEnforcing<SAFSpec>('SAF');
+const requireFolderAccess = () => {
+    if (!FolderAccess) {
+        throw new Error('FolderAccess native module is not available on this platform');
+    }
+    return FolderAccess;
+};
 
 export class FileLoaderBinding implements IFileLoader {
     async open(file: FileInfo): Promise<FileLoaderResult> {
@@ -19,7 +17,7 @@ export class FileLoaderBinding implements IFileLoader {
             const readFileWithEncoding = async (path: string, encoding?: string): Promise<string|Buffer> => {
                 const readRaw = async (enc: string): Promise<string> => {
                     return path.startsWith('content://')
-                        ? await SAF.readFile(path, enc)
+                        ? await requireFolderAccess().readFile(path, enc)
                         : await RNFS.readFile(path, enc)
                 }
 
@@ -28,7 +26,7 @@ export class FileLoaderBinding implements IFileLoader {
                 }
                 if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
                     const base64 = await readRaw('base64')
-                    
+
                     const buffer = Buffer.from(base64, 'base64')
                     if (encoding==='binary')
                          return buffer
