@@ -15,9 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 
-@ReactModule(name = SAFModule.NAME)
-class SAFModule(reactContext: ReactApplicationContext) :
-    NativeSAFSpec(reactContext) {
+@ReactModule(name = FolderAccessModule.NAME)
+class FolderAccessModule(reactContext: ReactApplicationContext) :
+    NativeFolderAccessSpec(reactContext) {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -61,7 +61,7 @@ class SAFModule(reactContext: ReactApplicationContext) :
 
                 val parsed = Uri.parse(uri)
 
-                android.util.Log.d("SAFModule", "Readfile (${parsed},${encoding})")
+                android.util.Log.d("FolderAccessModule", "Readfile (${parsed},${encoding})")
 
                 val bytes: ByteArray = when (parsed.scheme) {
                     ContentResolver.SCHEME_CONTENT -> {
@@ -82,7 +82,7 @@ class SAFModule(reactContext: ReactApplicationContext) :
                 }
                 promise.resolve(result)
             } catch (e: Exception) {
-                android.util.Log.d("SAFModule", "Readfile Error: ${e.message}")
+                android.util.Log.d("FolderAccessModule", "Readfile Error: ${e.message}")
 
                 promise.reject("ERR_READ", "Failed to read '$uri': ${e.message}", e)
             }
@@ -125,7 +125,7 @@ class SAFModule(reactContext: ReactApplicationContext) :
         } catch (e: Exception) {
             DocumentsContract.getTreeDocumentId(treeUri)
         }
-        
+
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
             treeUri,
             treeDocumentId
@@ -189,6 +189,6 @@ class SAFModule(reactContext: ReactApplicationContext) :
     }
 
     companion object {
-        const val NAME = "SAF"
+        const val NAME = "FolderAccess"
     }
 }
