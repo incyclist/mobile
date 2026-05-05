@@ -11,6 +11,7 @@ import { RouteImportDialogProps } from './types';
 import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 /**
  * Smart component for the Import Routes dialog.
@@ -19,7 +20,7 @@ import { getUIBinding } from '../../bindings/ui';
 export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logError } = useLogging('RouteImportDialog');
+    const { logError,logEvent } = useLogging('RouteImportDialog');
     const { pickFile } = useFilePicker();
 
     const [displayProps, setDisplayProps] = useState<ImportDisplayProps>(() =>
@@ -269,7 +270,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         cleanUpObservers();
     });
 
-    const { phase } = displayProps;
+    const { phase } = displayProps??{};
 
     // Non-dismissable during active processing phases
     const isDismissable = !isSingleImporting && phase !== 'scanning' && phase !== 'parsing' && phase !== 'ingesting';
@@ -340,25 +341,30 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         handleTryAgain,
     ]);
 
+    logEvent({message:'render RouteImportDialog', displayProps})
+    
+
     return (
-        <RouteImportDialogView
-            compact={isCompact}
-            title={title}
-            buttons={buttons}
-            isSingleImporting={isSingleImporting}
-            onOutsideClick={onOutsideClick}
-            displayProps={displayProps}
-            selectedIds={selectedIds}
-            onAddGpx={onAddGpx}
-            onAddVideoRoute={onAddVideoRoute}
-            onSelectFolder={onSelectFolder}
-            onToggleRoute={onToggleRoute}
-            onSelectAll={onSelectAll}
-            onDeselectAll={onDeselectAll}
-            onConfirmSelection={onConfirmSelection}
-            onDone={onDone}
-            onTryAgain={handleTryAgain}
-            onCancel={onCancel}
-        />
+        <ErrorBoundary>
+            <RouteImportDialogView
+                compact={isCompact}
+                title={title}
+                buttons={buttons}
+                isSingleImporting={isSingleImporting}
+                onOutsideClick={onOutsideClick}
+                displayProps={displayProps}
+                selectedIds={selectedIds}
+                onAddGpx={onAddGpx}
+                onAddVideoRoute={onAddVideoRoute}
+                onSelectFolder={onSelectFolder}
+                onToggleRoute={onToggleRoute}
+                onSelectAll={onSelectAll}
+                onDeselectAll={onDeselectAll}
+                onConfirmSelection={onConfirmSelection}
+                onDone={onDone}
+                onTryAgain={handleTryAgain}
+                onCancel={onCancel}
+            />
+        </ErrorBoundary>
     );
 };
