@@ -1,18 +1,3 @@
-jest.mock('react-native', () => {
-    const saf = {
-        readFile: jest.fn(),
-        exists: jest.fn(),
-        listFiles: jest.fn(),
-    };
-    return {
-        Platform: { OS: 'android' },
-        TurboModule: {},
-        TurboModuleRegistry: {
-            getEnforcing: jest.fn(() => saf),
-        },
-    };
-});
-
 import RNFS from 'react-native-fs';
 import { TurboModuleRegistry } from 'react-native';
 import { FileSystemBinding } from './index';
@@ -30,9 +15,24 @@ jest.mock('react-native-fs', () => ({
     },
 }));
 
+jest.mock('react-native', () => {
+    const folderAccess = {
+        readFile: jest.fn(),
+        exists: jest.fn(),
+        listFiles: jest.fn(),
+    };
+    return {
+        TurboModule: {},
+        TurboModuleRegistry: {
+            getEnforcing: jest.fn().mockReturnValue(folderAccess),
+        },
+        Platform: { OS: 'android' },
+    };
+});
+
 const rnfs = RNFS as jest.Mocked<typeof RNFS>;
-// getEnforcing always returns the same SAF mock object, so calling it here gives us a stable reference
-const saf = TurboModuleRegistry.getEnforcing<any>('SAF');
+// getEnforcing always returns the same FolderAccess mock object, so calling it here gives us a stable reference
+const folderAccess = TurboModuleRegistry.getEnforcing<any>('FolderAccess');
 
 describe('FileSystemBinding', () => {
     let fs: FileSystemBinding;
@@ -73,7 +73,7 @@ describe('FileSystemBinding', () => {
                 rnfs.readFile.mockResolvedValue(base64);
                 const result = await fs.readFile('/some/file.bin', 'binary');
                 expect(rnfs.readFile).toHaveBeenCalledWith('/some/file.bin', 'base64');
-                
+
                 expect(Buffer.isBuffer(result)).toBe(true);
                 expect(result.toString()).toBe(original)
 
@@ -98,28 +98,28 @@ describe('FileSystemBinding', () => {
             });
         });
 
-        describe('content:// path (SAF)', () => {
+        describe('content:// path (FolderAccess)', () => {
             it('no encoding → reads as utf8', async () => {
-                saf.readFile.mockResolvedValue('hello');
+                folderAccess.readFile.mockResolvedValue('hello');
                 const result = await fs.readFile('content://some/uri');
-                expect(saf.readFile).toHaveBeenCalledWith('content://some/uri', 'utf8');
+                expect(folderAccess.readFile).toHaveBeenCalledWith('content://some/uri', 'utf8');
                 expect(rnfs.readFile).not.toHaveBeenCalled();
                 expect(result).toBe('hello');
             });
 
             it("encoding 'base64' → reads as base64", async () => {
-                saf.readFile.mockResolvedValue('aGVsbG8=');
+                folderAccess.readFile.mockResolvedValue('aGVsbG8=');
                 const result = await fs.readFile('content://some/uri', 'base64');
-                expect(saf.readFile).toHaveBeenCalledWith('content://some/uri', 'base64');
+                expect(folderAccess.readFile).toHaveBeenCalledWith('content://some/uri', 'base64');
                 expect(result).toBe('aGVsbG8=');
             });
 
             it("encoding 'binary' → reads as base64 then returns Buffer", async () => {
                 const original = 'hello';
                 const base64 = Buffer.from(original, 'binary').toString('base64');
-                saf.readFile.mockResolvedValue(base64);
+                folderAccess.readFile.mockResolvedValue(base64);
                 const result = await fs.readFile('content://some/uri', 'binary');
-                expect(saf.readFile).toHaveBeenCalledWith('content://some/uri', 'base64');
+                expect(folderAccess.readFile).toHaveBeenCalledWith('content://some/uri', 'base64');
                 expect(rnfs.readFile).not.toHaveBeenCalled();
                 expect(Buffer.isBuffer(result)).toBe(true);
                 expect(result.toString()).toBe(original)
@@ -188,16 +188,16 @@ describe('FileSystemBinding', () => {
             expect(result).toBe(false);
         });
 
-        it('content:// path, file present → delegates to SAF.exists', async () => {
-            saf.exists.mockResolvedValue(true);
+        it('content:// path, file present → delegates to FolderAccess.exists', async () => {
+            folderAccess.exists.mockResolvedValue(true);
             const result = await fs.existsFile('content://some/uri');
-            expect(saf.exists).toHaveBeenCalledWith('content://some/uri');
+            expect(folderAccess.exists).toHaveBeenCalledWith('content://some/uri');
             expect(rnfs.exists).not.toHaveBeenCalled();
             expect(result).toBe(true);
         });
 
         it('content:// path, file absent → returns false', async () => {
-            saf.exists.mockResolvedValue(false);
+            folderAccess.exists.mockResolvedValue(false);
             const result = await fs.existsFile('content://some/uri');
             expect(result).toBe(false);
         });
@@ -210,7 +210,7 @@ describe('FileSystemBinding', () => {
             { name: 'file1.txt', path: '/root/file1.txt', isDirectory: () => false },
             { name: 'subdir', path: '/root/subdir', isDirectory: () => true },
         ];
-        const safEntries = [
+        const folderAccessEntries = [
             { name: 'doc.pdf', uri: 'content://root/doc.pdf', isDirectory: false },
             { name: 'nested', uri: 'content://root/nested', isDirectory: true },
         ];
@@ -244,18 +244,18 @@ describe('FileSystemBinding', () => {
             expect(result).toEqual(['file1.txt', 'subdir', 'child.txt']);
         });
 
-        it('content:// path → uses SAF.listFiles', async () => {
-            saf.listFiles.mockResolvedValue(safEntries);
+        it('content:// path → uses FolderAccess.listFiles', async () => {
+            folderAccess.listFiles.mockResolvedValue(folderAccessEntries);
             const result = await fs.readdir('content://root');
-            expect(saf.listFiles).toHaveBeenCalledWith('content://root');
+            expect(folderAccess.listFiles).toHaveBeenCalledWith('content://root');
             expect(rnfs.readDir).not.toHaveBeenCalled();
             expect(result).toEqual(['doc.pdf', 'nested']);
         });
 
-        it('content:// path, extended:true → returns SAF entries as-is', async () => {
-            saf.listFiles.mockResolvedValue(safEntries);
+        it('content:// path, extended:true → returns FolderAccess entries as-is', async () => {
+            folderAccess.listFiles.mockResolvedValue(folderAccessEntries);
             const result = await fs.readdir('content://root', { extended: true });
-            expect(result).toEqual(safEntries);
+            expect(result).toEqual(folderAccessEntries);
         });
 
         it('error on root path → re-throws', async () => {

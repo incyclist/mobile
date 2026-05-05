@@ -1,11 +1,13 @@
 import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
-import { Platform, TurboModuleRegistry } from 'react-native';
-import type { Spec as SAFSpec } from '../../specs/NativeSAF';
+import FolderAccess from '../../specs/NativeFolderAccess';
 
-const SAF: SAFSpec | null = Platform.OS === 'android'
-    ? TurboModuleRegistry.getEnforcing<SAFSpec>('SAF')
-    : null;
+const requireFolderAccess = () => {
+    if (!FolderAccess) {
+        throw new Error('FolderAccess native module is not available on this platform');
+    }
+    return FolderAccess;
+};
 
 export class FileLoaderBinding implements IFileLoader {
     async open(file: FileInfo): Promise<FileLoaderResult> {
@@ -14,23 +16,17 @@ export class FileLoaderBinding implements IFileLoader {
 
             const readFileWithEncoding = async (path: string, encoding?: string): Promise<string|Buffer> => {
                 const readRaw = async (enc: string): Promise<string> => {
-                    if (path.startsWith('content://')) {
-                        if (!SAF) {
-                            throw new Error(
-                                `content:// URIs are only supported on Android (got ${path} on ${Platform.OS})`
-                            );
-                        }
-                        return SAF.readFile(path, enc);
-                    }
-                    return RNFS.readFile(path, enc);
-                };
+                    return path.startsWith('content://')
+                        ? await requireFolderAccess().readFile(path, enc)
+                        : await RNFS.readFile(path, enc)
+                }
 
                 if (encoding === 'base64') {
                     return readRaw('base64')
                 }
                 if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
                     const base64 = await readRaw('base64')
-                    
+
                     const buffer = Buffer.from(base64, 'base64')
                     if (encoding==='binary')
                          return buffer
