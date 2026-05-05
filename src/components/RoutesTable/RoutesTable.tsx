@@ -73,6 +73,8 @@ export const RoutesTable = memo(({
         );
     }
 
+    const hasObserver = routesObserver!=null
+
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -84,7 +86,7 @@ export const RoutesTable = memo(({
                     
                     <Dynamic
                         key={route.id}
-                        observer={routesObserver!}
+                        observer={routesObserver}
                         event={`outsideFold-${index}`}
                         prop="outsideFold"
                     >
@@ -92,7 +94,7 @@ export const RoutesTable = memo(({
                         <RouteItem
                             key={route.id}
                             {...route} 
-                            outsideFold={routesObserver!=null ? initialFoldState[index] ?? true : true}
+                            outsideFold={hasObserver ? initialFoldState[index] ?? true : true}
                         />
                     </Dynamic> 
                 ))}
