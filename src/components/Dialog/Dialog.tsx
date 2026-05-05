@@ -294,7 +294,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
         },
         strip: {
             height: isCompact ? 0 : '100%',
-            width: isCompact ? '100%' : 150,
+            width: isCompact ? '100%' : 0,
         },
         fullContentArea: {
             flex: 1,

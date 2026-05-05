@@ -118,7 +118,7 @@
     "node": ">=20"
   },
   "codegenConfig": {
-    "name": "AppSpecs",
+    "name": "AppSpec",
     "type": "all",
     "jsSrcsDir": "src",
     "android": {

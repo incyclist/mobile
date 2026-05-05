@@ -12,6 +12,8 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BCC41758932FA2AB91CC0385 /* libPods-Incyclist.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */; };
+		DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */; };
+		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
 		DF6FB3E12F76C8C300067D3E /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 545B78D46B72D3C354028E49 /* MapLibre */; };
 /* End PBXBuildFile section */
 
@@ -25,6 +27,8 @@
 		5D7DDF37186AFD7B4D381C66 /* Pods-Incyclist.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.release.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Incyclist/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Incyclist/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderAccessModule.m; sourceTree = "<group>"; };
+		DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderAccessModule.swift; sourceTree = "<group>"; };
 		DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "incyclist--Bridging-Header.h"; sourceTree = "<group>"; };
 		DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Incyclist.entitlements; path = Incyclist/Incyclist.entitlements; sourceTree = "<group>"; };
 		E9D6821723439ED529EBAFF2 /* Pods-Incyclist.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.debug.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.debug.xcconfig"; sourceTree = "<group>"; };
@@ -54,6 +58,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				DF2F0E632FA9F4D700340FFD /* FolderAccess */,
 			);
 			name = Incyclist;
 			sourceTree = "<group>";
@@ -104,6 +109,15 @@
 				40F10BB29ECFA3E83275BD6E /* Pods-Incyclist.dev.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		DF2F0E632FA9F4D700340FFD /* FolderAccess */ = {
+			isa = PBXGroup;
+			children = (
+				DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */,
+				DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */,
+			);
+			path = FolderAccess;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -287,6 +301,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */,
+				DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

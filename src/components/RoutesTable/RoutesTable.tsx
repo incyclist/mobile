@@ -1,20 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import  { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { Observer } from 'incyclist-services';
 import { RoutesTableProps } from './types';
 import { RouteItem } from '../RouteItem';
  import { Dynamic } from '../Dynamic';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { colors, textSizes } from '../../theme';
 
 const LOOKAHEAD = 5;
 const ITEM_HEIGHT = 84; // ITEM_HEIGHT + MARGIN_V * 2
 
-export const RoutesTable = ({ 
-    routes, 
+export const RoutesTable = memo(({
+    routes,
 }: RoutesTableProps) => {
-    const refObserver = useRef<Observer | null>(null);
     const refInitialized = useRef(false);
+    const {logEvent} = useLogging('RoutesTable')
 
     // Synchronously compute initial fold state during render
     const estimatedVisible = Math.ceil(600 / ITEM_HEIGHT);
@@ -26,22 +26,27 @@ export const RoutesTable = ({
 
     // Track current fold state in a ref for the onScroll handler
     const refElementsOutsideFold = useRef<boolean[]>(initialFoldState);
+    const [routesObserver] = useState(() => new Observer());
+
 
     // Initialize observer on mount
     useEffect(() => {
         if (refInitialized.current) return;
         refInitialized.current = true;
-        refObserver.current = new Observer();
     }, []);
 
     useUnmountEffect(() => {
         refElementsOutsideFold.current = [];
-        refObserver.current = null;
+        routesObserver.stop()
         refInitialized.current = false;
     });
 
+    useEffect( ()=>{
+        logEvent({message:'RoutesTable render done'})
+    },[logEvent])
+
     const onScroll = useCallback((event: any) => {
-        if (!refObserver.current || !refElementsOutsideFold.current) return;
+        if (!routesObserver || !refElementsOutsideFold.current) return;
         
         const scrollY = event.nativeEvent.contentOffset.y;
         const viewportHeight = event.nativeEvent.layoutMeasurement.height;
@@ -54,11 +59,11 @@ export const RoutesTable = ({
             const prev = refElementsOutsideFold.current[i] ?? true;
 
             if (prev !== outsideFold) {
-                refObserver.current!.emit(`outsideFold-${i}`, outsideFold);
+                routesObserver!.emit(`outsideFold-${i}`, outsideFold);
                 refElementsOutsideFold.current[i] = outsideFold;
             }
         });
-    }, [routes]);
+    }, [routes, routesObserver]);
 
     if (!routes?.length) {
         return (
@@ -67,6 +72,8 @@ export const RoutesTable = ({
             </View>
         );
     }
+
+    const hasObserver = routesObserver!=null
 
     return (
         <View style={styles.container}>
@@ -79,7 +86,7 @@ export const RoutesTable = ({
                     
                     <Dynamic
                         key={route.id}
-                        observer={refObserver.current!}
+                        observer={routesObserver}
                         event={`outsideFold-${index}`}
                         prop="outsideFold"
                     >
@@ -87,14 +94,19 @@ export const RoutesTable = ({
                         <RouteItem
                             key={route.id}
                             {...route} 
-                            outsideFold={false}
+                            outsideFold={hasObserver ? initialFoldState[index] ?? true : true}
                         />
                     </Dynamic> 
                 ))}
             </ScrollView>
         </View>
     );
-};
+}, (prev, next) => {
+    if (prev.routes?.length !== next.routes?.length) return false;
+    const prevHash = prev.routes?.map(r => r.id).join(':') ?? '';
+    const nextHash = next.routes?.map(r => r.id).join(':') ?? '';
+    return prevHash === nextHash;
+});
 
 const styles = StyleSheet.create({
     container: {

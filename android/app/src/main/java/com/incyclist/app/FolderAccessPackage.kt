@@ -6,11 +6,11 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 
-class SAFPackage : BaseReactPackage() {
+class FolderAccessPackage : BaseReactPackage() {
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
-        return if (name == SAFModule.NAME) {
-            SAFModule(reactContext)
+        return if (name == FolderAccessModule.NAME) {
+            FolderAccessModule(reactContext)
         } else {
             null
         }
@@ -19,9 +19,9 @@ class SAFPackage : BaseReactPackage() {
     override fun getReactModuleInfoProvider(): ReactModuleInfoProvider {
         return ReactModuleInfoProvider {
             mapOf(
-                SAFModule.NAME to ReactModuleInfo(
-                    SAFModule.NAME,
-                    SAFModule.NAME,
+                FolderAccessModule.NAME to ReactModuleInfo(
+                    FolderAccessModule.NAME,                     // JS module name: "FolderAccess"
+                    FolderAccessModule::class.java.name,         // Fully-qualified Java class name (was: NAME — wrong)
                     false,  // canOverrideExistingModule
                     false,  // needsEagerInit
                     false,  // isCxxModule

@@ -53,7 +53,7 @@ export const RoutesPage = () => {
     const refRoutesHash = useRef<string>('')
     const refFilterOptions = useRef(props.filterOptions)
 
-    const { logError } = useLogging('RoutesPage');
+    const { logError,logEvent } = useLogging('RoutesPage');
 
 
 
@@ -109,6 +109,10 @@ export const RoutesPage = () => {
         }
         
     });
+
+    useEffect( ()=>{
+        logEvent({message:'RoutesPage render completed'})
+    })
 
     const setFilterVisible = useCallback( (visible:boolean) => {
         setProps( (current)=>({...current,filterVisible:visible}))
