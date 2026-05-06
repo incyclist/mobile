@@ -11,6 +11,9 @@ const requireFolderAccess = () => {
 };
 
 export class FileSystemBinding implements IFileSystem {
+
+    protected logger = new EventLogger('FS')
+
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
 
         if (Buffer.isBuffer(data)) {
@@ -108,11 +111,22 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async requestAccess(uri: string): Promise<boolean> {
-        return await requireFolderAccess().requestAccess(uri);
+        try {
+            this.logger.logEvent({message:'request access', uri})
+            const res = await requireFolderAccess().requestAccess(uri);
+            const message = res ? 'access granted' : 'access not granted'
+            this.logger.logEvent({message, uri})
+            return res
+        }
+        catch(err:any) {
+            this.logger.logEvent({message:'error', fn:'requestAccess', error:err.message, stack:err.stack})
+            return false
+        }
     }
  
     async releaseAccess(uri: string): Promise<boolean> {
-        return await requireFolderAccess().releaseAccess(uri);
+        const res = await requireFolderAccess().releaseAccess(uri);
+         return res
     }
 
 
@@ -154,8 +168,6 @@ export class FileSystemBinding implements IFileSystem {
         const results: any[] = [];
         const stack: string[] = [path];
 
-        const logger = new EventLogger('FS');
-
         try {
 
             while (stack.length > 0) {
@@ -187,7 +199,7 @@ export class FileSystemBinding implements IFileSystem {
             return results;
         }
         catch (err) {
-            logger.logEvent({ message:'readdir error', 
+            this.logger.logEvent({ message:'readdir error', 
                 path,
                 error: err instanceof Error ? err.message : String(err)
             });

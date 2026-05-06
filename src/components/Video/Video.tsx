@@ -10,6 +10,8 @@ import { useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
+import { Platform } from 'react-native';
+import { getFileSystemBinding } from 'src/bindings/fs';
 
 export const Video = (props: VideoProps) => {
     const {
@@ -32,12 +34,15 @@ export const Video = (props: VideoProps) => {
     const [internalHidden, setInternalHidden] = useState(true);
     const [paused, setPaused] = useState(false);
     const [rate, setRate] = useState(0);
+    const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || src.startsWith('http') )
+
 
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
     const refHidden = useRef(hidden);
     const refBootstrapSeek = useRef(false);
-    
+    const refHasGrant = useRef(false)
+
     const refInfo = useRef({
         loading: false,
         loaded: false,
@@ -209,7 +214,18 @@ export const Video = (props: VideoProps) => {
         observer
             ?.on('rate-update', handleRateChangeRequest)
             ?.on('time-update', seekTo);
-    }, [observer, handleRateChangeRequest, seekTo]);
+
+
+        if (!hasAccess)  {
+            getFileSystemBinding().requestAccess(src)
+                .then((isGranted) => { 
+                    if (isGranted) {
+                        setHasAccess(true)
+                        refHasGrant.current = true
+                    }
+                })
+        }
+    }, [observer, handleRateChangeRequest, seekTo, hasAccess, src]);
 
     useEffect(() => {
         if (!refInfo.current.loaded) {
@@ -235,9 +251,14 @@ export const Video = (props: VideoProps) => {
             ?.off('time-update', seekTo);
         refInfo.current.currentRate = 0;
         setPaused(true);
+
+        if (refHasGrant.current) {
+            getFileSystemBinding().releaseAccess(src)
+            refHasGrant.current = false
+        }
     });
 
-    if (typeof src !== 'string') {
+    if (typeof src !== 'string' || !hasAccess) {
         return false;
     }
 
