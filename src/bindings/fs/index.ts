@@ -113,7 +113,24 @@ export class FileSystemBinding implements IFileSystem {
     async requestAccess(uri: string): Promise<boolean> {
         try {
             this.logger.logEvent({message:'request access', uri})
-            const res = await requireFolderAccess().requestAccess(uri);
+
+            let res = await requireFolderAccess().requestAccess(uri);
+            if (!res) {
+                try {
+                    const decoded = decodeURIComponent(uri)
+                    this.logger.logEvent({message:'request access: check decoded', uri:decoded})
+                    res = await requireFolderAccess().requestAccess(decoded);
+                    if (!res) {
+                        const path = decoded.replace('file:///','')
+                        this.logger.logEvent({message:'request access: check path', uri:path})
+                        res = await requireFolderAccess().requestAccess(decoded);
+                    }
+                }
+                catch {}
+            }
+            
+            
+            
             const message = res ? 'access granted' : 'access not granted'
             this.logger.logEvent({message, uri})
             return res
