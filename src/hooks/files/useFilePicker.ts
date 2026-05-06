@@ -1,8 +1,8 @@
 import { pick, types, keepLocalCopy } from '@react-native-documents/picker'
 import { FileInfo } from 'incyclist-services'
-import { buildFileInfo } from '../../utils/fileInfo' // Adjusted path to utils
 import { useLogging } from '../logging'
 import { Platform } from 'react-native'
+import { getPathBinding } from '../../bindings/path'
 
 /**
  * @interface UseFilePickerResult
@@ -30,8 +30,8 @@ export const useFilePicker = (): UseFilePickerResult => {
             const [result] = await pick({
                 type: [types.allFiles],
                 allowMultiSelection: false,
-                //mode:'open',
-                //rrequestLongTermAccess: true
+                mode:'open',
+                rrequestLongTermAccess: true
             })
 
             if (!result.name)
@@ -39,19 +39,32 @@ export const useFilePicker = (): UseFilePickerResult => {
 
             // const info = getPathBinding().parse(result.name)
             // return buildFileInfo(result.name,info.base)
-
             const fileName = result.name
+
+            if (Platform.OS === 'ios') {
+                const cleaned = decodeURIComponent(result.uri);
+                const fileInfo = getPathBinding().parse(cleaned) as unknown as FileInfo
+                fileInfo.base = fileName
+                logEvent({ message:'File picked', fileName, uri: cleaned })  
+                return fileInfo
+            }
+            else {
+                logEvent({ message:'File picked', fileName, uri: result.uri })  
+            }
 
             const [localCopy] = await keepLocalCopy({
                 files: [{ uri: result.uri, fileName: fileName }],
                 destination: 'cachesDirectory',
             })
+            logEvent({ message:'Local copy result', localCopy })
 
             // FIX: Discriminate LocalCopyResponse based on status
             if (localCopy.status === 'success') {
                 // Remove 'file://' prefix from local URI
                 const localPath = localCopy.localUri.replace('file://', '')
-                return buildFileInfo(localPath, fileName)
+                const fileInfo = getPathBinding().parse(localPath) as unknown as FileInfo
+                fileInfo.base = fileName
+                return fileInfo
             } else {
                 // If the local copy failed, log the error and return null.
                 // This means we couldn't get a usable local file, so the operation is not successful.

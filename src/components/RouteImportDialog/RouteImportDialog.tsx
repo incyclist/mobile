@@ -209,7 +209,10 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const onSelectFolder = useCallback(async () => {
         try {
             const result = await getUIBinding().selectDirectory();
-            if (result.canceled || !result.selected) return;
+            if (result.canceled || !result.selected) {
+                logEvent({message:'cancelled directory selection', eventSource:'user'})
+                return;
+            }
 
             const scanObserver = getRoutesPageService().startLibraryScan({
                 uri: result.selected,
@@ -222,7 +225,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         } catch (err) {
             logError(err, 'onSelectFolder');
         }
-    }, [onScanProgress, onScanComplete, logError, onUpdate]);
+    }, [onScanProgress, onScanComplete, onUpdate, logEvent, logError]);
 
     const onToggleRoute = useCallback((id: string) => {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));

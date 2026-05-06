@@ -110,9 +110,15 @@ export class UIBinding implements INativeUI {
             const segments = decodedUri.split('/')
             const displayName = segments.filter((s: string) => s.length > 0).pop() ?? 'Folder'            
 
+            
+            // add missing / at the end of decedUri  if not present, to make it clear this is a folder
+            const normalizedUri = Platform.OS==='ios' ? 
+                decodedUri.endsWith('/') ? decodedUri : `${decodedUri}/` :
+                decodedUri
+
             return {
                 canceled: false,
-                selected: uri,
+                selected: normalizedUri,
                 displayName,
             };
         } catch  {

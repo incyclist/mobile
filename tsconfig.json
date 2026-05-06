@@ -13,5 +13,5 @@
     }    
   },
   "include": ["**/*.ts", "**/*.tsx", "src/types/**/*.d.ts"],
-  "exclude": ["**/node_modules", "**/Pods"]
+  "exclude": ["**/node_modules", "**/Pods", "**/internal" ]
 }

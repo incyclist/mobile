@@ -1,6 +1,7 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
+import { EventLogger } from 'gd-eventlog';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -106,6 +107,15 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
+    async requestAccess(uri: string): Promise<boolean> {
+        return await requireFolderAccess().requestAccess(uri);
+    }
+ 
+    async releaseAccess(uri: string): Promise<boolean> {
+        return await requireFolderAccess().releaseAccess(uri);
+    }
+
+
     private async listSafEntries(uri: string): Promise<ReadDirResult[]> {
         return await requireFolderAccess().listFiles(uri);
     }
@@ -144,33 +154,46 @@ export class FileSystemBinding implements IFileSystem {
         const results: any[] = [];
         const stack: string[] = [path];
 
-        while (stack.length > 0) {
-            const currentPath = stack.pop();
-            if (!currentPath) {
-                continue;
-            }
+        const logger = new EventLogger('FS');
 
-            const entries = await this.listEntriesForPathSegment(currentPath, path);
+        try {
 
-            for (const entry of entries) {
-                if (isExtended) {
-                    results.push(entry);
-                } else {
-                    results.push(entry.name);
+            while (stack.length > 0) {
+                const currentPath = stack.pop();
+                if (!currentPath) {
+                    continue;
                 }
 
-                if (isRecursive && entry.isDirectory) {
-                    stack.push(entry.uri);
+                const entries = await this.listEntriesForPathSegment(currentPath, path);
+
+                for (const entry of entries) {
+                    if (isExtended) {
+                        results.push(entry);
+                    } else {
+                        results.push(entry.name);
+                    }
+
+                    if (isRecursive && entry.isDirectory) {
+                        stack.push(entry.uri);
+                    }
+                }
+
+                // If not recursive, we're done after processing the first level
+                if (!isRecursive) {
+                    break;
                 }
             }
 
-            // If not recursive, we're done after processing the first level
-            if (!isRecursive) {
-                break;
-            }
+            return results;
+        }
+        catch (err) {
+            logger.logEvent({ message:'readdir error', 
+                path,
+                error: err instanceof Error ? err.message : String(err)
+            });
+            throw err;
         }
 
-        return results;
     }
     /* eslint-enable no-dupe-class-members */
 }
