@@ -114,6 +114,21 @@ class FolderAccessModule(reactContext: ReactApplicationContext) :
         }
     }
 
+
+    /**
+     * Android does not use security-scoped resource grants — SAF permissions
+     * are acquired at the picker level and persist for the lifetime of the
+     * grant. These methods are no-ops that always return true so that
+     * cross-platform call sites do not need platform guards.
+     */
+    override fun requestAccess(uri: String, promise: Promise) {
+        promise.resolve(true)
+    }
+ 
+    override fun releaseAccess(uri: String, promise: Promise) {
+        promise.resolve(true)
+    }    
+
     // ── Private helpers ────────────────────────────────────────────────────
 
     private fun listSafChildren(treeUri: Uri): WritableArray {

@@ -30,11 +30,116 @@ import Foundation
  *    adding complexity that interferes with cancellation.
  *
  * 5. Operations run on a background queue — the main thread is never blocked.
+ *
+ * 6. requestAccess / releaseAccess maintain a ref-counted registry on a
+ *    dedicated serial DispatchQueue. The serial queue provides thread-safe
+ *    access without locks — no caller thread is ever blocked. Once a URL is
+ *    in the registry subsequent requestAccess calls return immediately without
+ *    hitting the OS again.
  */
 @objc(FolderAccess)
 class FolderAccessModule: NSObject {
 
     private let TIMEOUT_SECONDS: Double = 10.0
+
+    // ── Access registry ────────────────────────────────────────────────────
+
+    /**
+     * Serial queue that owns the accessRegistry dictionary.
+     * All reads and writes to accessRegistry MUST go through this queue.
+     * Because it is serial, only one closure runs at a time — no locking needed.
+     * Dispatching async never blocks the caller.
+     */
+    private let registryQueue = DispatchQueue(label: "com.incyclist.folderaccess.registry")
+
+    private struct AccessEntry {
+        var count: Int       // how many times requestAccess has been called for this URL
+        var needsStop: Bool  // whether startAccessingSecurityScopedResource returned true
+    }
+
+    /** Keyed by the canonical absoluteString of the URL. */
+    private var accessRegistry: [String: AccessEntry] = [:]
+
+    // ── requestAccess ──────────────────────────────────────────────────────
+
+    @objc(requestAccess:resolve:reject:)
+    func requestAccess(
+        _ uri: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        guard let url = urlFrom(uri) else {
+            NSLog("[FolderAccess] requestAccess: cannot parse URI: %@", uri)
+            resolve(false)
+            return
+        }
+
+        let key = url.absoluteString
+
+        registryQueue.async {
+            if var entry = self.accessRegistry[key] {
+                // Access already held — just bump the ref count. No OS call.
+                entry.count += 1
+                self.accessRegistry[key] = entry
+                NSLog("[FolderAccess] requestAccess: already held (count=%d) for %@", entry.count, uri)
+                resolve(true)
+                return
+            }
+
+            // First request for this URL — ask the OS.
+            let needsStop = url.startAccessingSecurityScopedResource()
+            self.accessRegistry[key] = AccessEntry(count: 1, needsStop: needsStop)
+            NSLog(
+                "[FolderAccess] requestAccess: granted (needsStop=%d) for %@",
+                needsStop ? 1 : 0,
+                uri
+            )
+            resolve(true)
+        }
+    }
+
+    // ── releaseAccess ──────────────────────────────────────────────────────
+
+    @objc(releaseAccess:resolve:reject:)
+    func releaseAccess(
+        _ uri: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        guard let url = urlFrom(uri) else {
+            // Unparseable URI — nothing to release, not an error for the caller.
+            resolve(true)
+            return
+        }
+
+        let key = url.absoluteString
+
+        registryQueue.async {
+            guard var entry = self.accessRegistry[key] else {
+                // No record of this URL — safe no-op.
+                NSLog("[FolderAccess] releaseAccess: no entry for %@ (no-op)", uri)
+                resolve(true)
+                return
+            }
+
+            entry.count -= 1
+
+            if entry.count <= 0 {
+                // Ref count exhausted — release the OS grant if we hold one.
+                if entry.needsStop {
+                    url.stopAccessingSecurityScopedResource()
+                    NSLog("[FolderAccess] releaseAccess: stopped security scope for %@", uri)
+                }
+                self.accessRegistry.removeValue(forKey: key)
+                NSLog("[FolderAccess] releaseAccess: entry removed for %@", uri)
+            } else {
+                self.accessRegistry[key] = entry
+                NSLog("[FolderAccess] releaseAccess: decremented to count=%d for %@", entry.count, uri)
+            }
+
+            resolve(true)
+        }
+    }
 
     // ── listFiles ──────────────────────────────────────────────────────────
 
@@ -136,7 +241,6 @@ class FolderAccessModule: NSObject {
 
             if !alreadySettled {
                 NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.TIMEOUT_SECONDS)
-                // Close the dir handle to unblock readdir on the other thread
                 dirHandleLock.lock()
                 if let dir = dirHandle {
                     closedir(dir)
@@ -155,7 +259,6 @@ class FolderAccessModule: NSObject {
 
         DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
     }
-
 
     // ── readFile ───────────────────────────────────────────────────────────
 
@@ -300,8 +403,6 @@ class FolderAccessModule: NSObject {
             if !alreadySettled {
                 NSLog("[FolderAccess] exists: TIMEOUT after %gs", self.TIMEOUT_SECONDS)
                 workItem.cancel()
-                // exists resolves false on timeout rather than rejecting —
-                // a missing/unreachable file is not an error for this method.
                 resolve(false)
             }
         }
