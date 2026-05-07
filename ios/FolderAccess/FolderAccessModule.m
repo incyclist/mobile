@@ -27,4 +27,16 @@ RCT_EXTERN_METHOD(
     reject:(RCTPromiseRejectBlock)reject
 )
 
+RCT_EXTERN_METHOD(
+    requestAccess:(NSString *)uri
+    resolve:(RCTPromiseResolveBlock)resolve
+    reject:(RCTPromiseRejectBlock)reject
+)
+ 
+RCT_EXTERN_METHOD(
+    releaseAccess:(NSString *)uri
+    resolve:(RCTPromiseResolveBlock)resolve
+    reject:(RCTPromiseRejectBlock)reject
+)
+
 @end

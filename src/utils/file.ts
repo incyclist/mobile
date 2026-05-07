@@ -19,7 +19,7 @@ export const buildFileInfo = (
 
     return {
         type: 'file',
-        name,
+        name,        
         base: fileName,
         filename: localPath,
         dir,

@@ -1,6 +1,7 @@
 import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
+import { EventLogger } from 'gd-eventlog';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -10,6 +11,9 @@ const requireFolderAccess = () => {
 };
 
 export class FileSystemBinding implements IFileSystem {
+
+    protected logger = new EventLogger('FS')
+
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
 
         if (Buffer.isBuffer(data)) {
@@ -27,6 +31,8 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
+        this.logger.logEvent({mesage:'readFile', path,encoding})
+
         const readRaw = path.startsWith('content://')
             ? (enc: string) => requireFolderAccess().readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)
@@ -106,6 +112,43 @@ export class FileSystemBinding implements IFileSystem {
         }
     }
 
+    async requestAccess(uri: string): Promise<boolean> {
+        try {
+            this.logger.logEvent({message:'request access', uri})
+
+            let res = await requireFolderAccess().requestAccess(uri);
+            if (!res) {
+                try {
+                    const decoded = decodeURIComponent(uri)
+                    this.logger.logEvent({message:'request access: check decoded', uri:decoded})
+                    res = await requireFolderAccess().requestAccess(decoded);
+                    if (!res) {
+                        const path = decoded.replace('file:///','')
+                        this.logger.logEvent({message:'request access: check path', uri:path})
+                        res = await requireFolderAccess().requestAccess(decoded);
+                    }
+                }
+                catch {}
+            }
+            
+            
+            
+            const message = res ? 'access granted' : 'access not granted'
+            this.logger.logEvent({message, uri})
+            return res
+        }
+        catch(err:any) {
+            this.logger.logEvent({message:'error', fn:'requestAccess', error:err.message, stack:err.stack})
+            return false
+        }
+    }
+ 
+    async releaseAccess(uri: string): Promise<boolean> {
+        const res = await requireFolderAccess().releaseAccess(uri);
+         return res
+    }
+
+
     private async listSafEntries(uri: string): Promise<ReadDirResult[]> {
         return await requireFolderAccess().listFiles(uri);
     }
@@ -144,33 +187,45 @@ export class FileSystemBinding implements IFileSystem {
         const results: any[] = [];
         const stack: string[] = [path];
 
-        while (stack.length > 0) {
-            const currentPath = stack.pop();
-            if (!currentPath) {
-                continue;
-            }
-
+        const readPath = async (currentPath: string)  =>{
             const entries = await this.listEntriesForPathSegment(currentPath, path);
 
             for (const entry of entries) {
-                if (isExtended) {
-                    results.push(entry);
-                } else {
-                    results.push(entry.name);
-                }
+                results.push(isExtended ? entry : entry.name);
 
                 if (isRecursive && entry.isDirectory) {
                     stack.push(entry.uri);
                 }
             }
-
-            // If not recursive, we're done after processing the first level
-            if (!isRecursive) {
-                break;
-            }
         }
 
-        return results;
+        try {
+
+            while (stack.length > 0) {
+                const currentPath = stack.pop();
+                if (!currentPath) {
+                    continue;
+                }
+
+                await readPath(currentPath);
+
+                // If not recursive, we're done after processing the first level
+                if (!isRecursive) {
+                    break;
+                }
+            }
+
+            return results;
+        }
+        catch (err) {
+            this.logger.logEvent({ message:'readdir error', 
+                path,
+                error: err instanceof Error ? err.message : String(err)
+            });
+            throw err;
+        }
+
+
     }
     /* eslint-enable no-dupe-class-members */
 }

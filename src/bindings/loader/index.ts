@@ -1,6 +1,7 @@
 import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
+import { EventLogger } from 'gd-eventlog';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -10,7 +11,12 @@ const requireFolderAccess = () => {
 };
 
 export class FileLoaderBinding implements IFileLoader {
+
+    protected logger = new EventLogger('FileLoader')
+
     async open(file: FileInfo): Promise<FileLoaderResult> {
+
+        this.logger.logEvent({mesage:'open', file})
         try {
             let data: any
 
@@ -36,8 +42,8 @@ export class FileLoaderBinding implements IFileLoader {
                 return readRaw('utf8')
             }
 
-            if (file.type === 'file') {
-                const path = file.filename || `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
+            if (file.type === 'file' || !file.type ) {
+                const path = file.filename ?? `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
                 data = await readFileWithEncoding(path, file.encoding)
             } else if (file.type === 'url' && file.url) {
                 const response = await fetch(file.url)
