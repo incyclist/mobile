@@ -8,7 +8,6 @@ jest.mock('../../bindings/fs', () => ({
     getFileSystemBinding: jest.fn(),
 }));
 
-// Mock constants
 const MOCK_HTTPS_SOURCE = { uri: 'https://example.com/preview.jpg' };
 const MOCK_FILE_SOURCE = { uri: 'file:///private/var/mobile/Containers/Shared/AppGroup/test/preview.png' };
 const MOCK_BUNDLED = 123;
@@ -19,8 +18,6 @@ describe('SecureImage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.replaceProperty(Platform, 'OS', 'ios');
-        (Platform.select as jest.Mock).mockImplementation((spec: any) => spec.ios);
-
         mockFS = {
             requestAccess: jest.fn().mockResolvedValue(true),
             releaseAccess: jest.fn().mockResolvedValue(true),
@@ -48,8 +45,7 @@ describe('SecureImage', () => {
         mockFS.requestAccess.mockReturnValue(accessPromise);
 
         const { toJSON } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
-        
-        // Should be null initially
+
         expect(toJSON()).toBeNull();
         expect(mockFS.requestAccess).toHaveBeenCalledWith(MOCK_FILE_SOURCE.uri);
 
@@ -57,14 +53,13 @@ describe('SecureImage', () => {
             resolveAccess(true);
         });
 
-        // Now it should render
         expect(toJSON()).not.toBeNull();
     });
 
     it('calls releaseAccess on unmount only when grant was acquired', async () => {
         const { unmount } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
-        
-        await act(async () => {}); // flush promise
+
+        await act(async () => {});
 
         unmount();
         expect(mockFS.releaseAccess).toHaveBeenCalledWith(MOCK_FILE_SOURCE.uri);
@@ -73,7 +68,7 @@ describe('SecureImage', () => {
     it('does not call releaseAccess if grant was not acquired', async () => {
         mockFS.requestAccess.mockResolvedValue(false);
         const { unmount } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
-        
+
         await act(async () => {});
 
         unmount();
@@ -82,8 +77,7 @@ describe('SecureImage', () => {
 
     it('renders Image directly on Android (no gate)', () => {
         jest.replaceProperty(Platform, 'OS', 'android');
-        (Platform.select as jest.Mock).mockImplementation((spec: any) => spec.android);
-        
+
         const { toJSON } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
         expect(toJSON()).not.toBeNull();
         expect(mockFS.requestAccess).not.toHaveBeenCalled();
