@@ -1,11 +1,12 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { render, act } from '@testing-library/react-native';
 import { SecureImage } from './SecureImage';
 import { getFileSystemBinding } from '../../bindings/fs';
 
-jest.mock('react-native/Libraries/Utilities/Platform', () => ({
-    OS: 'ios',
-    select: jest.fn(),
+jest.mock('react-native', () => ({
+    ...jest.requireActual('react-native'),
+    Platform: { OS: 'ios', select: jest.fn((spec: any) => spec.ios) },
 }));
 
 jest.mock('../../bindings/fs', () => ({
@@ -22,6 +23,9 @@ describe('SecureImage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.replaceProperty(Platform, 'OS', 'ios');
+        (Platform.select as jest.Mock).mockImplementation((spec: any) => spec.ios);
+
         mockFS = {
             requestAccess: jest.fn().mockResolvedValue(true),
             releaseAccess: jest.fn().mockResolvedValue(true),
@@ -79,5 +83,14 @@ describe('SecureImage', () => {
 
         unmount();
         expect(mockFS.releaseAccess).not.toHaveBeenCalled();
+    });
+
+    it('renders Image directly on Android (no gate)', () => {
+        jest.replaceProperty(Platform, 'OS', 'android');
+        (Platform.select as jest.Mock).mockImplementation((spec: any) => spec.android);
+        
+        const { toJSON } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
+        expect(toJSON()).not.toBeNull();
+        expect(mockFS.requestAccess).not.toHaveBeenCalled();
     });
 });

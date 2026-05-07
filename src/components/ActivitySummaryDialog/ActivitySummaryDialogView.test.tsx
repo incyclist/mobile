@@ -62,6 +62,13 @@ jest.mock('../ActivityGraph', () => ({
     ActivityGraph: 'ActivityGraph',
 }));
 
+jest.mock('../SecureImage', () => ({
+    SecureImage: ({ source, ...props }: any) => {
+        const { Image } = require('react-native');
+        return <Image source={source} {...props} />;
+    },
+}));
+
 const MOCK_ACTIVITY = {
     id: '1',
     title: 'Test Ride',
