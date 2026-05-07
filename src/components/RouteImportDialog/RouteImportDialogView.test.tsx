@@ -1,14 +1,14 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { RouteImportDialogView } from './RouteImportDialogView';
-import { RouteImportDialogViewProps } from './types';
+import { RouteImportDialogViewProps, ExtendedImportDisplayProps } from './types';
 
 const defaultProps: RouteImportDialogViewProps = {
     compact: false,
     displayProps: {
         phase: 'landing',
         routes: [],
-    },
+    } as ExtendedImportDisplayProps,
     selectedIds: [],
     isSingleImporting: false,
     title: 'Import Routes',
@@ -102,6 +102,46 @@ describe('RouteImportDialogView', () => {
                     ...defaultProps.displayProps,
                     phase: 'result',
                     resultSuccess: { routeName: 'Test Route' },
+                }}
+            />
+        );
+    });
+
+    it('renders result phase with noRoutesFound without crashing', () => {
+        render(
+            <RouteImportDialogView
+                {...defaultProps}
+                displayProps={{
+                    ...defaultProps.displayProps,
+                    phase: 'result',
+                    noRoutesFound: true,
+                }}
+            />
+        );
+    });
+
+    it('renders result phase with noRoutesFound in compact layout without crashing', () => {
+        render(
+            <RouteImportDialogView
+                {...defaultProps}
+                compact={true}
+                displayProps={{
+                    ...defaultProps.displayProps,
+                    phase: 'result',
+                    noRoutesFound: true,
+                }}
+            />
+        );
+    });
+
+    it('renders result phase with generic error without crashing', () => {
+        render(
+            <RouteImportDialogView
+                {...defaultProps}
+                displayProps={{
+                    ...defaultProps.displayProps,
+                    phase: 'result',
+                    error: 'no file found',
                 }}
             />
         );

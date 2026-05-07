@@ -1,13 +1,12 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import {
-    ImportDisplayProps,
     getRoutesPageService,
     ParsedRoute,
     ScannedRoute,
     IObserver,
 } from 'incyclist-services';
 import { RouteImportDialogView } from './RouteImportDialogView';
-import { RouteImportDialogProps } from './types';
+import { RouteImportDialogProps, ExtendedImportDisplayProps } from './types';
 import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
@@ -20,11 +19,11 @@ import { ErrorBoundary } from '../ErrorBoundary';
 export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logError,logEvent } = useLogging('RouteImportDialog');
+    const { logError, logEvent } = useLogging('RouteImportDialog');
     const { pickFile } = useFilePicker();
 
-    const [displayProps, setDisplayProps] = useState<ImportDisplayProps>(() =>
-        getRoutesPageService().getImportDisplayProps()
+    const [displayProps, setDisplayProps] = useState<ExtendedImportDisplayProps>(() =>
+        getRoutesPageService().getImportDisplayProps() as ExtendedImportDisplayProps
     );
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isSingleImporting, setIsSingleImporting] = useState(false);
@@ -42,7 +41,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const onUpdate = useCallback(() => {
         const updated = getRoutesPageService().getImportDisplayProps();
         if (updated) {
-            setDisplayProps(updated);
+            setDisplayProps(updated as ExtendedImportDisplayProps);
         }
     }, []);
 
@@ -93,6 +92,15 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
                 obs.off('scan-progress', onScanProgress);
                 obs.off('scan-complete', onScanComplete);
                 refScanObserver.current = null;
+            }
+
+            if (scannedRoutes.length === 0) {
+                setDisplayProps((prev) => ({
+                    ...prev,
+                    phase: 'result',
+                    noRoutesFound: true,
+                }));
+                return;
             }
 
             const parseObserver = getRoutesPageService().startLibraryParse(scannedRoutes);
@@ -176,7 +184,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
 
     const onAddGpx = useCallback(async () => {
         try {
-            const fileInfo = await pickFile({extensions:['gpx','xml']});
+            const fileInfo = await pickFile({ extensions: ['gpx', 'xml'] });
             if (!fileInfo) return;
 
             setIsSingleImporting(true);
@@ -210,7 +218,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         try {
             const result = await getUIBinding().selectDirectory();
             if (result.canceled || !result.selected) {
-                logEvent({message:'cancelled directory selection', eventSource:'user'})
+                logEvent({ message: 'cancelled directory selection', eventSource: 'user' });
                 return;
             }
 
@@ -273,7 +281,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         cleanUpObservers();
     });
 
-    const { phase } = displayProps??{};
+    const { phase } = displayProps ?? {};
 
     // Non-dismissable during active processing phases
     const isDismissable = !isSingleImporting && phase !== 'scanning' && phase !== 'parsing' && phase !== 'ingesting';
@@ -324,6 +332,12 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
             case 'complete':
                 return [{ label: 'Done', onClick: onDone, primary: true }];
             case 'result':
+                if (displayProps.noRoutesFound) {
+                    return [
+                        { label: 'Try Different Folder', onClick: onSelectFolder, primary: true },
+                        { label: 'Cancel', onClick: onCancel },
+                    ];
+                }
                 return displayProps.resultSuccess
                     ? [{ label: 'Done', onClick: onDone, primary: true }]
                     : [
@@ -338,14 +352,15 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         isSingleImporting,
         selectedIds.length,
         displayProps.resultSuccess,
+        displayProps.noRoutesFound,
         onCancel,
         onConfirmSelection,
         onDone,
         handleTryAgain,
+        onSelectFolder,
     ]);
 
-    logEvent({message:'render RouteImportDialog', displayProps})
-    
+    logEvent({ message: 'render RouteImportDialog', displayProps });
 
     return (
         <ErrorBoundary>

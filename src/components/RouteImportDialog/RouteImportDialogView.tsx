@@ -38,6 +38,7 @@ export const RouteImportDialogView = ({
         completionSummary,
         resultSuccess,
         error,
+        noRoutesFound,
     } = displayProps;
 
     const renderContent = () => {
@@ -106,6 +107,7 @@ export const RouteImportDialogView = ({
                         success={resultSuccess != null}
                         routeName={resultSuccess?.routeName}
                         error={error}
+                        noRoutesFound={noRoutesFound}
                     />
                 );
 
