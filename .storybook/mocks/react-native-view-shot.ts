@@ -4,5 +4,3 @@ export default {
 }
 
 export const captureScreen = async () => '';
-
-node -e 'const {a} = false; console.log(a)'
