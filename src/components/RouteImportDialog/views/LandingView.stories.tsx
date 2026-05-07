@@ -3,7 +3,7 @@ import { fn } from 'storybook/test';
 import { LandingView } from './LandingView';
 
 const meta: Meta<typeof LandingView> = {
-    title: 'Components/ImportRoutesDialog/LandingView',
+    title: 'Components/RouteImportDialog/Views/LandingView',
     component: LandingView,
     args: {
         compact: false,

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { ScanningView } from './ScanningView';
 
 const meta: Meta<typeof ScanningView> = {
-    title: 'Components/ImportRoutesDialog/ScanningView',
+    title: 'Components/RouteImportDialog/Views/ScanningView',
     component: ScanningView,
     args: {
         compact: false,

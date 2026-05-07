@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { ResultView } from './ResultView';
 
 const meta: Meta<typeof ResultView> = {
-    title: 'Components/ImportRoutesDialog/ResultView',
+    title: 'Components/RouteImportDialog/Views/ResultView',
     component: ResultView,
     args: {
         compact: false,

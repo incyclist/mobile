@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { CompleteView } from './CompleteView';
 
 const meta: Meta<typeof CompleteView> = {
-    title: 'Components/ImportRoutesDialog/CompleteView',
+    title: 'Components/RouteImportDialog/Views/CompleteView',
     component: CompleteView,
     args: {},
 };
