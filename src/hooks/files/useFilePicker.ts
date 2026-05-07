@@ -3,9 +3,6 @@ import { FileInfo } from 'incyclist-services'
 import { useLogging } from '../logging'
 import { Platform } from 'react-native'
 import { buildFileInfo } from '../../utils/file'
-import { getFileSystemBinding } from '../../bindings/fs'
-import { useRef } from 'react'
-import { useUnmountEffect } from '../unmount'
 
 export interface FilePickerProps {
     extensions?:Array<string>    
@@ -27,7 +24,6 @@ export interface UseFilePickerResult {
 export const useFilePicker = (): UseFilePickerResult => {
 
     const {logEvent} = useLogging('Incyclist')
-    const refGrants = useRef<Array<string>>([])
 
     const pickFile = async (pickProps?:FilePickerProps): Promise<FileInfo | null> => {
 
@@ -71,13 +67,9 @@ export const useFilePicker = (): UseFilePickerResult => {
 
             if (Platform.OS === 'ios') {
                 const cleaned = decodeURIComponent(result.uri).replace('file://', '');
-                const fileInfo =  buildFileInfo(cleaned,fileName)
+                logEvent({ message:'File picked', fileName, uri: cleaned})  
+                return  buildFileInfo(cleaned,fileName)
 
-                const granted = await getFileSystemBinding().requestAccess(fileInfo.dir)
-                if (granted) {
-                    refGrants.current.push(fileInfo.dir)
-                }
-                return fileInfo
             }
             else {
                 logEvent({ message:'File picked', fileName, uri: result.uri })  
@@ -110,12 +102,6 @@ export const useFilePicker = (): UseFilePickerResult => {
             throw err
         }
     }
-
-    useUnmountEffect( ()=>{
-        if (refGrants.current?.length>0) {
-            refGrants.current.forEach( grant=> getFileSystemBinding().releaseAccess(grant))
-        }
-    })
 
     return { pickFile }
 }

@@ -74,7 +74,7 @@ export const LandingView = ({
                     onPress={handleAddGpx} 
                     compact={compact} 
                 />
-                {Platform.OS === 'ios' && (
+                {Platform.OS === 'ios' && false && (
                     <OptionTile 
                         icon='plus' 
                         title='Add Video Route' 
