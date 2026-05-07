@@ -39,6 +39,11 @@ export class FileSystemBinding implements IFileSystem {
             ? (enc: string) => requireFolderAccess().readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)
 
+        if (Platform.OS==='ios')  {
+            this.requestAccess(path)
+            accessRequested = true
+        }
+
         if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
             const base64 = await readRaw('base64')
             const buffer = Buffer.from(base64, 'base64')
@@ -46,11 +51,6 @@ export class FileSystemBinding implements IFileSystem {
                 return buffer
             }
             return buffer.toString(encoding as BufferEncoding)
-        }
-
-        if (Platform.OS==='ios')  {
-            this.requestAccess(path)
-            accessRequested = true
         }
 
 
