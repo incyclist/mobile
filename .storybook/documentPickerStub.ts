@@ -28,3 +28,6 @@ export const types: Record<string, string> = {
 };
 
 export default { pick, keepLocalCopy, types };
+
+export const pickDirectory = async () => ({ canceled: true, selected: undefined });
+export const isKnownType = () => false;
