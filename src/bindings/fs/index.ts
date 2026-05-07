@@ -187,6 +187,18 @@ export class FileSystemBinding implements IFileSystem {
         const results: any[] = [];
         const stack: string[] = [path];
 
+        const readPath = async (currentPath: string)  =>{
+            const entries = await this.listEntriesForPathSegment(currentPath, path);
+
+            for (const entry of entries) {
+                results.push(isExtended ? entry : entry.name);
+
+                if (isRecursive && entry.isDirectory) {
+                    stack.push(entry.uri);
+                }
+            }
+        }
+
         try {
 
             while (stack.length > 0) {
@@ -195,15 +207,7 @@ export class FileSystemBinding implements IFileSystem {
                     continue;
                 }
 
-                const entries = await this.listEntriesForPathSegment(currentPath, path);
-
-                for (const entry of entries) {
-                    results.push(isExtended ? entry : entry.name);
-
-                    if (isRecursive && entry.isDirectory) {
-                        stack.push(entry.uri);
-                    }
-                }
+                await readPath(currentPath);
 
                 // If not recursive, we're done after processing the first level
                 if (!isRecursive) {
@@ -220,6 +224,7 @@ export class FileSystemBinding implements IFileSystem {
             });
             throw err;
         }
+
 
     }
     /* eslint-enable no-dupe-class-members */

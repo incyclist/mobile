@@ -66,7 +66,7 @@ class FolderAccessModule: NSObject {
     func requestAccess(
         _ uri: String,
         resolve: @escaping RCTPromiseResolveBlock,
-        _reject: @escaping RCTPromiseRejectBlock
+        _: @escaping RCTPromiseRejectBlock
     ) {
         guard let url = urlFrom(uri) else {
             NSLog("[FolderAccess] requestAccess: cannot parse URI: %@", uri)
@@ -104,7 +104,7 @@ class FolderAccessModule: NSObject {
     func releaseAccess(
         _ uri: String,
         resolve: @escaping RCTPromiseResolveBlock,
-        _reject: @escaping RCTPromiseRejectBlock
+        _: @escaping RCTPromiseRejectBlock
     ) {
         guard let url = urlFrom(uri) else {
             // Unparseable URI — nothing to release, not an error for the caller.
