@@ -31,6 +31,8 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
+        this.logger.logEvent({mesage:'readFile', path,encoding})
+
         const readRaw = path.startsWith('content://')
             ? (enc: string) => requireFolderAccess().readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)

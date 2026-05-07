@@ -176,7 +176,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
 
     const onAddGpx = useCallback(async () => {
         try {
-            const fileInfo = await pickFile();
+            const fileInfo = await pickFile({extensions:['gpx','xml']});
             if (!fileInfo) return;
 
             setIsSingleImporting(true);

@@ -11,7 +11,7 @@ import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
 import { Platform } from 'react-native';
-import { getFileSystemBinding } from 'src/bindings/fs';
+import { getFileSystemBinding } from '../../bindings/fs';
 
 export const Video = (props: VideoProps) => {
     const {

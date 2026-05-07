@@ -1,15 +1,19 @@
-import { pick, types, keepLocalCopy } from '@react-native-documents/picker'
+import { pick, types, keepLocalCopy, isKnownType  } from '@react-native-documents/picker'
 import { FileInfo } from 'incyclist-services'
 import { useLogging } from '../logging'
 import { Platform } from 'react-native'
-import { getPathBinding } from '../../bindings/path'
+import { buildFileInfo } from '../../utils/file'
+
+export interface FilePickerProps {
+    extensions?:Array<string>    
+}
 
 /**
  * @interface UseFilePickerResult
  * @property {() => Promise<FileInfo | null>} pickFile - Function to open the file picker. Returns FileInfo on success, or null if the user cancelled.
  */
 export interface UseFilePickerResult {
-    pickFile: () => Promise<FileInfo | null>
+    pickFile: ( props?:FilePickerProps) => Promise<FileInfo | null>
 }
 
 /**
@@ -21,18 +25,38 @@ export const useFilePicker = (): UseFilePickerResult => {
 
     const {logEvent} = useLogging('Incyclist')
 
-    const pickFile = async (): Promise<FileInfo | null> => {
+    const pickFile = async (pickProps?:FilePickerProps): Promise<FileInfo | null> => {
 
         if (Platform.OS==='web')
             return null
 
         try {
-            const [result] = await pick({
+            logEvent({ message:'file picker shown', props:pickProps })
+            const {extensions} = pickProps??{}
+
+  
+            const props:any = {
                 type: [types.allFiles],
                 allowMultiSelection: false,
-                mode:'open',
-                rrequestLongTermAccess: true
-            })
+            }
+            if (Platform.OS === 'ios') {
+                props.mode = 'open'
+                props.requestLongTermAccess= true
+            }
+
+            if (extensions?.length) {
+                props.types = []
+                extensions.forEach( ext=> {
+                    const { isKnown, mimeType, preferredFilenameExtension } = isKnownType({
+                        kind: 'extension',
+                        value: ext,
+                    })
+                    props.types.push({ isKnown, mimeType, preferredFilenameExtension })
+
+                })
+            }
+
+            const [result] = await pick(props)
 
             if (!result.name)
                 return null;
@@ -42,11 +66,8 @@ export const useFilePicker = (): UseFilePickerResult => {
             const fileName = result.name
 
             if (Platform.OS === 'ios') {
-                const cleaned = decodeURIComponent(result.uri);
-                const fileInfo = getPathBinding().parse(cleaned) as unknown as FileInfo
-                fileInfo.base = fileName
-                logEvent({ message:'File picked', fileName, uri: cleaned })  
-                return fileInfo
+                const cleaned = decodeURIComponent(result.uri).replace('file://', '');
+                return buildFileInfo(cleaned,fileName)
             }
             else {
                 logEvent({ message:'File picked', fileName, uri: result.uri })  
@@ -62,9 +83,7 @@ export const useFilePicker = (): UseFilePickerResult => {
             if (localCopy.status === 'success') {
                 // Remove 'file://' prefix from local URI
                 const localPath = localCopy.localUri.replace('file://', '')
-                const fileInfo = getPathBinding().parse(localPath) as unknown as FileInfo
-                fileInfo.base = fileName
-                return fileInfo
+                return buildFileInfo(localPath,fileName)
             } else {
                 // If the local copy failed, log the error and return null.
                 // This means we couldn't get a usable local file, so the operation is not successful.
