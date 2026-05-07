@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 
@@ -8,6 +8,7 @@ interface ResultViewProps {
     success: boolean;
     routeName?: string;
     error?: string;
+    noRoutesFound?: boolean;
 }
 
 export const ResultView = ({ 
@@ -15,12 +16,19 @@ export const ResultView = ({
     success, 
     routeName, 
     error, 
+    noRoutesFound,
 }: ResultViewProps) => {
     const statusColor = success ? colors.success : colors.error;
-    const title = success ? 'Import Successful' : 'Import Failed';
+    let title = success ? 'Import Successful' : 'Import Failed';
     
     let message: string;
-    if (success) {
+    if (noRoutesFound) {
+        title = 'No Routes Found';
+        message = 'Please select a directory that contains files in supported formats (EPM, RLV, XML).';
+        if (Platform.OS === 'ios') {
+            message += '\n\nNote: NAS is not yet supported. Please copy files to iCloud Drive or On My iPhone first.';
+        }
+    } else if (success) {
         message = routeName
             ? `Route "${routeName}" has been added.`
             : 'The route has been added to your library.';

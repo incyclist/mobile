@@ -5,9 +5,13 @@ export interface RouteImportDialogProps {
     onClose: () => void;
 }
 
+export interface ExtendedImportDisplayProps extends ImportDisplayProps {
+    noRoutesFound?: boolean;
+}
+
 export interface RouteImportDialogViewProps {
     compact: boolean;
-    displayProps: ImportDisplayProps;
+    displayProps: ExtendedImportDisplayProps;
     selectedIds: string[];
     isSingleImporting: boolean;
     title: string;
