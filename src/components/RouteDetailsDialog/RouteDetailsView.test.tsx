@@ -31,6 +31,13 @@ jest.mock('../DownloadModal', () => {
     };
 });
 
+jest.mock('../SecureImage', () => ({
+    SecureImage: ({ source, ...props }: any) => {
+        const { Image } = require('react-native');
+        return <Image source={source} {...props} />;
+    },
+}));
+
 const MOCK_SETTINGS = {
     startPos: { value: 0, unit: 'km' },
     realityFactor: 100,

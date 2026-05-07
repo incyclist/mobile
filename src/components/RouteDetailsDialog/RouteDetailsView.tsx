@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    Image,
     ActivityIndicator,
     useWindowDimensions,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { EditNumber } from '../EditNumber';
 import { ChipSelect } from '../ChipSelect';
 import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
+import { SecureImage } from '../SecureImage';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -162,7 +162,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const renderPreview = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (previewUrl) {
-            return <Image source={{ uri: previewUrl }} style={styles.fullMedia} resizeMode="cover" />;
+            return <SecureImage source={{ uri: previewUrl }} style={styles.fullMedia} resizeMode="cover" />;
         }
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };
