@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
@@ -8,6 +8,7 @@ import { ActivitySummaryDialogViewProps, isFormattedNumber } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { SecureImage } from '../SecureImage';
 
 const safeNum = (v: any): number | undefined => {
     try {
@@ -216,7 +217,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             {showMap ? (
                 <FreeMap points={mapPoints} style={styles.map} />
             ) : preview ? (
-                <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
+                <SecureImage source={{ uri: preview }} style={styles.previewImage} resizeMode="cover" />
             ) : (
                 <View style={styles.emptyPreview} />
             )}

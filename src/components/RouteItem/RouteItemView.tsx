@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { RouteItemViewProps } from './types';
 import { colors } from '../../theme';
 import { getFlagEmoji } from '../../utils/flags';
 import { FreeMap } from '../FreeMap';
 import { ElevationGraph } from '../ElevationGraph';
 import { Icon } from '../Icon';
+import { SecureImage } from '../SecureImage';
 
 // Conditional import to prevent Storybook Vite from crashing
 let Swipeable: any = View;
@@ -45,7 +46,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
     const renderMedia = () => {
 
         if (hasVideo && previewUrl) {
-            return <Image source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
+            return <SecureImage source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
         }
 
         if (points && points.length > 0) {
