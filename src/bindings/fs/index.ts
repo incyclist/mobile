@@ -2,6 +2,7 @@ import RNFS from 'react-native-fs';
 import { IFileSystem, ReadDirResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
 import { EventLogger } from 'gd-eventlog';
+import { Platform } from 'react-native';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -32,7 +33,8 @@ export class FileSystemBinding implements IFileSystem {
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
         this.logger.logEvent({mesage:'readFile', path,encoding})
-
+        let accessRequested = false
+ 
         const readRaw = path.startsWith('content://')
             ? (enc: string) => requireFolderAccess().readFile(path, enc)
             : (enc: string) => RNFS.readFile(path, enc)
@@ -45,7 +47,18 @@ export class FileSystemBinding implements IFileSystem {
             }
             return buffer.toString(encoding as BufferEncoding)
         }
-        return readRaw(encoding === 'base64' ? 'base64' : 'utf8')
+
+        if (Platform.OS==='ios')  {
+            this.requestAccess(path)
+            accessRequested = true
+        }
+
+
+        const res = readRaw(encoding === 'base64' ? 'base64' : 'utf8')
+        if (accessRequested) {
+            this.releaseAccess(path)
+        }
+        return res
     }
 
     async appendFile(path: string, data: string, encoding?: string): Promise<void> {

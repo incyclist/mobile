@@ -1,7 +1,7 @@
-import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
 import { EventLogger } from 'gd-eventlog';
+import { getFileSystemBinding } from '../fs';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -17,6 +17,7 @@ export class FileLoaderBinding implements IFileLoader {
     async open(file: FileInfo): Promise<FileLoaderResult> {
 
         this.logger.logEvent({mesage:'open', file})
+
         try {
             let data: any
 
@@ -24,7 +25,11 @@ export class FileLoaderBinding implements IFileLoader {
                 const readRaw = async (enc: string): Promise<string> => {
                     return path.startsWith('content://')
                         ? await requireFolderAccess().readFile(path, enc)
-                        : await RNFS.readFile(path, enc)
+                        : await getFileSystemBinding().readFile(path,enc) as string
+                }
+
+                if (encoding==='binary' && !path.startsWith('content://')) {
+                    return await getFileSystemBinding().readFile(path,encoding)
                 }
 
                 if (encoding === 'base64') {
@@ -34,8 +39,6 @@ export class FileLoaderBinding implements IFileLoader {
                     const base64 = await readRaw('base64')
 
                     const buffer = Buffer.from(base64, 'base64')
-                    if (encoding==='binary')
-                         return buffer
                     return buffer.toString(encoding as BufferEncoding)
 
                 }
