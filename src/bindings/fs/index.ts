@@ -198,11 +198,7 @@ export class FileSystemBinding implements IFileSystem {
                 const entries = await this.listEntriesForPathSegment(currentPath, path);
 
                 for (const entry of entries) {
-                    if (isExtended) {
-                        results.push(entry);
-                    } else {
-                        results.push(entry.name);
-                    }
+                    results.push(isExtended ? entry : entry.name);
 
                     if (isRecursive && entry.isDirectory) {
                         stack.push(entry.uri);
