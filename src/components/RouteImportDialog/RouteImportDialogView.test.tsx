@@ -120,6 +120,20 @@ describe('RouteImportDialogView', () => {
         );
     });
 
+    it('renders result phase with noRoutesFound in compact layout without crashing', () => {
+        render(
+            <RouteImportDialogView
+                {...defaultProps}
+                compact={true}
+                displayProps={{
+                    ...defaultProps.displayProps,
+                    phase: 'result',
+                    noRoutesFound: true,
+                }}
+            />
+        );
+    });
+
     it('renders result phase with generic error without crashing', () => {
         render(
             <RouteImportDialogView
