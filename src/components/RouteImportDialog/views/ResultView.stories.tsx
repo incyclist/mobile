@@ -27,6 +27,11 @@ export const SuccessCompact: Story = {
         compact: true,
     },
 };
+export const NoRoutesFound: Story = {
+    args: {
+        noRoutesFound: true,
+    },
+};
 
 export const Error: Story = {
     args: {
