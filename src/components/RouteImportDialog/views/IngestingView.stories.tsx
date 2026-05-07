@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { IngestingView } from './IngestingView';
 
 const meta: Meta<typeof IngestingView> = {
-    title: 'Components/ImportRoutesDialog/IngestingView',
+    title: 'Components/RouteImportDialog/Views/IngestingView',
     component: IngestingView,
     args: {},
 };

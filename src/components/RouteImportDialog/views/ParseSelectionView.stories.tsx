@@ -46,7 +46,7 @@ const mockRoutes: RouteDisplayItem[] = [
 ];
 
 const meta: Meta<typeof ParseSelectionView> = {
-    title: 'Components/ImportRoutesDialog/ParseSelectionView',
+    title: 'Components/RouteImportDialog/Views/ParseSelectionView',
     component: ParseSelectionView,
     args: {
         compact: false,
