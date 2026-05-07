@@ -4,11 +4,6 @@ import { render, act } from '@testing-library/react-native';
 import { SecureImage } from './SecureImage';
 import { getFileSystemBinding } from '../../bindings/fs';
 
-jest.mock('react-native', () => ({
-    ...jest.requireActual('react-native'),
-    Platform: { OS: 'ios', select: jest.fn((spec: any) => spec.ios) },
-}));
-
 jest.mock('../../bindings/fs', () => ({
     getFileSystemBinding: jest.fn(),
 }));
