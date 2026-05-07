@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import {
-    ImportDisplayProps,
     getRoutesPageService,
     ParsedRoute,
     ScannedRoute,
@@ -20,7 +19,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logError,logEvent } = useLogging('RouteImportDialog');
+    const { logError, logEvent } = useLogging('RouteImportDialog');
     const { pickFile } = useFilePicker();
 
     const [displayProps, setDisplayProps] = useState<ExtendedImportDisplayProps>(() =>
@@ -185,7 +184,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
 
     const onAddGpx = useCallback(async () => {
         try {
-            const fileInfo = await pickFile({extensions:['gpx','xml']});
+            const fileInfo = await pickFile({ extensions: ['gpx', 'xml'] });
             if (!fileInfo) return;
 
             setIsSingleImporting(true);
@@ -219,7 +218,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         try {
             const result = await getUIBinding().selectDirectory();
             if (result.canceled || !result.selected) {
-                logEvent({message:'cancelled directory selection', eventSource:'user'})
+                logEvent({ message: 'cancelled directory selection', eventSource: 'user' });
                 return;
             }
 
@@ -282,7 +281,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         cleanUpObservers();
     });
 
-    const { phase } = displayProps??{};
+    const { phase } = displayProps ?? {};
 
     // Non-dismissable during active processing phases
     const isDismissable = !isSingleImporting && phase !== 'scanning' && phase !== 'parsing' && phase !== 'ingesting';
@@ -361,8 +360,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         onSelectFolder,
     ]);
 
-    logEvent({message:'render RouteImportDialog', displayProps})
-    
+    logEvent({ message: 'render RouteImportDialog', displayProps });
 
     return (
         <ErrorBoundary>
