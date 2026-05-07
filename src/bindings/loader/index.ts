@@ -1,6 +1,8 @@
-import RNFS from 'react-native-fs';
 import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
+import { EventLogger } from 'gd-eventlog';
+import { Platform } from 'react-native';
+import { getFileSystemBinding } from '../fs';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -10,15 +12,29 @@ const requireFolderAccess = () => {
 };
 
 export class FileLoaderBinding implements IFileLoader {
+
+    protected logger = new EventLogger('FileLoader')
+
     async open(file: FileInfo): Promise<FileLoaderResult> {
+
+        this.logger.logEvent({mesage:'open', file})
         try {
             let data: any
 
             const readFileWithEncoding = async (path: string, encoding?: string): Promise<string|Buffer> => {
+                if (Platform.OS==='ios') {
+                    
+                }
+
+
                 const readRaw = async (enc: string): Promise<string> => {
                     return path.startsWith('content://')
                         ? await requireFolderAccess().readFile(path, enc)
-                        : await RNFS.readFile(path, enc)
+                        : await getFileSystemBinding().readFile(path,enc) as string
+                }
+
+                if (encoding==='binary' && !path.startsWith('content://')) {
+                    return await getFileSystemBinding().readFile(path,encoding)
                 }
 
                 if (encoding === 'base64') {
@@ -28,16 +44,14 @@ export class FileLoaderBinding implements IFileLoader {
                     const base64 = await readRaw('base64')
 
                     const buffer = Buffer.from(base64, 'base64')
-                    if (encoding==='binary')
-                         return buffer
                     return buffer.toString(encoding as BufferEncoding)
 
                 }
                 return readRaw('utf8')
             }
 
-            if (file.type === 'file') {
-                const path = file.filename || `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
+            if (file.type === 'file' || !file.type ) {
+                const path = file.filename ?? `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
                 data = await readFileWithEncoding(path, file.encoding)
             } else if (file.type === 'url' && file.url) {
                 const response = await fetch(file.url)
