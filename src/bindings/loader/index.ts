@@ -2,6 +2,7 @@ import { IFileLoader, FileInfo, FileLoaderResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
 import { EventLogger } from 'gd-eventlog';
 import { getFileSystemBinding } from '../fs';
+import { Platform } from 'react-native';
 
 const requireFolderAccess = () => {
     if (!FolderAccess) {
@@ -46,7 +47,11 @@ export class FileLoaderBinding implements IFileLoader {
             }
 
             if (file.type === 'file' || !file.type ) {
-                const path = file.filename ?? `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
+                let path = file.filename ?? `${file.dir}${file.delimiter ?? '/'}${file.name}.${file.ext}`
+
+                if (Platform.OS==='ios' && path?.startsWith('/')) {
+                    path = `file://${path}`
+                }
                 data = await readFileWithEncoding(path, file.encoding)
             } else if (file.type === 'url' && file.url) {
                 const response = await fetch(file.url)
@@ -54,6 +59,7 @@ export class FileLoaderBinding implements IFileLoader {
             }
             return { data }
         } catch (err: any) {
+            this.logger.logEvent({mesage:'open failed', file,reason:err.message??err})
             return { error: { message: err.message, key: 'LOAD_FAILED' } }
         }
     }
