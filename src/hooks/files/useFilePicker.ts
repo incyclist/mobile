@@ -41,7 +41,7 @@ export const useFilePicker = (): UseFilePickerResult => {
             }
             if (Platform.OS === 'ios') {
                 props.mode = 'open'
-                props.requestLongTermAccess= true
+                props.requestLongTermAccess= false
             }
 
             if (extensions?.length) {

@@ -40,7 +40,7 @@ export class FileSystemBinding implements IFileSystem {
             : (enc: string) => RNFS.readFile(path, enc)
 
         if (Platform.OS==='ios')  {
-            this.requestAccess(path)
+            await this.requestAccess(path)
             accessRequested = true
         }
 
@@ -56,7 +56,7 @@ export class FileSystemBinding implements IFileSystem {
 
         const res = readRaw(encoding === 'base64' ? 'base64' : 'utf8')
         if (accessRequested) {
-            this.releaseAccess(path)
+            await this.releaseAccess(path)
         }
         return res
     }
