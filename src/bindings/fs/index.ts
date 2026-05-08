@@ -32,33 +32,40 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
-        this.logger.logEvent({mesage:'readFile', path,encoding})
-        let accessRequested = false
- 
-        const readRaw = path.startsWith('content://')
-            ? (enc: string) => requireFolderAccess().readFile(path, enc)
-            : (enc: string) => RNFS.readFile(path, enc)
+        try {
+            //this.logger.logEvent({mesage:'readFile', path,encoding})
+            let accessRequested = false
+    
+            const readRaw = path.startsWith('content://')
+                ? (enc: string) => requireFolderAccess().readFile(path, enc)
+                : (enc: string) => RNFS.readFile(path, enc)
 
-        if (Platform.OS==='ios')  {
-            await this.requestAccess(path)
-            accessRequested = true
-        }
-
-        if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
-            const base64 = await readRaw('base64')
-            const buffer = Buffer.from(base64, 'base64')
-            if (encoding==='binary') {
-                return buffer
+            if (Platform.OS==='ios')  {
+                await this.requestAccess(path)
+                accessRequested = true
             }
-            return buffer.toString(encoding as BufferEncoding)
-        }
+
+            if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+                const base64 = await readRaw('base64')
+                const buffer = Buffer.from(base64, 'base64')
+                if (encoding==='binary') {
+                    return buffer
+                }
+                return buffer.toString(encoding as BufferEncoding)
+            }
 
 
-        const res = readRaw(encoding === 'base64' ? 'base64' : 'utf8')
-        if (accessRequested) {
-            await this.releaseAccess(path)
+            const res = readRaw(encoding === 'base64' ? 'base64' : 'utf8')
+            if (accessRequested) {
+                await this.releaseAccess(path)
+            }
+            return res
         }
-        return res
+        catch(err:any) {
+            this.logger.logEvent({message:'could not read file',file:path, reason:err.message})
+            throw err
+
+        }
     }
 
     async appendFile(path: string, data: string, encoding?: string): Promise<void> {

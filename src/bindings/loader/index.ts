@@ -17,7 +17,7 @@ export class FileLoaderBinding implements IFileLoader {
 
     async open(file: FileInfo): Promise<FileLoaderResult> {
 
-        this.logger.logEvent({mesage:'open', file})
+        //this.logger.logEvent({mesage:'open', file})
 
         try {
             let data: any
@@ -29,14 +29,14 @@ export class FileLoaderBinding implements IFileLoader {
                         : await getFileSystemBinding().readFile(path,enc) as string
                 }
 
-                if (encoding==='binary' && !path.startsWith('content://')) {
+                if (encoding==='binary') {
                     return await getFileSystemBinding().readFile(path,encoding)
                 }
 
-                if (encoding === 'base64') {
+                else if (encoding === 'base64') {
                     return readRaw('base64')
                 }
-                if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
+                else if (encoding === 'ascii' || encoding === 'latin1') {
                     const base64 = await readRaw('base64')
 
                     const buffer = Buffer.from(base64, 'base64')

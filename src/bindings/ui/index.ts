@@ -109,10 +109,14 @@ export class UIBinding implements INativeUI {
             const decodedUri = decodeURIComponent(uri);
             const segments = decodedUri.split('/')
             const displayName = segments.filter((s: string) => s.length > 0).pop() ?? 'Folder'            
+
+            // Android content:// URI must not be decoded, IOS file:// must be decoded
+            //
+            const selected = uri.startsWith('content:') ? uri : decodedUri
             
             return {
                 canceled: false,
-                selected: decodedUri,
+                selected,
                 displayName,
             };
         } catch  {
