@@ -262,9 +262,11 @@ export const Video = (props: VideoProps) => {
         return false;
     }
 
+    const cleanSrc =  encodeURI(src)
+
     return (
         <VideoView
-            src={src}
+            src={cleanSrc}
             rate={rate}
             paused={paused}
             muted={muted}
