@@ -12,6 +12,7 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BCC41758932FA2AB91CC0385 /* libPods-Incyclist.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */; };
+		DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */; };
 		DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */; };
 		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
 		DF6FB3E12F76C8C300067D3E /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 545B78D46B72D3C354028E49 /* MapLibre */; };
@@ -27,6 +28,7 @@
 		5D7DDF37186AFD7B4D381C66 /* Pods-Incyclist.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.release.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Incyclist/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Incyclist/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FullScreenViewController.swift; path = Incyclist/FullScreenViewController.swift; sourceTree = "<group>"; };
 		DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderAccessModule.m; sourceTree = "<group>"; };
 		DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderAccessModule.swift; sourceTree = "<group>"; };
 		DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "incyclist--Bridging-Header.h"; sourceTree = "<group>"; };
@@ -51,6 +53,7 @@
 		13B07FAE1A68108700A75B9A /* Incyclist */ = {
 			isa = PBXGroup;
 			children = (
+				DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */,
 				DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */,
 				DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -304,6 +307,7 @@
 				DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */,
 				DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -613,6 +617,7 @@
 				CODE_SIGN_ENTITLEMENTS = Incyclist/Incyclist.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 33ZL4TD87Q;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 33ZL4TD87Q;
 				INFOPLIST_FILE = Incyclist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Incyclist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
@@ -629,6 +634,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.incyclist.app;
 				PRODUCT_NAME = Incyclist;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Incyclist Development";
 				SWIFT_OBJC_BRIDGING_HEADER = "incyclist--Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
