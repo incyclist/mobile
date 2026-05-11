@@ -262,7 +262,7 @@ export const Video = (props: VideoProps) => {
         return false;
     }
 
-    const cleanSrc =  encodeURI(src)
+    const cleanSrc =  Platform.OS==='ios' ? encodeURI(src) : src
 
     return (
         <VideoView
