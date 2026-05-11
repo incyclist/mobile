@@ -33,6 +33,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             launchOptions: launchOptions
         )
 
+        // Replace the root view controller with our full-screen subclass
+        // that declaratively hides status bar and home indicator
+        if let rootView = window?.rootViewController?.view {
+            let fullScreenVC = FullScreenViewController()
+            fullScreenVC.view = rootView
+            window?.rootViewController = fullScreenVC
+        }        
+
         return true
     }
 
