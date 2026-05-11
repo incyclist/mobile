@@ -70,15 +70,12 @@ export const App = ({ secretsStatus }: AppProps) => {
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
             if (lastState === 'active' && nextState !== 'active') {
-                service.onAppPause();
-                getMessageQueueBinding().connect();  // reconnect on foreground
+                service.onAppPause()
             }
 
             if (lastState !== 'active' && nextState === 'active') {
                 ble.initializeAuthorization();
-                service.onAppResume();
-                getMessageQueueBinding().disconnect();  // disconnect on background
-                
+                service.onAppResume();               
             }
 
             lastState = nextState;
