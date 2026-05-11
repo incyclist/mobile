@@ -3,6 +3,10 @@ package com.incyclist.app
 import android.os.Bundle // Required for onCreate
 import android.content.Intent
 import android.content.res.Configuration
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -18,6 +22,18 @@ class MainActivity : ReactActivity() {
         super.onCreate(null)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemUI()
+    }
+
+    private fun hideSystemUI() {
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+    
     /**
      * Returns the name of the main component registered from JavaScript. This is used to schedule
      * rendering of the component.
