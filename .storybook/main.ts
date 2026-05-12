@@ -119,6 +119,7 @@ const config: StorybookConfig = {
 
                     // ── native TurboModule stubs ──────────────────────────────────
                     '@pagopa/io-react-native-integrity': path.resolve(dirname, 'mocks/io-react-native-integrity.ts'),
+                    '../src/specs/StreetViewNativeComponent': path.resolve(dirname, './mocks/street-view-native-component.tsx'),
 
                     // ── crypto: stub (never use crypto-browserify) ────────────────
                     // crypto-browserify -> browserify-sign -> vendored readable-stream
