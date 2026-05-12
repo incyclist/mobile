@@ -70,5 +70,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Google Maps API key — used by react-native-maps and the
+             StreetView Fabric component. Value is injected at build time
+             from .env via manifestPlaceholders in app/build.gradle. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />            
+
     </application>
 </manifest>
