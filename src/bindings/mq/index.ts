@@ -19,6 +19,7 @@ export class MessageQueue extends EventEmitter {
     private queue: Array<{ topic: string; payload: string; ts: number }> = [];
     private internalEmitter = new EventEmitter();
     private subscriptions: Set<string> = new Set();
+    private pending: Set<string> = new Set();
     private toConnect: NodeJS.Timeout|undefined
 
     static _instance: MessageQueue | null;
@@ -38,9 +39,16 @@ export class MessageQueue extends EventEmitter {
         return !!this.getSecret('MQ_BROKER');
     }
 
-    subscribe(topic: string) {
+    async subscribe(topic: string) {
         try {
             if (!this.client) return;
+            if (!this.isConnected) {
+                const connected = await this.connect()
+                if (!connected) {
+                    this.pending.add(topic)
+                    return
+                }
+            }
 
             this.client.subscribe([topic], [0]);
             this.emit('mq-subscribed', topic);
@@ -52,9 +60,10 @@ export class MessageQueue extends EventEmitter {
 
     unsubscribe(topic: string) {
         this.subscriptions.delete(topic);
+        this.pending.delete(topic)
 
         try {
-            if (!this.client) return;
+            if (!this.client || !this.isConnected) return;
 
             this.client.unsubscribe([topic]);
         } catch (err) {
@@ -122,10 +131,7 @@ export class MessageQueue extends EventEmitter {
             this.logger.logEvent({ message: 'mqtt connected' });
             this.isConnected = true;
 
-            if (this.subscriptions.size > 0) {
-                const topics = Array.from(this.subscriptions);
-                this.client.subscribe(topics, topics.map(() => 0));
-            }
+            this.subscribePending()
 
             this.internalEmitter.emit('connected');
 
@@ -149,6 +155,8 @@ export class MessageQueue extends EventEmitter {
                 clearTimeout(this.toConnect)
                 delete this.toConnect
             }
+
+            this.prepareSubscriptionsForReconnect()
                 
             this.logger.logEvent({ message: 'mqtt connection disconnected', reason });
             this.internalEmitter.emit('disconnected');
@@ -259,6 +267,25 @@ export class MessageQueue extends EventEmitter {
                 }
             });
         });
+    }
+
+    private prepareSubscriptionsForReconnect() {
+        if (this.subscriptions.size > 0) {
+            this.subscriptions.forEach( topic=> {
+                this.pending.add(topic)
+            })
+            this.subscriptions.clear()
+        }
+
+    }
+
+    private subscribePending() {
+        const topics = Array.from(this.pending.values());
+        this.pending.clear()
+
+        topics.forEach( topic=> {
+            this.subscribe(topic)
+        })
     }
 
     private onMessage(topic: string, message: Uint8Array) {

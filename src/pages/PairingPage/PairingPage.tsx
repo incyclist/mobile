@@ -34,7 +34,6 @@ export const PairingPage = ( {forRide}:PairingPageProps) => {
         
         const updated = service.getPageDisplayProperties()
         if (updated) {
-            //console.log('# update', updated)
             setProps(updated)
             
         }
