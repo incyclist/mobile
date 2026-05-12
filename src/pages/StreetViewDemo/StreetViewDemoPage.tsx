@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { StreetView } from '../../components/StreetView';
 import { colors, textSizes } from '../../theme';
+import { Button } from '../../components';
+import { getRidePageService  } from 'incyclist-services';
 
 const COORDINATES = [
     { lat: 40.758, lng: -73.9855, heading: 0,   label: 'Times Square N' },
@@ -13,13 +15,22 @@ const COORDINATES = [
 
 export const StreetViewDemoPage = () => {
     const [index, setIndex] = useState(0);
+    const service = getRidePageService() as any
 
     useEffect(() => {
         const interval = setInterval(() => {
             setIndex((prev) => (prev + 1) % COORDINATES.length);
         }, 3000);
-        return () => clearInterval(interval);
+        return () => { 
+            console.log('# stop interval')
+            clearInterval(interval)
+        };
     }, []);
+
+    const onBack = useCallback(()=> {
+        service.moveToPreviousPage()
+
+    },[service])
 
     const current = COORDINATES[index];
 
@@ -37,6 +48,9 @@ export const StreetViewDemoPage = () => {
                 <Text style={styles.text}>Lat: {current.lat}</Text>
                 <Text style={styles.text}>Lng: {current.lng}</Text>
                 <Text style={styles.text}>Heading: {current.heading}</Text>
+            </View>
+            <View style={styles.button}>
+                <Button label='Back' onClick={onBack} />
             </View>
         </View>
     );
@@ -57,6 +71,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.45)',
         padding: 10,
         borderRadius: 4,
+        zIndex: 10,
+    },
+    button: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
         zIndex: 10,
     },
     text: {
