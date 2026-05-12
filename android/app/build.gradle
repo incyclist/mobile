@@ -83,6 +83,10 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [
+                usesCleartextTraffic: "true",
+                MAPS_API_KEY: getEnv("MAPS_API_KEY") ?: ""
+            ]            
         }
         // NEW: Test build type (Release-like but allowing local HTTP)
         dev {
@@ -90,13 +94,19 @@ android {
             signingConfig signingConfigs.debug 
             matchingFallbacks = ['release']
             // This flag is what we'll check in our TypeScript code
-            manifestPlaceholders = [usesCleartextTraffic:"true"]
+            manifestPlaceholders = [
+                usesCleartextTraffic:"true",
+                MAPS_API_KEY: getEnv("MAPS_API_KEY") ?: ""
+            ]
         }        
         release {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            manifestPlaceholders = [usesCleartextTraffic:"false"]
+            manifestPlaceholders = [
+                usesCleartextTraffic:"false",
+                MAPS_API_KEY: getEnv("MAPS_API_KEY") ?: ""                
+            ]
         }
     }
 
@@ -123,4 +133,13 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    
+    // Google Maps Android SDK — used ONLY by the StreetView Fabric component.
+    // This app uses Apple Maps on iOS via react-native-maps and MapLibre on
+    // Android — Google Maps is not used anywhere else. This dependency exists
+    // so that com.google.android.gms.maps.StreetViewPanoramaView resolves.
+    // Pinned to 18.2.0 for deterministic builds, consistent with kotlinVersion
+    // and other version pins in the project.
+    implementation "com.google.android.gms:play-services-maps:18.2.0"
+
 }
