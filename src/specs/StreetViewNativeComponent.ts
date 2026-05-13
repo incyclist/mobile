@@ -1,11 +1,19 @@
-import type { HostComponent, ViewProps } from 'react-native';
-import type { Double } from 'react-native/Libraries/Types/CodegenTypes';
-import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
+import type { CodegenTypes, HostComponent, ViewProps } from 'react-native';
+import { codegenNativeComponent } from 'react-native';
+
+type OnErrorEvent = { reason: string };
 
 export interface NativeProps extends ViewProps {
-    latitude: Double;
-    longitude: Double;
-    heading: Double;
+    latitude: CodegenTypes.Double;
+    longitude: CodegenTypes.Double;
+    heading: CodegenTypes.Double;
+    readyTimeout?: CodegenTypes.Double;
+    positionTimeout?: CodegenTypes.Double;
+    onLicenseConsumed?: CodegenTypes.BubblingEventHandler<{}> | null;
+    onLoaded?: CodegenTypes.BubblingEventHandler<{}> | null;
+    onNoPanorama?: CodegenTypes.BubblingEventHandler<{}> | null;
+    onPanoramaChanged?: CodegenTypes.BubblingEventHandler<{}> | null;
+    onError?: CodegenTypes.BubblingEventHandler<OnErrorEvent> | null;
 }
 
 export default codegenNativeComponent<NativeProps>(
