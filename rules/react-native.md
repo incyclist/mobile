@@ -124,3 +124,17 @@ Every file listed under "Context files" in the task must be read before writing 
 ## 12. Third-Party Library APIs
 Never assume the API of a third-party library from memory or documentation snippets. Use only function names, method signatures, and prop names that are explicitly provided in the task's Key references section. If the Key references section does not specify the exact API, raise it as a question rather than guessing. A wrong function name that compiles is worse than a question — it produces a runtime crash instead of a build error.
 
+### Deprecated style helpers
+- **Never use `StyleSheet.absoluteFillObject`** — deprecated in RN 0.83+.
+  Use `StyleSheet.absoluteFill` instead:
+```typescript
+  // ✅ Correct
+  const styles = StyleSheet.create({
+      container: { ...StyleSheet.absoluteFill, margin: 1 },
+  });
+
+  // ❌ Wrong
+  const styles = StyleSheet.create({
+      container: { ...StyleSheet.absoluteFillObject },
+  });
+```
