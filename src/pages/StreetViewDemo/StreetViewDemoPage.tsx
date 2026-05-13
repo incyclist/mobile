@@ -106,7 +106,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
-        margin:1
     },
     streetView: {
         flex: 1,
@@ -128,6 +127,6 @@ const styles = StyleSheet.create({
     },
     text: {
         color: colors.text,
-        fontSize: textSizes.normalText, // Using normalText for better visibility in overlay
+        fontSize: textSizes.smallText, // Reverted to smallText
     },
 });
