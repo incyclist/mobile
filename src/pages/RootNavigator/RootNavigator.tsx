@@ -9,10 +9,11 @@ import { RidePage } from '../RidePage';
 import { VideoDemoPage } from '../VideoDemo/RidePage';
 import { NotImplementedPage } from '../NotImplemented/NotImplementedPage';
 import { ActivitiesPage } from '../ActivitiesPage';
+import { StreetViewDemoPage } from '../StreetViewDemo';
 
 const Stack = createNativeStackNavigator();
 
-const WorkoutsPage = ()=> <NotImplementedPage selected='workouts'/>
+const WorkoutsPage = () => <StreetViewDemoPage />;
 
 export const RootNavigator = () => {
 

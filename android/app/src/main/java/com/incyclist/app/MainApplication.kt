@@ -32,6 +32,7 @@ class MainApplication : Application(), ReactApplication {
                 val packages = PackageList(this).packages.toMutableList()
                 packages.add(ExitPackage()) // Add manual package here
                 packages.add(FolderAccessPackage()) 
+                packages.add(StreetViewPackage())
 
                 return packages
             }
@@ -72,6 +73,7 @@ class MainApplication : Application(), ReactApplication {
         val packages = PackageList(this).packages.toMutableList()
         packages.add(ExitPackage())
         packages.add(FolderAccessPackage()) 
+        packages.add(StreetViewPackage())
 
         getDefaultReactHost(
             context = applicationContext,
