@@ -6,6 +6,8 @@ jest.mock('../../specs/StreetViewNativeComponent', () => 'StreetView');
 
 it('renders without crashing', () => {
     render(
-        <StreetView latitude={40.758} longitude={-73.9855} heading={0} />,
+        <StreetView
+            position={{ lat: 40.758, lng: -73.9855, heading: 0 }}
+        />,
     );
 });
