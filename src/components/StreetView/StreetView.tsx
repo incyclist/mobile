@@ -58,7 +58,7 @@ export const StreetView = (props: StreetViewProps) => {
 
 const styles = StyleSheet.create({
     container: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         margin: 1,
     },
 });
