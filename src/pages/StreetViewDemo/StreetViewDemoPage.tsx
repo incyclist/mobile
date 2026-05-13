@@ -4,6 +4,7 @@ import { StreetView } from '../../components/StreetView';
 import { colors, textSizes } from '../../theme';
 import { Button } from '../../components';
 import { getRidePageService  } from 'incyclist-services';
+import { sleep } from '../../utils/timers';
 
 const COORDINATES = [
     { lat: 40.758, lng: -73.9855, heading: 0,   label: 'Times Square N' },
@@ -16,6 +17,7 @@ const COORDINATES = [
 export const StreetViewDemoPage = () => {
     const [index, setIndex] = useState(0);
     const service = getRidePageService() as any
+    const [showStreetView, setShowStreetView] = useState(true); 
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -27,8 +29,18 @@ export const StreetViewDemoPage = () => {
         };
     }, []);
 
+    useEffect(() => {
+        return () => {
+            console.log('# demo page unmounting');
+        };
+    }, []);
+
     const onBack = useCallback(()=> {
-        service.moveToPreviousPage()
+        setShowStreetView(false)
+        sleep(1000).then( ()=> {
+            service.moveToPreviousPage()
+        })
+        
 
     },[service])
 
@@ -36,12 +48,12 @@ export const StreetViewDemoPage = () => {
 
     return (
         <View style={styles.container}>
-            <StreetView
+            {showStreetView && <StreetView
                 latitude={current.lat}
                 longitude={current.lng}
                 heading={current.heading}
                 style={styles.streetView}
-            />
+            />}
             <View style={styles.overlay}>
                 <Text style={styles.text}>Index: {index}</Text>
                 <Text style={styles.text}>Label: {current.label}</Text>
@@ -60,6 +72,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+        margin:1
     },
     streetView: {
         flex: 1,
