@@ -1,60 +1,94 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { StreetView } from '../../components/StreetView';
+import { IPosition, StreetViewErrorReason } from '../../components/StreetView/types';
 import { colors, textSizes } from '../../theme';
 import { Button } from '../../components';
-import { getRidePageService  } from 'incyclist-services';
+import { getRidePageService } from 'incyclist-services';
 import { sleep } from '../../utils/timers';
 
-const COORDINATES = [
-    { lat: 40.758, lng: -73.9855, heading: 0,   label: 'Times Square N' },
-    { lat: 40.758, lng: -73.9855, heading: 90,  label: 'Times Square E' },
+// Update COORDINATES to be of type IPosition[]
+const COORDINATES: (IPosition & { label: string })[] = [
+    { lat: 40.758, lng: -73.9855, heading: 0, label: 'Times Square N' },
+    { lat: 40.758, lng: -73.9855, heading: 90, label: 'Times Square E' },
     { lat: 40.758, lng: -73.9855, heading: 180, label: 'Times Square S' },
-    { lat: 51.5055, lng: -0.0754, heading: 0,   label: 'Tower Bridge N' },
+    { lat: 51.5055, lng: -0.0754, heading: 0, label: 'Tower Bridge N' },
     { lat: 51.5055, lng: -0.0754, heading: 270, label: 'Tower Bridge W' },
 ];
 
 export const StreetViewDemoPage = () => {
     const [index, setIndex] = useState(0);
-    const service = getRidePageService() as any
-    const [showStreetView, setShowStreetView] = useState(true); 
+    const service = getRidePageService() as any;
+    const [showStreetView, setShowStreetView] = useState(true);
+    const [status, setStatus] = useState<string>('Initializing...'); // New state for status overlay
 
     useEffect(() => {
         const interval = setInterval(() => {
             setIndex((prev) => (prev + 1) % COORDINATES.length);
         }, 3000);
-        return () => { 
-            console.log('# stop interval')
-            clearInterval(interval)
+        return () => {
+            console.log('# StreetViewDemoPage: stop interval');
+            clearInterval(interval);
         };
     }, []);
 
     useEffect(() => {
         return () => {
-            console.log('# demo page unmounting');
+            console.log('# StreetViewDemoPage: demo page unmounting');
         };
     }, []);
 
-    const onBack = useCallback(()=> {
-        setShowStreetView(false)
-        sleep(1000).then( ()=> {
-            service.moveToPreviousPage()
-        })
-        
+    const onBack = useCallback(async () => {
+        console.log('# StreetViewDemoPage: onBack - unmounting StreetView');
+        setShowStreetView(false); // Unmount StreetView
+        await sleep(200); // Wait 200ms as per rulebook D.21
+        console.log('# StreetViewDemoPage: onBack - navigating back');
+        service.moveToPreviousPage();
+    }, [service]);
 
-    },[service])
+    // Callback handlers for StreetView events
+    const handleLicenseConsumed = useCallback(() => {
+        console.log('# StreetViewDemoPage: Event - onLicenseConsumed');
+        setStatus('License Consumed');
+    }, []);
+
+    const handleLoaded = useCallback(() => {
+        console.log('# StreetViewDemoPage: Event - onLoaded');
+        setStatus('StreetView Loaded');
+    }, []);
+
+    const handleError = useCallback((reason: StreetViewErrorReason) => {
+        console.log(`# StreetViewDemoPage: Event - onError, reason: ${reason}`);
+        setStatus(`Error: ${reason}`);
+    }, []);
+
+    const handleNoPanorama = useCallback(() => {
+        console.log('# StreetViewDemoPage: Event - onNoPanorama');
+        setStatus('No Panorama Found');
+    }, []);
+
+    const handlePanoramaChanged = useCallback(() => {
+        console.log('# StreetViewDemoPage: Event - onPanoramaChanged');
+        setStatus('Panorama Changed');
+    }, []);
 
     const current = COORDINATES[index];
 
     return (
         <View style={styles.container}>
-            {showStreetView && <StreetView
-                latitude={current.lat}
-                longitude={current.lng}
-                heading={current.heading}
-                style={styles.streetView}
-            />}
+            {showStreetView && (
+                <StreetView
+                    position={current} // Use the new position prop
+                    style={styles.streetView}
+                    onLicenseConsumed={handleLicenseConsumed}
+                    onLoaded={handleLoaded}
+                    onError={handleError}
+                    onNoPanorama={handleNoPanorama}
+                    onPanoramaChanged={handlePanoramaChanged}
+                />
+            )}
             <View style={styles.overlay}>
+                <Text style={styles.text}>Status: {status}</Text> {/* Display status */}
                 <Text style={styles.text}>Index: {index}</Text>
                 <Text style={styles.text}>Label: {current.label}</Text>
                 <Text style={styles.text}>Lat: {current.lat}</Text>
@@ -72,7 +106,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
-        margin:1
     },
     streetView: {
         flex: 1,
@@ -94,6 +127,6 @@ const styles = StyleSheet.create({
     },
     text: {
         color: colors.text,
-        fontSize: textSizes.smallText,
+        fontSize: textSizes.smallText, // Reverted to smallText
     },
 });
