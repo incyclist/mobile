@@ -19,4 +19,20 @@ describe('RideSettingsView', () => {
     it('renders without crashing', () => {
         render(<RideSettingsView {...MOCK_PROPS} />);
     });
+
+    it('renders with 2-option map', () => {
+        render(
+            <RideSettingsView
+                {...MOCK_PROPS}
+                rideViewOptions={new Map<TRideView, string>([
+                    ['sv', 'Street View'],
+                    ['map', 'Map'],
+                ])}
+            />
+        );
+    });
+
+    it('renders with non-default rideView selected', () => {
+        render(<RideSettingsView {...MOCK_PROPS} rideView="map" />);
+    });
 });
