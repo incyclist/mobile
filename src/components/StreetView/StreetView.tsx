@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { NativeSyntheticEvent, StyleSheet } from 'react-native';
 import StreetViewNativeComponent from '../../specs/StreetViewNativeComponent';
 import { StreetViewProps, StreetViewErrorReason } from './types';
+import { useWhyDidYouRender } from '../../hooks';
 
 export const StreetView = (props: StreetViewProps) => {
     const {
@@ -38,6 +39,8 @@ export const StreetView = (props: StreetViewProps) => {
         },
         [onError],
     );
+
+    useWhyDidYouRender('StreetView',props)
 
     return (
         <StreetViewNativeComponent

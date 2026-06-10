@@ -18,6 +18,8 @@ import {
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
+import { StreetView } from '../../../components/StreetView';
+import { IPosition } from '../../../components/StreetView/types';
 
 export interface GPXTourPageViewProps {
     displayProps: GPXRidePageDisplayProps;
@@ -38,6 +40,10 @@ const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
 ));
 
 
+const SV = React.memo(StreetView
+//    ,(prev,next)=>prev.position?.lat!==next.position?.lat || prev.position?.lng!==next.position?.lng || prev.position?.heading!==next.position?.heading
+)
+
 export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const {
         displayProps,
@@ -50,7 +56,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCancelStart,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -94,24 +100,30 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         alignItems: 'center' as const,
     };
 
-    const transformPosition = useCallback((val: any): LatLng|RoutePoint | undefined => {
+    const transformPosition = useCallback((val: any): LatLng|RoutePoint | undefined|IPosition => {
         if (!val) return undefined;
         // position-update can emit number for other contexts
         if (typeof val === 'number') return undefined;
         const p = val?.position || val;
         return (p?.lat !== undefined && p?.lng !== undefined)
-            ? { lat: p.lat, lng: p.lng, routeDistance:p.routeDistance??val?.routeDistance }
+            ? { lat: p.lat, lng: p.lng, routeDistance:p.routeDistance??val?.routeDistance, heading:val?.heading??val?.position?.heading }
             : undefined;
     }, []);
 
+    const transformSVPosition = useCallback((val: IPosition):IPosition => {
+        console.log('# got update',val)
+        return val
+    }, []);
 
     return (
         <View style={styles.container} testID='gpx-tour-page-view'>
+
+            
             {/* Main content layer, conditionally hidden by start overlay */}
             {!startOverlayProps && (
                 <View style={StyleSheet.absoluteFill}>
                     {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
-                    { (rideView === 'map' || rideView === 'sv' || rideView === 'sat') && (
+                    { (rideView === 'map' || rideView === 'sat') && (
                         <Dynamic
                             observer={rideObserver ?? undefined}
                             event='position-update'
@@ -129,6 +141,20 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             />
                         </Dynamic>
                     )}
+                    { (rideView === 'sv' ) && (
+                        <Dynamic
+                            observer={displayObserver}
+                            event='position-update'
+                            prop='position'
+                            transform={transformSVPosition}
+                        >
+                            <SV
+                                position={routeData?.points?.[0] as IPosition}                                
+                                style={styles.fullScreenMap}
+                            />
+                        </Dynamic>
+                    )}
+
 
                     {/* Dashboard */}
                     <View style={[

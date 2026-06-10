@@ -138,6 +138,11 @@ class StreetViewManager(
 
             state.panorama = panorama
 
+            panorama.isStreetNamesEnabled = false
+            panorama.isZoomGesturesEnabled = false
+            panorama.isPanningGesturesEnabled = false            
+            panorama.isUserNavigationEnabled = false
+
             // Listen for panorama location changes. This is the primary signal
             // for all position-related events.
             panorama.setOnStreetViewPanoramaChangeListener { location ->
@@ -303,7 +308,7 @@ class StreetViewManager(
                     .build()
                 // 300ms animation — smooth enough for verification; production
                 // wiring may want 0ms to track position tightly.
-                p.animateTo(newCamera, 300L)
+                p.animateTo(newCamera, 0)
             }
         }
     }
