@@ -4,6 +4,18 @@ import { RideMenuView } from './RideMenuView'; // Target the View component
 import { ActiveDialog } from './types'; // Import ActiveDialog type for clarity
 
 // Mock dependencies that RideMenuView uses
+jest.mock('incyclist-services', () => ({
+    useRideSettingsDisplay: () => ({
+        open: jest.fn(() => ({ on: jest.fn(), off: jest.fn() })),
+        close: jest.fn(),
+        getDisplayProps: jest.fn(() => ({
+            rideView: 'sv',
+            rideViewOptions: new Map([['sv', 'Street View']]),
+        })),
+        setRideView: jest.fn(),
+    }),
+}));
+
 jest.mock('../../hooks', () => ({
     useScreenLayout: jest.fn(() => 'tablet'),
     useLogging: jest.fn(() => ({ logEvent: jest.fn(), logError: jest.fn() })),
@@ -15,6 +27,10 @@ jest.mock('../Icon', () => ({
 
 jest.mock('../GearSettings', () => ({
     GearSettings: () => null,
+}));
+
+jest.mock('../RideSettings', () => ({
+    RideSettings: () => null,
 }));
 
 jest.mock('../SettingsPlaceholder', () => ({

@@ -16,47 +16,45 @@ import { useScreenLayout, useLogging } from '../../hooks';
 import { Icon } from '../Icon';
 import { Button } from '../ButtonBar';
 import { GearSettings } from '../GearSettings';
-import { SettingsPlaceholder } from '../SettingsPlaceholder';
+import { RideSettings } from '../RideSettings';
 import { ActivitySummaryDialog } from '../ActivitySummaryDialog';
 
 export const RideMenuView = ({
     visible,
     showResume,
     activeDialog,
-    onClose, // Menu close
+    onClose,
     onPause,
     onResume,
     onEndRide,
     onGearSettings,
     onRideSettings,
-    onDialogClose, // Generic dialog close
-    onExitFromSummary, // Activity Summary specific exit
+    onDialogClose,
+    onExitFromSummary,
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
-    renderRideSettings = () => <SettingsPlaceholder onClose={onDialogClose} />,
+    renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
     renderActivitySummary = () => <ActivitySummaryDialog onClose={onDialogClose} onExit={onExitFromSummary} />,
 
 }: RideMenuViewProps) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const { logEvent } = useLogging('RideMenu'); // Log menu item clicks
+    const { logEvent } = useLogging('RideMenu');
 
     const panelWidth = isCompact ? screenWidth * 0.35 : Math.min(300, screenWidth * 0.35);
 
-    const refPanelHeight = useRef<number>(screenHeight); // Initialize with screenHeight (off-screen)
+    const refPanelHeight = useRef<number>(screenHeight);
     const animTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
     const onLayout = useCallback((event: LayoutChangeEvent) => {
         refPanelHeight.current = event.nativeEvent.layout.height;
     }, []);
 
-    // Determine if the menu panel should be hidden because a dialog is active
     const panelHiddenByDialog = activeDialog !== null;
 
     useEffect(() => {
         if (panelHiddenByDialog) {
-            // If a dialog is active, instantly hide the panel
             animTranslateY.setValue(refPanelHeight.current);
             return;
         }
@@ -104,14 +102,12 @@ export const RideMenuView = ({
 
     const panelIsVisuallyActive = visible && !panelHiddenByDialog;
 
-    // Control pointer events for the root container, backdrop, and panel
     const rootContainerPointerEvents = (visible || activeDialog !== null) ? 'box-none' : 'none';
     const backdropOpacity = panelIsVisuallyActive ? 1 : 0;
     const backdropPointerEvents = panelIsVisuallyActive ? 'auto' : 'none';
     const panelOpacity = panelIsVisuallyActive ? 1 : 0;
     const panelPointerEvents = panelIsVisuallyActive ? 'box-none' : 'none';
 
-    // Extracted dynamic styles to avoid inline object literals
     const panelAnimatedOpacityAndPointerEvents = {
         opacity: panelOpacity,
         pointerEvents: panelPointerEvents as 'box-none' | 'none',
@@ -127,9 +123,8 @@ export const RideMenuView = ({
             style={StyleSheet.absoluteFill}
             pointerEvents={rootContainerPointerEvents}
         >
-            {/* Backdrop */}
             <TouchableWithoutFeedback
-                onPress={onClose} // Calls menu's onClose
+                onPress={onClose}
                 disabled={!backdropPointerEvents}
             >
                 <View
@@ -138,14 +133,13 @@ export const RideMenuView = ({
                 />
             </TouchableWithoutFeedback>
 
-            {/* Side Panel */}
             <Animated.View
                 onLayout={onLayout}
                 style={[
                     styles.panel,
-                    panelDynamicLayout, // Extracted dynamic layout
+                    panelDynamicLayout,
                     isCompact ? styles.panelCompact : styles.panelTablet,
-                    panelAnimatedOpacityAndPointerEvents // Extracted dynamic opacity/pointerEvents
+                    panelAnimatedOpacityAndPointerEvents
                 ]}
             >
                 <View style={styles.header}>
@@ -167,7 +161,6 @@ export const RideMenuView = ({
                 </View>
             </Animated.View>
 
-            {/* Dialogs rendered on top */}
             {activeDialog === 'gearSettings' && renderGearSettings()}
             {activeDialog === 'rideSettings' && renderRideSettings()}
             {activeDialog === 'activitySummary' && renderActivitySummary()}

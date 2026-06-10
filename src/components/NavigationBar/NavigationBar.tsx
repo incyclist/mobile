@@ -9,12 +9,13 @@ import { SettingsSlideIn, SettingsSectionItem } from '../SettingsSlideIn';
 import { SupportSettings } from '../SupportSettings';
 import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
+import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
 import { AppDisplayProps } from '../AppsSettings/types';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
 export const NavigationBar = (props: NavigationBarProps) => {
-    const { selected, onClick, compact,disabled } = props;
+    const { selected, onClick, compact, disabled } = props;
     const screenLayout = useScreenLayout();
     const { height } = useWindowDimensions();
     const appsService = useAppsService();
@@ -24,6 +25,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showSupport, setShowSupport] = useState(false);
     const [showPlaceholder, setShowPlaceholder] = useState(false);
     const [showGear, setShowGear] = useState(false);
+    const [showRideSettings, setShowRideSettings] = useState(false);
     const [showAppsDialog, setShowAppsDialog] = useState(false);
     const [apps, setApps] = useState<AppDisplayProps[]>([]);
 
@@ -73,6 +75,10 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 setShowSettings(false);
                 setShowGear(true);
                 break;
+            case 'Ride':
+                setShowSettings(false);
+                setShowRideSettings(true);
+                break;
             default:
                 setShowSettings(false);
                 setShowPlaceholder(true);
@@ -81,7 +87,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     }, []);
 
     const handleUserSettingsClose = useCallback(() => setShowUserSettings(false), []);
-    
+
     const handleSettingsClose = useCallback(() => {
         setShowSettings(false);
         setShowAppsDialog(false);
@@ -90,6 +96,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const handleSupportClose = useCallback(() => setShowSupport(false), []);
     const handlePlaceholderClose = useCallback(() => setShowPlaceholder(false), []);
     const handleGearClose = useCallback(() => setShowGear(false), []);
+    const handleRideSettingsClose = useCallback(() => setShowRideSettings(false), []);
 
     const sections: SettingsSectionItem[] = useMemo(
         () => [
@@ -130,8 +137,8 @@ export const NavigationBar = (props: NavigationBarProps) => {
             />
             {showSupport && <SupportSettings onClose={handleSupportClose} />}
             {showPlaceholder && <SettingsPlaceholder onClose={handlePlaceholderClose} />}
+            {showRideSettings && <RideSettings onClose={handleRideSettingsClose} />}
             {showGear && <GearSettings onClose={handleGearClose} />}
-            
             <AppsDialog
                 visible={showAppsDialog}
                 apps={apps}

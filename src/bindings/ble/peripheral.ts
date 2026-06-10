@@ -168,12 +168,42 @@ export class BlePeripheralRN
         }
     }
 
-    private mapManufacturerData(data: any ): Buffer | undefined {
-        if (!data?.data) {
-            return undefined
+    private mapManufacturerData(manufacturerData: any ): Buffer | undefined {
+        const fallbackCompanyIdHex = "0000"
+        if (!manufacturerData) return undefined;
+
+        const keys = Object.keys(manufacturerData);
+        let companyIdHex = fallbackCompanyIdHex;
+        let payloadBytes = [];
+
+        // Case 1: Format B (Keyed by Company ID string, e.g., { "0059": { bytes: [...], data: "..." } })
+        if (!keys.includes('bytes') && !keys.includes('data') && keys.length > 0) {
+            companyIdHex = keys[0]; // e.g., "0059"
+            payloadBytes = manufacturerData[companyIdHex].bytes || [];
+        } 
+        // Case 2: Format A (Direct payload object, e.g., { bytes: [...], data: "..." })
+        else if (manufacturerData.bytes) {
+            payloadBytes = manufacturerData.bytes;
+            
+            // Core Android Caveat Check: 
+            // On some older Android devices/versions, the first 2 bytes of the 'bytes' array 
+            // MIGHT already be the Company ID. If the array is longer than your expected 
+            // custom payload, check if it already contains the ID.
         }
 
-        return Buffer.from(data.data)
+        // 1. Convert the Hex Company ID (Big Endian String "0059") into an Integer
+        const companyIdInt = parseInt(companyIdHex, 16);
+
+        // 2. Extract the Little Endian bytes for the Company ID
+        const companyIdByte1 = companyIdInt & 0xFF;        // Low byte (0x59)
+        const companyIdByte2 = (companyIdInt >> 8) & 0xFF; // High byte (0x00)
+
+        // 3. Assemble the continuous array matching noble: [ID_Low, ID_High, ...Payload]
+        const nobleArray = [companyIdByte1, companyIdByte2, ...payloadBytes];
+
+        // 4. Return as a Buffer so you can use standard noble `.readUInt16LE()` methods
+        return Buffer.from(nobleArray);        
+
     }
 
     private mapServiceData( serviceData: any): BleServiceData[] | undefined {
