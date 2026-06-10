@@ -33,6 +33,7 @@
     "@shopify/flash-list": "^2.3.0",
     "@sinonjs/text-encoding": "^0.7.3",
     "@zoontek/react-native-navigation-bar": "^1.1.0",
+    "axios": "^1.17.0",
     "events": "^3.3.0",
     "gd-eventlog": "^0.1.27",
     "incyclist-services": "^1.7.69",
