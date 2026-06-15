@@ -14,6 +14,7 @@ export const RideSettingsView = ({
 
     const handleChange = useCallback((label: string) => {
         const index = options.indexOf(label);
+        console.log('# handleChange',label,index)
         if (index !== -1) onChangeRideView(keys[index]);
     }, [options, keys, onChangeRideView]);
 

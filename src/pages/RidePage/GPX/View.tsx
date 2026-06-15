@@ -111,7 +111,6 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     }, []);
 
     const transformSVPosition = useCallback((val: IPosition):IPosition => {
-        console.log('# got update',val)
         return val
     }, []);
 

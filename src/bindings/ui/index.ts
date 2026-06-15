@@ -17,12 +17,9 @@ export class UIBinding implements INativeUI {
 
             const { ExitModule } = NativeModules;
             if (ExitModule) {
-                console.log('# killing app')
                 ExitModule.killApp();
                 return;
             }
-
-            console.log('# killing is not available, callin fallback')
             BackHandler.exitApp();            
         }
     }

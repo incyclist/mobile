@@ -29,7 +29,6 @@ export const RideDashboard = ({ layout  }: RideDashboardProps) => {
         refInitialized.current = true;
 
         const observer = service.getObserver();
-        console.log('# [RideDashboard] init effect',{observer})
         if (!observer) {
             // no active ride — render nothing
             refInitialized.current = false;
@@ -44,7 +43,6 @@ export const RideDashboard = ({ layout  }: RideDashboardProps) => {
         refObserver.current?.off('data', onData);
         refObserver.current = null;
         refInitialized.current = false;
-        console.log('# [RideDashboard] unmount effect')
     });
 
     if (!items?.length) {

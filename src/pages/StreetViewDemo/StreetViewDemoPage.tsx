@@ -27,48 +27,39 @@ export const StreetViewDemoPage = () => {
             setIndex((prev) => (prev + 1) % COORDINATES.length);
         }, 3000);
         return () => {
-            console.log('# StreetViewDemoPage: stop interval');
             clearInterval(interval);
         };
     }, []);
 
     useEffect(() => {
         return () => {
-            console.log('# StreetViewDemoPage: demo page unmounting');
         };
     }, []);
 
     const onBack = useCallback(async () => {
-        console.log('# StreetViewDemoPage: onBack - unmounting StreetView');
         setShowStreetView(false); // Unmount StreetView
         await sleep(200); // Wait 200ms as per rulebook D.21
-        console.log('# StreetViewDemoPage: onBack - navigating back');
         service.moveToPreviousPage();
     }, [service]);
 
     // Callback handlers for StreetView events
     const handleLicenseConsumed = useCallback(() => {
-        console.log('# StreetViewDemoPage: Event - onLicenseConsumed');
         setStatus('License Consumed');
     }, []);
 
     const handleLoaded = useCallback(() => {
-        console.log('# StreetViewDemoPage: Event - onLoaded');
         setStatus('StreetView Loaded');
     }, []);
 
     const handleError = useCallback((reason: StreetViewErrorReason) => {
-        console.log(`# StreetViewDemoPage: Event - onError, reason: ${reason}`);
         setStatus(`Error: ${reason}`);
     }, []);
 
     const handleNoPanorama = useCallback(() => {
-        console.log('# StreetViewDemoPage: Event - onNoPanorama');
         setStatus('No Panorama Found');
     }, []);
 
     const handlePanoramaChanged = useCallback(() => {
-        console.log('# StreetViewDemoPage: Event - onPanoramaChanged');
         setStatus('Panorama Changed');
     }, []);
 

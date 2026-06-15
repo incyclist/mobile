@@ -13,7 +13,6 @@ import {
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
 
-    console.log('# [StartRideDisplay] render',props)
     const layout = useScreenLayout();
 
     const isVideoRide = 'videoState' in props;
