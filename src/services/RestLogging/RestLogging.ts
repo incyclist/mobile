@@ -6,7 +6,8 @@ import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
 
 
-const DEFAULT_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
+const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
+//const TEST_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
 const DEFAULT_LOG_INTERVAL = 10
 
 const LOG_BLACKLIST = ['user', 'auth', 'cacheDir', 'baseDir', 'pageDir', 'appDir'];
