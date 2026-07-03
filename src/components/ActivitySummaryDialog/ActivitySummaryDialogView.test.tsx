@@ -95,6 +95,7 @@ const MOCK_PROPS: ActivitySummaryDialogViewProps = {
     activity: MOCK_ACTIVITY,
     showMap: false,
     showSave: true,
+    showContinue: true,
     isSaving: false,
     isSaved: false,
     showDeleteConfirm: false,

@@ -203,6 +203,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                 {menuProps && (
                     <RideMenu
                         visible={true}
+                        finished={menuProps.finished}
                         onClose={onMenuClose}
                         onCloseRidePage={onCloseRidePage}
                     />

@@ -25,6 +25,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         activity,
         showMap,
         showSave,
+        showContinue,
         preview,
         units,
         isSaving,
@@ -56,9 +57,14 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
                 primary: true,
                 disabled: isSaving,
             }] : []),
-            { label: 'Delete', onClick: onDelete },
-            { label: 'Close', onClick: onClose },
+            { label: 'Delete', onClick: onDelete, primary:false, disabled:false },
         ];
+
+    if ( showContinue && !isSaved) {
+        dialogButtons.push(
+            { label: 'Close', onClick: onClose, primary:false, disabled:false }
+        )
+    } 
 
     const renderKeyFact = (label: string, value: any, unitKey?: 'distance' | 'elevation' | 'speed' | 'time' | 'power') => {
         let displayValue: string;

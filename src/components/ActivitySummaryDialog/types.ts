@@ -9,6 +9,7 @@ export interface ActivitySummaryDialogViewProps {
     activity: ActivityDetailsUI;
     showMap: boolean;
     showSave: boolean;
+    showContinue: boolean,
     preview?: string;
     units?: Record<string, string>;
     isSaving: boolean;

@@ -113,6 +113,7 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
                     activity={displayProps.activity}
                     showMap={displayProps.showMap ?? false}
                     showSave={displayProps.showSave ?? false}
+                    showContinue = {displayProps.showContinue ?? true}
                     preview={displayProps.preview}
                     units={displayProps.units}
                     isSaving={isSaving}

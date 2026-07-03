@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { RideMenuProps, ActiveDialog } from './types';
 import { getRidePageService } from 'incyclist-services';
 import { RideMenuView } from './RideMenuView';
 import { useLogging } from '../../hooks';
 
-export const RideMenu = ({ visible, onClose,onCloseRidePage=()=>{} }: RideMenuProps) => {
+export const RideMenu = ({ visible, finished, onClose,onCloseRidePage=()=>{} }: RideMenuProps) => {
     const { logEvent } = useLogging('RideMenu');
     const service = getRidePageService();
+    const refInitialized = useRef(false)
 
     const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
 
@@ -57,6 +58,13 @@ export const RideMenu = ({ visible, onClose,onCloseRidePage=()=>{} }: RideMenuPr
     const handleDialogClose = useCallback(() => {
         setActiveDialog(null);
     }, []);
+
+    useEffect( ()=> {
+        if (activeDialog===null && finished && !refInitialized.current) {
+            setActiveDialog('activitySummary')
+        }
+        refInitialized.current = true
+    },[activeDialog, finished])
 
     return (
         <RideMenuView

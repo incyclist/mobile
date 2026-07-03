@@ -1,5 +1,6 @@
 export interface RideMenuProps {
     visible: boolean;
+    finished?:boolean;
     onClose: () => void;
     onCloseRidePage?:()=> void;
 }
