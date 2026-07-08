@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
 import { AppFeatures, IncyclistBindings } from 'incyclist-services';
-import { useIncyclist } from './services';
+import { ApiConfiguration, useIncyclist } from './services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json';
 import { useLogging, useUnmountEffect } from './hooks';
@@ -27,6 +27,8 @@ import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
 import { getMessageQueueBinding  } from './bindings/mq';
 import { isProdVariant } from './bindings/appInfo';
+import { getUserSettingsBinding } from './bindings/user-settings';
+import { getSystemVersion, getTotalMemory, isEmulator } from 'react-native-device-info';
 
 LogBox.ignoreLogs(['new NativeEventEmitter()']);
 let lastState = AppState.currentState;
@@ -117,8 +119,28 @@ export const App = ({ secretsStatus }: AppProps) => {
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);
 
+                // Ensure x-uuid is in API headers — initRestLogging may have run before
+                // uuid was generated on first launch
+                const uuid = getUserSettingsBinding().getValue('uuid', null);
+                if (uuid && !ApiConfiguration.getInstance().getHeaders()['x-uuid']) {
+                    ApiConfiguration.getInstance().addHeader('x-uuid', uuid);
+                }
                 
                 logEvent({ message: 'Initializing App done', isProdVariant  });
+
+                try {
+                    const platform = Platform.OS
+                    const emulator = await isEmulator()
+                    const release = getSystemVersion()
+                    const mem = await getTotalMemory()
+        
+                    logEvent( {message:'os info',platform,release,emulator, mem})
+                    
+                }
+                catch {
+                    // ignore
+                }
+                
                 setInitialized(true);
             } catch (err: any) {
                 logError(err, 'App.init');
