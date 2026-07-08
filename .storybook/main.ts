@@ -88,6 +88,38 @@ const config: StorybookConfig = {
                         return null;
                     },
                 },                
+                // Force the 'react-native' alias to point to our mock.
+                //
+                // Why this plugin is needed on top of the resolve.alias entry below:
+                // vite-plugin-rnw (injected by @storybook/react-native-web-vite's
+                // preset) returns resolve.alias { 'react-native': 'react-native-web' }
+                // from its config() hook. Plugin config() hooks are merged AFTER this
+                // inline config, and Vite's mergeAlias gives later-merged configs
+                // higher priority — so rnw's alias silently overrides ours and the
+                // mock is never loaded. That is why the pre-bundled react-native.js
+                // in the Vite dep cache was pure react-native-web without
+                // TurboModuleRegistry, crashing every story that transitively imports
+                // a native-spec file (gesture-handler, localize, svg, ...).
+                //
+                // This plugin's config() hook runs after rnw's (rnw is enforce:'pre',
+                // this one is normal), so its alias entry lands at the top of the
+                // final alias array and wins — both for dev serving and for esbuild
+                // dep optimization (the optimizer resolves through resolve.alias).
+                // Exact-match regex so 'react-native/...' subpaths and
+                // 'react-native-*' packages are unaffected.
+                {
+                    name: 'force-react-native-mock-alias',
+                    config() {
+                        return {
+                            resolve: {
+                                alias: [{
+                                    find: /^react-native$/,
+                                    replacement: path.resolve(dirname, './mocks/react-native.ts'),
+                                }],
+                            },
+                        };
+                    },
+                },
                 // nodePolyfills() is intentionally omitted.
                 // It pulls in crypto-browserify -> browserify-sign, which vendors
                 // its own readable-stream and crashes at module init time in Vite
@@ -98,6 +130,9 @@ const config: StorybookConfig = {
             resolve: {
                 alias: {
                     // ── React Native web shims ────────────────────────────────────
+                    // NOTE: this entry alone is NOT effective — vite-plugin-rnw's
+                    // config() hook overrides it. The actually-winning alias is set
+                    // by the 'force-react-native-mock-alias' plugin above.
                     'react-native': path.resolve(dirname, './mocks/react-native.ts'),
                     'react-native-safe-area-context': path.resolve(dirname, './mocks/react-native-safe-area-context.ts'),
                     'react-native-share': path.resolve(dirname, './mocks/react-native-share.ts'),
@@ -113,6 +148,7 @@ const config: StorybookConfig = {
                     //'react-native-fs':               'react-native-web/dist/exports/View',
                     'react-native-fs': path.resolve(dirname, './emptyStub.ts'),
                     '@settings':                     'react-native-web/dist/exports/View',
+                    'react-native-svg': path.resolve(dirname, './mocks/react-native-svg.tsx'),
                     'react-native-maps': path.resolve(dirname, './mocks/react-native-maps.tsx'),
                     'react-native-inappbrowser-reborn': path.resolve(dirname, './mocks/react-native-inappbrowser-reborn.ts'),
                     'react-native-view-shot': path.resolve(dirname, './mocks/react-native-view-shot.ts'),
@@ -170,6 +206,11 @@ const config: StorybookConfig = {
             optimizeDeps: {
                 include: ['buffer', 'process'],
                 exclude: ['incyclist-services', 'incyclist-devices'],
+                // No esbuild onLoad stubbing of specs/fabric files here: with the
+                // react-native alias fixed (see 'force-react-native-mock-alias'),
+                // TurboModuleRegistry.getEnforcing() resolves to the safe stub in
+                // mocks/react-native.ts for every package, including files that
+                // don't live under a specs/ or fabric/ directory.
             },
 
             ssr: {
