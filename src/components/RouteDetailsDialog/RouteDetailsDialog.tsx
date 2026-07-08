@@ -138,7 +138,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         totalElevation,
         showLoopOverwrite,
         showNextOverwrite,
-        hasWorkout,
+        showWorkoutOption,
         canStart: cardCanStart,
         updateStartPos,
         settings
@@ -225,7 +225,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             showLoopOverwrite={!!showLoopOverwrite}
             showNextOverwrite={!!showNextOverwrite}
             downloadButtonPrimary={downloadButtonPrimary}
-            showWorkout={!hasWorkout}
+            showWorkout={!!showWorkoutOption}
             showPrev={showPrev}
             loading={loading}
             initialSettings={settings as UIRouteSettings}

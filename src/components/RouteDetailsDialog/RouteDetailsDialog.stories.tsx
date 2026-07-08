@@ -55,6 +55,10 @@ type Story = StoryObj<typeof RouteDetailsView>;
 
 export const Default: Story = { args: mockRouteProps() };
 
+export const WorkoutOptionHidden: Story = {
+    args: mockRouteProps({ showWorkout: false }),
+};
+
 export const Loading: Story = { args: mockRouteProps({ loading: true }) };
 
 export const CannotStart: Story = {
