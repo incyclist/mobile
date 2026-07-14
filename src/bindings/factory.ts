@@ -13,6 +13,7 @@ import { getVideoBinding } from "./video"
 import { getRepositoryBinding } from "./db"
 import { getFileLoaderBinding } from "./loader"
 import { getCryptoBinding } from "./crypto"
+import { getFetchBinding } from "./fetch"
 import { getFormBinding } from './form';
 import { MobileDownloadManager } from './download';
 
@@ -43,6 +44,7 @@ export const initBindings = async  ()=> {
     bindings.db = getRepositoryBinding()
     bindings.loader = getFileLoaderBinding()
     bindings.crypto = getCryptoBinding()
+    bindings.fetch = getFetchBinding()
     bindings.form = getFormBinding()
     bindings.downloadManager = new MobileDownloadManager()
 
