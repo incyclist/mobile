@@ -2,6 +2,20 @@ name: Upload Android to Google Play
 
 on:
   workflow_dispatch:
+    inputs:
+      track:
+        description: 'Release track'
+        required: true
+        type: choice
+        options:
+          - production
+          - open_testing
+          - closed_testing
+        default: production
+      rollout:
+        description: 'Staged rollout percentage (production only, 1-100)'
+        required: false
+        default: '10'
 
 jobs:
   build-and-upload:
@@ -33,11 +47,10 @@ jobs:
         run: |
           echo "${{ secrets.MYAPP_UPLOAD_KEYSTORE }}" | base64 --decode > android/app/upload.jks
 
-
       - name: Create config.json
         run: |
           mkdir -p config
-          echo '{"GOOGLE_PROJECT_NUMBER":"${{ secrets.GOOGLE_PROJECT_NUMBER }}"}' > config/config.json          
+          echo '{"GOOGLE_PROJECT_NUMBER":"${{ secrets.GOOGLE_PROJECT_NUMBER }}"}' > config/config.json
 
       - name: Build release AAB
         working-directory: android
@@ -49,11 +62,48 @@ jobs:
         run: |
           ./gradlew clean bundleRelease
 
-      - name: Upload to Google Play
+      # Maps the friendly choice in the workflow_dispatch UI to the track
+      # names the Play Developer API actually expects, and decides whether
+      # a staged rollout (userFraction) applies.
+      - name: Resolve release parameters
+        id: release_params
+        run: |
+          case "${{ github.event.inputs.track }}" in
+            production)
+              echo "play_track=production" >> "$GITHUB_OUTPUT"
+              echo "status=inProgress" >> "$GITHUB_OUTPUT"
+              FRACTION=$(awk "BEGIN { printf \"%.2f\", ${{ github.event.inputs.rollout }}/100 }")
+              echo "user_fraction=$FRACTION" >> "$GITHUB_OUTPUT"
+              ;;
+            open_testing)
+              echo "play_track=beta" >> "$GITHUB_OUTPUT"
+              echo "status=completed" >> "$GITHUB_OUTPUT"
+              echo "user_fraction=" >> "$GITHUB_OUTPUT"
+              ;;
+            closed_testing)
+              echo "play_track=alpha" >> "$GITHUB_OUTPUT"
+              echo "status=completed" >> "$GITHUB_OUTPUT"
+              echo "user_fraction=" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Upload to Google Play (staged rollout)
+        if: steps.release_params.outputs.user_fraction != ''
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.incyclist.app
           releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-          track: alpha
-          status: completed
+          track: ${{ steps.release_params.outputs.play_track }}
+          status: ${{ steps.release_params.outputs.status }}
+          userFraction: ${{ steps.release_params.outputs.user_fraction }}
+
+      - name: Upload to Google Play (testing track)
+        if: steps.release_params.outputs.user_fraction == ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.incyclist.app
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ steps.release_params.outputs.play_track }}
+          status: ${{ steps.release_params.outputs.status }}
