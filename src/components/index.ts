@@ -15,6 +15,7 @@ export type * from './NavigationBar/types'
 export * from './Icon';
 export * from './Dynamic'
 export * from './ElevationGraph'
+export * from './WorkoutGraph'
 export * from './RideDashboard'
 export * from './Video'
 export * from './StartRideDisplay'
