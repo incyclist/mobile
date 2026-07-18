@@ -59,11 +59,101 @@ export const MOCK_PLAN_SHORT: WorkoutGraphPlan = {
 };
 
 /**
- * Mock actuals for the (deferred) live overlay — provided now only so session
- * 3.1 has a ready shape to render. Not consumed by strip/detail.
+ * Mock actuals for the `live` overlay — a Power line + a Heartrate line,
+ * recorded up to `position`. Not consumed by strip/detail.
  */
 export const MOCK_ACTUALS: WorkoutGraphActuals = {
     power: Array.from({ length: 60 }, (_, i) => ({ x: i * 15, y: 150 + Math.round(Math.sin(i / 4) * 60) })),
     heartrate: Array.from({ length: 60 }, (_, i) => ({ x: i * 15, y: 120 + Math.round(i / 2) })),
     position: 900,
+};
+
+/**
+ * Builds a plausible recorded-power series that tracks near each bar's target
+ * (mid-band for ramps) with some jitter, standing in for real `activity.logs`
+ * samples. Used by the `live`-mode stories below.
+ */
+const buildActualPower = (bars: WorkoutGraphPlanBar[], endTime: number, stepSec = 15) => {
+    const points: { x: number; y: number }[] = [];
+    for (let t = 0; t <= endTime; t += stepSec) {
+        const bar = bars.find(b => t >= b.x0 && t < b.x) ?? bars[bars.length - 1];
+        const target = bar.y0 > 0 ? (bar.y0 + bar.y) / 2 : bar.y;
+        const jitter = Math.round(Math.sin(t / 45) * 12 + Math.cos(t / 17) * 6);
+        points.push({ x: t, y: Math.max(0, target - 10 + jitter) });
+    }
+    return points;
+};
+
+/** Builds a plausible recorded-heartrate series, gently rising over the ride. */
+const buildActualHeartrate = (endTime: number, stepSec = 15) => {
+    const points: { x: number; y: number }[] = [];
+    for (let t = 0; t <= endTime; t += stepSec) {
+        points.push({ x: t, y: Math.round(115 + (t / endTime) * 45 + Math.sin(t / 60) * 4) });
+    }
+    return points;
+};
+
+/**
+ * `live` mode, mid-workout: the current workout still equals the pristine
+ * plan (no skip has happened yet) — the rider is ~half-way through the 3x
+ * VO2 block. Exercises the "bars span the whole workout, actuals overlaid on
+ * the already-ridden span only" behavior (workout-ride-page-service-design.md
+ * §3.1).
+ */
+export const MOCK_PLAN_LIVE_MID: WorkoutGraphPlan = MOCK_PLAN;
+
+export const MOCK_ACTUALS_MID: WorkoutGraphActuals = {
+    power: buildActualPower(MOCK_BARS, 1050),
+    heartrate: buildActualHeartrate(1050),
+    position: 1050,
+};
+
+/**
+ * Same mid-workout snapshot as `MOCK_ACTUALS_MID`, but with no Heartrate data
+ * — not every rider pairs an HRM. Exercises `getGraphActuals()`'s "empty
+ * heartrate array" contract (§4.5 of the ride-page-service design): the Power
+ * line/axis and legend must render normally on their own, with the Heartrate
+ * line, its axis, and its legend entry all cleanly omitted (never a broken or
+ * empty-but-present HR axis).
+ */
+export const MOCK_ACTUALS_NO_HRM: WorkoutGraphActuals = {
+    power: buildActualPower(MOCK_BARS, 1050),
+    heartrate: [],
+    position: 1050,
+};
+
+/**
+ * `live` mode, post-skip-back: the rider skipped back from the cooldown to
+ * repeat the last VO2 on/off pair. The CURRENT workout (not the pristine plan
+ * above) gets that pair re-inserted at x=1800, and the cooldown ramp shifts
+ * 300s later — `domain.x` grows from [0,2100] to [0,2400] accordingly (§3.0 /
+ * §3.1: "maxX grows on skip-back/overrun", a discrete jump, not a reflow).
+ * The first 9 bars (warmup..last VO2 off) are untouched — proves old bars
+ * survive the skip, only the tail is edited. `position` (2250) sits past the
+ * pristine plan's old 2100s end, inside the repeated block's shifted
+ * cooldown — only renderable at all because the domain grew.
+ */
+const MOCK_BARS_AFTER_SKIPBACK: WorkoutGraphPlanBar[] = [
+    ...MOCK_BARS.slice(0, 9), // warmup .. 3rd VO2 "off" (x=0..1800), unchanged
+    // repeated (re-inserted by skip-back) 3rd VO2 on/off pair
+    { x0: 1800, x: 1980, y: 280, y0: 0, zone: 6 },
+    { x0: 1980, x: 2100, y: 130, y0: 0, zone: 2 },
+    // cooldown ramp, shifted 300s later by the re-inserted pair
+    { x0: 2100, x: 2400, y: 150, y0: 100, zone: 1 },
+];
+
+export const MOCK_PLAN_LIVE_SKIPBACK: WorkoutGraphPlan = {
+    bars: MOCK_BARS_AFTER_SKIPBACK,
+    ftp: FTP,
+    ftpLine: FTP,
+    domain: {
+        x: [0, 2400],
+        y: MOCK_PLAN.domain.y,
+    },
+};
+
+export const MOCK_ACTUALS_SKIPBACK: WorkoutGraphActuals = {
+    power: buildActualPower(MOCK_BARS_AFTER_SKIPBACK, 2250),
+    heartrate: buildActualHeartrate(2250),
+    position: 2250,
 };

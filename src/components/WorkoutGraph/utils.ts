@@ -1,4 +1,4 @@
-import { WORKOUT_ZONE_COLORS, WorkoutGraphPlanBar } from './types';
+import { WORKOUT_ZONE_COLORS, WorkoutGraphPlanBar, WorkoutGraphPoint } from './types';
 
 /**
  * Linear map of a domain value into a pixel coordinate. Identical contract to
@@ -30,3 +30,19 @@ export const zoneFill = (zone: number): string => {
  */
 export const maxBarPower = (bars: WorkoutGraphPlanBar[]): number =>
     bars.reduce((m, b) => Math.max(m, b.y), 0);
+
+/**
+ * Auto-scaled y-domain for the recorded Heartrate line (bpm has no relation
+ * to the plan's Watt-based y-domain, so it needs its own). Returns `null`
+ * when there's fewer than 2 usable points — the single source of truth for
+ * both the HR line's own scaling and the dedicated HR axis, so they always
+ * agree with each other.
+ */
+export const computeHrDomain = (points: WorkoutGraphPoint[]): [number, number] | null => {
+    const values = points.filter(p => Number.isFinite(p.y)).map(p => p.y);
+    if (values.length < 2) return null;
+    const hrMin = Math.min(...values);
+    const hrMax = Math.max(...values);
+    const pad = Math.max(5, (hrMax - hrMin) * 0.15);
+    return [Math.max(0, hrMin - pad), hrMax + pad];
+};
