@@ -46,3 +46,52 @@ export const computeHrDomain = (points: WorkoutGraphPoint[]): [number, number] |
     const pad = Math.max(5, (hrMax - hrMin) * 0.15);
     return [Math.max(0, hrMin - pad), hrMax + pad];
 };
+
+/**
+ * Bucket-average `points` down to at most `width` points, ordered by `x`.
+ * Required by `workout-graph-component-design.md` §5 point 2 / §6: the `live`
+ * overlay's Power/HR `<Path>`s must have ≤ `plotWidth` points regardless of
+ * ride length — `activity.logs` is ~1 Hz, so an hour-long ride would
+ * otherwise hand the SVG renderer 3,600+ raw points on every 1 Hz tick.
+ * Downsampling is this component's job, not the service's (it returns raw
+ * logs via `getGraphActuals()`) — only the component knows its own width.
+ *
+ * Mirrors `ActivityGraph.computeActivitySeries`'s bucket-to-width averaging
+ * (divide the x-range into `width` buckets, average every point that falls
+ * into each bucket) rather than naive stride-sampling, so a brief spike or
+ * dip between two kept samples isn't silently dropped.
+ */
+export const downsampleToWidth = (points: WorkoutGraphPoint[], width: number): WorkoutGraphPoint[] => {
+    const w = Math.floor(width);
+    if (w <= 0 || points.length === 0) return [];
+    // Already within budget — bucketing would only add averaging error for nothing.
+    if (points.length <= w) return points;
+
+    const xMin = points[0].x;
+    const xMax = points[points.length - 1].x;
+    const range = xMax - xMin;
+    if (range <= 0) return [points[points.length - 1]];
+
+    const bucketWidth = range / w;
+    const sumX = new Array(w).fill(0);
+    const sumY = new Array(w).fill(0);
+    const counts = new Array(w).fill(0);
+
+    for (const p of points) {
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+        let idx = Math.floor((p.x - xMin) / bucketWidth);
+        if (idx >= w) idx = w - 1;
+        if (idx < 0) idx = 0;
+        sumX[idx] += p.x;
+        sumY[idx] += p.y;
+        counts[idx]++;
+    }
+
+    const result: WorkoutGraphPoint[] = [];
+    for (let i = 0; i < w; i++) {
+        if (counts[i] > 0) {
+            result.push({ x: sumX[i] / counts[i], y: sumY[i] / counts[i] });
+        }
+    }
+    return result;
+};

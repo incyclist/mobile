@@ -10,7 +10,7 @@ import {
     MOCK_PLAN_LIVE_SKIPBACK,
     MOCK_ACTUALS_SKIPBACK,
 } from './WorkoutGraph.mock';
-import type { WorkoutGraphPlan } from './types';
+import type { WorkoutGraphPlan, WorkoutGraphActuals } from './types';
 
 const countByType = (root: ReturnType<typeof render>['UNSAFE_root'], match: string) =>
     root.findAll(node => typeof node.type === 'string' && node.type.includes(match)).length;
@@ -251,6 +251,52 @@ describe('WorkoutGraphView', () => {
                 <WorkoutGraphView mode="strip" plan={MOCK_PLAN} width={350} height={44} />
             );
             expect(countByType(UNSAFE_root, 'Line')).toBe(0);
+        });
+    });
+
+    describe('actuals downsampling (long-ride performance)', () => {
+        // ~1 Hz activity.logs over a full hour — workout-graph-component-design.md
+        // §5 point 2 / §6 requires the Power/HR <Path>s stay bounded to ≤ plotWidth
+        // points regardless of ride length, so the 1 Hz live-update path stays cheap.
+        const longPlan: WorkoutGraphPlan = {
+            bars: [{ x0: 0, x: 3600, y: 250, y0: 0, zone: 3 }],
+            ftp: 230,
+            ftpLine: 230,
+            domain: { x: [0, 3600], y: [0, 300] },
+        };
+        const longActuals: WorkoutGraphActuals = {
+            power: Array.from({ length: 3600 }, (_, t) => ({ x: t, y: 150 + Math.round(Math.sin(t / 90) * 60) })),
+            heartrate: Array.from({ length: 3600 }, (_, t) => ({ x: t, y: 130 + Math.round((t / 3600) * 40) })),
+            position: 3599,
+        };
+
+        it('bounds the Power/HR <Path> point count to the plot width, not the raw sample count', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView mode="live" plan={longPlan} actuals={longActuals} width={360} height={200} />
+            );
+            const paths = UNSAFE_root.findAll(node => typeof node.type === 'string' && node.type.includes('Path'));
+            expect(paths.length).toBe(2); // Power line + HR line — no filled areas, no per-sample nodes
+
+            paths.forEach((p) => {
+                const d = p.props.d as string;
+                const pointCount = (d.match(/[ML]/g) ?? []).length;
+                // width=360 leaves a plotWidth well under 360 once margins are
+                // subtracted — 3600 raw samples must not reach the path untouched.
+                expect(pointCount).toBeLessThanOrEqual(360);
+                expect(pointCount).toBeLessThan(longActuals.power.length);
+            });
+        });
+
+        it('still lets a short ride through unbucketed (no unnecessary averaging error)', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView mode="live" plan={MOCK_PLAN_LIVE_MID} actuals={MOCK_ACTUALS_MID} width={360} height={200} />
+            );
+            const paths = UNSAFE_root.findAll(node => typeof node.type === 'string' && node.type.includes('Path'));
+            const powerPath = paths[0].props.d as string;
+            const powerPointCount = (powerPath.match(/[ML]/g) ?? []).length;
+            // MOCK_ACTUALS_MID has well under plotWidth samples (~70 at a 15s
+            // interval) — downsampling must be a no-op here, not lossy by default.
+            expect(powerPointCount).toBe(MOCK_ACTUALS_MID.power.length);
         });
     });
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Svg, G, Rect, Line, Circle, Path, Text as SvgText } from 'react-native-svg';
 import type { WorkoutGraphViewProps, WorkoutGraphPlan, WorkoutGraphActuals } from './types';
-import { domainToPixel, zoneFill, computeHrDomain } from './utils';
+import { domainToPixel, zoneFill, computeHrDomain, downsampleToWidth } from './utils';
 import { colors } from '../../theme';
 
 // Plain lines, not filled areas — a filled grey/white area under a baseline is
@@ -98,7 +98,13 @@ const PlanBars = React.memo(({
  * bars stay visible, they are not greyed out or suppressed).
  *
  * Both series are plain strokes, not filled areas — see the color-constants
- * comment above for why a fill is deliberately avoided.
+ * comment above for why a fill is deliberately avoided. Both are also
+ * bucket-averaged to ≤ `plotWidth` points via `downsampleToWidth` before
+ * building the `<Path>` — required by `workout-graph-component-design.md`
+ * §5/§6 so the 1 Hz live-update path stays cheap regardless of ride length
+ * (raw `activity.logs` is ~1 Hz, i.e. thousands of points on a long ride).
+ * `hrDomain` (below) is still computed from the *raw*, non-downsampled data
+ * by the parent — bucket-averaging must never narrow the apparent min/max.
  *
  * Shares the plan's x/y domain with `PlanBars` (elapsed activity time,
  * absolute Watts) so the recorded telemetry lines up exactly with the bars —
@@ -132,7 +138,13 @@ const ActualsOverlay = React.memo(({
     const [xMin, xMax] = domain.x;
     const [yMin, yMax] = domain.y;
 
-    const powerRaw = actuals.power.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+    // Bucket-averaged to ≤ plotWidth points — activity.logs is ~1 Hz, so a long
+    // ride would otherwise hand the SVG renderer thousands of raw points on
+    // every 1 Hz tick (workout-graph-component-design.md §5 point 2 / §6).
+    const powerRaw = downsampleToWidth(
+        actuals.power.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)),
+        plotWidth
+    );
     let powerLine = null;
     if (powerRaw.length >= 2) {
         const points = powerRaw.map(p => ({
@@ -143,7 +155,10 @@ const ActualsOverlay = React.memo(({
         powerLine = <Path d={path} fill="none" stroke={ACTUAL_POWER_COLOR} strokeWidth={1.75} />;
     }
 
-    const hrRaw = actuals.heartrate.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+    const hrRaw = downsampleToWidth(
+        actuals.heartrate.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)),
+        plotWidth
+    );
     let hrLine = null;
     if (hrRaw.length >= 2 && hrDomain) {
         const [dMin, dMax] = hrDomain;
