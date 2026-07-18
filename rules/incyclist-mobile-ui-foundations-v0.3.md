@@ -96,6 +96,12 @@ logEvent({ message: 'dialog shown', dialog: 'Name' })        // dialogs
 logError(err, 'functionName')
 ```
 
+**Every user-initiated interactive control must log.** Any bespoke `onPress`/`onValueChange` handler on a `TouchableOpacity`, `Pressable`, or similar — buttons, list-item actions, custom chips — must call `logEvent` (usually `{ message: 'button clicked', button: '<name>', ... }` or the field-specific pattern already used by `ChipSelect`/`SingleSelect`/`EditText`). This applies even to pure, single-file components (rule 6) — `useLogging` is a cross-cutting logging concern, not a business-logic service call, so it's fine to use directly in a pure component.
+Two ways to satisfy this:
+- Reuse an already-logged shared component (`ChipSelect`, `SingleSelect`, `EditText`, `Button`/`ButtonBar` inside a `Dialog`) — its existing `logEvent` call covers you, no extra code needed.
+- If you hand-roll a `TouchableOpacity`/`Pressable`, call `logEvent` explicitly inside its handler.
+`Dialog`'s own `'dialog shown'`/`'dialog closed'` and `ButtonBar`'s `'button clicked'` (rule 11) are exceptions — do not add a second manual log for those two cases, they're already logged automatically.
+
 ## 9. Library Policy
 Check `package.json` first (~35 deps). Do not add without alignment.
 
