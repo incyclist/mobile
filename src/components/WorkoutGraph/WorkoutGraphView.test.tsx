@@ -9,7 +9,7 @@ import {
     MOCK_ACTUALS_NO_HRM,
     MOCK_PLAN_LIVE_SKIPBACK,
     MOCK_ACTUALS_SKIPBACK,
-} from './mockData';
+} from './WorkoutGraph.mock';
 import type { WorkoutGraphPlan } from './types';
 
 const countByType = (root: ReturnType<typeof render>['UNSAFE_root'], match: string) =>

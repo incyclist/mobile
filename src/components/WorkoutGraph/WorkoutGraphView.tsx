@@ -261,11 +261,15 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     const hrDomain = isLive ? computeHrDomain(actuals?.heartrate ?? []) : null;
     const showHrAxis = axes && !!hrDomain;
 
+    let marginRight = 0;
+    if (showHrAxis) marginRight = 36;
+    else if (axes) marginRight = 8;
+
     const margins = {
         top: (axes ? 8 : 0) + (showLegend ? 20 : 0),
         bottom: axes ? 24 : 0,
         left: axes ? 36 : 0,
-        right: showHrAxis ? 36 : (axes ? 8 : 0),
+        right: marginRight,
     };
 
     const plotWidth = width - margins.left - margins.right;

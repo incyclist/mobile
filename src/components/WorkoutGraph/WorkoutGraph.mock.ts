@@ -76,7 +76,7 @@ export const MOCK_ACTUALS: WorkoutGraphActuals = {
 const buildActualPower = (bars: WorkoutGraphPlanBar[], endTime: number, stepSec = 15) => {
     const points: { x: number; y: number }[] = [];
     for (let t = 0; t <= endTime; t += stepSec) {
-        const bar = bars.find(b => t >= b.x0 && t < b.x) ?? bars[bars.length - 1];
+        const bar = bars.find(b => t >= b.x0 && t < b.x) ?? bars.at(-1)!;
         const target = bar.y0 > 0 ? (bar.y0 + bar.y) / 2 : bar.y;
         const jitter = Math.round(Math.sin(t / 45) * 12 + Math.cos(t / 17) * 6);
         points.push({ x: t, y: Math.max(0, target - 10 + jitter) });
