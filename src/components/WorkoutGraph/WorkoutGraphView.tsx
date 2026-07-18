@@ -26,16 +26,19 @@ const PlanBars = React.memo(({
 
     return (
         <>
-            {plan.bars.map((bar, i) => {
+            {plan.bars.map((bar) => {
                 const left = domainToPixel(bar.x0, xMin, xMax, 0, plotWidth);
                 const right = domainToPixel(bar.x, xMin, xMax, 0, plotWidth);
                 const top = domainToPixel(bar.y, yMin, yMax, plotHeight, 0);
                 const bottom = domainToPixel(bar.y0, yMin, yMax, plotHeight, 0);
                 const w = Math.max(0.5, right - left);
                 const h = Math.max(0.5, bottom - top);
+                // Stable key from the bar's time span (each bar is a unique,
+                // non-overlapping segment) — not the array index. Matters for
+                // live mode, where bars are inserted/removed on skip-back.
                 return (
                     <Rect
-                        key={`bar-${i}`}
+                        key={`bar-${bar.x0}-${bar.x}`}
                         x={left}
                         y={top}
                         width={w}
