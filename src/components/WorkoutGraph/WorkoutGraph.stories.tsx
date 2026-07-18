@@ -2,14 +2,31 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { WorkoutGraphView } from './WorkoutGraphView';
-import { MOCK_PLAN, MOCK_PLAN_SHORT } from './mockData';
+import {
+    MOCK_PLAN,
+    MOCK_PLAN_SHORT,
+    MOCK_PLAN_LIVE_MID,
+    MOCK_ACTUALS_MID,
+    MOCK_ACTUALS_NO_HRM,
+    MOCK_PLAN_LIVE_SKIPBACK,
+    MOCK_ACTUALS_SKIPBACK,
+} from './WorkoutGraph.mock';
 import { colors } from '../../theme/colors';
 
 /**
- * Session-1.3 spike stories. Proves the SVG rendering approach across the two
- * modes in scope: `strip` (list-row thumbnail — bars only, no FTP line, no axes)
- * and `detail` (full — bars + FTP reference line + light axes). `live` mode is
- * deferred to session 3.1.
+ * Proves the SVG rendering approach across all 3 modes: `strip` (list-row
+ * thumbnail — bars only, no FTP line, no axes), `detail` (full — bars + FTP
+ * reference line + light axes), and `live` (ride screen — full-workout bars
+ * with the recorded Power/HR overlay + position marker on top, session 3.1).
+ *
+ * The three `live` stories exist to verify specific behaviors: `Live` is a
+ * mid-workout snapshot where the current workout still equals the pristine
+ * plan; `LiveAfterSkipBack` is the *same* workout after a skip-back
+ * re-inserted a step — `domain.x` visibly grows (compare the trailing x-axis
+ * tick: 35:00 vs 40:00, workout-ride-page-service-design.md §3.0/§3.1) and
+ * the first 9 bars are untouched, proving old bars aren't lost;
+ * `LiveNoHeartRateMonitor` has no HR data at all, verifying the Heartrate
+ * line/axis/legend all disappear cleanly rather than rendering broken.
  *
  * Stories drive the pure WorkoutGraphView with explicit pixel sizes (the smart
  * WorkoutGraph wrapper's onLayout measurement doesn't resolve under the
@@ -69,6 +86,57 @@ export const DetailLowIntensity: Story = {
         plan: MOCK_PLAN_SHORT,
         width: 360,
         height: 200,
+    },
+};
+
+/** live mode, mid-workout — full-workout bars with the recorded Power/HR overlay + position marker on top. */
+export const Live: Story = {
+    args: {
+        mode: 'live',
+        plan: MOCK_PLAN_LIVE_MID,
+        actuals: MOCK_ACTUALS_MID,
+        width: 360,
+        height: 200,
+        showAxes: true,
+        showFtpLine: true,        
+    },
+};
+
+/**
+ * live mode, after a skip-back — same workout as `Live` above, but the rider
+ * repeated the last VO2 on/off pair. `domain.x` grows [0,2100] -> [0,2400]
+ * (compare the x-axis's last tick against `Live`), the re-inserted bars sit at
+ * x=1800..2100, and `position` (2250) — past the pristine plan's old end —
+ * only fits because the domain grew with it.
+ */
+export const LiveAfterSkipBack: Story = {
+    args: {
+        mode: 'live',
+        plan: MOCK_PLAN_LIVE_SKIPBACK,
+        actuals: MOCK_ACTUALS_SKIPBACK,
+        width: 360,
+        height: 200,
+        showAxes: true,
+        showFtpLine: true,
+    },
+};
+
+/**
+ * live mode, no HRM paired — not every rider rides with a heart-rate monitor.
+ * Same mid-workout snapshot as `Live`, but `actuals.heartrate` is empty: the
+ * Heartrate line, its yellow right-side axis, and its legend entry must all
+ * disappear cleanly, while the Power line/axis and legend keep working on
+ * their own — nothing should render as broken, empty, or zeroed-out.
+ */
+export const LiveNoHeartRateMonitor: Story = {
+    args: {
+        mode: 'live',
+        plan: MOCK_PLAN_LIVE_MID,
+        actuals: MOCK_ACTUALS_NO_HRM,
+        width: 360,
+        height: 200,
+        showAxes: true,
+        showFtpLine: true,
     },
 };
 

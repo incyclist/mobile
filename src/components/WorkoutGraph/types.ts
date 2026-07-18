@@ -47,9 +47,13 @@ export interface WorkoutGraphPlan {
 }
 
 /**
- * Actuals + position marker for `live` mode. Not rendered by the session-1.3
- * spike (strip/detail only) — present here so the type surface is stable for
- * session 3.1, which adds the high-frequency overlay.
+ * Actuals + position marker for `live` mode: the already-ridden span, drawn as
+ * a Power line + a Heartrate line (with a color legend) on top of the
+ * (full-workout) plan bars, plus a position marker. Deliberately plain lines,
+ * not filled areas — a filled area is ElevationGraph's visual language
+ * elsewhere in this app, and workout-only rides have no elevation to show.
+ * High-frequency (1 Hz) — delivered via `getGraphActuals()` on each
+ * ride-observer tick, never via `page-update`.
  */
 export interface WorkoutGraphActuals {
     power: WorkoutGraphPoint[];     // recorded power over the ridden span (grey filled area)
@@ -79,7 +83,7 @@ export interface WorkoutGraphViewProps {
     height: number;
     mode: WorkoutGraphMode;
     plan: WorkoutGraphPlan;
-    /** live-mode overlay — ignored by strip/detail (session 3.1). */
+    /** live-mode overlay (grey power area + HR line + position marker) — ignored by strip/detail. */
     actuals?: WorkoutGraphActuals | null;
     /** Override axis visibility. Defaults: strip=false, detail=true. */
     showAxes?: boolean;
