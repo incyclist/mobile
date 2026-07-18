@@ -28,16 +28,16 @@ export const WorkoutItemView = (props: WorkoutItemViewProps) => {
     const { id, title, group, duration, canDelete, plan, outsideFold, scheduledLabel, isToday, onOpenDetails, onDelete } = props;
     const { logEvent } = useLogging('WorkoutItem');
 
-    if (outsideFold) {
-        return <View style={styles.placeholderContainer} />;
-    }
-
     const handlePress = useCallback(() => onOpenDetails(id), [id, onOpenDetails]);
 
     const handleDelete = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'Delete', component: 'WorkoutItem', eventSource: 'user' });
         onDelete(id);
     }, [id, onDelete, logEvent]);
+
+    if (outsideFold) {
+        return <View style={styles.placeholderContainer} />;
+    }
 
     const renderRightActions = () => (
         <TouchableOpacity style={styles.deleteAction} onPress={handleDelete}>
@@ -69,7 +69,7 @@ export const WorkoutItemView = (props: WorkoutItemViewProps) => {
 
                 <View style={styles.detailsRow}>
                     <Text style={styles.detailText}>{duration}</Text>
-                    {scheduledLabel && (
+                    {!!scheduledLabel && (
                         <>
                             <Text style={styles.detailSeparator}>•</Text>
                             <Text style={[styles.detailText, isToday && styles.todayText]} numberOfLines={1}>

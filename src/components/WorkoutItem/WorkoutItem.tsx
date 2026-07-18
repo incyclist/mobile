@@ -25,7 +25,10 @@ export const WorkoutItem = (props: WorkoutItemDisplayProps) => {
     // "Today" when isToday, otherwise a plain date — computed here, not in
     // WorkoutItemView, since the pure View must never import incyclist-services
     // (mobile CLAUDE.md rule 7).
-    const scheduledLabel = date ? (isToday ? 'Today' : formatDateTime(date, '%d.%m.%Y')) : null;
+    let scheduledLabel: string | null = null;
+    if (date) {
+        scheduledLabel = isToday ? 'Today' : formatDateTime(date, '%d.%m.%Y');
+    }
 
     return (
         <WorkoutItemView
