@@ -198,8 +198,13 @@ export const ActivityGraphView = React.memo( ({
         return ticks;
     };
 
+    // Flatten to a single object: react-native-svg's web <Svg> pushes an array
+    // `style` prop through unflattened, which React 19's DOM renderer rejects with
+    // "Indexed property setter is not supported" (worked under React 18).
+    const svgStyle = StyleSheet.flatten([styles.svg, style]);
+
     return (
-        <Svg width={width} height={height} style={[styles.svg, style]}>
+        <Svg width={width} height={height} style={svgStyle}>
             <G translate={`${margins.left}, ${margins.top}`}>
                 {renderElevation()}
                 {series.map((s: ActivityGraphSeries) => renderSeries(s))}
