@@ -68,9 +68,9 @@ export const downsampleToWidth = (points: WorkoutGraphPoint[], width: number): W
     if (points.length <= w) return points;
 
     const xMin = points[0].x;
-    const xMax = points[points.length - 1].x;
+    const xMax = points.at(-1)!.x;
     const range = xMax - xMin;
-    if (range <= 0) return [points[points.length - 1]];
+    if (range <= 0) return [points.at(-1)!];
 
     const bucketWidth = range / w;
     const sumX = new Array(w).fill(0);
