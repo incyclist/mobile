@@ -13,6 +13,8 @@
     "lint-ready": "eslint src/ --quiet",
     "start": "react-native start --reset-cache",
     "start:debug": "APP_VARIANT=debug react-native start",
+    "check-component-exports": "node scripts/check-component-exports.js",
+    "pretest": "npm run check-component-exports",
     "test": "jest",
     "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output ~/dist/index.android.bundle --assets-dest ~/dist",
     "postinstall": "patch-package",
