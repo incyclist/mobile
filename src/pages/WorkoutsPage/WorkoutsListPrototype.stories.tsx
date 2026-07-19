@@ -103,11 +103,14 @@ const MOCK_CONTENT: MockContent = {
 const ALL_GROUPS = 'All';
 
 /**
- * Slim Upcoming-Training row per HLD §5: "compact rows (name, date badge,
- * duration)" — deliberately graph-less and ~half the height of a full
- * `WorkoutItemView` row, so the collapsed section leaves room for library rows
- * even on the phone frame. `isToday` = informational highlight only (§3.1),
- * tap opens details like every other row (§11.3 — no quick-start button).
+ * Slim Upcoming-Training row — HLD §5's "compact rows (name, date badge,
+ * duration)", used on phone (compact) only: graph-less and ~half the height of
+ * a full `WorkoutItemView` row, so the collapsed section leaves room for
+ * library rows above the fold. Tablets keep the full `WorkoutItemView` (incl.
+ * the graph, i.e. the exact training setup) — height isn't scarce there
+ * (review round 2, 2026-07-19). `isToday` = informational highlight only
+ * (§3.1), tap opens details like every other row (§11.3 — no quick-start
+ * button).
  */
 interface ScheduledRowProps {
     item: MockScheduledRow;
@@ -227,9 +230,26 @@ const WorkoutsListPrototypeView = (props: WorkoutsListPrototypeProps) => {
                                         <Text style={styles.sectionCount}>({upcoming.items.length})</Text>
                                     </TouchableOpacity>
 
-                                    {upcomingRows.map((item) => (
-                                        <ScheduledRow key={item.id} item={item} onOpenDetails={onOpenDetails} />
-                                    ))}
+                                    {upcomingRows.map((item) =>
+                                        compact ? (
+                                            <ScheduledRow key={item.id} item={item} onOpenDetails={onOpenDetails} />
+                                        ) : (
+                                            <WorkoutItemView
+                                                key={item.id}
+                                                id={item.id}
+                                                title={item.title}
+                                                group="Scheduled"
+                                                duration={item.duration}
+                                                selected={item.selected}
+                                                canDelete={false}
+                                                plan={item.plan}
+                                                scheduledLabel={dateLabel(item)}
+                                                isToday={item.isToday}
+                                                onOpenDetails={onOpenDetails}
+                                                onDelete={onDelete}
+                                            />
+                                        )
+                                    )}
 
                                     {showToggle && (
                                         <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
