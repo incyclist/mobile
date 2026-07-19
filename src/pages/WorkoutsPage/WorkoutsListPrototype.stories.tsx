@@ -59,7 +59,7 @@ const day = (offset: number): Date => {
 const dateLabel = (item: MockScheduledRow): string =>
     item.isToday
         ? 'Today'
-        : item.date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        : item.date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
 
 const mockScheduled = (n: number): MockScheduledRow[] =>
     [
@@ -101,6 +101,36 @@ const MOCK_CONTENT: MockContent = {
 // ---------------------------------------------------------------------------
 
 const ALL_GROUPS = 'All';
+
+/**
+ * Slim Upcoming-Training row per HLD §5: "compact rows (name, date badge,
+ * duration)" — deliberately graph-less and ~half the height of a full
+ * `WorkoutItemView` row, so the collapsed section leaves room for library rows
+ * even on the phone frame. `isToday` = informational highlight only (§3.1),
+ * tap opens details like every other row (§11.3 — no quick-start button).
+ */
+interface ScheduledRowProps {
+    item: MockScheduledRow;
+    onOpenDetails: (id: string) => void;
+}
+
+const ScheduledRow = ({ item, onOpenDetails }: ScheduledRowProps) => (
+    <TouchableOpacity
+        style={[styles.slimRow, item.isToday && styles.slimRowToday]}
+        onPress={() => onOpenDetails(item.id)}
+        activeOpacity={0.9}
+    >
+        <View style={[styles.dateBadge, item.isToday && styles.dateBadgeToday]}>
+            <Text style={[styles.dateBadgeText, item.isToday && styles.dateBadgeTextToday]}>
+                {dateLabel(item)}
+            </Text>
+        </View>
+        <Text style={styles.slimTitle} numberOfLines={1}>
+            {item.title}
+        </Text>
+        <Text style={styles.slimDuration}>{item.duration}</Text>
+    </TouchableOpacity>
+);
 
 interface WorkoutsListPrototypeProps {
     data: MockContent;
@@ -175,15 +205,6 @@ const WorkoutsListPrototypeView = (props: WorkoutsListPrototypeProps) => {
                         </View>
                     </View>
 
-                    <View style={styles.filterArea}>
-                        <ChipSelect
-                            label="Group"
-                            options={[ALL_GROUPS, ...data.groups.available]}
-                            selected={group ?? ALL_GROUPS}
-                            onValueChange={handleGroup}
-                        />
-                    </View>
-
                     {data.isEmpty ? (
                         <View style={styles.center}>
                             <Text style={styles.emptyText}>No workouts found</Text>
@@ -207,31 +228,33 @@ const WorkoutsListPrototypeView = (props: WorkoutsListPrototypeProps) => {
                                     </TouchableOpacity>
 
                                     {upcomingRows.map((item) => (
-                                        <WorkoutItemView
-                                            key={item.id}
-                                            id={item.id}
-                                            title={item.title}
-                                            group="Scheduled"
-                                            duration={item.duration}
-                                            selected={item.selected}
-                                            canDelete={false}
-                                            plan={item.plan}
-                                            scheduledLabel={dateLabel(item)}
-                                            isToday={item.isToday}
-                                            onOpenDetails={onOpenDetails}
-                                            onDelete={onDelete}
-                                        />
+                                        <ScheduledRow key={item.id} item={item} onOpenDetails={onOpenDetails} />
                                     ))}
 
                                     {showToggle && (
                                         <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
                                             <Text style={styles.showAllText}>
-                                                {hiddenCount > 0 ? `Show all (${upcoming.items.length})` : 'Show less'}
+                                                {hiddenCount > 0 ? `Show ${hiddenCount} more` : 'Show less'}
                                             </Text>
                                         </TouchableOpacity>
                                     )}
 
                                     <View style={styles.sectionDivider} />
+                                </View>
+                            )}
+
+                            {/* Group filter opens the library block — it only
+                                filters the flat list (Upcoming is never
+                                group-filtered, §12), so it must not sit above
+                                the Upcoming section. */}
+                            {data.groups.available.length > 0 && (
+                                <View style={styles.filterArea}>
+                                    <ChipSelect
+                                        label="Group"
+                                        options={[ALL_GROUPS, ...data.groups.available]}
+                                        selected={group ?? ALL_GROUPS}
+                                        onValueChange={handleGroup}
+                                    />
                                 </View>
                             )}
 
@@ -431,6 +454,51 @@ const styles = StyleSheet.create({
     sectionCount: {
         color: colors.text,
         opacity: 0.6,
+        fontSize: textSizes.smallText,
+    },
+    slimRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: colors.listItemBackground,
+        marginVertical: 2,
+        marginHorizontal: 12,
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+    },
+    slimRowToday: {
+        borderLeftWidth: 3,
+        borderLeftColor: colors.buttonPrimary,
+    },
+    dateBadge: {
+        minWidth: 72,
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    dateBadgeToday: {
+        backgroundColor: colors.buttonPrimary,
+    },
+    dateBadgeText: {
+        color: colors.text,
+        fontSize: textSizes.tinyText,
+        fontWeight: '600',
+    },
+    dateBadgeTextToday: {
+        color: colors.background,
+    },
+    slimTitle: {
+        flex: 1,
+        color: colors.text,
+        fontSize: textSizes.smallText,
+        fontWeight: 'bold',
+    },
+    slimDuration: {
+        color: colors.text,
+        opacity: 0.8,
         fontSize: textSizes.smallText,
     },
     showAllText: {
