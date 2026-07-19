@@ -28,15 +28,16 @@ const NEW_GROUP_OPTION = '+ New';
  * group lists.
  */
 export const GroupPicker = (props: GroupPickerProps) => {
-    const { label, groups, value, disabled = false, onValueChange } = props;
+    const { label, groups, value, disabled = false, allowNew = true, onValueChange } = props;
     const [isEditing, setIsEditing] = useState(false);
     const [newGroup, setNewGroup] = useState('');
     const { logEvent } = useLogging('GroupPicker');
 
     // The current value is always offered as an option, even when it isn't
     // (yet) one of the known groups — e.g. a just-typed new name before it's persisted.
-    const options = groups.includes(value) || !value ? groups : [...groups, value];
-    const useChips = options.length <= GROUP_CHIP_THRESHOLD;
+    const known = groups.includes(value) || !value ? groups : [...groups, value];
+    const options = allowNew ? [...known, NEW_GROUP_OPTION] : known;
+    const useChips = known.length <= GROUP_CHIP_THRESHOLD;
 
     // No manual logEvent here — ChipSelect/SingleSelect already log
     // 'option selected' for every tap, including NEW_GROUP_OPTION.
@@ -84,7 +85,7 @@ export const GroupPicker = (props: GroupPickerProps) => {
                 <ChipSelect
                     label={label ?? ''}
                     labelWidth={label ? 100 : 0}
-                    options={[...options, NEW_GROUP_OPTION]}
+                    options={options}
                     selected={value}
                     disabled={disabled}
                     onValueChange={handleSelect}
@@ -92,7 +93,7 @@ export const GroupPicker = (props: GroupPickerProps) => {
             ) : (
                 <SingleSelect
                     label={label ?? 'Group'}
-                    options={[...options, NEW_GROUP_OPTION]}
+                    options={options}
                     selected={value}
                     disabled={disabled}
                     onValueChange={handleSelect}

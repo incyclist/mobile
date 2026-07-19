@@ -39,6 +39,11 @@ describe('GroupPicker', () => {
         expect(onValueChange).toHaveBeenCalledWith('FTP Builder');
     });
 
+    it('does not offer "+ New" when allowNew is false', () => {
+        const { queryByText } = render(<GroupPicker {...baseProps} allowNew={false} />);
+        expect(queryByText('+ New')).toBeNull();
+    });
+
     it('reveals a text input after tapping "+ New", and commits a typed name on submit', () => {
         const onValueChange = jest.fn();
         const { getByText, getByPlaceholderText } = render(
