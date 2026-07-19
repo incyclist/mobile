@@ -291,6 +291,10 @@ const WorkoutsListPrototypeView = (props: WorkoutsListPrototypeProps) => {
                                     onDelete={onDelete}
                                 />
                             ))}
+
+                            {workouts.length === 0 && (
+                                <Text style={styles.noMatchText}>No workouts in this group</Text>
+                            )}
                         </ScrollView>
                     )}
                 </View>
@@ -477,8 +481,16 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         fontWeight: '500',
     },
+    // zIndex lifts the whole filter row above the workout-row siblings that
+    // follow it — RN-web gives every View `z-index:0`, so SingleSelect's
+    // dropdown (zIndex 1000) is trapped inside this wrapper's stacking context
+    // and would otherwise paint UNDER later rows. Its existing consumers
+    // (RouteDetailsDialog, GearSettings) never hit this because nothing
+    // overlapping follows the picker inside those dialogs. The real
+    // WorkoutsTable (session 5.1) needs the same zIndex on its filter row.
     filterArea: {
         paddingHorizontal: 12,
+        zIndex: 10,
     },
     listArea: {
         flex: 1,
@@ -560,6 +572,13 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255,255,255,0.12)',
         marginHorizontal: 12,
         marginVertical: 8,
+    },
+    noMatchText: {
+        color: colors.text,
+        opacity: 0.7,
+        fontSize: textSizes.normalText,
+        textAlign: 'center',
+        paddingVertical: 24,
     },
     center: {
         flex: 1,
