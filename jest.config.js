@@ -2,6 +2,10 @@ module.exports = {
   preset: 'react-native',
   setupFilesAfterEnv: ['./__tests__/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '__tests__/jest.setup.ts'],
+  transformIgnorePatterns: [
+    // RN preset default, plus ESM-only packages pulled in by incyclist-services
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|uuid|@garmin/fitsdk)/)',
+  ],
   moduleNameMapper: {
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.tsx',
     'react-native-maps': '<rootDir>/__mocks__/react-native-maps.tsx',
