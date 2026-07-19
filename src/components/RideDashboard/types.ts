@@ -1,8 +1,8 @@
-import { ActivityDashboardItem, HealthStatus } from 'incyclist-services'
+import { ActivityDashboardItem, HealthStatus, WorkoutDashboardLine } from 'incyclist-services'
 import { IconName } from '../Icon'
 import { colors } from '../../theme'
 
-export type { ActivityDashboardItem }
+export type { ActivityDashboardItem, WorkoutDashboardLine }
 
 export const METRIC_ICON: Record<string, IconName> = {
     'Time':      'time',
@@ -27,6 +27,12 @@ export interface RideDashboardViewProps {
     items: ActivityDashboardItem[]
     layout?: DashboardLayout
     compact?:boolean
+    /**
+     * Workout ride screen only (workout-ride-page-service-design.md §3.3). When set and the
+     * layout isn't compact, replaces every item's normal-layout secondary row with one shared
+     * target+description shoutout line. `null`/`undefined` leaves route-ride rendering untouched.
+     */
+    workoutShoutout?: WorkoutDashboardLine | null
 }
 
 export interface RideDashboardSideViewProps {
@@ -35,4 +41,5 @@ export interface RideDashboardSideViewProps {
 
 export interface RideDashboardProps {
     layout?: DashboardLayout
+    workoutShoutout?: WorkoutDashboardLine | null
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { RideDashboardView } from './RideDashboardView';
-import { ActivityDashboardItem } from './types';
+import { ActivityDashboardItem, WorkoutDashboardLine } from './types';
 import { MainBackground } from '../MainBackground';
 
 const meta: Meta<typeof RideDashboardView> = {
@@ -84,6 +84,56 @@ export const Compact: Story = {
         items,
         layout: 'icon-top',
         compact: true,
+    },
+};
+
+const workoutShoutout: WorkoutDashboardLine = {
+    text: '260W at 100-120HR for 3min - VO2 max (3/5)',
+    mode: 'ERG',
+};
+
+/**
+ * Workout ride screen, normal (tablet) layout: the shoutout line replaces every item's own
+ * secondary row with one composed, Zwift-style target sentence — same left/right boundaries and
+ * number font size as the metrics row above, no separate power/duration/remaining chips (those
+ * are already live on WorkoutStepsList's current-step row).
+ */
+export const WorkoutShoutout: Story = {
+    args: {
+        items,
+        layout: 'icon-left',
+        workoutShoutout,
+    },
+};
+
+/** A cadence-only target, no power at all. */
+export const WorkoutShoutoutCadenceOnly: Story = {
+    args: {
+        items,
+        layout: 'icon-left',
+        workoutShoutout: { ...workoutShoutout, text: '100-120 rpm for 1min - Spin-up' },
+    },
+};
+
+/** A long composed sentence — verifies it wraps (up to 2 lines) instead of overflowing the matched width. */
+export const WorkoutShoutoutLongText: Story = {
+    args: {
+        items,
+        layout: 'icon-left',
+        workoutShoutout: { ...workoutShoutout, text: '260W at 100-120HR at 90-100 rpm for 5min - VO2 max intervals (3/5)' },
+    },
+};
+
+/**
+ * Workout ride screen, compact (phone) layout: the shoutout is tablet-only, so compact mode
+ * renders exactly like a route ride in compact mode — no second line at all.
+ */
+export const WorkoutShoutoutCompact: Story = {
+    args: {
+        items,
+        layout: 'icon-top',
+        compact: true,
+        workoutShoutout,
     },
 };
 

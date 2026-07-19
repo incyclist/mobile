@@ -14,7 +14,9 @@ const ACTUAL_POWER_COLOR = colors.text; // white, matches web's Power line
 const ACTUAL_HEARTRATE_COLOR = '#ffd400'; // yellow, matches web's Heartrate line
 // Deliberately not reused from any zone color or the two line colors above —
 // stands apart from bars/lines/legend so the "where am I" marker never blends in.
-const POSITION_MARKER_COLOR = '#00e5ff';
+// Exported so other ride-screen elements that also need a "where am I" marker
+// (e.g. WorkoutStepsList's current-step progress bar) use the exact same color.
+export const POSITION_MARKER_COLOR = '#00e5ff';
 
 // Tick marks anchor axis numbers to a visible ruler — floating text alone
 // (the previous approach) is too easy to miss against a busy, colorful chart.

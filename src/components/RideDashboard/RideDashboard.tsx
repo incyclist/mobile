@@ -4,7 +4,7 @@ import { useScreenLayout, useUnmountEffect } from '../../hooks';
 import { RideDashboardView } from './RideDashboardView';
 import { ActivityDashboardItem, RideDashboardProps } from './types';
 
-export const RideDashboard = ({ layout  }: RideDashboardProps) => {
+export const RideDashboard = ({ layout, workoutShoutout }: RideDashboardProps) => {
     const [items, setItems] = useState<ActivityDashboardItem[]>([]);
     const service = useActivityRide();
     const refObserver = useRef<IObserver | null>(null);
@@ -50,5 +50,5 @@ export const RideDashboard = ({ layout  }: RideDashboardProps) => {
     }
 
 
-    return <RideDashboardView items={items} layout={confirmedLayout} compact={compact} />;
+    return <RideDashboardView items={items} layout={confirmedLayout} compact={compact} workoutShoutout={workoutShoutout} />;
 };
