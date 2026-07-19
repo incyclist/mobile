@@ -1,12 +1,13 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
+import { fn } from 'storybook/test';
 import type {
     ActivityDashboardItem,
     WorkoutGraphActuals,
     WorkoutRidePageDisplayProps,
 } from 'incyclist-services';
-import { WorkoutStepsList } from '../../../components';
+import { Button, WorkoutStepsList, WorkoutSwipeFeedback } from '../../../components';
 import { RideDashboardView } from '../../../components/RideDashboard/RideDashboardView';
 import { WorkoutGraphView } from '../../../components/WorkoutGraph/WorkoutGraphView';
 import {
@@ -141,6 +142,13 @@ interface WorkoutRidePrototypeProps {
     frameHeight: number;
     /** Matches useScreenLayout()==='compact' (height < 420) — the real page derives this itself. */
     compact: boolean;
+    /**
+     * When set, renders the (already-existing, session 5.4) WorkoutSwipeFeedback
+     * toast with this message on top of the layout — a frozen frame of the
+     * moment right after a swipe fired, to judge its visibility in situ.
+     */
+    swipeFeedback?: string | null;
+    onMenuOpen: () => void;
 }
 
 const GRAPH_MARGIN_H = 8;
@@ -156,7 +164,7 @@ const RESERVED_TABLET = 290;
 const RESERVED_COMPACT = 160;
 
 const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
-    const { displayProps, actuals, dashboardItems: items, frameWidth, frameHeight, compact } = props;
+    const { displayProps, actuals, dashboardItems: items, frameWidth, frameHeight, compact, swipeFeedback, onMenuOpen } = props;
 
     const graphHeight = frameHeight - (compact ? RESERVED_COMPACT : RESERVED_TABLET);
     const graphWidth = frameWidth - GRAPH_MARGIN_H * 2;
@@ -172,16 +180,24 @@ const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
                 />
             </View>
 
-            {/* Middle band: steps panel left, remaining width free (the
-                5.4 full-screen swipe surface has no widget here). Clipped,
-                not scrollable — if the steps list doesn't fit this band,
-                that's a real finding, not something to hide. */}
+            {/* Middle band: steps panel left, Ride-Menu button right, the
+                width between them free (the 5.4 full-screen swipe surface has
+                no widget of its own). Clipped, not scrollable — if the steps
+                list doesn't fit this band, that's a real finding, not
+                something to hide. The Menu button can't reuse the GPX/Video
+                bottom-bar slot (the WorkoutGraph owns the whole bottom here),
+                so it mirrors the steps panel on the right — placement is a
+                sign-off question. */}
             <View style={styles.middleBand}>
                 <WorkoutStepsList
                     steps={displayProps.steps}
                     compact={compact}
                     style={compact ? styles.stepsCompact : styles.stepsTablet}
                 />
+                <View style={styles.middleSpacer} />
+                <View style={compact ? styles.menuButtonCompact : styles.menuButtonTablet}>
+                    <Button id="menu" label="Menu" primary={true} onClick={onMenuOpen} />
+                </View>
             </View>
 
             <WorkoutGraphView
@@ -194,6 +210,8 @@ const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
                 showFtpLine={true}
                 style={styles.graph}
             />
+
+            <WorkoutSwipeFeedback visible={!!swipeFeedback} message={swipeFeedback ?? ''} />
         </View>
     );
 };
@@ -220,6 +238,9 @@ const PHONE = deviceFrame(800, 360);
 const meta: Meta<typeof WorkoutRidePrototypeView> = {
     title: 'Pages/RidePage/WorkoutRidePrototype',
     component: WorkoutRidePrototypeView,
+    args: {
+        onMenuOpen: fn(),
+    },
 };
 
 export default meta;
@@ -269,6 +290,22 @@ export const PhoneAfterSkipBack: Story = {
     args: { ...afterSkipBackArgs, frameWidth: 800, frameHeight: 360, compact: true },
 };
 
+/**
+ * Frozen frame of the moment right after a swipe-up fired: the session-5.4
+ * WorkoutSwipeFeedback toast ("+1%") over the full layout — exists to judge
+ * whether the rider can actually see/distinguish the confirmation mid-ride.
+ */
+export const Tablet10SwipeFeedback: Story = {
+    decorators: [TABLET_10],
+    args: { ...midWorkoutArgs, frameWidth: 1280, frameHeight: 800, compact: false, swipeFeedback: '+1%' },
+};
+
+/** Same frozen swipe confirmation on the phone frame, with the wordier step-back message. */
+export const PhoneSwipeFeedback: Story = {
+    decorators: [PHONE],
+    args: { ...midWorkoutArgs, frameWidth: 800, frameHeight: 360, compact: true, swipeFeedback: '◀ Step Back' },
+};
+
 const styles = StyleSheet.create({
     deviceFrame: {
         alignSelf: 'flex-start',
@@ -308,6 +345,17 @@ const styles = StyleSheet.create({
     stepsCompact: {
         width: 260,
         marginLeft: 8,
+        marginTop: 4,
+    },
+    middleSpacer: {
+        flex: 1,
+    },
+    menuButtonTablet: {
+        marginRight: 12,
+        marginTop: 8,
+    },
+    menuButtonCompact: {
+        marginRight: 8,
         marginTop: 4,
     },
     graph: {
