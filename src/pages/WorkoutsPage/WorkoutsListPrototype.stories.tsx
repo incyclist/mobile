@@ -8,7 +8,7 @@ import type {
     WorkoutListContentProps,
     WorkoutListItemProps,
 } from 'incyclist-services';
-import { ChipSelect, MainBackground, TNavigationItem, WorkoutItemView } from '../../components';
+import { GroupPicker, MainBackground, TNavigationItem, WorkoutItemView } from '../../components';
 import { NavigationBarView } from '../../components/NavigationBar/NavigationBarView';
 import { NavigationBarViewCompact } from '../../components/NavigationBar/NavigationBarViewCompact';
 import { Icon } from '../../components/Icon';
@@ -246,13 +246,18 @@ const WorkoutsListPrototypeView = (props: WorkoutsListPrototypeProps) => {
                             {/* Group filter opens the library block — it only
                                 filters the flat list (Upcoming is never
                                 group-filtered, §12), so it must not sit above
-                                the Upcoming section. */}
+                                the Upcoming section. GroupPicker (not raw
+                                ChipSelect): it falls back to a SingleSelect
+                                dropdown past 5 options, so many groups can't
+                                overflow the chip row. allowNew=false — you
+                                can't filter by a group that doesn't exist. */}
                             {data.groups.available.length > 0 && (
                                 <View style={styles.filterArea}>
-                                    <ChipSelect
+                                    <GroupPicker
                                         label="Group"
-                                        options={[ALL_GROUPS, ...data.groups.available]}
-                                        selected={group ?? ALL_GROUPS}
+                                        groups={[ALL_GROUPS, ...data.groups.available]}
+                                        value={group ?? ALL_GROUPS}
+                                        allowNew={false}
                                         onValueChange={handleGroup}
                                     />
                                 </View>
@@ -337,6 +342,28 @@ export const SingleUpcomingEntry: Story = {
     decorators: [TABLET_7],
     args: {
         data: { ...MOCK_CONTENT, upcoming: mockUpcoming(1) },
+        compact: false,
+        navIconSize: 38,
+    },
+};
+
+/**
+ * More than GroupPicker's 5-option chip threshold: the filter row falls back
+ * to the SingleSelect dropdown instead of overflowing the chip row.
+ */
+export const ManyGroups: Story = {
+    decorators: [TABLET_7],
+    args: {
+        data: {
+            ...MOCK_CONTENT,
+            groups: {
+                available: [
+                    'My Workouts', 'FTP Builder', 'Zwift Academy 2021',
+                    'Climbing Prep', 'Base Season', 'Sprint Work', 'Recovery',
+                ],
+                selected: null,
+            },
+        },
         compact: false,
         navIconSize: 38,
     },
