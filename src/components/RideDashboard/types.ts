@@ -1,8 +1,8 @@
-import { ActivityDashboardItem, HealthStatus, WorkoutDashboardLine } from 'incyclist-services'
+import type { ActivityDashboardItem, HealthStatus, WorkoutDashboardLine } from 'incyclist-services'
 import { IconName } from '../Icon'
 import { colors } from '../../theme'
 
-export type { ActivityDashboardItem, WorkoutDashboardLine }
+export type { ActivityDashboardItem, WorkoutDashboardLine } from 'incyclist-services'
 
 export const METRIC_ICON: Record<string, IconName> = {
     'Time':      'time',

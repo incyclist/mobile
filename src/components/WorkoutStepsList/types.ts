@@ -1,7 +1,7 @@
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { WorkoutStepDisplay, WorkoutUpcomingSteps } from 'incyclist-services';
+import type { WorkoutUpcomingSteps } from 'incyclist-services';
 
-export type { WorkoutStepDisplay, WorkoutUpcomingSteps };
+export type { WorkoutStepDisplay, WorkoutUpcomingSteps } from 'incyclist-services';
 
 export interface WorkoutStepsListProps {
     steps: WorkoutUpcomingSteps;
