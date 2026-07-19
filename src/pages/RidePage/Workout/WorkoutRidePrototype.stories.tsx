@@ -6,7 +6,7 @@ import type {
     WorkoutGraphActuals,
     WorkoutRidePageDisplayProps,
 } from 'incyclist-services';
-import { MainBackground, WorkoutStepsList } from '../../../components';
+import { WorkoutStepsList } from '../../../components';
 import { RideDashboardView } from '../../../components/RideDashboard/RideDashboardView';
 import { WorkoutGraphView } from '../../../components/WorkoutGraph/WorkoutGraphView';
 import {
@@ -145,52 +145,56 @@ interface WorkoutRidePrototypeProps {
 
 const GRAPH_MARGIN_H = 8;
 
+// Graph height budget — the graph is the dominant element (HLD §5) and takes
+// everything the dashboard + steps panel don't need, rather than a fixed share
+// of the frame (review round 1: the fixed share left dead space between steps
+// and graph on 10" and phone). Reserved = dashboard (+shoutout on tablet) +
+// the steps panel at its fullest (previous + current + 3 upcoming + hint on
+// tablet; current + 1 upcoming + hint compact) + margins. Analytic, not
+// measured — same reasoning as everywhere else in this prototype.
+const RESERVED_TABLET = 290;
+const RESERVED_COMPACT = 160;
+
 const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
     const { displayProps, actuals, dashboardItems: items, frameWidth, frameHeight, compact } = props;
 
-    // Graph height budget — the graph is the dominant element (HLD §5) and is
-    // bottom-anchored at a fixed share of the frame; dashboard and steps split
-    // the remainder. Slightly smaller share on phone: the compact dashboard is
-    // shorter, but the steps band above the graph is the scarcer resource.
-    const graphHeight = Math.round(frameHeight * (compact ? 0.48 : 0.52));
+    const graphHeight = frameHeight - (compact ? RESERVED_COMPACT : RESERVED_TABLET);
     const graphWidth = frameWidth - GRAPH_MARGIN_H * 2;
 
     return (
-        <MainBackground>
-            <View style={styles.page}>
-                <View style={compact ? styles.dashboardCompact : styles.dashboardTablet}>
-                    <RideDashboardView
-                        items={items}
-                        layout="icon-left"
-                        compact={compact}
-                        workoutShoutout={displayProps.dashboard}
-                    />
-                </View>
-
-                {/* Middle band: steps panel left, remaining width free (the
-                    5.4 full-screen swipe surface has no widget here). Clipped,
-                    not scrollable — if the steps list doesn't fit this band,
-                    that's a real finding, not something to hide. */}
-                <View style={styles.middleBand}>
-                    <WorkoutStepsList
-                        steps={displayProps.steps}
-                        compact={compact}
-                        style={compact ? styles.stepsCompact : styles.stepsTablet}
-                    />
-                </View>
-
-                <WorkoutGraphView
-                    width={graphWidth}
-                    height={graphHeight}
-                    mode="live"
-                    plan={displayProps.graph}
-                    actuals={actuals}
-                    showAxes={true}
-                    showFtpLine={true}
-                    style={styles.graph}
+        <View style={styles.page}>
+            <View style={compact ? styles.dashboardCompact : styles.dashboardTablet}>
+                <RideDashboardView
+                    items={items}
+                    layout="icon-left"
+                    compact={compact}
+                    workoutShoutout={displayProps.dashboard}
                 />
             </View>
-        </MainBackground>
+
+            {/* Middle band: steps panel left, remaining width free (the
+                5.4 full-screen swipe surface has no widget here). Clipped,
+                not scrollable — if the steps list doesn't fit this band,
+                that's a real finding, not something to hide. */}
+            <View style={styles.middleBand}>
+                <WorkoutStepsList
+                    steps={displayProps.steps}
+                    compact={compact}
+                    style={compact ? styles.stepsCompact : styles.stepsTablet}
+                />
+            </View>
+
+            <WorkoutGraphView
+                width={graphWidth}
+                height={graphHeight}
+                mode="live"
+                plan={displayProps.graph}
+                actuals={actuals}
+                showAxes={true}
+                showFtpLine={true}
+                style={styles.graph}
+            />
+        </View>
     );
 };
 
@@ -275,6 +279,11 @@ const styles = StyleSheet.create({
     page: {
         flex: 1,
         flexDirection: 'column',
+        // Web-ui precedent: the desktop workout ride screen runs on a black
+        // background, not the MainBackground photo — a workout-only ride has
+        // no route visuals to show, and solid black maximises the contrast of
+        // the graph's small axis/tick labels (review round 1).
+        backgroundColor: '#000',
     },
     dashboardTablet: {
         alignItems: 'center',
