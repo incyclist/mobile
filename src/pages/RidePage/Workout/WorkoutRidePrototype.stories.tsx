@@ -180,24 +180,29 @@ const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
                 />
             </View>
 
-            {/* Middle band: steps panel left, Ride-Menu button right, the
+            {/* Middle band: Ride-Menu button left, steps panel right, the
                 width between them free (the 5.4 full-screen swipe surface has
                 no widget of its own). Clipped, not scrollable — if the steps
                 list doesn't fit this band, that's a real finding, not
-                something to hide. The Menu button can't reuse the GPX/Video
-                bottom-bar slot (the WorkoutGraph owns the whole bottom here),
-                so it mirrors the steps panel on the right — placement is a
-                sign-off question. */}
+                something to hide.
+
+                Button placement (review round 4): GPX/Video put it bottom-left,
+                but that slot would cover the graph's y-axis/"0:00" corner here.
+                Top-left is the nearest slot that keeps the button on the LEFT —
+                which matters because the RideMenu panel is left-anchored
+                (RideMenuView `left:0`, slides up via translateY): tap and
+                panel stay on the same side. The steps panel moves to the
+                right to make room. */}
             <View style={styles.middleBand}>
+                <View style={compact ? styles.menuButtonCompact : styles.menuButtonTablet}>
+                    <Button id="menu" label="Menu" primary={true} onClick={onMenuOpen} />
+                </View>
+                <View style={styles.middleSpacer} />
                 <WorkoutStepsList
                     steps={displayProps.steps}
                     compact={compact}
                     style={compact ? styles.stepsCompact : styles.stepsTablet}
                 />
-                <View style={styles.middleSpacer} />
-                <View style={compact ? styles.menuButtonCompact : styles.menuButtonTablet}>
-                    <Button id="menu" label="Menu" primary={true} onClick={onMenuOpen} />
-                </View>
             </View>
 
             <WorkoutGraphView
@@ -339,23 +344,23 @@ const styles = StyleSheet.create({
     },
     stepsTablet: {
         width: 340,
-        marginLeft: 12,
+        marginRight: 12,
         marginTop: 8,
     },
     stepsCompact: {
         width: 260,
-        marginLeft: 8,
+        marginRight: 8,
         marginTop: 4,
     },
     middleSpacer: {
         flex: 1,
     },
     menuButtonTablet: {
-        marginRight: 12,
+        marginLeft: 12,
         marginTop: 8,
     },
     menuButtonCompact: {
-        marginRight: 8,
+        marginLeft: 8,
         marginTop: 4,
     },
     graph: {
