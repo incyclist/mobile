@@ -40,10 +40,40 @@ export const Hidden: Story = {
     args: { visible: false, message: '+1%' },
 };
 
+/** Pure black backdrop — the workout-only ride screen. The border must carry the pill's edge. */
+export const OnBlackBackground: Story = {
+    decorators: [
+        (Story) => (
+            <View style={[styles.decorator, styles.black]}>
+                <Story />
+            </View>
+        ),
+    ],
+    args: { visible: true, message: '+1%' },
+};
+
+/** Bright backdrop — stand-in for Phase 2's workout+route mode (daylight video/map). */
+export const OnLightBackground: Story = {
+    decorators: [
+        (Story) => (
+            <View style={[styles.decorator, styles.light]}>
+                <Story />
+            </View>
+        ),
+    ],
+    args: { visible: true, message: '◀ Step Back' },
+};
+
 const styles = StyleSheet.create({
     decorator: {
         width: 480,
         height: 300,
         backgroundColor: colors.background,
+    },
+    black: {
+        backgroundColor: '#000',
+    },
+    light: {
+        backgroundColor: '#b8c4b0',
     },
 });
