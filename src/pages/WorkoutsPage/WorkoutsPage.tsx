@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRoute } from '@react-navigation/native';
 import {
     getWorkoutListPageService,
     WorkoutListPageDisplayProps,
@@ -12,14 +13,22 @@ import { navigate } from '../../services';
 
 const initialProps: WorkoutListPageDisplayProps = { pageType: 'placeholder' };
 
+// Consumed by session 5.7's post-pairing prompt: `navigation.navigate('workouts', { autoOpenDetailsId })`.
+interface WorkoutsPageRouteParams {
+    autoOpenDetailsId?: string;
+}
+
 export const WorkoutsPage = () => {
     const service = getWorkoutListPageService();
     const { logError } = useLogging('WorkoutsPage');
+    const route = useRoute();
+    const params = route.params as WorkoutsPageRouteParams | undefined;
 
     const [props, setProps] = useState<WorkoutListPageDisplayProps>(initialProps);
 
     const refObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef<boolean>(false);
+    const refAutoOpenHandled = useRef<boolean>(false);
 
     const onUpdate = useCallback(() => {
         const updated = service.getPageDisplayProps();
@@ -50,9 +59,27 @@ export const WorkoutsPage = () => {
         }
     });
 
+    // Consumed by session 5.7's post-pairing prompt: forwards the auto-open target to the
+    // service. `WorkoutDetailsDialog` (session 5.3) is not built yet — once it is, it (or its
+    // host here) is responsible for turning this into an actually-opened dialog.
+    useEffect(() => {
+        if (refAutoOpenHandled.current || !params?.autoOpenDetailsId) return;
+        refAutoOpenHandled.current = true;
+
+        service.onOpenDetails(params.autoOpenDetailsId);
+    }, [service, params]);
+
     const onNavigate = useCallback((item: TNavigationItem) => {
         navigate(item);
     }, []);
+
+    const onImport = useCallback(() => {
+        service.onImportOpen();
+    }, [service]);
+
+    const onSelectGroup = useCallback((group: string | null) => {
+        service.onSelectGroup(group);
+    }, [service]);
 
     return (
         <ErrorBoundary>
@@ -60,8 +87,17 @@ export const WorkoutsPage = () => {
                 <WorkoutsPlaceholderView onNavigate={onNavigate} />
             )}
             {props.pageType === 'list' && (
-                <WorkoutListView onNavigate={onNavigate} />
+                <WorkoutListView
+                    data={props}
+                    onNavigate={onNavigate}
+                    onImport={onImport}
+                    onSelectGroup={onSelectGroup}
+                />
             )}
+            {/* props.detailWorkoutId is already live (WorkoutItem/ScheduledRow call
+                service.onOpenDetails() directly, matching RouteItem/RoutesPage) — session 5.3
+                renders <WorkoutDetailsDialog workoutId={props.detailWorkoutId} onClose={...} />
+                here, conditionally, the same way RoutesPage renders RouteDetailsDialog. */}
         </ErrorBoundary>
     );
 };

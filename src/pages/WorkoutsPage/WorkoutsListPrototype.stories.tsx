@@ -94,6 +94,7 @@ const MOCK_CONTENT: MockContent = {
     workouts: MOCK_WORKOUTS,
     selectedId: null,
     isEmpty: false,
+    detailWorkoutId: null,
 };
 
 // ---------------------------------------------------------------------------

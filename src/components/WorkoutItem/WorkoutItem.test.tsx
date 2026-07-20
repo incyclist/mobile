@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { WorkoutItem } from './WorkoutItem';
 import { MOCK_PLAN } from '../WorkoutGraph/WorkoutGraph.mock';
 
@@ -25,6 +25,11 @@ const baseProps = {
 };
 
 describe('WorkoutItem', () => {
+    beforeEach(() => {
+        mockOnOpenDetails.mockClear();
+        mockOnDelete.mockClear();
+    });
+
     it('renders without crashing', () => {
         const { toJSON } = render(<WorkoutItem {...baseProps} />);
         expect(toJSON()).not.toBeNull();
@@ -42,5 +47,11 @@ describe('WorkoutItem', () => {
             <WorkoutItem {...baseProps} date={new Date('2026-07-18')} isToday />
         );
         expect(toJSON()).not.toBeNull();
+    });
+
+    it('calls the page service onOpenDetails on tap (mirrors RouteItem/RoutesPageService)', () => {
+        const { getByText } = render(<WorkoutItem {...baseProps} />);
+        fireEvent.press(getByText('Sweet Spot Base'));
+        expect(mockOnOpenDetails).toHaveBeenCalledWith('1');
     });
 });
