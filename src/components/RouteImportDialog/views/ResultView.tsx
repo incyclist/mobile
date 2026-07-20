@@ -41,11 +41,11 @@ export const ResultView = ({
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
             <View style={styles.content}>
-                <View style={[styles.iconCircle, iconCircleStyle]}>
-                    <Icon 
-                        name={success ? 'import-route' : 'funnel'} 
-                        size={compact ? 40 : 64} 
-                        color={statusColor} 
+                <View style={[styles.iconCircle, compact && styles.iconCircleCompact, iconCircleStyle]}>
+                    <Icon
+                        name={success ? 'import-route' : 'funnel'}
+                        size={compact ? 28 : 64}
+                        color={statusColor}
                     />
                 </View>
                 <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
@@ -79,6 +79,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 24,
+    },
+    iconCircleCompact: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 3,
+        marginBottom: 8,
     },
     title: {
         fontSize: textSizes.dialogTitle,

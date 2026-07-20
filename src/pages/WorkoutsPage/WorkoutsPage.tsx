@@ -8,7 +8,7 @@ import {
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { WorkoutsPlaceholderView } from './WorkoutsPlaceholderView';
 import { WorkoutListView } from './WorkoutListView';
-import { ErrorBoundary, TNavigationItem } from '../../components';
+import { ErrorBoundary, TNavigationItem, WorkoutImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 const initialProps: WorkoutListPageDisplayProps = { pageType: 'placeholder' };
@@ -25,6 +25,7 @@ export const WorkoutsPage = () => {
     const params = route.params as WorkoutsPageRouteParams | undefined;
 
     const [props, setProps] = useState<WorkoutListPageDisplayProps>(initialProps);
+    const [showImportDialog, setShowImportDialog] = useState(false);
 
     const refObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef<boolean>(false);
@@ -75,7 +76,12 @@ export const WorkoutsPage = () => {
 
     const onImport = useCallback(() => {
         service.onImportOpen();
+        setShowImportDialog(true);
     }, [service]);
+
+    const onImportClose = useCallback(() => {
+        setShowImportDialog(false);
+    }, []);
 
     const onSelectGroup = useCallback((group: string | null) => {
         service.onSelectGroup(group);
@@ -93,6 +99,9 @@ export const WorkoutsPage = () => {
                     onImport={onImport}
                     onSelectGroup={onSelectGroup}
                 />
+            )}
+            {showImportDialog && (
+                <WorkoutImportDialog onClose={onImportClose} />
             )}
             {/* props.detailWorkoutId is already live (WorkoutItem/ScheduledRow call
                 service.onOpenDetails() directly, matching RouteItem/RoutesPage) — session 5.3

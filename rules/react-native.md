@@ -54,6 +54,7 @@ Apply these rules to all code generation and refactoring tasks within this works
 - If a file needs to change that is not listed, stop and raise it as a question rather than making the change silently.
 
 ## 9. Testing Rules
+- **Always run tests via `npm test`, never `jest`/`npx jest` directly.** `npm test` triggers the `pretest` hook (barrel-export check, §2) — a raw `jest` invocation skips it silently, so a missing export can pass locally and only surface later, in a different session.
 - **Render-without-crashing only.** Tests assert that a component renders without throwing. No style assertions, no snapshot tests, no content assertions.
 - **Never use `fireEvent.click()`** — use `fireEvent.press()` in React Native testing.
 - **Never use `findByTestId()`** unless `testID` props are explicitly defined in the component.
