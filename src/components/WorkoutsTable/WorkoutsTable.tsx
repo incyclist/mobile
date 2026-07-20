@@ -149,9 +149,11 @@ export const WorkoutsTable = ({ data, compact, onSelectGroup }: WorkoutsTablePro
 
     // Two independent toggles (HLD §5): the chevron collapses the whole section to its
     // header; "Show N more" expands past `collapsedCount`.
-    const upcomingRows = upcoming && !sectionCollapsed
-        ? (expanded ? upcoming.items : upcoming.items.slice(0, upcoming.collapsedCount))
-        : [];
+    const getUpcomingRows = (): ScheduledWorkoutItemProps[] => {
+        if (!upcoming || sectionCollapsed) return [];
+        return expanded ? upcoming.items : upcoming.items.slice(0, upcoming.collapsedCount);
+    };
+    const upcomingRows = getUpcomingRows();
     const hiddenCount = upcoming ? upcoming.items.length - upcomingRows.length : 0;
     const showToggle = !!upcoming && !sectionCollapsed && upcoming.items.length > upcoming.collapsedCount;
 
