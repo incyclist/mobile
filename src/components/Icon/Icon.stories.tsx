@@ -33,6 +33,8 @@ export const Navigation: Story = {
         <View style={styles.row}>
             <Icon name='chevron-up' size={32} />
             <Icon name='chevron-down' size={32} />
+            <Icon name='chevron-left' size={32} />
+            <Icon name='chevron-right' size={32} />
         </View>
     ),
 };
@@ -41,6 +43,7 @@ export const Actions: Story = {
     render: () => (
         <View style={styles.row}>
             <Icon name='plus' size={32} />
+            <Icon name='minus' size={32} />
             <Icon name='import-route' size={32} />
         </View>
     ),

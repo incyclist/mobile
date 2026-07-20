@@ -38,6 +38,11 @@ const meta: Meta<typeof RideMenuView> = {
         onDialogClose: fn(),
         onExitFromSummary: fn(),
 
+        onStepBack: fn(),
+        onStepForward: fn(),
+        onIncreaseLoad: fn(),
+        onDecreaseLoad: fn(),
+
         renderGearSettings: () => <GearSettingsView {...AllTypes.args as any} onClose={fn()} />,
 
     },
@@ -76,6 +81,28 @@ export const GearSettingsActive: Story = {
         visible: true,
         showResume: false,
         activeDialog: 'gearSettings',
+    },
+};
+
+export const WorkoutOpen: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        workout: true,
+        canStepBack: true,
+        canStepForward: true,
+    },
+};
+
+export const WorkoutFirstStep: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        workout: true,
+        canStepBack: false,
+        canStepForward: true,
     },
 };
 

@@ -8,6 +8,7 @@ import {
     TouchableWithoutFeedback,
     useWindowDimensions,
     Pressable,
+    ScrollView,
     LayoutChangeEvent
 } from 'react-native';
 import { RideMenuViewProps } from './types';
@@ -18,6 +19,13 @@ import { Button } from '../ButtonBar';
 import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { ActivitySummaryDialog } from '../ActivitySummaryDialog';
+
+interface RowButtonSpec {
+    icon: any;
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+}
 
 export const RideMenuView = ({
     visible,
@@ -31,6 +39,14 @@ export const RideMenuView = ({
     onRideSettings,
     onDialogClose,
     onExitFromSummary,
+
+    workout = false,
+    canStepBack = false,
+    canStepForward = false,
+    onStepBack = () => {},
+    onStepForward = () => {},
+    onIncreaseLoad = () => {},
+    onDecreaseLoad = () => {},
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
     renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
@@ -71,7 +87,8 @@ export const RideMenuView = ({
     const renderMenuItem = (
         iconName: any,
         label: string,
-        onPress: () => void
+        onPress: () => void,
+        disabled = false
     ) => {
         const handlePress = () => {
             logEvent({ message: 'button clicked', button: label });
@@ -80,25 +97,65 @@ export const RideMenuView = ({
 
         return (
             <Pressable
+                key={label}
                 onPress={handlePress}
+                disabled={disabled}
                 style={({ pressed }) => [
                     styles.menuItem,
-                    pressed && styles.menuItemPressed,
+                    pressed && !disabled && styles.menuItemPressed,
                 ]}
             >
                 <View style={styles.menuItemIcon}>
                     <Icon
                         name={iconName}
                         size={24}
-                        color={colors.text}
+                        color={disabled ? colors.disabled : colors.text}
                     />
                 </View>
-                <Text style={styles.menuItemLabel}>
+                <Text style={[styles.menuItemLabel, disabled && styles.menuItemLabelDisabled]}>
                     {label}
                 </Text>
             </Pressable>
         );
     };
+
+    // Icon-only half-width button used to pack two related actions (e.g. Step Back/Forward,
+    // Decrease/Increase Load) onto a single row - keeps the compact panel short on phones.
+    const renderRowButton = ({ icon, label, onPress, disabled = false }: RowButtonSpec) => {
+        const handlePress = () => {
+            logEvent({ message: 'button clicked', button: label });
+            onPress();
+        };
+
+        return (
+            <Pressable
+                key={label}
+                onPress={handlePress}
+                disabled={disabled}
+                accessibilityLabel={label}
+                style={({ pressed }) => [
+                    styles.rowButton,
+                    pressed && !disabled && styles.menuItemPressed,
+                ]}
+            >
+                <Icon
+                    name={icon}
+                    size={24}
+                    color={disabled ? colors.disabled : colors.text}
+                />
+            </Pressable>
+        );
+    };
+
+    const renderMenuRow = (rowLabel: string, left: RowButtonSpec, right: RowButtonSpec) => (
+        <View style={styles.menuRow} key={rowLabel}>
+            <Text style={styles.menuItemLabel}>{rowLabel}</Text>
+            <View style={styles.menuRowButtons}>
+                {renderRowButton(left)}
+                {renderRowButton(right)}
+            </View>
+        </View>
+    );
 
     const panelIsVisuallyActive = visible && !panelHiddenByDialog;
 
@@ -150,8 +207,18 @@ export const RideMenuView = ({
                 </View>
 
                 <View style={styles.content}>
-                    {renderMenuItem('settings', 'Gear Settings', onGearSettings)}
-                    {renderMenuItem('controller', 'Ride Settings', onRideSettings)}
+                    <ScrollView contentContainerStyle={styles.contentScroll}>
+                        {workout && renderMenuRow('Step',
+                            { icon: 'chevron-left', label: 'Step Back', onPress: onStepBack, disabled: !canStepBack },
+                            { icon: 'chevron-right', label: 'Step Forward', onPress: onStepForward, disabled: !canStepForward }
+                        )}
+                        {workout && renderMenuRow('Load',
+                            { icon: 'minus', label: 'Decrease Load', onPress: onDecreaseLoad },
+                            { icon: 'plus', label: 'Increase Load', onPress: onIncreaseLoad }
+                        )}
+                        {renderMenuItem('settings', 'Gear Settings', onGearSettings)}
+                        {renderMenuItem('controller', 'Ride Settings', onRideSettings)}
+                    </ScrollView>
                 </View>
 
                 <View style={styles.footer}>
@@ -212,6 +279,8 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    contentScroll: {
         paddingVertical: 10,
     },
     menuItem: {
@@ -231,6 +300,27 @@ const styles = StyleSheet.create({
     menuItemLabel: {
         color: colors.text,
         fontSize: textSizes.normalText,
+    },
+    menuItemLabelDisabled: {
+        color: colors.disabled,
+    },
+    menuRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        minHeight: 52,
+    },
+    menuRowButtons: {
+        flexDirection: 'row',
+    },
+    rowButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 8,
+        borderRadius: 4,
     },
     footer: {
         paddingHorizontal: 12,
