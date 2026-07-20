@@ -33,6 +33,30 @@ const icons: Record<IconName, (color: string, size: number) => React.ReactElemen
             />
         </Svg>
     ),
+    'chevron-left': (color: string, size: number) => (
+        <Svg viewBox='0 0 24 24' width={size} height={size}>
+            <Path
+                d='M15 18l-6-6 6-6'
+                stroke={color}
+                strokeWidth={2}
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                fill='none'
+            />
+        </Svg>
+    ),
+    'chevron-right': (color: string, size: number) => (
+        <Svg viewBox='0 0 24 24' width={size} height={size}>
+            <Path
+                d='M9 6l6 6-6 6'
+                stroke={color}
+                strokeWidth={2}
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                fill='none'
+            />
+        </Svg>
+    ),
     'plus': (color: string, size: number) => (
         <Svg viewBox='0 0 24 24' width={size} height={size}>
             <Path 
@@ -41,6 +65,17 @@ const icons: Record<IconName, (color: string, size: number) => React.ReactElemen
                 strokeWidth={2}
                 strokeLinecap='round' 
                 fill='none' 
+            />
+        </Svg>
+    ),
+    'minus': (color: string, size: number) => (
+        <Svg viewBox='0 0 24 24' width={size} height={size}>
+            <Path
+                d='M5 12h14'
+                stroke={color}
+                strokeWidth={2}
+                strokeLinecap='round'
+                fill='none'
             />
         </Svg>
     ),
