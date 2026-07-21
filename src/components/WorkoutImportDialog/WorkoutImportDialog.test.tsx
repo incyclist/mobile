@@ -1,9 +1,12 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { WorkoutImportDisplayProps } from 'incyclist-services';
 import { WorkoutImportDialog } from './WorkoutImportDialog';
 
 const mockObserver = { on: jest.fn(), off: jest.fn() };
+const mockImportObserver = { on: jest.fn(), off: jest.fn() };
+
+const mockPickFile = jest.fn().mockResolvedValue(null);
 
 const mockService = {
     getImportDisplayProps: jest.fn<WorkoutImportDisplayProps, []>(() => ({
@@ -12,7 +15,7 @@ const mockService = {
     })),
     getPageObserver: jest.fn(() => mockObserver),
     onImportOpen: jest.fn(),
-    onImportFile: jest.fn(),
+    onImportFile: jest.fn(() => mockImportObserver),
     onImportSetGroup: jest.fn(),
     onImportClose: jest.fn(),
 };
@@ -22,7 +25,7 @@ jest.mock('incyclist-services', () => ({
 }));
 
 jest.mock('../../hooks/files/useFilePicker', () => ({
-    useFilePicker: () => ({ pickFile: jest.fn().mockResolvedValue(null) }),
+    useFilePicker: () => ({ pickFile: mockPickFile }),
 }));
 
 describe('WorkoutImportDialog', () => {
@@ -104,6 +107,36 @@ describe('WorkoutImportDialog', () => {
             registeredHandler();
 
             expect(mockService.getImportDisplayProps.mock.calls.length).toBeGreaterThan(callsBeforeUpdate);
+        });
+    });
+
+    // Regression coverage for 5.12's actual root cause: onImportFile() returns an Observer
+    // wrapping a real Node EventEmitter, which throws synchronously if 'error' is ever emitted
+    // with zero listeners registered (a special case unique to that literal event name). That
+    // throw was aborting WorkoutListPageService's own error-handling before it could update the
+    // dialog's phase - the dialog looked "stuck on Importing..." forever on a genuine parse
+    // failure. Fixed by subscribing to the returned observer, mirroring RouteImportDialog's
+    // existing pattern - this test would fail (via a thrown/unhandled error on `emit`) if that
+    // subscription were ever removed.
+    describe('onPickFile observer subscription', () => {
+        beforeEach(() => {
+            mockImportObserver.on.mockClear();
+            mockService.onImportFile.mockClear();
+            mockPickFile.mockResolvedValueOnce({
+                type: 'file', name: 'test.zwo', ext: 'zwo', filename: '/tmp/test.zwo',
+                delimiter: '/', dir: '/tmp', url: undefined,
+            });
+        });
+
+        it('subscribes to both success and error on the observer returned by onImportFile', async () => {
+            const { getByText } = render(<WorkoutImportDialog onClose={jest.fn()} />);
+
+            fireEvent.press(getByText('Choose Workout File'));
+
+            await waitFor(() => expect(mockService.onImportFile).toHaveBeenCalledTimes(1));
+
+            expect(mockImportObserver.on).toHaveBeenCalledWith('success', expect.any(Function));
+            expect(mockImportObserver.on).toHaveBeenCalledWith('error', expect.any(Function));
         });
     });
 });

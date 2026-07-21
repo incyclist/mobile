@@ -66,7 +66,18 @@ export const WorkoutImportDialog = ({ onClose }: WorkoutImportDialogProps) => {
             const fileInfo = await pickFile({ extensions: IMPORT_FILE_EXTENSIONS });
             if (!fileInfo) return;
 
-            service.onImportFile(fileInfo);
+            const observer = service.onImportFile(fileInfo);
+            // The dialog's own phase transitions are driven entirely by the 'import-update'
+            // subscription above (via getImportDisplayProps()) — these two listeners do nothing
+            // themselves. They exist because `observer` wraps a real Node EventEmitter, which has
+            // a special case for the literal 'error' event: emitting it with zero listeners
+            // registered throws synchronously instead of being a no-op like any other event name.
+            // That throw was aborting onImportFile()'s own error-handling mid-way through (before
+            // it could call emitImportUpdate()), which is why the dialog got stuck on 'importing'
+            // forever on a real parse failure — see session 5.12. RouteImportDialog already
+            // subscribes to its own equivalent observer for the same reason.
+            observer.on('success', () => {});
+            observer.on('error', () => {});
         } catch (err) {
             logError(err, 'onPickFile');
         }
