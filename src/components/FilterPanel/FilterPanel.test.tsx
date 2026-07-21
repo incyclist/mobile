@@ -63,4 +63,19 @@ describe('FilterPanel', () => {
         const { queryByPlaceholderText } = render(<FilterPanel {...MOCK_PROPS} visible={false} compact={true} />);
         expect(queryByPlaceholderText('Search title...')).toBeNull();
     });
+
+    // Regression: filterOptions can still be undefined right after navigating
+    // to the page (data not loaded yet). The non-compact dropdown lists
+    // render inside a Modal, whose children mount on every render regardless
+    // of `visible` — so `options` being undefined here must not crash, even
+    // though no dropdown is open.
+    it('does not crash when options is undefined (non-compact)', () => {
+        const props = { ...MOCK_PROPS, options: undefined as unknown as FilterPanelProps['options'] };
+        expect(() => render(<FilterPanel {...props} />)).not.toThrow();
+    });
+
+    it('does not crash when options is undefined (compact)', () => {
+        const props = { ...MOCK_PROPS, compact: true, options: undefined as unknown as FilterPanelProps['options'] };
+        expect(() => render(<FilterPanel {...props} />)).not.toThrow();
+    });
 });

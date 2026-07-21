@@ -37,13 +37,22 @@ describe('SingleSelect', () => {
                 onValueChange={onValueChange}
             />
         );
-        
+
         // Tap the trigger to open the dropdown
         fireEvent.press(getAllByText('Metric')[0]);
-        
+
         // Tap an option from the list
         fireEvent.press(getAllByText('Imperial')[0]);
-        
+
         expect(onValueChange).toHaveBeenCalledWith('Imperial');
+    });
+
+    // Regression: the option list renders inside a Modal, whose children
+    // mount on every render regardless of `visible` — so `options` being
+    // undefined (despite the required prop type) must not crash, even
+    // though no dropdown is open.
+    it('does not crash when options is undefined', () => {
+        const props = { ...MOCK_SINGLE_SELECT_PROPS, options: undefined as unknown as string[] };
+        expect(() => render(<SingleSelect {...props} />)).not.toThrow();
     });
 });

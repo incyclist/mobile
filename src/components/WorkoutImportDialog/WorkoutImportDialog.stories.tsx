@@ -101,7 +101,7 @@ export const Compact: Story = {
 // collapsed Group field is visible without scrolling, and the Dialog's own
 // ScrollView (not an absolute-positioned dropdown, which gets clipped to
 // invisible by Dialog's overflow:'hidden' container) must be able to reach
-// every group once expanded. See ResultGroupField.tsx.
+// every group once expanded. GroupPicker uses inline expansion for >5 groups.
 export const CompactResult: Story = {
     args: {
         compact: true,

@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     TextInput,
     useWindowDimensions,
     ScrollView,
+    Modal,
 } from 'react-native';
 import { FilterPanelProps, SearchFilter } from './types';
 import { colors } from '../../theme';
@@ -103,64 +105,153 @@ const FilterInput = ({
 };
 
 /**
- * Internal Select component with inline dropdown list
+ * Internal Select component with inline dropdown list (compact mode) or a
+ * `Modal` overlay (non-compact). Compact mode uses inline expansion to avoid
+ * clipping by the ScrollView's overflow:'hidden'. The non-compact list used
+ * to be a `position: 'absolute'` + `zIndex` overlay, but that only reorders
+ * siblings sharing the same parent — it can't guarantee priority over a
+ * completely separate sibling subtree (e.g. RoutesPage's route list, sitting
+ * below FilterPanel in the same column). With 20+ options the list visually
+ * overlapped that sibling, and swipes meant for the list were captured by
+ * the sibling's own ScrollView instead. `Modal` owns its own native window
+ * layer, so it reliably wins both paint order and touch priority regardless
+ * of what else is on screen.
  */
 const FilterSelect = (props: any) => {
-    const { 
-        label, value, options, fieldName, onSelect, compact, 
-        logEvent, isHalf, isOpen: open, onOpen 
+    const {
+        label, value, options, fieldName, onSelect, compact,
+        logEvent, isHalf, isOpen: open, onOpen, maxHeight
     } = props;
-    
-    const [triggerHeight, setTriggerHeight] = useState(0);
+
     const displayValue = value || 'All';
+    // `options` can be transiently undefined (e.g. filterOptions not loaded
+    // yet right after navigating to the page). The non-compact list below
+    // renders inside a Modal, whose children mount on every render
+    // regardless of `visible` — so this must never crash even while closed.
+    const safeOptions: string[] = options ?? [];
+
+    // Declared unconditionally (Rules of Hooks) even though only the
+    // non-compact branch below uses them — `compact` can change between
+    // renders (e.g. tablet rotation/resize), and this component must call
+    // the same hooks in the same order every render regardless of branch.
+    const triggerRef = useRef<View>(null);
+    const [triggerLayout, setTriggerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
     const handleSelect = (item: string) => {
         const newValue = item === 'All' ? undefined : item;
-        
-        logEvent({ 
-            message: 'option selected', 
-            field: fieldName, 
-            value: item, 
-            eventSource: 'user' 
+
+        logEvent({
+            message: 'option selected',
+            field: fieldName,
+            value: item,
+            eventSource: 'user'
         });
 
         onSelect(newValue);
         onOpen(null);
     };
 
+    if (compact) {
+        // Inline-expanding list for compact mode to avoid clipping by ScrollView
+        return (
+            <View style={[styles.fieldContainer, styles.fieldContainerCompact]}>
+                <Text style={styles.label}>{label}</Text>
+                <TouchableOpacity
+                    style={styles.selectTriggerCompactInline}
+                    onPress={() => onOpen(open ? null : fieldName)}
+                >
+                    <Text style={styles.selectText}>{displayValue}</Text>
+                    <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {open && (
+                    <View style={styles.listCompact}>
+                        {['All', ...safeOptions].map((item: string) => (
+                            <TouchableOpacity
+                                key={item}
+                                style={styles.itemCompact}
+                                onPress={() => handleSelect(item)}
+                            >
+                                <Text style={[
+                                    styles.optionTextCompact,
+                                    item === displayValue && styles.optionSelectedCompact
+                                ]}>
+                                    {item}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
+    }
+
+    // Non-compact: trigger position is measured in window coordinates so the
+    // Modal (which renders outside the normal view tree) can place its list
+    // directly under the trigger.
+    const handleOpen = () => {
+        if (open) {
+            onOpen(null);
+            return;
+        }
+        triggerRef.current?.measureInWindow((x, y, width, height) => {
+            setTriggerLayout({ x, y, width, height });
+        });
+        onOpen(fieldName);
+    };
+
     return (
-        <View style={[
-            styles.fieldContainer, 
-            isHalf && styles.fieldContainerHalf,
-            open && styles.fieldContainerOpen
-        ]}>
+        <View style={[styles.fieldContainer, isHalf && styles.fieldContainerHalf]}>
             <Text style={styles.label}>{label}</Text>
-            <TouchableOpacity 
-                style={[styles.selectTrigger, compact && styles.selectTriggerCompact]} 
-                onPress={() => onOpen(open ? null : fieldName)}
-                onLayout={(e) => setTriggerHeight(e.nativeEvent.layout.height)}
+            <TouchableOpacity
+                ref={triggerRef}
+                style={styles.selectTrigger}
+                onPress={handleOpen}
             >
                 <Text style={styles.selectText}>{displayValue}</Text>
                 <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-            {open && (
-                <View style={[styles.dropdownList, { top: triggerHeight + 2 }]}>
-                    {['All', ...options].map((item: string) => (
-                        <TouchableOpacity
-                            key={item}
-                            style={styles.optionItem}
-                            onPress={() => handleSelect(item)}
-                        >
-                            <Text style={[
-                                styles.optionText,
-                                item === displayValue && styles.optionSelected
-                            ]}>
-                                {item}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            )}
+            <Modal
+                transparent
+                visible={open}
+                animationType="none"
+                presentationStyle="overFullScreen"
+                supportedOrientations={['landscape']}
+                onRequestClose={() => onOpen(null)}
+            >
+                <TouchableWithoutFeedback onPress={() => onOpen(null)}>
+                    <View style={styles.modalBackdrop}>
+                        <TouchableWithoutFeedback>
+                            <ScrollView
+                                style={[
+                                    styles.dropdownList,
+                                    {
+                                        top: triggerLayout.y + triggerLayout.height + 2,
+                                        left: triggerLayout.x,
+                                        width: triggerLayout.width,
+                                        maxHeight,
+                                    },
+                                ]}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                {['All', ...safeOptions].map((item: string) => (
+                                    <TouchableOpacity
+                                        key={item}
+                                        style={styles.optionItem}
+                                        onPress={() => handleSelect(item)}
+                                    >
+                                        <Text style={[
+                                            styles.optionText,
+                                            item === displayValue && styles.optionSelected
+                                        ]}>
+                                            {item}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </View>
     );
 };
@@ -169,6 +260,9 @@ export const FilterPanel = (props: FilterPanelProps) => {
     const { filters, visible, compact, onFilterChanged, onToggle, options } = props;
     const { height: screenHeight } = useWindowDimensions();
     const compactMaxHeight = compact ? screenHeight * 0.6 : undefined;
+    // Bounds the non-compact dropdown overlay so long option lists (e.g. 20+
+    // countries) scroll within themselves instead of running off-screen.
+    const dropdownMaxHeight = screenHeight * 0.4;
     const { 
         countries, 
         contentTypes, 
@@ -285,28 +379,28 @@ export const FilterPanel = (props: FilterPanelProps) => {
             </View>
 
             <View style={[styles.twoColumnGrid, compact && styles.twoColumnGridCompact]}>
-                <FilterSelect 
-                    label="Country" value={localFilters.country} options={countries} 
+                <FilterSelect
+                    label="Country" value={localFilters.country} options={countries}
                     fieldName="country" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'country'} onOpen={setOpenField}
+                    isOpen={openField === 'country'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
                     onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
                 />
-                <FilterSelect 
-                    label="Content" value={localFilters.contentType} options={contentTypes} 
+                <FilterSelect
+                    label="Content" value={localFilters.contentType} options={contentTypes}
                     fieldName="contentType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'contentType'} onOpen={setOpenField}
+                    isOpen={openField === 'contentType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
                     onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
                 />
-                <FilterSelect 
-                    label="Type" value={localFilters.routeType} options={routeTypes} 
+                <FilterSelect
+                    label="Type" value={localFilters.routeType} options={routeTypes}
                     fieldName="routeType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'routeType'} onOpen={setOpenField}
+                    isOpen={openField === 'routeType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
                     onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
                 />
-                <FilterSelect 
-                    label="Source" value={localFilters.routeSource} options={routeSources} 
+                <FilterSelect
+                    label="Source" value={localFilters.routeSource} options={routeSources}
                     fieldName="routeSource" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'routeSource'} onOpen={setOpenField}
+                    isOpen={openField === 'routeSource'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
                     onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
                 />
             </View>
@@ -314,15 +408,19 @@ export const FilterPanel = (props: FilterPanelProps) => {
     );
 
     return (
-        <View style={[styles.container, compact && compactMaxHeight !== undefined && { maxHeight: compactMaxHeight }]}>
+        <View style={[
+            styles.container,
+            compact && styles.containerCompact,
+            compact && compactMaxHeight !== undefined && { maxHeight: compactMaxHeight },
+        ]}>
             <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
                 <View style={styles.toggleLeft}>
-                    <Icon 
-                        name={visible ? 'chevron-up' : 'funnel'} 
-                        size={20} 
-                        color={colors.text} 
+                    <Icon
+                        name={visible ? 'chevron-up' : 'funnel'}
+                        size={20}
+                        color={colors.text}
                     />
-                </View> 
+                </View>
                 <View style={styles.pillsRow}>
                     {getFilterPills(localFilters).map((pill, i) => (
                         <View key={i} style={styles.pill}>
@@ -335,7 +433,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
             {visible && (
                 compact ? (
                     <ScrollView
-                        style={styles.panel}
+                        style={[styles.panel, styles.panelCompact]}
                         contentContainerStyle={styles.gridColumn}
                         keyboardShouldPersistTaps="handled"
                     >
@@ -357,6 +455,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         borderRadius: 8,
         overflow: 'visible',
+    },
+    // Compact mode bounds the panel to compactMaxHeight and must clip at that
+    // box — otherwise the inline-expanding FilterSelect list (and the panel
+    // ScrollView, which has no bounded height of its own) paints straight past
+    // the container into the sibling RouteList below, and swipes meant for
+    // the dropdown land on the RouteList's ScrollView instead.
+    containerCompact: {
+        overflow: 'hidden',
     },
     toggleRow: {
         flexDirection: 'row',
@@ -385,6 +491,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     panel: { padding: 8 },
+    // flex: 1 gives the ScrollView an actual bounded viewport within
+    // containerCompact's maxHeight, so it — not the sibling RouteList below —
+    // captures swipes and scrolls internally once content overflows.
+    panelCompact: { flex: 1 },
     gridTwoColumn: { flexDirection: 'row', flexWrap: 'wrap' },
     gridColumn: { flexDirection: 'column' },
     fullWidth: { width: '100%', marginBottom: 8 },
@@ -392,7 +502,6 @@ const styles = StyleSheet.create({
     twoColumnGridCompact: { flexDirection: 'column' },
     fieldContainer: { marginBottom: 8, width: '100%' },
     fieldContainerHalf: { width: '48%' },
-    fieldContainerOpen: { zIndex: 10 },
     label: { color: colors.text, fontSize: 12, marginBottom: 2, opacity: 0.8 },
     input: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -425,19 +534,50 @@ const styles = StyleSheet.create({
         height: 36,
     },
     selectTriggerCompact: { height: 28 },
+    selectTriggerCompactInline: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: '#555',
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        height: 28,
+    },
     selectText: { color: '#FFF', fontSize: 13 },
     dropdownArrow: { color: colors.disabled, fontSize: 10 },
+    // Fills the Modal's own window; position/size of the actual list below
+    // is set inline per-instance from the trigger's measured window coords.
+    modalBackdrop: { flex: 1 },
     dropdownList: {
         position: 'absolute',
-        left: 0,
-        right: 0,
         backgroundColor: '#333',
         borderRadius: 4,
         borderWidth: 1,
         borderColor: '#555',
-        zIndex: 999,
     },
     optionItem: { paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#444' },
     optionText: { color: '#FFF', fontSize: 14, textAlign: 'center' },
     optionSelected: { color: colors.buttonPrimary, fontWeight: 'bold' },
+    fieldContainerCompact: { width: '100%', marginBottom: 8 },
+    listCompact: {
+        backgroundColor: colors.listItemBackground,
+        borderRadius: 8,
+        marginTop: 4,
+    },
+    itemCompact: {
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    optionTextCompact: {
+        color: '#FFF',
+        fontSize: 13,
+    },
+    optionSelectedCompact: {
+        color: colors.buttonPrimary,
+        fontWeight: 'bold',
+    },
 });

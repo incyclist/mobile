@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, Modal } from 'react-native';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { SingleSelectProps } from './types';
@@ -10,7 +10,15 @@ const LABEL_MARGIN = 8;
 
 /**
  * SingleSelect component
- * 
+ *
+ * The option list renders in a `Modal` rather than as a `position: 'absolute'`
+ * overlay: absolute + zIndex only reorders siblings that share the same
+ * parent, so it can't guarantee paint/touch priority over unrelated content
+ * elsewhere on screen — e.g. a Dialog's own overflow-clipped scroll area (the
+ * original bug this component had), or a sibling scrollable list if this
+ * component is ever placed next to one (see FilterPanel's identical fix).
+ * `Modal` owns its own native window layer, sidestepping that ambiguity.
+ *
  * Rules confirmations:
  * - Storybook imports: Meta/StoryObj from '@storybook/react-native-web-vite' (Rule 7)
  * - Inline styles: None used. StyleSheet.create() used (Rule 4)
@@ -27,7 +35,8 @@ export const SingleSelect = ({
 }: SingleSelectProps) => {
     const [selectedValue, setSelectedValue] = useState(selected);
     const [isOpen, setIsOpen] = useState(false);
-    const [triggerHeight, setTriggerHeight] = useState(0);
+    const triggerRef = useRef<View>(null);
+    const [triggerLayout, setTriggerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
     const {logEvent} = useLogging('Incyclist')
 
     useEffect(() => {
@@ -35,10 +44,16 @@ export const SingleSelect = ({
     }, [selected]);
 
     const handleToggle = useCallback(() => {
-        if (!disabled) {
-            setIsOpen(prev => !prev);
+        if (disabled) return;
+        if (isOpen) {
+            setIsOpen(false);
+            return;
         }
-    }, [disabled]);
+        triggerRef.current?.measureInWindow((x, y, width, height) => {
+            setTriggerLayout({ x, y, width, height });
+        });
+        setIsOpen(true);
+    }, [disabled, isOpen]);
 
     const handleSelect = useCallback((itemValue: string) => {
         setSelectedValue(itemValue);
@@ -55,6 +70,13 @@ export const SingleSelect = ({
         return longestOptionLength + SINGLE_SELECT_ARROW_BUFFER; // Add buffer for arrow and padding
     }, [length, options]);
 
+    // `options` can be transiently undefined despite the required prop type
+    // (e.g. a caller with data not yet loaded). The list below renders inside
+    // a Modal, whose children mount on every render regardless of `visible`
+    // — so this must never crash even while closed (see deriveLength's own
+    // `!options` guard above, which anticipates the same thing).
+    const safeOptions = options ?? [];
+
     const labelStyle = { width: labelWidth };
     const triggerCalculatedLength = deriveLength();
     const triggerWidthStyle = triggerCalculatedLength !== undefined
@@ -62,18 +84,18 @@ export const SingleSelect = ({
         : styles.triggerFull; // Use flex: 1 if no length derived
 
     return (
-        <View style={[styles.container, isOpen && styles.activeZIndex]}>
+        <View style={styles.container}>
             <View style={styles.row}>
                 <Text style={[styles.label, labelStyle]}>{label}</Text>
                 <View style={[styles.dropdownContainer, triggerWidthStyle]}> {/* Apply dynamic width here */}
                     <TouchableOpacity
+                        ref={triggerRef}
                         style={[
                             styles.trigger,
                             disabled && styles.disabledTrigger,
                         ]}
                         onPress={handleToggle}
                         disabled={disabled}
-                        onLayout={(e) => setTriggerHeight(e.nativeEvent.layout.height)}
                     >
                         <Text style={[styles.valueText, disabled && styles.disabledText]}>
                             {selectedValue || 'Select...'}
@@ -82,21 +104,42 @@ export const SingleSelect = ({
                             {isOpen ? '▲' : '▼'}
                         </Text>
                     </TouchableOpacity>
-                    {isOpen && (
-                        <View style={[styles.list, { top: triggerHeight }]}>
-                            <ScrollView style={styles.scroll} nestedScrollEnabled>
-                                {options.map((option) => (
-                                    <TouchableOpacity
-                                        key={option}
-                                        style={styles.item}
-                                        onPress={() => handleSelect(option)}
+                    <Modal
+                        transparent
+                        visible={isOpen}
+                        animationType="none"
+                        presentationStyle="overFullScreen"
+                        supportedOrientations={['landscape']}
+                        onRequestClose={() => setIsOpen(false)}
+                    >
+                        <TouchableWithoutFeedback onPress={() => setIsOpen(false)}>
+                            <View style={styles.modalBackdrop}>
+                                <TouchableWithoutFeedback>
+                                    <ScrollView
+                                        style={[
+                                            styles.list,
+                                            {
+                                                top: triggerLayout.y + triggerLayout.height,
+                                                left: triggerLayout.x,
+                                                width: triggerLayout.width,
+                                            },
+                                        ]}
+                                        keyboardShouldPersistTaps="handled"
                                     >
-                                        <Text style={styles.itemText}>{option}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
+                                        {safeOptions.map((option) => (
+                                            <TouchableOpacity
+                                                key={option}
+                                                style={styles.item}
+                                                onPress={() => handleSelect(option)}
+                                            >
+                                                <Text style={styles.itemText}>{option}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </TouchableWithoutFeedback>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
                 </View>
             </View>
         </View>
@@ -107,10 +150,6 @@ const styles = StyleSheet.create({
     container: {
         marginVertical: 8,
         width: '100%',
-        zIndex: 1,
-    },
-    activeZIndex: {
-        zIndex: 1000,
     },
     row: {
         flexDirection: 'row',
@@ -150,19 +189,16 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: 12,
     },
+    // Fills the Modal's own window; position/size of the actual list below
+    // is set inline per-instance from the trigger's measured window coords.
+    modalBackdrop: { flex: 1 },
     list: {
         position: 'absolute',
-        left: 0,
-        right: 0,
+        maxHeight: 200,
         backgroundColor: '#2a2a2a',
         borderWidth: 1,
         borderColor: '#555',
         borderRadius: 4,
-        zIndex: 1000,
-        elevation: 10,
-    },
-    scroll: {
-        maxHeight: 200,
     },
     item: {
         paddingHorizontal: 12,
