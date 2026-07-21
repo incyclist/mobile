@@ -70,6 +70,13 @@ export const SingleSelect = ({
         return longestOptionLength + SINGLE_SELECT_ARROW_BUFFER; // Add buffer for arrow and padding
     }, [length, options]);
 
+    // `options` can be transiently undefined despite the required prop type
+    // (e.g. a caller with data not yet loaded). The list below renders inside
+    // a Modal, whose children mount on every render regardless of `visible`
+    // — so this must never crash even while closed (see deriveLength's own
+    // `!options` guard above, which anticipates the same thing).
+    const safeOptions = options ?? [];
+
     const labelStyle = { width: labelWidth };
     const triggerCalculatedLength = deriveLength();
     const triggerWidthStyle = triggerCalculatedLength !== undefined
@@ -119,7 +126,7 @@ export const SingleSelect = ({
                                         ]}
                                         keyboardShouldPersistTaps="handled"
                                     >
-                                        {options.map((option) => (
+                                        {safeOptions.map((option) => (
                                             <TouchableOpacity
                                                 key={option}
                                                 style={styles.item}

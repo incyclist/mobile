@@ -124,6 +124,11 @@ const FilterSelect = (props: any) => {
     } = props;
 
     const displayValue = value || 'All';
+    // `options` can be transiently undefined (e.g. filterOptions not loaded
+    // yet right after navigating to the page). The non-compact list below
+    // renders inside a Modal, whose children mount on every render
+    // regardless of `visible` — so this must never crash even while closed.
+    const safeOptions: string[] = options ?? [];
 
     // Declared unconditionally (Rules of Hooks) even though only the
     // non-compact branch below uses them — `compact` can change between
@@ -160,7 +165,7 @@ const FilterSelect = (props: any) => {
                 </TouchableOpacity>
                 {open && (
                     <View style={styles.listCompact}>
-                        {['All', ...options].map((item: string) => (
+                        {['All', ...safeOptions].map((item: string) => (
                             <TouchableOpacity
                                 key={item}
                                 style={styles.itemCompact}
@@ -228,7 +233,7 @@ const FilterSelect = (props: any) => {
                                 ]}
                                 keyboardShouldPersistTaps="handled"
                             >
-                                {['All', ...options].map((item: string) => (
+                                {['All', ...safeOptions].map((item: string) => (
                                     <TouchableOpacity
                                         key={item}
                                         style={styles.optionItem}
