@@ -243,10 +243,10 @@ export const WorkoutsTable = ({ data, compact, onSelectGroup }: WorkoutsTablePro
                     )}
 
                     {/* Filter row must not sit above the Upcoming section (it only filters the
-                        flat list, never Upcoming — §12). GroupPicker (not raw ChipSelect): falls
-                        back to a SingleSelect dropdown past 5 options. allowNew=false — you can't
-                        filter by a group that doesn't exist. Hidden entirely on the true-empty
-                        (isEmpty) state, since there are no groups to filter by then. */}
+                        flat list, never Upcoming — §12). GroupPicker: ChipSelect for ≤5 groups,
+                        inline-expanding list for >5. allowNew=false — you can't filter by a group
+                        that doesn't exist. Hidden entirely on the true-empty (isEmpty) state,
+                        since there are no groups to filter by then. */}
                     {!isEmpty && groups.available.length > 0 && (
                         <View style={styles.filterArea}>
                             <GroupPicker

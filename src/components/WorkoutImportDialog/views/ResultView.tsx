@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Icon } from '../../Icon';
 import { colors, textSizes } from '../../../theme';
-import { ResultGroupField } from '../ResultGroupField';
+import { GroupPicker } from '../../GroupPicker';
 
 interface ResultViewProps {
     compact: boolean;
@@ -25,7 +25,7 @@ export const ResultView = ({ compact, workoutName, group, knownGroups, onSetGrou
         </Text>
         {group !== undefined && (
             <View style={styles.groupFieldContainer}>
-                <ResultGroupField label="Group" groups={knownGroups} value={group} onValueChange={onSetGroup} />
+                <GroupPicker label="Group" groups={knownGroups} value={group} allowNew={false} onValueChange={onSetGroup} />
             </View>
         )}
     </View>

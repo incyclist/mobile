@@ -73,3 +73,48 @@ export const Collapsed: StoryObj<typeof FilterPanel> = {
         compact: false,
     },
 };
+
+const MANY_COUNTRIES = [
+    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola',
+    'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',
+    'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados',
+    'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan',
+];
+
+export const CompactManyCountries: StoryObj<typeof FilterPanel> = {
+    args: {
+        filters: {},
+        visible: true,
+        compact: true,
+        options: {
+            countries: MANY_COUNTRIES,
+            contentTypes: ['GPX', 'Video'],
+            routeTypes: ['Loop', 'Point to Point'],
+            routeSources: ['Incyclist', 'Local'],
+            maxDistance: { value: 200, unit: 'km' },
+            maxElevation: { value: 8000, unit: 'm' },
+        },
+    },
+};
+
+// Non-compact/tablet regression check: the Country dropdown is an
+// absolute-positioned overlay (not a ScrollView-wrapped panel like compact
+// mode), but with 20+ options it must still bound its own height and scroll
+// within itself — otherwise it renders every row unbounded off the bottom of
+// the screen with nothing to claim a swipe, and the gesture falls through to
+// whatever's rendered underneath (the route list, in the real page).
+export const NonCompactManyCountries: StoryObj<typeof FilterPanel> = {
+    args: {
+        filters: {},
+        visible: true,
+        compact: false,
+        options: {
+            countries: MANY_COUNTRIES,
+            contentTypes: ['GPX', 'Video'],
+            routeTypes: ['Loop', 'Point to Point'],
+            routeSources: ['Incyclist', 'Local'],
+            maxDistance: { value: 200, unit: 'km' },
+            maxElevation: { value: 8000, unit: 'm' },
+        },
+    },
+};
