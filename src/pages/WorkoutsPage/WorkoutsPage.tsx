@@ -8,7 +8,7 @@ import {
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { WorkoutsPlaceholderView } from './WorkoutsPlaceholderView';
 import { WorkoutListView } from './WorkoutListView';
-import { ErrorBoundary, TNavigationItem, WorkoutImportDialog } from '../../components';
+import { ErrorBoundary, TNavigationItem, WorkoutDetailsDialog, WorkoutImportDialog } from '../../components';
 import { navigate } from '../../services';
 
 const initialProps: WorkoutListPageDisplayProps = { pageType: 'placeholder' };
@@ -103,10 +103,9 @@ export const WorkoutsPage = () => {
             {showImportDialog && (
                 <WorkoutImportDialog onClose={onImportClose} />
             )}
-            {/* props.detailWorkoutId is already live (WorkoutItem/ScheduledRow call
-                service.onOpenDetails() directly, matching RouteItem/RoutesPage) — session 5.3
-                renders <WorkoutDetailsDialog workoutId={props.detailWorkoutId} onClose={...} />
-                here, conditionally, the same way RoutesPage renders RouteDetailsDialog. */}
+            {props.pageType === 'list' && props.detailWorkoutId && (
+                <WorkoutDetailsDialog workoutId={props.detailWorkoutId} />
+            )}
         </ErrorBoundary>
     );
 };

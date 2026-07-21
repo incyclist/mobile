@@ -37,9 +37,14 @@ jest.mock('./WorkoutListView', () => ({
     WorkoutListView: () => null,
 }));
 
-jest.mock('../../components', () => ({
-    ErrorBoundary: ({ children }: any) => children,
-}));
+jest.mock('../../components', () => {
+    const { Text } = require('react-native');
+    return {
+        ErrorBoundary: ({ children }: any) => children,
+        WorkoutImportDialog: () => null,
+        WorkoutDetailsDialog: ({ workoutId }: any) => <Text>{`details:${workoutId}`}</Text>,
+    };
+});
 
 describe('WorkoutsPage', () => {
     beforeEach(() => {
@@ -87,5 +92,37 @@ describe('WorkoutsPage', () => {
         const { toJSON } = render(<WorkoutsPage />);
         expect(toJSON()).toBeDefined();
         expect(mockOnOpenDetails).not.toHaveBeenCalled();
+    });
+
+    it('renders WorkoutDetailsDialog when the page service reports a detailWorkoutId', () => {
+        mockGetPageDisplayProps.mockReturnValue({
+            pageType: 'list',
+            loading: false,
+            upcoming: null,
+            groups: { available: [], selected: null },
+            workouts: [],
+            selectedId: null,
+            isEmpty: true,
+            detailWorkoutId: 'w-7',
+        } as any);
+
+        const { getByText } = render(<WorkoutsPage />);
+        expect(getByText('details:w-7')).toBeTruthy();
+    });
+
+    it('does not render WorkoutDetailsDialog when detailWorkoutId is null', () => {
+        mockGetPageDisplayProps.mockReturnValue({
+            pageType: 'list',
+            loading: false,
+            upcoming: null,
+            groups: { available: [], selected: null },
+            workouts: [],
+            selectedId: null,
+            isEmpty: true,
+            detailWorkoutId: null,
+        } as any);
+
+        const { queryByText } = render(<WorkoutsPage />);
+        expect(queryByText(/^details:/)).toBeNull();
     });
 });

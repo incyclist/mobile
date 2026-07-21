@@ -20,6 +20,7 @@ export const BinarySelect = (props: BinarySelectProps) => {
         trueLabel = 'Yes',
         falseLabel = 'No',
         disabled = false,
+        labelWidth,
     } = props;
 
     const options = [trueLabel, falseLabel];
@@ -30,10 +31,33 @@ export const BinarySelect = (props: BinarySelectProps) => {
     };
 
     const isBefore = labelPosition === 'before';
+    const labelWidthStyle = labelWidth !== undefined ? { width: labelWidth } : undefined;
+
+    // Opt-in path: when a caller aligns this with other ChipSelect-based fields (e.g.
+    // EditNumber/GroupPicker in a stacked form) via `labelWidth`, delegate entirely to
+    // ChipSelect's own label+chips row instead of the manual Text+nested-ChipSelect
+    // composition below. The manual composition double-wraps a ChipSelect (which carries
+    // its own `marginVertical` box model) inside a second, differently-spaced label row,
+    // so its vertical rhythm never quite matches a bare ChipSelect/GroupPicker row even
+    // once the label column width lines up. Only safe for `labelPosition:'before'` —
+    // ChipSelect has no trailing-label mode, so `'after'` (DeviceSelector) keeps the
+    // manual composition regardless of `labelWidth`.
+    if (isBefore && labelWidth !== undefined) {
+        return (
+            <ChipSelect
+                label={label}
+                labelWidth={labelWidth}
+                options={options}
+                selected={selected}
+                onValueChange={handleValueChange}
+                disabled={disabled}
+            />
+        );
+    }
 
     return (
         <View style={[styles.container, !isBefore && styles.rowReverse]}>
-            <Text style={[styles.label, isBefore ? styles.flexLabel : styles.marginLeft]}>
+            <Text style={[styles.label, isBefore ? styles.flexLabel : styles.marginLeft, labelWidthStyle]}>
                 {label}
             </Text>
             <View style={styles.chipsWrapper}>
