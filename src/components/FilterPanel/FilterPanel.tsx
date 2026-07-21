@@ -125,6 +125,13 @@ const FilterSelect = (props: any) => {
 
     const displayValue = value || 'All';
 
+    // Declared unconditionally (Rules of Hooks) even though only the
+    // non-compact branch below uses them — `compact` can change between
+    // renders (e.g. tablet rotation/resize), and this component must call
+    // the same hooks in the same order every render regardless of branch.
+    const triggerRef = useRef<View>(null);
+    const [triggerLayout, setTriggerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
     const handleSelect = (item: string) => {
         const newValue = item === 'All' ? undefined : item;
 
@@ -176,9 +183,6 @@ const FilterSelect = (props: any) => {
     // Non-compact: trigger position is measured in window coordinates so the
     // Modal (which renders outside the normal view tree) can place its list
     // directly under the trigger.
-    const triggerRef = useRef<View>(null);
-    const [triggerLayout, setTriggerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
-
     const handleOpen = () => {
         if (open) {
             onOpen(null);
