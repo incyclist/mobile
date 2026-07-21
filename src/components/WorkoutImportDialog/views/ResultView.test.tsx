@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ResultView } from './ResultView';
 
 const defaultProps = {
@@ -30,5 +30,22 @@ describe('ResultView', () => {
 
     it('renders correctly in compact mode', () => {
         render(<ResultView {...defaultProps} compact={true} />);
+    });
+
+    it('offers "+ New" so the group field can create a new group', () => {
+        const { getByText } = render(<ResultView {...defaultProps} />);
+        expect(getByText('+ New')).toBeTruthy();
+    });
+
+    it('typing a new group name and submitting calls onSetGroup with the typed value', () => {
+        const onSetGroup = jest.fn();
+        const { getByText, getByPlaceholderText } = render(
+            <ResultView {...defaultProps} onSetGroup={onSetGroup} />
+        );
+        fireEvent.press(getByText('+ New'));
+        const input = getByPlaceholderText('New group name');
+        fireEvent.changeText(input, 'Climbing Prep');
+        fireEvent(input, 'submitEditing');
+        expect(onSetGroup).toHaveBeenCalledWith('Climbing Prep');
     });
 });
