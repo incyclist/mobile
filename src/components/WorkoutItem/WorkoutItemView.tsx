@@ -7,13 +7,34 @@ import { WorkoutGraph } from '../WorkoutGraph';
 import { useLogging } from '../../hooks';
 
 // Conditional import to prevent Storybook Vite from crashing — same pattern as RouteItemView.
+//
+// The delete action button below is rendered with react-native-gesture-handler's own
+// TouchableOpacity, not React Native's — the row content and the revealed right-actions
+// panel both live inside Swipeable's single PanGestureHandler/TapGestureHandler tree, and
+// a plain RN TouchableOpacity there is a known-unreliable combination (its tap can be
+// swallowed by the native pan/tap recognizers, especially right after the swipe-open
+// gesture). RNGH's TouchableOpacity is API-compatible but participates in the same native
+// gesture-recognition system Swipeable uses, which is the pattern RNGH's own examples use
+// for Swipeable actions.
 let Swipeable: any = View;
+let ActionTouchableOpacity: any = TouchableOpacity;
 try {
     if (Platform.OS !== 'web') {
-        Swipeable = require('react-native-gesture-handler').Swipeable;
+        const gestureHandler = require('react-native-gesture-handler');
+        Swipeable = gestureHandler.Swipeable;
+        ActionTouchableOpacity = gestureHandler.TouchableOpacity;
     }
 } catch {
-    Swipeable = ({ children }: any) => <View>{children}</View>;
+    // Storybook (Vite) / any environment without the native gesture-handler module:
+    // still render the revealed actions (just inline, unanimated) instead of silently
+    // dropping renderRightActions — otherwise the delete button never appears at all in
+    // Storybook or in Jest/RTL tests, and its wiring can never be exercised.
+    Swipeable = ({ children, renderRightActions }: any) => (
+        <View>
+            {children}
+            {renderRightActions?.()}
+        </View>
+    );
 }
 
 // Same overall row height as RouteItemView (ITEM_HEIGHT=76) — the graph sits
@@ -40,9 +61,9 @@ export const WorkoutItemView = (props: WorkoutItemViewProps) => {
     }
 
     const renderRightActions = () => (
-        <TouchableOpacity style={styles.deleteAction} onPress={handleDelete}>
+        <ActionTouchableOpacity style={styles.deleteAction} onPress={handleDelete}>
             <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
+        </ActionTouchableOpacity>
     );
 
     const content = (
