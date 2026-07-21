@@ -25,7 +25,7 @@ export const ResultView = ({ compact, workoutName, group, knownGroups, onSetGrou
         </Text>
         {group !== undefined && (
             <View style={styles.groupFieldContainer}>
-                <GroupPicker label="Group" groups={knownGroups} value={group} allowNew={false} onValueChange={onSetGroup} />
+                <GroupPicker label="Group" groups={knownGroups} value={group} onValueChange={onSetGroup} />
             </View>
         )}
     </View>
