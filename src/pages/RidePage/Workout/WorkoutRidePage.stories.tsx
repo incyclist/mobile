@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import type { WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
+import { ActivityRideService, Observer } from 'incyclist-services';
+import type { ActivityDashboardItem, WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
 import { WorkoutRidePageView } from './View';
 import {
     MOCK_ACTUALS_MID,
@@ -32,9 +33,54 @@ const styles = StyleSheet.create({
     container: { flex: 1, position: 'relative', width: '100%' },
 });
 
+const MOCK_ACTIVITY_DASHBOARD_ITEMS: ActivityDashboardItem[] = [
+    { title: 'Time', data: [{ value: '0:12:30' }] },
+    { title: 'Power', data: [{ value: '278', unit: 'W' }, { value: '245', label: 'avg' }] },
+    { title: 'Heartrate', data: [{ value: '151', unit: 'bpm' }, { value: '142', label: 'avg' }] },
+    { title: 'Cadence', data: [{ value: '92', unit: 'rpm' }, { value: '88', label: 'avg' }] },
+];
+
+/**
+ * `RideDashboard` (rendered inside `WorkoutRidePageView`, same as `VideoRidePageView`/
+ * `GPXTourPageView`) is a smart component — it calls `useActivityRide()` directly, which is a
+ * live `@Singleton` service with no data outside a real ride, so it renders nothing here.
+ * `incyclist-services` doesn't surface its `Inject()` DI-override helper (the one `services`'
+ * own Jest tests use, e.g. `services/src/workouts/ride/page/service.unit.test.ts`) through its
+ * public package API, so this seeds the `@Singleton`-backed `ActivityRideService` instance
+ * directly instead: `useActivityRide()` is just `new ActivityRideService()` under the hood, and
+ * `@Singleton` guarantees every subsequent call — including `RideDashboard`'s — returns this
+ * same, already-patched instance. Module-level, so it runs once before any story renders.
+ */
+const activityRideInstance = new ActivityRideService();
+activityRideInstance.getObserver = () => new Observer();
+activityRideInstance.getDashboardDisplayProperties = () => MOCK_ACTIVITY_DASHBOARD_ITEMS;
+
+/**
+ * `<Dynamic>` (see Dynamic.tsx) only subscribes to `rideObserver` and pulls a fresh
+ * `getGraphActuals()` snapshot when it's given a non-null observer — with `rideObserver: null`
+ * the whole subscription effect short-circuits and `WorkoutGraph` never receives `actuals`,
+ * regardless of how good a story's `getGraphActuals` mock is. This renderer gives every story a
+ * real `Observer` (per-story instance, so stories don't share subscription state) and emits a
+ * single `data-update` tick right after mount — mirroring the real ride observer's tick — so
+ * `<Dynamic>` calls `getGraphActuals()` and the graph actually shows each story's mock data.
+ */
+const WorkoutRidePageStoryRenderer = (args: React.ComponentProps<typeof WorkoutRidePageView>) => {
+    const observerRef = useRef<Observer | null>(null);
+    if (!observerRef.current) {
+        observerRef.current = new Observer();
+    }
+
+    useEffect(() => {
+        observerRef.current?.emit('data-update');
+    }, []);
+
+    return <WorkoutRidePageView {...args} rideObserver={observerRef.current} />;
+};
+
 const meta: Meta<typeof WorkoutRidePageView> = {
     title: 'Pages/WorkoutRidePage',
     component: WorkoutRidePageView,
+    render: (args) => <WorkoutRidePageStoryRenderer {...args} />,
     args: {
         ...callbacks,
         rideObserver: null,
@@ -65,7 +111,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     rideType: 'Workout',
     startOverlayProps: null,
     startGateProps: null,
-    menuProps: { showResume: false, canStepBack: true, canStepForward: true },
+    menuProps: null,
     graph: MOCK_PLAN_LIVE_MID,
     steps: {
         previous: { label: '200W', targetPower: 200, duration: 300, remaining: null, isCurrent: false },
@@ -86,7 +132,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     rideType: 'Workout',
     startOverlayProps: null,
     startGateProps: null,
-    menuProps: { showResume: false, canStepBack: true, canStepForward: false },
+    menuProps: null,
     graph: MOCK_PLAN_LIVE_SKIPBACK,
     steps: {
         previous: { label: '130W', targetPower: 130, duration: 120, remaining: null, isCurrent: false },
