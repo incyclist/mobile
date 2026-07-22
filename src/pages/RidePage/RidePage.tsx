@@ -4,6 +4,7 @@ import { getRidePageService, RideType, StartGateProps } from 'incyclist-services
 import { MainBackground, Button, Dialog,PageTransition } from '../../components';
 import { VideoRidePage } from './Video';
 import { GPXTourPage } from './GPX'; // New import for GPXTourPage
+import { WorkoutRidePage } from './Workout';
 import { colors } from '../../theme';
 import { textSizes } from '../../theme';
 import { initSecrets } from '../../bindings/secret';
@@ -134,6 +135,10 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
 
     if (rideType === 'GPX') { // Handle GPX ride type
         return <GPXTourPage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
+    }
+
+    if (rideType === 'Workout') {
+        return <WorkoutRidePage simulate={simulate} onRideTypeChange={onRideTypeChange} onCancelStart={onCancelStart} onClose={onClose} />;
     }
 
     // Default case for any other rideType not explicitly handled

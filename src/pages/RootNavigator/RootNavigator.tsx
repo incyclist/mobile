@@ -49,6 +49,9 @@ export const RootNavigator = () => {
                 <Stack.Screen name='rideGpxTour'>
                     {() => <RidePage />}
                 </Stack.Screen>
+                <Stack.Screen name='rideWorkout'>
+                    {() => <RidePage />}
+                </Stack.Screen>
             </Stack.Navigator>
         </NavigationContainer>
     );
