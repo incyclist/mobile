@@ -115,6 +115,20 @@ export const MapError: Story = {
     } as any,
 };
 
+export const StartingWorkoutGestureLegend: Story = {
+    args: {
+        mode: 'Free-Ride',
+        rideState: 'Starting',
+        devices: [
+            { udid: '1', name: 'Daum 8080', isControl: true, status: 'Started', capabilities: ['control'] },
+            { udid: '2', name: 'Polar Hrm', isControl: false, status: 'Starting', capabilities: ['heartrate'] },
+        ],
+        readyToStart: true,
+        workout: true,
+        loadIncrementPct: 2,
+    } as any,
+};
+
 export const StartingFiveSensors: Story = {
     args: {
         mode: 'Free-Ride',

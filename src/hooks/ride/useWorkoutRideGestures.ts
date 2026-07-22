@@ -59,6 +59,10 @@ export interface UseWorkoutRideGesturesResult {
     /** Pass to <GestureDetector gesture={gesture}>; undefined on web/Storybook, where GestureDetector must not be rendered. */
     gesture: any;
     feedback: WorkoutRideGestureFeedback;
+    /** Current `preferences.workouts.loadIncrement` setting (%) — read live, never hardcoded.
+     * Exposed so callers (e.g. the StartRideDisplay gesture legend) can show the real value
+     * without duplicating the useUserSettings() lookup this hook already does for swipe-up/down. */
+    loadIncrement: number;
 }
 
 export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
@@ -130,5 +134,5 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
             });
     }, [handleSwipe]);
 
-    return { gesture, feedback };
+    return { gesture, feedback, loadIncrement: getLoadIncrement() };
 };

@@ -81,6 +81,18 @@ describe('useWorkoutRideGestures', () => {
         expect(capturedOnEnd).toBeInstanceOf(Function);
     });
 
+    it('exposes the live loadIncrement setting, never a hardcoded value', () => {
+        mockGetValue.mockImplementation(() => 7);
+        const { result } = renderHook(() => useWorkoutRideGestures());
+        expect(result.current.loadIncrement).toBe(7);
+        expect(mockGetValue).toHaveBeenCalledWith(WORKOUT_LOAD_INCREMENT_SETTING_KEY, DEFAULT_WORKOUT_LOAD_INCREMENT);
+    });
+
+    it('falls back to the default loadIncrement when no setting is stored', () => {
+        const { result } = renderHook(() => useWorkoutRideGestures());
+        expect(result.current.loadIncrement).toBe(DEFAULT_WORKOUT_LOAD_INCREMENT);
+    });
+
     it('steps back on a left swipe, vibrates, and shows feedback', () => {
         const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
         const { result } = renderHook(() => useWorkoutRideGestures());

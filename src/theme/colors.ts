@@ -32,5 +32,10 @@ export const colors = {
     error: '#D32F2F',
     warning: '#FFBF00',
     success: '#4CAF50',
-    disabled: '#9fa4a8'
+    disabled: '#9fa4a8',
+    // Workout ride screen only (workout-mobile-hld.md §5 "Ride screen — layout", session 4.2
+    // prototype sign-off): solid black rather than the usual `background` — a workout-only ride
+    // has no route/video visuals to show, and black maximises contrast for WorkoutGraph's small
+    // axis/tick labels.
+    workoutRideBackground: '#000000'
 }
