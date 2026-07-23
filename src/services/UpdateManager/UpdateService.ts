@@ -28,10 +28,24 @@ const getBaseUrl = async (): Promise<string> => {
     return baseUrl
 }
 
-const createNewDir = async (path:string) =>{    
-    if (await exists(path)) 
+const createNewDir = async (path:string) =>{
+    if (await exists(path))
         await unlink(path);
     await mkdir(path);
+}
+
+const isNewerVersion = (remote: string, local: string): boolean => {
+    if (!local) return true
+    const remoteParts = remote.split('.').map(Number)
+    const localParts = local.split('.').map(Number)
+    const len = Math.max(remoteParts.length, localParts.length)
+    for (let i = 0; i < len; i++) {
+        const r = remoteParts[i] ?? 0
+        const l = localParts[i] ?? 0
+        if (r > l) return true
+        if (r < l) return false
+    }
+    return false
 }
 
 
@@ -120,7 +134,7 @@ export class UpdateService {
                 const bundleVersion = info.bundleVersion as string
                 const activeBundle = activeVersion??''
 
-                if ( activeBundle !== bundleVersion) {
+                if ( isNewerVersion(bundleVersion, activeBundle)) {
                     this.logger.logEvent({message:'Bundle update available',bundleVersion:bundleVersion});                    
                     return info
                 }    
