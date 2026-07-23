@@ -12,6 +12,9 @@ export const domainToPixel = (
     pixelMin: number,
     pixelMax: number
 ): number => {
+    // Guard: any NaN/Infinity input returns pixelMin to avoid SVG path corruption
+    // (react-native-svg's PathParser can OOM on a malformed "d" string — see ElevationGraph/utils.ts).
+    if (!Number.isFinite(value) || !Number.isFinite(domainMin) || !Number.isFinite(domainMax)) return pixelMin;
     if (domainMax === domainMin) return pixelMin;
     return pixelMin + ((value - domainMin) / (domainMax - domainMin)) * (pixelMax - pixelMin);
 };

@@ -254,6 +254,28 @@ describe('WorkoutGraphView', () => {
         });
     });
 
+    describe('degenerate domain (Android Vitals OOM regression)', () => {
+        // A NaN domain bound (e.g. from an imported workout with an unparseable
+        // duration — see WorkoutRidePageService.buildGraphPlan) must never reach a
+        // <Path> "d" string: react-native-svg's native PathParser can throw a fatal
+        // OutOfMemoryError when asked to parse a malformed path containing "NaN"/"Infinity".
+        const nanDomainPlan: WorkoutGraphPlan = {
+            ...MOCK_PLAN_LIVE_MID,
+            domain: { x: [0, NaN], y: MOCK_PLAN_LIVE_MID.domain.y },
+        };
+
+        it('never emits NaN/Infinity into a Path "d" string when the plan domain is NaN', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView mode="live" plan={nanDomainPlan} actuals={MOCK_ACTUALS_MID} width={360} height={200} />
+            );
+            const paths = UNSAFE_root.findAll(node => typeof node.type === 'string' && node.type.includes('Path'));
+            paths.forEach(p => {
+                const d = p.props.d as string;
+                expect(d).not.toMatch(/NaN|Infinity/);
+            });
+        });
+    });
+
     describe('actuals downsampling (long-ride performance)', () => {
         // ~1 Hz activity.logs over a full hour — workout-graph-component-design.md
         // §5 point 2 / §6 requires the Power/HR <Path>s stay bounded to ≤ plotWidth

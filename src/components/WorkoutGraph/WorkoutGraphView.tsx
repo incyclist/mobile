@@ -149,12 +149,16 @@ const ActualsOverlay = React.memo(({
     );
     let powerLine = null;
     if (powerRaw.length >= 2) {
-        const points = powerRaw.map(p => ({
-            x: offsetX + domainToPixel(p.x, xMin, xMax, 0, plotWidth),
-            y: offsetY + domainToPixel(p.y, yMin, yMax, plotHeight, 0),
-        }));
-        const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-        powerLine = <Path d={path} fill="none" stroke={ACTUAL_POWER_COLOR} strokeWidth={1.75} />;
+        const points = powerRaw
+            .map(p => ({
+                x: offsetX + domainToPixel(p.x, xMin, xMax, 0, plotWidth),
+                y: offsetY + domainToPixel(p.y, yMin, yMax, plotHeight, 0),
+            }))
+            .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+        if (points.length >= 2) {
+            const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            powerLine = <Path d={path} fill="none" stroke={ACTUAL_POWER_COLOR} strokeWidth={1.75} />;
+        }
     }
 
     const hrRaw = downsampleToWidth(
@@ -164,12 +168,16 @@ const ActualsOverlay = React.memo(({
     let hrLine = null;
     if (hrRaw.length >= 2 && hrDomain) {
         const [dMin, dMax] = hrDomain;
-        const points = hrRaw.map(p => ({
-            x: offsetX + domainToPixel(p.x, xMin, xMax, 0, plotWidth),
-            y: offsetY + domainToPixel(p.y, dMin, dMax, plotHeight, 0),
-        }));
-        const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-        hrLine = <Path d={path} fill="none" stroke={ACTUAL_HEARTRATE_COLOR} strokeWidth={1.5} />;
+        const points = hrRaw
+            .map(p => ({
+                x: offsetX + domainToPixel(p.x, xMin, xMax, 0, plotWidth),
+                y: offsetY + domainToPixel(p.y, dMin, dMax, plotHeight, 0),
+            }))
+            .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+        if (points.length >= 2) {
+            const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            hrLine = <Path d={path} fill="none" stroke={ACTUAL_HEARTRATE_COLOR} strokeWidth={1.5} />;
+        }
     }
 
     let marker = null;

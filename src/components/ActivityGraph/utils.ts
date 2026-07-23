@@ -78,6 +78,10 @@ export const domainToPixel = (
     pixelMax: number
 ): number => {
     try {
+        // Guard: any NaN/Infinity input returns pixelMin to avoid SVG path corruption
+        // (react-native-svg's PathParser can OOM on a malformed "d" string). A NaN/Infinity
+        // operand never throws in JS, so the surrounding try/catch alone can't catch this.
+        if (!Number.isFinite(value) || !Number.isFinite(domainMin) || !Number.isFinite(domainMax)) return pixelMin;
         if (domainMax === domainMin) return pixelMin;
         return pixelMin + ((value - domainMin) / (domainMax - domainMin)) * (pixelMax - pixelMin);
     } catch (err: any) {

@@ -113,6 +113,49 @@ describe('ActivityGraphView', () => {
         expect(toJSON()).not.toBeNull();
     });
 
+    describe('degenerate domain (Android Vitals OOM regression)', () => {
+        // A NaN xMax (e.g. from a corrupt/partial activity log) must never reach a
+        // <Path> "d" string: react-native-svg's native PathParser can throw a fatal
+        // OutOfMemoryError when asked to parse a malformed path containing "NaN"/"Infinity".
+        const findPaths = (root: ReturnType<typeof render>['UNSAFE_root']) =>
+            root.findAll(node => typeof node.type === 'string' && node.type.includes('Path'));
+
+        it('never emits NaN/Infinity into a line series Path "d" string when xMax is NaN', () => {
+            const { UNSAFE_root } = render(
+                <ActivityGraphView
+                    width={300}
+                    height={200}
+                    series={[MOCK_HR_SERIES]}
+                    xMode="distance"
+                    xMin={0}
+                    xMax={NaN}
+                />
+            );
+            findPaths(UNSAFE_root).forEach(p => {
+                expect(p.props.d as string).not.toMatch(/NaN|Infinity/);
+            });
+        });
+
+        it('never emits NaN/Infinity into the elevation area Path "d" string when xMax is NaN', () => {
+            const { UNSAFE_root } = render(
+                <ActivityGraphView
+                    width={300}
+                    height={200}
+                    series={MOCK_SERIES}
+                    xMode="distance"
+                    xMin={0}
+                    xMax={NaN}
+                    elevationPoints={MOCK_ELEVATION}
+                    elevationYMin={80}
+                    elevationYMax={100}
+                />
+            );
+            findPaths(UNSAFE_root).forEach(p => {
+                expect(p.props.d as string).not.toMatch(/NaN|Infinity/);
+            });
+        });
+    });
+
     it('right Y-axis absent when only 1 series provided', () => {
         const { queryAllByText } = render(
             <ActivityGraphView
