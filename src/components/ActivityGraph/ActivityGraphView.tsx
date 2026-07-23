@@ -45,10 +45,14 @@ export const ActivityGraphView = React.memo( ({
             return null;
         }
 
-        const points = elevationPoints.map((p: ActivityGraphPoint) => ({
-            x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
-            y: domainToPixel(p.y, elevationYMin, elevationYMax, plotHeight, 0),
-        }));
+        const points = elevationPoints
+            .map((p: ActivityGraphPoint) => ({
+                x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
+                y: domainToPixel(p.y, elevationYMin, elevationYMax, plotHeight, 0),
+            }))
+            .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+        if (points.length < 2) return null;
 
         const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
         const areaPath = `${linePath} L ${points[points.length - 1].x} ${plotHeight} L ${points[0].x} ${plotHeight} Z`;
@@ -84,10 +88,14 @@ export const ActivityGraphView = React.memo( ({
             });
         }
 
-        const points = s.points.map((p: ActivityGraphPoint) => ({
-            x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
-            y: domainToPixel(p.y, s.yMin, s.yMax, plotHeight, 0),
-        }));
+        const points = s.points
+            .map((p: ActivityGraphPoint) => ({
+                x: domainToPixel(p.x, xMin, xMax, 0, plotWidth),
+                y: domainToPixel(p.y, s.yMin, s.yMax, plotHeight, 0),
+            }))
+            .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+        if (points.length < 2) return null;
 
         const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 
