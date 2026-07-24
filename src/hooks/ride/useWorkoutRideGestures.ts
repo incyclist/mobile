@@ -66,7 +66,7 @@ export interface UseWorkoutRideGesturesResult {
 }
 
 export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
-    const { logEvent } = useLogging('WorkoutRideGestures');
+    const { logEvent, logError } = useLogging('WorkoutRideGestures');
     const userSettings = useUserSettings();
     const service = getWorkoutRidePageService();
 
@@ -89,7 +89,14 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
     }, [userSettings]);
 
     const handleSwipe = useCallback((direction: SwipeDirection) => {
-        Vibration.vibrate(VIBRATION_DURATION_MS);
+        // Vibration.vibrate() can throw natively (missing permission, no vibrator motor on this
+        // device) - that must never take down an in-progress ride over haptic feedback.
+        try {
+            Vibration.vibrate(VIBRATION_DURATION_MS);
+        }
+        catch (err) {
+            logError(err as Error, 'handleSwipe - vibrate');
+        }
 
         switch (direction) {
             case 'left':
@@ -117,7 +124,7 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
                 break;
             }
         }
-    }, [logEvent, service, getLoadIncrement, showFeedback]);
+    }, [logEvent, logError, service, getLoadIncrement, showFeedback]);
 
     const gesture = useMemo(() => {
         if (!Gesture) {

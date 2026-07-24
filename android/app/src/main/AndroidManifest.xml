@@ -18,7 +18,10 @@
 
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />    
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Swipe-gesture feedback on the workout ride screen (useWorkoutRideGestures) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- BLE Android 12+ -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"

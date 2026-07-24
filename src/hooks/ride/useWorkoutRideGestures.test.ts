@@ -106,6 +106,25 @@ describe('useWorkoutRideGestures', () => {
         expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
     });
 
+    // regression: real devices can throw SecurityException/other native errors out of
+    // Vibration.vibrate() (e.g. a missing VIBRATE permission) - that must never take the
+    // in-progress ride's gesture handling down with it.
+    it('still performs the action and shows feedback when Vibration.vibrate() throws', () => {
+        jest.spyOn(Vibration, 'vibrate').mockImplementation(() => {
+            throw new Error('vibrate: Neither user 10465 nor current process has android.permission.VIBRATE.');
+        });
+        const { result } = renderHook(() => useWorkoutRideGestures());
+
+        expect(() => {
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+        }).not.toThrow();
+
+        expect(mockOnStepBack).toHaveBeenCalledTimes(1);
+        expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+    });
+
     it('steps forward on a right swipe', () => {
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
