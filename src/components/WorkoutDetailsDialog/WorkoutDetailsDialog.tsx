@@ -10,7 +10,6 @@ import {
 import { WorkoutDetailsView } from './WorkoutDetailsView';
 import { WorkoutDetailsDialogProps } from './types';
 import { useLogging, useScreenLayout, useUnmountEffect } from '../../hooks';
-import { navigate } from '../../services';
 
 /** Absolute-Watt bars + an FTP line at the effective (session-override) FTP — mirrors
  * `WorkoutsTable`'s strip-mode `buildPlan()`, but with `absValues:true` since `detail`
@@ -59,16 +58,9 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
     useEffect(() => {
         const observer = service.getPageObserver();
 
-        const onStartRide = (payload: { id: string; noRoute: boolean }) => {
-            if (payload?.id !== workoutId) return;
-            navigate('rideWorkout', payload);
-        };
-
         observer?.on('page-update', refresh);
-        observer?.on('start-ride', onStartRide);
         return () => {
             observer?.off('page-update', refresh);
-            observer?.off('start-ride', onStartRide);
         };
     }, [service, workoutId, refresh]);
 
