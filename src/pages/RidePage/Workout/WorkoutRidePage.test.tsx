@@ -6,6 +6,7 @@ const mockOnMenuOpen = jest.fn();
 const mockOnMenuClose = jest.fn();
 const mockOnRetryStart = jest.fn();
 const mockOnIgnoreStart = jest.fn();
+const mockOnGestureHintDismissed = jest.fn();
 const mockGetGraphActuals = jest.fn(() => ({ power: [], heartrate: [], position: 0 }));
 const mockPausePage = jest.fn();
 const mockResumePage = jest.fn();
@@ -21,6 +22,7 @@ const mockGetPageDisplayProps = jest.fn(() => ({
     steps: { previous: null, current: null, upcoming: [], hasMore: false },
     dashboard: { text: '', mode: null },
     title: '',
+    gestureHint: null,
 }));
 
 let capturedHandlers: Record<string, (...args: any[]) => void> = {};
@@ -48,6 +50,7 @@ jest.mock('incyclist-services', () => ({
         onMenuClose: mockOnMenuClose,
         onRetryStart: mockOnRetryStart,
         onIgnoreStart: mockOnIgnoreStart,
+        onGestureHintDismissed: mockOnGestureHintDismissed,
     }),
 }));
 
@@ -100,6 +103,7 @@ describe('WorkoutRidePage', () => {
             steps: { previous: null, current: null, upcoming: [], hasMore: false },
             dashboard: { text: '', mode: null },
             title: '',
+            gestureHint: null,
         } as any);
     });
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { IObserver, WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
 import {
@@ -8,12 +8,21 @@ import {
     RideDashboard,
     RideMenu,
     StartRideDisplay,
+    WorkoutGestureHintOverlay,
     WorkoutGraph,
     WorkoutStepsList,
     WorkoutSwipeFeedback,
 } from '../../../components';
+import { WorkoutGestureHintLegendItem } from '../../../components/WorkoutGestureHintOverlay/types';
 import { colors } from '../../../theme';
 import { useScreenLayout, WorkoutRideGestureFeedback } from '../../../hooks';
+
+// Copy for the first-ride gesture education overlay (workout-mobile-hld.md §3.2
+// "WorkoutGestureHintOverlay", session 5.9) — page-specific text, not business logic, so it's
+// fine as a local constant here (the component itself takes it as a prop, not hardcoded, so a
+// future ride type can supply its own copy). Same gesture content 5.6's now-removed
+// StartRideDisplay legend had.
+const GESTURE_HINT_MESSAGE = 'Start pedalling to start the workout';
 
 // Conditional import — same pattern as WorkoutItemView / useWorkoutRideGestures (session 5.4):
 // keeps Storybook (Vite/web) and any environment without the native module from crashing.
@@ -34,7 +43,7 @@ export interface WorkoutRidePageViewProps {
     /** From useWorkoutRideGestures() — undefined on web/Storybook, where GestureDetector must not be used. */
     gesture: any;
     feedback: WorkoutRideGestureFeedback;
-    /** Live `preferences.workouts.loadIncrement` setting (%) — shown in the start-overlay legend. */
+    /** Live `preferences.workouts.loadIncrement` setting (%) — shown in the gesture-hint overlay's legend. */
     loadIncrementPct: number;
     /** Pulls a fresh WorkoutGraphActuals snapshot — wired to the ride observer's `data-update`
      * tick via <Dynamic>, so only the graph subtree re-renders at 1 Hz, never the whole page. */
@@ -45,6 +54,7 @@ export interface WorkoutRidePageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
+    onGestureHintDismissed: (props: { dontShowAgain: boolean }) => void;
 }
 
 const noop = () => {};
@@ -79,12 +89,29 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
         onRetryStart,
         onIgnoreStart,
         onCancelStart,
+        onGestureHintDismissed,
     } = props;
 
-    const { startOverlayProps, menuProps, graph, steps, dashboard } = displayProps;
+    const { startOverlayProps, menuProps, graph, steps, dashboard, gestureHint } = displayProps;
 
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
+
+    // Same gesture content 5.6's now-removed StartRideDisplay legend had — reads the live
+    // preferences.workouts.loadIncrement setting (never hardcoded), just relocated here since
+    // the legend now lives in this overlay instead of the start-overlay dialog.
+    const gestureHintLegend = useMemo<WorkoutGestureHintLegendItem[]>(() => [
+        {
+            symbol: '◀ ▶',
+            label: 'Step back / forward',
+            description: 'Swipe left or right to step back or forward through the workout',
+        },
+        {
+            symbol: '▲ ▼',
+            label: `Load ±${loadIncrementPct}%`,
+            description: `Swipe up or down to raise or lower your target load by ${loadIncrementPct}%`,
+        },
+    ], [loadIncrementPct]);
 
     // Measured, not analytically budgeted — unlike the 4.2 Storybook prototype (whose fixed-dp
     // frames couldn't rely on onLayout resolving under the Vite renderer), this is the real app,
@@ -157,13 +184,23 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                 ) : content
             )}
 
+            {/* Sequenced strictly after StartRideDisplay clears, never alongside it (session 5.9
+                — replaces 5.6's StartRideDisplay-embedded legend). Visibility is entirely owned
+                by WorkoutRidePageService's gestureHint prop; this just renders what it's told. */}
+            {!startOverlayProps && gestureHint?.visible && (
+                <WorkoutGestureHintOverlay
+                    message={GESTURE_HINT_MESSAGE}
+                    legend={gestureHintLegend}
+                    compact={isCompact}
+                    onDismiss={onGestureHintDismissed}
+                />
+            )}
+
             {startOverlayProps && <MainBackground />}
 
             {startOverlayProps && (
                 <StartRideDisplay
                     {...startOverlayProps}
-                    workout={true}
-                    loadIncrementPct={loadIncrementPct}
                     onStart={noop}
                     onRetry={onRetryStart}
                     onIgnore={onIgnoreStart}

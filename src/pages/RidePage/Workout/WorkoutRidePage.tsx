@@ -106,6 +106,10 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+    const onGestureHintDismissed = useCallback(
+        (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
+        []
+    );
     const getGraphActuals = useCallback(
         () => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS,
         []
@@ -135,6 +139,7 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
                 onCancelStart={onCancelStart}
+                onGestureHintDismissed={onGestureHintDismissed}
             />
         </ErrorBoundary>
     );
