@@ -11,7 +11,7 @@ import {
 } from './types';
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
-    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, workout, loadIncrementPct } = props;
+    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
 
     const layout = useScreenLayout();
 
@@ -206,26 +206,10 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         >
             <View style={styles.bodyContainer}>
                 {renderDeviceList()}
-                {workout && <GestureLegend loadIncrementPct={loadIncrementPct ?? DEFAULT_LEGEND_INCREMENT} />}
             </View>
         </Dialog>
     );
 };
-
-// Workout-ride-only (workout-mobile-hld.md §3.2), shown while waiting for pedaling — teaches the
-// swipe gestures (session 5.4) before the ride starts, when the rider is attentive and not under
-// load. `loadIncrementPct` must always come from the live `preferences.workouts.loadIncrement`
-// setting (never hardcoded) — the fallback below only covers the case where a caller omits the
-// prop entirely, it does not stand in for reading the real setting.
-const DEFAULT_LEGEND_INCREMENT = 1;
-
-const GestureLegend = ({ loadIncrementPct }: { loadIncrementPct: number }) => (
-    <View style={styles.legendContainer}>
-        <Text style={styles.legendText}>
-            {`◀ ▶ step  ·  ▲ ▼ load ±${loadIncrementPct}%`}
-        </Text>
-    </View>
-);
 
 const styles = StyleSheet.create({
     bodyContainer: {
@@ -265,17 +249,5 @@ const styles = StyleSheet.create({
     },
     spacer: {
         height: 8,
-    },
-    legendContainer: {
-        marginTop: 12,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-    },
-    legendText: {
-        color: colors.disabled,
-        fontSize: textSizes.subtitle,
-        textAlign: 'center',
     },
 });

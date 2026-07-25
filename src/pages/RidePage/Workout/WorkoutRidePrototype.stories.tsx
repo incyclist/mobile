@@ -97,6 +97,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     },
     dashboard: { text: '280W for 3min - VO2 max (1/3)', mode: 'ERG' },
     title: 'VO2 max (1/3)',
+    gestureHint: null,
 };
 
 const MID_WORKOUT_ACTUALS: WorkoutGraphActuals = MOCK_ACTUALS_MID;
@@ -124,6 +125,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     },
     dashboard: { text: 'Ramp 150-100W for 5min - Cooldown', mode: 'ERG' },
     title: 'Cooldown',
+    gestureHint: null,
 };
 
 const AFTER_SKIP_BACK_ACTUALS: WorkoutGraphActuals = MOCK_ACTUALS_SKIPBACK;

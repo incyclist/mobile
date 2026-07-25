@@ -27,6 +27,7 @@ const callbacks = {
     onRetryStart: fn(),
     onIgnoreStart: fn(),
     onCancelStart: fn(),
+    onGestureHintDismissed: fn(),
 };
 
 const styles = StyleSheet.create({
@@ -125,6 +126,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     },
     dashboard: { text: '280W for 3min - VO2 max (1/3)', mode: 'ERG' },
     title: 'VO2 max (1/3)',
+    gestureHint: null,
 };
 
 const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
@@ -142,6 +144,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     },
     dashboard: { text: 'Ramp 150-100W for 5min - Cooldown', mode: 'ERG' },
     title: 'Cooldown',
+    gestureHint: null,
 };
 
 const STARTING: WorkoutRidePageDisplayProps = {
@@ -162,6 +165,19 @@ const STARTING: WorkoutRidePageDisplayProps = {
     steps: { previous: null, current: null, upcoming: [], hasMore: false },
     dashboard: { text: '', mode: null },
     title: '',
+    gestureHint: null,
+};
+
+/**
+ * StartRideDisplay has just cleared (startOverlayProps: null) but no pedaling has happened yet
+ * (session 5.9 — WorkoutRidePageService's gestureHint is non-null only in exactly this window).
+ * Reuses MID_WORKOUT's graph/steps/dashboard content to demonstrate the overlay's core
+ * requirement: it must NOT obscure the ride screen — dashboard/graph/steps stay fully visible
+ * underneath the translucent scrim, only the text/legend block itself gets a backing.
+ */
+const WAITING_FOR_PEDAL: WorkoutRidePageDisplayProps = {
+    ...MID_WORKOUT,
+    gestureHint: { visible: true },
 };
 
 export const MidWorkout: Story = {
@@ -186,7 +202,7 @@ export const MenuOpen: Story = {
     },
 };
 
-/** Waiting for pedaling — the new session-5.6 gesture legend under the device list. */
+/** Waiting for devices to connect — StartRideDisplay's device list, before it clears. */
 export const Starting: Story = {
     args: {
         displayProps: STARTING,
@@ -200,5 +216,45 @@ export const SwipeFeedback: Story = {
         displayProps: MID_WORKOUT,
         getGraphActuals: (): WorkoutGraphActuals => MOCK_ACTUALS_MID,
         feedback: { visible: true, message: '+1%' },
+    },
+};
+
+/**
+ * Session 5.9 — StartRideDisplay has cleared and no pedaling has happened yet, so
+ * WorkoutGestureHintOverlay is showing. `iphone15Pro`/`ipadPro12` are the two custom viewports
+ * already registered in `.storybook/preview.ts`; their heights (393 / 1024) sit on either side
+ * of `useScreenLayout()`'s compact threshold (<420), so these two stories exercise the overlay's
+ * real compact/normal font-size branch (not just the standalone component story's `compact`
+ * prop toggle) atop the real page composition.
+ */
+export const WaitingForPedalCompact: Story = {
+    args: {
+        displayProps: WAITING_FOR_PEDAL,
+        getGraphActuals: (): WorkoutGraphActuals => MOCK_ACTUALS_MID,
+    },
+    parameters: {
+        viewport: { defaultViewport: 'iphone15Pro' },
+    },
+};
+
+export const WaitingForPedalNormal: Story = {
+    args: {
+        displayProps: WAITING_FOR_PEDAL,
+        getGraphActuals: (): WorkoutGraphActuals => MOCK_ACTUALS_MID,
+    },
+    parameters: {
+        viewport: { defaultViewport: 'ipadPro12' },
+    },
+};
+
+/**
+ * Same "waiting for pedal" moment, after the overlay has been dismissed (gestureHint: null) —
+ * dashboard/graph/steps are unaffected either way, since the overlay never altered them; this
+ * story exists to make that "with vs. without" comparison explicit side-by-side with the two above.
+ */
+export const WaitingForPedalDismissed: Story = {
+    args: {
+        displayProps: { ...WAITING_FOR_PEDAL, gestureHint: null },
+        getGraphActuals: (): WorkoutGraphActuals => MOCK_ACTUALS_MID,
     },
 };
