@@ -78,6 +78,7 @@ export const GearSettings = ({ onClose }: GearSettingsProps) => {
                 variant="full"
                 visible={true}
                 onOutsideClick={onClose}
+                buttons={[{ label: 'Close', primary: true, onClick: onClose }]}
             >
                 <Text style={styles.emptyMessage}>
                     No device paired. Go to Devices to set up your bike.
