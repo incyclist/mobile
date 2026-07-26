@@ -89,8 +89,13 @@ export const WorkoutImportDialog = ({ onClose }: WorkoutImportDialogProps) => {
 
     const { phase } = displayProps;
 
-    const isDismissable = phase !== 'importing';
-    const onOutsideClick = isDismissable ? onDone : undefined;
+    // There's no real abort for the single-file import chain in WorkoutListPageService -
+    // parse/build/save is one promise chain with no checkpoint to interrupt mid-flight. "Cancel"
+    // here (and tapping outside, now that every phase is dismissable) means the dialog stops
+    // listening for that promise's result and closes immediately via onDone(), which also calls
+    // onImportClose() - the service guards against that background promise's eventual result
+    // resurrecting stale dialog state once it settles (see importToken in WorkoutListPageService).
+    const onOutsideClick = onDone;
 
     const title = useMemo(() => {
         switch (phase) {
@@ -108,7 +113,7 @@ export const WorkoutImportDialog = ({ onClose }: WorkoutImportDialogProps) => {
     const buttons: ButtonProps[] = useMemo(() => {
         switch (phase) {
             case 'importing':
-                return [];
+                return [{ label: 'Cancel', onClick: onDone }];
             case 'result':
                 return [{ label: 'Done', onClick: onDone, primary: true }];
             case 'error':
