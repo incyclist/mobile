@@ -28,8 +28,9 @@ jest.mock('incyclist-services', () => ({
         onSelectGroup: mockOnSelectGroup,
     }),
     // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
-    // WorkoutsPage - now calls.
-    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
+    // WorkoutsPage - now calls. hasFeature (6.1 integration pass) gates the prompt on
+    // MOBILE_WORKOUTS, mirroring WorkoutListPageService.getPageDisplayProps()'s own gate.
+    useAppState: () => ({ getState: jest.fn(), setState: jest.fn(), hasFeature: jest.fn(() => true) }),
     useWorkoutCalendar: () => ({
         getScheduledToday: jest.fn(),
         on: jest.fn(),
