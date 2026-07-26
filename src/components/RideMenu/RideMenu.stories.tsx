@@ -109,24 +109,24 @@ export const WorkoutFirstStep: Story = {
 
 /**
  * Session 5.10 fit check - the item list has grown across 5.4 (Step Back/Forward, Load), 5.5
- * (RideMenu workout gating), and now 5.10 (Workout Settings), but nobody had verified the full
- * list actually fits a real phone frame in landscape. `iphone15Pro` (852x393) is the same
- * viewport already registered in `.storybook/preview.ts` and used by `WorkoutRidePage.stories.tsx`
- * for its compact/normal breakpoint checks (<420dp height = compact). Every workout-ride menu
- * item is present here: Pause, End Ride (footer, always), Step Back/Forward, Increase/Decrease
- * Load, Gear Settings, Ride Settings, Workout Settings (content, this story).
+ * (RideMenu workout gating), and now 5.10 (Workout Settings). `iphone15Pro` (852x393) is the
+ * same viewport already registered in `.storybook/preview.ts` and used by
+ * `WorkoutRidePage.stories.tsx` for its compact/normal breakpoint checks (<420dp height =
+ * compact). Every workout-ride menu item is present here: Pause, End Ride (footer, always),
+ * Step Back/Forward, Increase/Decrease Load, Gear Settings, Ride Settings, Workout Settings
+ * (content, this story).
  *
- * FINDING (headless Playwright screenshot against this exact story, 852x393): the content list
- * does NOT fully fit above the fixed footer (Pause/End Ride) on this viewport - "Ride Settings"
- * is the last item visible without scrolling; "Workout Settings" (this session's new item) sits
- * below the fold. `RideMenuView.tsx`'s content area (`styles.content`/`contentScroll`) is already
- * a `ScrollView`, so nothing is permanently clipped/inaccessible the way the GroupPicker/
- * SingleSelect `overflow:hidden` bug (session 5.11) was - scrolling the content area does reveal
- * Workout Settings correctly, icon and all. But a rider now has to know to scroll mid-ride to
- * reach it on a phone, which is a real UX regression from item-list growth, not something to
- * silently work around here - flagged in this session's PR for the architect/session-plan owner
- * to decide how to address (e.g. denser rows, collapsing Step/Load onto fewer rows, a smaller
- * footer in compact mode), not fixed as a bolt-on in this diff.
+ * FIXED (follow-up session): a headless Playwright screenshot against this exact story at
+ * 852x393 originally showed the content list did NOT fully fit above the fixed footer
+ * (Pause/End Ride) - "Ride Settings" was the last item visible without scrolling and "Workout
+ * Settings" sat below the fold. Row height (`minHeight: 52`) is a deliberate touch-target size
+ * and was not reduced. Instead, since ride screens run landscape (width is the generous
+ * resource, height is scarce - workout-mobile-hld.md §5), `Gear Settings`/`Ride Settings`/
+ * `Workout Settings` were rearranged into a 2-column tile layout (`renderMenuTile`/
+ * `renderTileRow`), the same way `Step Back/Forward` and `Load +/-` already share a row. This
+ * removes exactly one 52px row, which lined up with the observed one-item overflow. Re-verified
+ * via headless Playwright screenshot against this story: the full list, including Workout
+ * Settings, now fits above the footer without scrolling.
  */
 export const WorkoutFullListCompact: Story = {
     args: {

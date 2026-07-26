@@ -206,4 +206,39 @@ describe('RideMenuView', () => {
     it('renders with Workout Settings dialog active', () => {
         render(<RideMenuView {...workoutProps} visible={true} activeDialog='workoutSettings' />);
     });
+
+    it('calls onGearSettings when the Gear Settings tile is pressed', () => {
+        const onGearSettings = jest.fn();
+        const { getByText } = render(
+            <RideMenuView {...mockProps} visible={true} activeDialog={null} onGearSettings={onGearSettings} />
+        );
+        fireEvent.press(getByText('Gear Settings'));
+        expect(onGearSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onRideSettings when the Ride Settings tile is pressed', () => {
+        const onRideSettings = jest.fn();
+        const { getByText } = render(
+            <RideMenuView {...mockProps} visible={true} activeDialog={null} onRideSettings={onRideSettings} />
+        );
+        fireEvent.press(getByText('Ride Settings'));
+        expect(onRideSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders Gear Settings and Ride Settings as a paired 2-column row even outside workout mode', () => {
+        const { getByText } = render(
+            <RideMenuView {...mockProps} visible={true} activeDialog={null} />
+        );
+        expect(getByText('Gear Settings')).toBeTruthy();
+        expect(getByText('Ride Settings')).toBeTruthy();
+    });
+
+    it('renders Gear Settings, Ride Settings and Workout Settings together on a workout ride', () => {
+        const { getByText } = render(
+            <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
+        );
+        expect(getByText('Gear Settings')).toBeTruthy();
+        expect(getByText('Ride Settings')).toBeTruthy();
+        expect(getByText('Workout Settings')).toBeTruthy();
+    });
 });
