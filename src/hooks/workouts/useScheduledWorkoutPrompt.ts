@@ -1,16 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppState, useWorkoutCalendar, WorkoutCalendarService } from 'incyclist-services';
+import { ScheduledWorkout, useAppState, useWorkoutCalendar } from 'incyclist-services';
 import { navigate } from '../../services';
 import { useLogging } from '../logging';
-
-// `WorkoutCalendarService.getScheduledToday()`'s return type is a `ScheduledWorkout`, but that
-// name is not safely importable from 'incyclist-services' today: `workouts/base/model/types.ts`
-// already exports an unrelated `ScheduledWorkout` (a `{week, day, workoutId}` Plan-schedule-entry
-// shape) under the same name, and the package's `export *` barrel silently keeps whichever one
-// was registered first rather than erroring on the collision - so importing the name directly
-// would silently resolve to the wrong shape. Deriving it structurally from the real method's
-// return type sidesteps the collision entirely and can never drift from the actual shape.
-type ScheduledWorkout = NonNullable<ReturnType<WorkoutCalendarService['getScheduledToday']>>;
 
 // Once-per-app-session guard (workout-list-page-service-design.md §11.2). Deliberately kept in
 // AppStateService's in-memory `state` (not `getPersistedState`/settings) - it must reset on every
