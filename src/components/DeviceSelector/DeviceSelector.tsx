@@ -38,13 +38,14 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     const deviceListStyle = [styles.deviceList, { minHeight: deviceListMinHeight }];
 
     return (
-        <Dialog 
-            style={dialogStyle} 
-            title={isScanning ? 'Searching ...' : 'Select Device'} 
+        <Dialog
+            style={dialogStyle}
+            title={isScanning ? 'Searching ...' : 'Select Device'}
             onOutsideClick={onDialogClosed}
+            scrollable={false}
         >
             <View style={styles.modalView}>
-                <ScrollView style={deviceListStyle}>
+                <ScrollView style={deviceListStyle} contentContainerStyle={styles.deviceListContent}>
                     {devices.map((device) => (
                         <DeviceEntry 
                             key={`${device.deviceName}-${device.interface}`} 
@@ -81,6 +82,8 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     );
 };
 
+const FOOTER_HEIGHT = 60;
+
 const styles = StyleSheet.create({
     dialog: {
         // Dynamic width applied via inline style
@@ -88,16 +91,24 @@ const styles = StyleSheet.create({
     modalView: {
         width: 'auto',
         flex: 1,
-        height: '100%',
+        // No explicit height here: with Dialog's `scrollable={false}`, this View's parent has a
+        // definite (flex-resolved) height, so `flex: 1` alone reliably fills it. A `height: '100%'`
+        // is unnecessary and, if this were ever nested back inside a ScrollView, would resolve
+        // against an undefined parent size (see Dialog's `scrollable` prop doc).
     },
     deviceList: {
         flex: 1,
         maxHeight: 380,
         // Dynamic minHeight applied via inline style
     },
+    // Reserves space at the bottom of the scrollable content so the last device entries clear
+    // the footer bar, which is absolutely positioned over the bottom of `modalView`.
+    deviceListContent: {
+        paddingBottom: FOOTER_HEIGHT,
+    },
     footer: {
         flexDirection: 'row',
-        height: 60,
+        height: FOOTER_HEIGHT,
         width: '100%',
         position: 'absolute',
         left: 0,

@@ -17,4 +17,15 @@ export interface DialogProps {
     nested?: boolean;
     titleStyle?: StyleProp<TextStyle>;
     slideFrom?: 'left'; // only applies to variant='full'
+    /**
+     * When false, Dialog renders `children` in a plain View instead of wrapping them in its
+     * own ScrollView. Use this when `children` already manage their own internal scrolling
+     * (e.g. a scrollable list with a fixed footer below it) - nesting that inside Dialog's
+     * ScrollView leaves the inner scroll area's height undefined (a ScrollView lets its content
+     * overflow rather than constraining it, so a `height: '100%'` child has no definite parent
+     * size to resolve against) and causes RN's gesture responder to fight over the scroll
+     * gesture between the two nested ScrollViews. Defaults to true to preserve existing
+     * behaviour for all other Dialog consumers.
+     */
+    scrollable?: boolean;
 }
