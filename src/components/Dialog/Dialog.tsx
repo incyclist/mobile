@@ -31,6 +31,7 @@ export const Dialog = ({
     nested = false,
     onOutsideClick,
     slideFrom,
+    scrollable = true,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
@@ -160,13 +161,21 @@ export const Dialog = ({
                                 <Text style={[styles.title, titleStyle]}>{title}</Text>
                             </View>
 
-                            <ScrollView
-                                style={styles.scrollArea}
-                                contentContainerStyle={styles.content}
-                                bounces={false}
-                            >
-                                {children}
-                            </ScrollView>
+                            {scrollable ? (
+                                <ScrollView
+                                    style={styles.scrollArea}
+                                    contentContainerStyle={styles.content}
+                                    bounces={false}
+                                >
+                                    {children}
+                                </ScrollView>
+                            ) : (
+                                <View style={styles.scrollArea}>
+                                    <View style={styles.content}>
+                                        {children}
+                                    </View>
+                                </View>
+                            )}
 
                             {buttons?.length ? (
                                 <View style={styles.footer}>
@@ -200,13 +209,21 @@ export const Dialog = ({
                                 <Text style={[styles.title, titleStyle]}>{title}</Text>
                             </View>
 
-                            <ScrollView
-                                style={styles.scrollArea}
-                                contentContainerStyle={styles.content}
-                                bounces={false}
-                            >
-                                {children}
-                            </ScrollView>
+                            {scrollable ? (
+                                <ScrollView
+                                    style={styles.scrollArea}
+                                    contentContainerStyle={styles.content}
+                                    bounces={false}
+                                >
+                                    {children}
+                                </ScrollView>
+                            ) : (
+                                <View style={styles.scrollArea}>
+                                    <View style={styles.content}>
+                                        {children}
+                                    </View>
+                                </View>
+                            )}
 
                             {buttons?.length ? (
                                 <View style={styles.footer}>

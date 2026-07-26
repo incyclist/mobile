@@ -60,3 +60,20 @@ export const Disabled: Story = {
         disabled: true,
     },
 };
+
+// Regression case for the scroll/overlap bug: with enough entries to overflow the list's
+// maxHeight, the last entries must remain reachable by scrolling and must not render hidden
+// underneath the "For all capabilities" / "Disable All" footer bar.
+export const LongList: Story = {
+    args: {
+        ...Default.args,
+        devices: Array.from({ length: 25 }, (_, i) => ({
+            deviceName: `Device ${i + 1}`,
+            value: i,
+            interface: i % 2 === 0 ? 'ble' : 'wifi',
+            isSelected: false,
+            onClick: fn(),
+            onDelete: () => {},
+        })),
+    },
+};
