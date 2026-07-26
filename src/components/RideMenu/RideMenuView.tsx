@@ -28,6 +28,13 @@ interface RowButtonSpec {
     disabled?: boolean;
 }
 
+interface TileSpec {
+    icon: any;
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+}
+
 export const RideMenuView = ({
     visible,
     showResume,
@@ -87,41 +94,6 @@ export const RideMenuView = ({
         }).start();
     }, [visible, animTranslateY, panelHiddenByDialog, refPanelHeight]);
 
-    const renderMenuItem = (
-        iconName: any,
-        label: string,
-        onPress: () => void,
-        disabled = false
-    ) => {
-        const handlePress = () => {
-            logEvent({ message: 'button clicked', button: label });
-            onPress();
-        };
-
-        return (
-            <Pressable
-                key={label}
-                onPress={handlePress}
-                disabled={disabled}
-                style={({ pressed }) => [
-                    styles.menuItem,
-                    pressed && !disabled && styles.menuItemPressed,
-                ]}
-            >
-                <View style={styles.menuItemIcon}>
-                    <Icon
-                        name={iconName}
-                        size={24}
-                        color={disabled ? colors.disabled : colors.text}
-                    />
-                </View>
-                <Text style={[styles.menuItemLabel, disabled && styles.menuItemLabelDisabled]}>
-                    {label}
-                </Text>
-            </Pressable>
-        );
-    };
-
     // Icon-only half-width button used to pack two related actions (e.g. Step Back/Forward,
     // Decrease/Increase Load) onto a single row - keeps the compact panel short on phones.
     const renderRowButton = ({ icon, label, onPress, disabled = false }: RowButtonSpec) => {
@@ -157,6 +129,48 @@ export const RideMenuView = ({
                 {renderRowButton(left)}
                 {renderRowButton(right)}
             </View>
+        </View>
+    );
+
+    // Half-width icon+label tile, used to pack two unrelated settings entries (Gear Settings,
+    // Ride Settings, Workout Settings) onto shared rows the same way Step/Load already share
+    // rows. Unlike renderRowButton (icon-only, one shared row caption), each of these actions
+    // needs its own visible label, so this uses the same icon+label content as a full-width
+    // menu item, just at roughly half width.
+    const renderMenuTile = ({ icon, label, onPress, disabled = false }: TileSpec) => {
+        const handlePress = () => {
+            logEvent({ message: 'button clicked', button: label });
+            onPress();
+        };
+
+        return (
+            <Pressable
+                key={label}
+                onPress={handlePress}
+                disabled={disabled}
+                style={({ pressed }) => [
+                    styles.menuTile,
+                    pressed && !disabled && styles.menuItemPressed,
+                ]}
+            >
+                <View style={styles.menuItemIcon}>
+                    <Icon
+                        name={icon}
+                        size={24}
+                        color={disabled ? colors.disabled : colors.text}
+                    />
+                </View>
+                <Text style={[styles.menuItemLabel, disabled && styles.menuItemLabelDisabled]}>
+                    {label}
+                </Text>
+            </Pressable>
+        );
+    };
+
+    const renderTileRow = (rowKey: string, left: TileSpec, right?: TileSpec) => (
+        <View style={styles.menuTileRow} key={rowKey}>
+            {renderMenuTile(left)}
+            {right ? renderMenuTile(right) : <View style={styles.menuTileSpacer} />}
         </View>
     );
 
@@ -219,13 +233,20 @@ export const RideMenuView = ({
                             { icon: 'minus', label: 'Decrease Load', onPress: onDecreaseLoad },
                             { icon: 'plus', label: 'Increase Load', onPress: onIncreaseLoad }
                         )}
-                        {renderMenuItem('settings', 'Gear Settings', onGearSettings)}
-                        {renderMenuItem('controller', 'Ride Settings', onRideSettings)}
-                        {/* 'gear' is a real icon (unlike 'settings'/'controller' above, which are not
+                        {/* 'gear' is a real icon (unlike 'settings'/'controller' below, which are not
                             in Icon's IconName union and silently render blank - a pre-existing gap,
                             not introduced here; using a valid name for this new item rather than
-                            compounding it). */}
-                        {workout && renderMenuItem('gear', 'Workout Settings', onWorkoutSettings)}
+                            compounding it). Gear/Ride Settings pair onto one row and Workout
+                            Settings gets its own row - a 2-column layout, same reasoning as the
+                            Step/Load rows above, to remove one 52px row on the height-constrained
+                            landscape phone layout (see workout-mobile-hld.md §5). */}
+                        {renderTileRow('SettingsRow1',
+                            { icon: 'settings', label: 'Gear Settings', onPress: onGearSettings },
+                            { icon: 'controller', label: 'Ride Settings', onPress: onRideSettings }
+                        )}
+                        {workout && renderTileRow('SettingsRow2',
+                            { icon: 'gear', label: 'Workout Settings', onPress: onWorkoutSettings }
+                        )}
                     </ScrollView>
                 </View>
 
@@ -292,12 +313,6 @@ const styles = StyleSheet.create({
     contentScroll: {
         paddingVertical: 10,
     },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        minHeight: 52,
-    },
     menuItemPressed: {
         backgroundColor: 'rgba(255,255,255,0.1)',
     },
@@ -330,6 +345,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginLeft: 8,
         borderRadius: 4,
+    },
+    menuTileRow: {
+        flexDirection: 'row',
+        minHeight: 52,
+        paddingHorizontal: 20,
+        gap: 12,
+    },
+    menuTile: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    menuTileSpacer: {
+        flex: 1,
     },
     footer: {
         paddingHorizontal: 12,
