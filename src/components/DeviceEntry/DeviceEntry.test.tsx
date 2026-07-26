@@ -39,6 +39,7 @@ describe('DeviceEntry', () => {
     });
 
     it('does not render a delete action when onDelete is not provided', () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { onDelete, ...rest } = baseProps;
         const { queryByText } = render(<DeviceEntry {...rest} />);
         expect(queryByText('Delete')).toBeNull();

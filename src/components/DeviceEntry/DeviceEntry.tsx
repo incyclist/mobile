@@ -69,7 +69,7 @@ const DeviceEntry: FC<ComponentProps> = ({
     );
 
     const content = (
-        <TouchableOpacity disabled={disabled} onPress={disabled ? null: onClick} style={[styles.container, (isSelected&&!disabled) && styles.selected]}>
+        <TouchableOpacity disabled={disabled} onPress={disabled ? undefined : () => onClick?.()} style={[styles.container, (isSelected&&!disabled) && styles.selected]}>
 
             <View style={styles.colState}>
                 {renderConnectState()}
