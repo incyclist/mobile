@@ -9,8 +9,9 @@ import {
     RouteItemProps
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
+import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 import { RoutesPageView } from './View';
-import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog } from '../../components';
+import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog, ScheduledWorkoutPromptModal } from '../../components';
 import { navigate } from '../../services';
 
 
@@ -40,6 +41,7 @@ const hashRoutes = (routes: RouteItemProps[]) =>
 export const RoutesPage = () => {
     const service = getRoutesPageService();
     const routeList = useRouteList();
+    const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt();
 
     const { height } = useWindowDimensions();
     const compact = height < 420;
@@ -199,6 +201,15 @@ export const RoutesPage = () => {
             )}
             {showImportDialog && (
                 <ImportDialog onClose={onImportClose} />
+            )}
+            {scheduledWorkoutPrompt && (
+                <ScheduledWorkoutPromptModal
+                    visible
+                    title={scheduledWorkoutPrompt.title}
+                    onYes={onScheduledWorkoutYes}
+                    onNo={onScheduledWorkoutNo}
+                    onCheckWorkouts={onScheduledWorkoutCheck}
+                />
             )}
         </ErrorBoundary>
     );

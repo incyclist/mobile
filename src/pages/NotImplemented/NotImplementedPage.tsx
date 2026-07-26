@@ -1,10 +1,13 @@
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import { colors, textSizes } from '../../theme';
 import { useIncyclist } from 'incyclist-services';
-import { NavigationBar, MainBackground, TNavigationItem } from '../../components';
+import { NavigationBar, MainBackground, ScheduledWorkoutPromptModal, TNavigationItem } from '../../components';
 import { getUIBinding } from '../../bindings/ui';
 import { navigate } from '../../services';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
+import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 
 interface NotImplementedViewProps {
     onClick: (item: TNavigationItem) => void;
@@ -65,14 +68,32 @@ const styles = StyleSheet.create({
 
 export const NotImplementedPage = ({ selected }: { selected?: TNavigationItem }) => {
     const incyclist = useIncyclist();
+    const route = useRoute();
+    // This component doubles as both the `main` and `user` screens (RootNavigator.tsx) - the
+    // post-pairing scheduled-workout prompt (workout-mobile-hld.md §3.1/§5) is only specced for
+    // `main`, not `user`, so it's gated on the actual route name rather than always running.
+    const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt(route.name === 'main');
 
     const onClick = (item: TNavigationItem) => {
         if (item === 'exit') {
             incyclist.onAppExit()
                 .then(() => { getUIBinding().quit(); });
         }
-        else 
+        else
             navigate(item);
     };
-    return <NotImplementedView selected={selected!} onClick={onClick} />;
+    return (
+        <>
+            <NotImplementedView selected={selected!} onClick={onClick} />
+            {scheduledWorkoutPrompt && (
+                <ScheduledWorkoutPromptModal
+                    visible
+                    title={scheduledWorkoutPrompt.title}
+                    onYes={onScheduledWorkoutYes}
+                    onNo={onScheduledWorkoutNo}
+                    onCheckWorkouts={onScheduledWorkoutCheck}
+                />
+            )}
+        </>
+    );
 };
