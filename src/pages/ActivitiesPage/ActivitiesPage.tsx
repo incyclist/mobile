@@ -6,8 +6,9 @@ import {
     ActivityInfoUI
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
+import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 import { ActivitiesPageView } from './ActivitiesPageView';
-import { ActivityDetailsDialog, ErrorBoundary, TNavigationItem } from '../../components';
+import { ActivityDetailsDialog, ErrorBoundary, ScheduledWorkoutPromptModal, TNavigationItem } from '../../components';
 import { navigate } from '../../services';
 
 export interface ActivitiesPageProps {
@@ -28,7 +29,8 @@ const hashActivities = (activities: ActivityInfoUI[]) =>
 export const ActivitiesPage = () => {
     const service = getActivitiesPageService();
     const { logError } = useLogging('ActivitiesPage');
-    
+    const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt();
+
     const [props, setProps] = useState<ActivitiesPageDisplayProps>(initialProps);
     
     const refObserver = useRef<IObserver | null>(null);
@@ -99,9 +101,18 @@ export const ActivitiesPage = () => {
                 onNavigate={onNavigate}
             />
             {props.detailActivityId && (
-                <ActivityDetailsDialog 
+                <ActivityDetailsDialog
                     onClose={onCloseActivity}
                     onRideAgain={handleRideAgain}
+                />
+            )}
+            {scheduledWorkoutPrompt && (
+                <ScheduledWorkoutPromptModal
+                    visible
+                    title={scheduledWorkoutPrompt.title}
+                    onYes={onScheduledWorkoutYes}
+                    onNo={onScheduledWorkoutNo}
+                    onCheckWorkouts={onScheduledWorkoutCheck}
                 />
             )}
         </ErrorBoundary>

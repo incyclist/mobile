@@ -27,6 +27,14 @@ jest.mock('incyclist-services', () => ({
         onImportOpen: mockOnImportOpen,
         onSelectGroup: mockOnSelectGroup,
     }),
+    // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
+    // WorkoutsPage - now calls.
+    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
+    useWorkoutCalendar: () => ({
+        getScheduledToday: jest.fn(),
+        on: jest.fn(),
+        off: jest.fn(),
+    }),
 }));
 
 jest.mock('./WorkoutsPlaceholderView', () => ({
@@ -43,6 +51,7 @@ jest.mock('../../components', () => {
         ErrorBoundary: ({ children }: any) => children,
         WorkoutImportDialog: () => null,
         WorkoutDetailsDialog: ({ workoutId }: any) => <Text>{`details:${workoutId}`}</Text>,
+        ScheduledWorkoutPromptModal: () => null,
     };
 });
 
