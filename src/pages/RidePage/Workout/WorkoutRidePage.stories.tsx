@@ -127,6 +127,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     dashboard: { text: '280W for 3min - VO2 max (1/3)', mode: 'ERG' },
     title: 'VO2 max (1/3)',
     gestureHint: null,
+    loadIncrement: 1,
 };
 
 const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
@@ -145,6 +146,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     dashboard: { text: 'Ramp 150-100W for 5min - Cooldown', mode: 'ERG' },
     title: 'Cooldown',
     gestureHint: null,
+    loadIncrement: 1,
 };
 
 const STARTING: WorkoutRidePageDisplayProps = {
@@ -166,6 +168,7 @@ const STARTING: WorkoutRidePageDisplayProps = {
     dashboard: { text: '', mode: null },
     title: '',
     gestureHint: null,
+    loadIncrement: 1,
 };
 
 /**
