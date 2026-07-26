@@ -42,7 +42,11 @@ export const Importing: Story = {
             importing: { fileName: 'sweet-spot-intervals.zwo' },
         },
         title: 'Importing...',
-        buttons: [],
+        // There's no real abort for the single-file import chain, so Cancel just stops the
+        // dialog from listening for the result and closes it - the import itself keeps running
+        // in the background (see importToken in WorkoutListPageService for the corresponding
+        // stale-result guard).
+        buttons: [{ label: 'Cancel', onClick: fn() }],
     },
 };
 

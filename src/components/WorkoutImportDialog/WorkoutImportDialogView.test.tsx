@@ -20,8 +20,8 @@ describe('WorkoutImportDialogView', () => {
         render(<WorkoutImportDialogView {...defaultProps} />);
     });
 
-    it('renders importing phase without crashing', () => {
-        render(
+    it('renders importing phase with a Cancel button without crashing', () => {
+        const { getByText } = render(
             <WorkoutImportDialogView
                 {...defaultProps}
                 displayProps={{
@@ -29,9 +29,11 @@ describe('WorkoutImportDialogView', () => {
                     phase: 'importing',
                     importing: { fileName: 'sweet-spot.zwo' },
                 }}
-                buttons={[]}
+                buttons={[{ label: 'Cancel', onClick: jest.fn() }]}
             />
         );
+
+        expect(getByText('Cancel')).toBeTruthy();
     });
 
     it('renders result phase with the group picker without crashing', () => {
