@@ -1,10 +1,36 @@
 import React, { FC } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { DeviceSelectionItemProps } from 'incyclist-services';
 
-import WifiIcon from '../../assets/icons/wifi.svg'; 
+import WifiIcon from '../../assets/icons/wifi.svg';
 import BleIcon from '../../assets/icons/ble.svg';
 import { colors,textSizes } from '../../theme'
+
+// Conditional import to prevent Storybook Vite from crashing - same pattern as
+// RouteItemView/WorkoutItemView. The revealed delete action uses RNGH's own
+// TouchableOpacity (not React Native's) since it lives inside Swipeable's
+// gesture tree, where a plain RN TouchableOpacity's tap can be swallowed by the
+// native pan/tap recognizers right after the swipe-open gesture.
+let Swipeable: any = View;
+let ActionTouchableOpacity: any = TouchableOpacity;
+try {
+    if (Platform.OS !== 'web') {
+        const gestureHandler = require('react-native-gesture-handler');
+        Swipeable = gestureHandler.Swipeable;
+        ActionTouchableOpacity = gestureHandler.TouchableOpacity;
+    }
+} catch {
+    // Storybook (Vite) / any environment without the native gesture-handler module:
+    // still render the revealed actions (just inline, unanimated) instead of silently
+    // dropping renderRightActions - otherwise the delete action never appears at all in
+    // Storybook or in Jest/RTL tests, and its wiring can never be exercised.
+    Swipeable = ({ children, renderRightActions }: any) => (
+        <View>
+            {children}
+            {renderRightActions?.()}
+        </View>
+    );
+}
 
 type ComponentProps = DeviceSelectionItemProps &  {
     disabled?: boolean
@@ -17,9 +43,10 @@ const DeviceEntry: FC<ComponentProps> = ({
     disabled,
     interface: deviceInterface,
     isSelected,
-    onClick,    
+    onClick,
+    onDelete,
 }) => {
-  
+
     const renderConnectState = () => {
     switch (connectState) {
         case 'connecting':
@@ -29,37 +56,44 @@ const DeviceEntry: FC<ComponentProps> = ({
         case 'failed':
             return <Text style={[styles.statusIcon, disabled  ? styles.disabled : styles.failed]}>✕</Text>; // Red X
         default:
-            return <Text style={[styles.statusIcon, disabled && styles.disabled]}> </Text>; 
+            return <Text style={[styles.statusIcon, disabled && styles.disabled]}> </Text>;
     }
     };
 
   const InterfaceIcon = deviceInterface === 'wifi' ? WifiIcon : BleIcon;
 
-    return (
+    const renderRightActions = () => (
+        <ActionTouchableOpacity style={styles.deleteAction} onPress={onDelete}>
+            <Text style={styles.deleteText}>Delete</Text>
+        </ActionTouchableOpacity>
+    );
+
+    const content = (
         <TouchableOpacity disabled={disabled} onPress={disabled ? null: onClick} style={[styles.container, (isSelected&&!disabled) && styles.selected]}>
 
-            <View style={styles.colState}>            
-                {/* Placeholder for optional delete button (e.g., hidden until hover in web) */}
-                {/* On native, delete might be a swipe gesture or a long press action */}
-                {/* <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-                    <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity> */}
+            <View style={styles.colState}>
                 {renderConnectState()}
             </View>
 
-            <View style={styles.colDeviceName}>            
+            <View style={styles.colDeviceName}>
                 <Text style={[styles.deviceName,disabled && styles.disabled]} >{deviceName}</Text>
             </View>
 
-            <View style={styles.value}>            
+            <View style={styles.value}>
                 <Text style={[styles.deviceName,disabled && styles.disabled]}>{value??' '}</Text>
             </View>
-            
+
             <View style={styles.colInterface}>
                 <InterfaceIcon width={20} height={20} fill="#fff" style={styles.interfaceIcon} />
             </View>
         </TouchableOpacity>
     );
+
+    // No delete gesture when the row is disabled ("Disable All" checked) or when
+    // the page service hasn't wired an onDelete handler for this entry.
+    if (!onDelete || disabled) return content;
+
+    return <Swipeable renderRightActions={renderRightActions}>{content}</Swipeable>;
 };
 
 const styles = StyleSheet.create({
@@ -114,7 +148,18 @@ const styles = StyleSheet.create({
   },
   interfaceIcon: {
     marginLeft: 5,
-  }
+  },
+  deleteAction: {
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    paddingVertical: 8,
+  },
+  deleteText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
 });
 
 export default DeviceEntry;
