@@ -9,7 +9,7 @@ export interface RideMenuProps {
     onCloseRidePage?:()=> void;
 }
 
-export type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | null;
+export type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | 'workoutSettings' | null;
 
 export interface RideMenuViewProps {
     visible: boolean;
@@ -30,7 +30,7 @@ export interface RideMenuViewProps {
     // workout-only ride has no route to fall back to, so ending the ride and stopping the
     // workout are the same action; a distinct "Stop Workout" action (stop workout, keep riding
     // in SIM mode) only makes sense once a ride can carry a workout AND a route, phase 2.
-    // Menu gains Step Back / Step Forward / Increase / Decrease Load.
+    // Menu gains Step Back / Step Forward / Increase / Decrease Load / Workout Settings.
     workout?: boolean;
     canStepBack?: boolean;
     canStepForward?: boolean;
@@ -38,9 +38,12 @@ export interface RideMenuViewProps {
     onStepForward?: () => void;
     onIncreaseLoad?: () => void;
     onDecreaseLoad?: () => void;
+    // Opens WorkoutSettingsDialog (session 5.10) - load-increment editing, gated by `workout`.
+    onWorkoutSettings?: () => void;
 
     // the following props are required for Storybook
     renderGearSettings?: () => React.ReactNode;
     renderRideSettings?: () => React.ReactNode;
     renderActivitySummary?: () => React.ReactNode;
+    renderWorkoutSettings?: () => React.ReactNode;
 }
