@@ -139,4 +139,65 @@ describe('WorkoutImportDialog', () => {
             expect(mockImportObserver.on).toHaveBeenCalledWith('error', expect.any(Function));
         });
     });
+
+    // Session 5.12 follow-up: the 'importing' phase used to render zero buttons, leaving no way
+    // to back out of even a normal (non-buggy) slow import. There's no real abort for the
+    // single-file import chain in WorkoutListPageService (parse/build/save is one promise chain
+    // with no checkpoint to interrupt), so Cancel here means the dialog stops listening for the
+    // in-flight import's result and closes immediately - the underlying promise keeps running in
+    // the background. WorkoutListPageService.onImportClose() (already called by Cancel here, and
+    // by useUnmountEffect on every unmount) guards against that background result resurrecting
+    // stale state once it settles - see the importToken tests in services' service.unit.test.ts.
+    describe('Cancel during importing', () => {
+        beforeEach(() => {
+            mockObserver.on.mockClear();
+            mockObserver.off.mockClear();
+            mockService.onImportClose.mockClear();
+            mockService.getImportDisplayProps.mockClear();
+            mockService.getImportDisplayProps.mockReturnValue({
+                phase: 'importing',
+                knownGroups: ['My Workouts'],
+                importing: { fileName: 'sweet-spot.zwo' },
+            });
+        });
+
+        it('renders a Cancel button during the importing phase', () => {
+            const { getByText } = render(<WorkoutImportDialog onClose={jest.fn()} />);
+            expect(getByText('Cancel')).toBeTruthy();
+        });
+
+        it('tapping Cancel closes the dialog and resets the service-side import state', () => {
+            const onClose = jest.fn();
+            const { getByText } = render(<WorkoutImportDialog onClose={onClose} />);
+
+            fireEvent.press(getByText('Cancel'));
+
+            expect(mockService.onImportClose).toHaveBeenCalled();
+            expect(onClose).toHaveBeenCalled();
+        });
+
+        it('an import-update fired after Cancel (a late-arriving result) does not throw once the dialog has unmounted', () => {
+            const onClose = jest.fn();
+            const { getByText, unmount } = render(<WorkoutImportDialog onClose={onClose} />);
+
+            const [, registeredHandler] = mockObserver.on.mock.calls[mockObserver.on.mock.calls.length - 1];
+
+            fireEvent.press(getByText('Cancel'));
+            // mirrors what the real parent (WorkoutsPage) does once onClose() fires: it stops
+            // rendering the dialog, which runs useUnmountEffect's own onImportClose() call too.
+            unmount();
+
+            // simulate the now-discarded import's promise finally settling and the service
+            // emitting 'import-update' on the (still-shared) page observer
+            mockService.getImportDisplayProps.mockReturnValueOnce({
+                phase: 'result',
+                knownGroups: ['My Workouts'],
+                result: { id: 'w-1', workoutName: 'Late Result', group: 'My Workouts' },
+            });
+
+            expect(() => registeredHandler()).not.toThrow();
+            // the unmounted dialog must not still be subscribed by this point
+            expect(mockObserver.off).toHaveBeenCalledWith('import-update', registeredHandler);
+        });
+    });
 });
