@@ -41,6 +41,10 @@ jest.mock('../ActivitySummaryDialog', () => ({
     ActivitySummaryDialog: () => null,
 }));
 
+jest.mock('../WorkoutSettingsDialog', () => ({
+    WorkoutSettingsDialog: () => null,
+}));
+
 const mockProps = {
     visible: false,
     showResume: false,
@@ -64,6 +68,7 @@ const workoutProps = {
     onStepForward: jest.fn(),
     onIncreaseLoad: jest.fn(),
     onDecreaseLoad: jest.fn(),
+    onWorkoutSettings: jest.fn(),
 };
 
 describe('RideMenuView', () => {
@@ -177,5 +182,28 @@ describe('RideMenuView', () => {
         );
         expect(queryByLabelText('Step Back')).toBeNull();
         expect(queryByLabelText('Increase Load')).toBeNull();
+    });
+
+    it('renders the Workout Settings menu item on a workout ride', () => {
+        const { getByText } = render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} />);
+        expect(getByText('Workout Settings')).toBeTruthy();
+    });
+
+    it('does not render the Workout Settings menu item outside workout mode', () => {
+        const { queryByText } = render(<RideMenuView {...mockProps} visible={true} activeDialog={null} />);
+        expect(queryByText('Workout Settings')).toBeNull();
+    });
+
+    it('calls onWorkoutSettings when Workout Settings is pressed', () => {
+        const onWorkoutSettings = jest.fn();
+        const { getByText } = render(
+            <RideMenuView {...workoutProps} visible={true} activeDialog={null} onWorkoutSettings={onWorkoutSettings} />
+        );
+        fireEvent.press(getByText('Workout Settings'));
+        expect(onWorkoutSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders with Workout Settings dialog active', () => {
+        render(<RideMenuView {...workoutProps} visible={true} activeDialog='workoutSettings' />);
     });
 });

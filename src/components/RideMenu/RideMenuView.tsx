@@ -19,6 +19,7 @@ import { Button } from '../ButtonBar';
 import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { ActivitySummaryDialog } from '../ActivitySummaryDialog';
+import { WorkoutSettingsDialog } from '../WorkoutSettingsDialog';
 
 interface RowButtonSpec {
     icon: any;
@@ -47,10 +48,12 @@ export const RideMenuView = ({
     onStepForward = () => {},
     onIncreaseLoad = () => {},
     onDecreaseLoad = () => {},
+    onWorkoutSettings = () => {},
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
     renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
     renderActivitySummary = () => <ActivitySummaryDialog onClose={onDialogClose} onExit={onExitFromSummary} />,
+    renderWorkoutSettings = () => <WorkoutSettingsDialog onClose={onDialogClose} />,
 
 }: RideMenuViewProps) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -218,6 +221,11 @@ export const RideMenuView = ({
                         )}
                         {renderMenuItem('settings', 'Gear Settings', onGearSettings)}
                         {renderMenuItem('controller', 'Ride Settings', onRideSettings)}
+                        {/* 'gear' is a real icon (unlike 'settings'/'controller' above, which are not
+                            in Icon's IconName union and silently render blank - a pre-existing gap,
+                            not introduced here; using a valid name for this new item rather than
+                            compounding it). */}
+                        {workout && renderMenuItem('gear', 'Workout Settings', onWorkoutSettings)}
                     </ScrollView>
                 </View>
 
@@ -231,6 +239,7 @@ export const RideMenuView = ({
             {activeDialog === 'gearSettings' && renderGearSettings()}
             {activeDialog === 'rideSettings' && renderRideSettings()}
             {activeDialog === 'activitySummary' && renderActivitySummary()}
+            {activeDialog === 'workoutSettings' && renderWorkoutSettings()}
         </View>
     );
 };

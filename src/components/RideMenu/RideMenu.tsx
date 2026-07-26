@@ -52,6 +52,10 @@ export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseR
         setActiveDialog('rideSettings');
     }, []);
 
+    const handleWorkoutSettings = useCallback(() => {
+        setActiveDialog('workoutSettings');
+    }, []);
+
     const handlePauseResume = useCallback(() => {
         if (showResume) {
             logEvent({ message: 'button clicked', button: 'Resume' });
@@ -109,6 +113,7 @@ export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseR
             onDecreaseLoad={handleDecreaseLoad}
             onGearSettings={handleGearSettings}
             onRideSettings={handleRideSettings}
+            onWorkoutSettings={handleWorkoutSettings}
             onDialogClose={handleDialogClose}
             onExitFromSummary={handleExitFromSummary}
         />
