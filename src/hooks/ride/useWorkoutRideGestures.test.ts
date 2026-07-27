@@ -3,6 +3,7 @@ import { Vibration } from 'react-native';
 import {
     useWorkoutRideGestures,
     classifySwipe,
+    formatTargetPower,
     DEFAULT_WORKOUT_LOAD_INCREMENT,
     WORKOUT_LOAD_INCREMENT_SETTING_KEY,
 } from './useWorkoutRideGestures';
@@ -37,6 +38,24 @@ jest.mock('react-native-gesture-handler', () => ({
     Gesture: { Pan: jest.fn(() => mockPanBuilder) },
 }));
 
+describe('formatTargetPower', () => {
+    it('formats a whole-number watt value', () => {
+        expect(formatTargetPower(275)).toBe(' (275W)');
+    });
+
+    it('rounds a fractional watt value to the nearest whole number', () => {
+        expect(formatTargetPower(254.6)).toBe(' (255W)');
+    });
+
+    it('returns an empty string when the value is undefined', () => {
+        expect(formatTargetPower(undefined)).toBe('');
+    });
+
+    it('returns an empty string when the value is NaN', () => {
+        expect(formatTargetPower(NaN)).toBe('');
+    });
+});
+
 describe('classifySwipe', () => {
     it('returns null for movement below both thresholds', () => {
         expect(classifySwipe(10, 5, 50, 50)).toBeNull();
@@ -67,6 +86,7 @@ describe('useWorkoutRideGestures', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockGetValue.mockImplementation((_key: string, def: any) => def);
+        mockAdjustLoad.mockReturnValue(undefined);
         jest.useFakeTimers();
         capturedOnEnd = undefined;
     });
@@ -134,25 +154,50 @@ describe('useWorkoutRideGestures', () => {
         expect(result.current.feedback.message).toBe('Step Forward ▶');
     });
 
-    it('increases load by the configured increment on an upward swipe', () => {
+    it('increases load by the configured increment on an upward swipe and shows the resulting Watts', () => {
         mockGetValue.mockImplementation(() => 5);
+        mockAdjustLoad.mockReturnValue(275);
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
         expect(mockGetValue).toHaveBeenCalledWith(WORKOUT_LOAD_INCREMENT_SETTING_KEY, DEFAULT_WORKOUT_LOAD_INCREMENT);
         expect(mockAdjustLoad).toHaveBeenCalledWith(5);
-        expect(result.current.feedback.message).toBe('+5%');
+        expect(result.current.feedback.message).toBe('+5% (275W)');
     });
 
-    it('decreases load by the configured increment on a downward swipe', () => {
+    it('decreases load by the configured increment on a downward swipe and shows the resulting Watts', () => {
         mockGetValue.mockImplementation(() => 1);
+        mockAdjustLoad.mockReturnValue(255);
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
         });
         expect(mockAdjustLoad).toHaveBeenCalledWith(-1);
-        expect(result.current.feedback.message).toBe('-1%');
+        expect(result.current.feedback.message).toBe('-1% (255W)');
+    });
+
+    // Graduated-step case (services WorkoutRideService.powerUp/powerDown, minPower!==maxPower):
+    // targetPower is nudged directly by a fixed Watt amount rather than derived from FTP. The
+    // hook must show whatever adjustLoad() returns verbatim - it must not re-derive Watts itself.
+    it('shows a fractional graduated-step targetPower rounded to a whole number', () => {
+        mockGetValue.mockImplementation(() => 1);
+        mockAdjustLoad.mockReturnValue(154.6);
+        const { result } = renderHook(() => useWorkoutRideGestures());
+        act(() => {
+            capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+        });
+        expect(result.current.feedback.message).toBe('+1% (155W)');
+    });
+
+    it('falls back to a bare percentage when adjustLoad cannot report a resulting Watts value', () => {
+        mockGetValue.mockImplementation(() => 5);
+        mockAdjustLoad.mockReturnValue(undefined);
+        const { result } = renderHook(() => useWorkoutRideGestures());
+        act(() => {
+            capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+        });
+        expect(result.current.feedback.message).toBe('+5%');
     });
 
     it('does not call any service method or show feedback below both thresholds', () => {

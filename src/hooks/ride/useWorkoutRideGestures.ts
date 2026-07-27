@@ -50,6 +50,18 @@ export const classifySwipe = (
     return translationY > 0 ? 'down' : 'up';
 };
 
+// Appends the resulting absolute power target to the swipe feedback, e.g. "+5% (275W)". The value
+// comes straight from adjustLoad()'s return (the actual post-adjustment targetPower reported by
+// WorkoutRideService.powerUp()/powerDown()) rather than being re-derived from FTP on this side -
+// the "graduated" step case adjusts targetPower directly without changing FTP, so an FTP-based
+// recompute here would be wrong for that case. Omitted entirely if the value is unavailable.
+export const formatTargetPower = (targetPower: number | undefined): string => {
+    if (targetPower === undefined || targetPower === null || Number.isNaN(targetPower)) {
+        return '';
+    }
+    return ` (${Math.round(targetPower)}W)`;
+};
+
 export interface WorkoutRideGestureFeedback {
     visible: boolean;
     message: string;
@@ -112,15 +124,15 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
             case 'up': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });
-                service.adjustLoad(increment);
-                showFeedback(`+${increment}%`);
+                const targetPower = service.adjustLoad(increment);
+                showFeedback(`+${increment}%${formatTargetPower(targetPower)}`);
                 break;
             }
             case 'down': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-down', action: 'decrease-load', increment, eventSource: 'user' });
-                service.adjustLoad(-increment);
-                showFeedback(`-${increment}%`);
+                const targetPower = service.adjustLoad(-increment);
+                showFeedback(`-${increment}%${formatTargetPower(targetPower)}`);
                 break;
             }
         }
