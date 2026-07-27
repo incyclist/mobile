@@ -94,8 +94,10 @@ export const useFilePicker = (): UseFilePickerResult => {
             }
         }
         catch (err: any) {
+
             // User cancelled the document picker — this is not an error
-            if (err?.code === 'DOCUMENT_PICKER_CANCELED') {
+            if (err?.code === 'DOCUMENT_PICKER_CANCELED' || err?.code === 'OPERATION_CANCELED') {
+                logEvent({ message:'file picker cancelled', eventSource:'user' })
                 return null
             }
             // Re-throw real errors to the caller
