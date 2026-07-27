@@ -12,6 +12,7 @@ import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
 import { Platform } from 'react-native';
 import { getFileSystemBinding } from '../../bindings/fs';
+import { mapAndroidErrorCode } from './mapAndroidErrorCode';
 
 export const Video = (props: VideoProps) => {
     const {
@@ -165,8 +166,11 @@ export const Video = (props: VideoProps) => {
 
     const handleError = useCallback((error: OnVideoErrorData) => {
         const hasErrorCode = error?.error?.errorCode !== undefined
-        const code = hasErrorCode
-            ? Number(error.error.errorCode) 
+        const rawCode = hasErrorCode
+            ? Number(error.error.errorCode)
+            : undefined;
+        const code = Platform.OS === 'android' && rawCode !== undefined
+            ? mapAndroidErrorCode(rawCode)
             : undefined;
 
         const message = error?.error?.errorString ?? error?.error?.localizedDescription;
