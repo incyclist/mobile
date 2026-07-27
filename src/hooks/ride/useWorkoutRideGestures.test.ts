@@ -3,7 +3,7 @@ import { Vibration } from 'react-native';
 import {
     useWorkoutRideGestures,
     classifySwipe,
-    formatAdjustedFtp,
+    formatPowerAdjustment,
     DEFAULT_WORKOUT_LOAD_INCREMENT,
     WORKOUT_LOAD_INCREMENT_SETTING_KEY,
 } from './useWorkoutRideGestures';
@@ -38,21 +38,25 @@ jest.mock('react-native-gesture-handler', () => ({
     Gesture: { Pan: jest.fn(() => mockPanBuilder) },
 }));
 
-describe('formatAdjustedFtp', () => {
-    it('formats a whole-number watt value', () => {
-        expect(formatAdjustedFtp(220)).toBe(' (220W)');
+describe('formatPowerAdjustment', () => {
+    it('labels an FTP adjustment with "FTP:"', () => {
+        expect(formatPowerAdjustment({ type: 'ftp', value: 220 })).toBe(' (FTP: 220W)');
+    });
+
+    it('shows a target-power adjustment as a bare watt value, no label', () => {
+        expect(formatPowerAdjustment({ type: 'targetPower', value: 155 })).toBe(' (155W)');
     });
 
     it('rounds a fractional watt value to the nearest whole number', () => {
-        expect(formatAdjustedFtp(254.6)).toBe(' (255W)');
+        expect(formatPowerAdjustment({ type: 'ftp', value: 254.6 })).toBe(' (FTP: 255W)');
     });
 
-    it('returns an empty string when the value is undefined', () => {
-        expect(formatAdjustedFtp(undefined)).toBe('');
+    it('returns an empty string when the result is undefined', () => {
+        expect(formatPowerAdjustment(undefined)).toBe('');
     });
 
     it('returns an empty string when the value is NaN', () => {
-        expect(formatAdjustedFtp(NaN)).toBe('');
+        expect(formatPowerAdjustment({ type: 'ftp', value: NaN })).toBe('');
     });
 });
 
@@ -154,33 +158,35 @@ describe('useWorkoutRideGestures', () => {
         expect(result.current.feedback.message).toBe('Step Forward ▶');
     });
 
-    it('increases load by the configured increment on an upward swipe and shows the adjusted Workout FTP', () => {
+    it('increases load by the configured increment on an upward swipe and shows the adjusted Workout FTP, labelled', () => {
         mockGetValue.mockImplementation(() => 5);
-        mockAdjustLoad.mockReturnValue(220);
+        mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 220 });
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
         expect(mockGetValue).toHaveBeenCalledWith(WORKOUT_LOAD_INCREMENT_SETTING_KEY, DEFAULT_WORKOUT_LOAD_INCREMENT);
         expect(mockAdjustLoad).toHaveBeenCalledWith(5);
-        expect(result.current.feedback.message).toBe('+5% (220W)');
+        expect(result.current.feedback.message).toBe('+5% (FTP: 220W)');
     });
 
-    it('decreases load by the configured increment on a downward swipe and shows the adjusted Workout FTP', () => {
+    it('decreases load by the configured increment on a downward swipe and shows the adjusted Workout FTP, labelled', () => {
         mockGetValue.mockImplementation(() => 1);
-        mockAdjustLoad.mockReturnValue(91);
+        mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 91 });
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
         });
         expect(mockAdjustLoad).toHaveBeenCalledWith(-1);
-        expect(result.current.feedback.message).toBe('-1% (91W)');
+        expect(result.current.feedback.message).toBe('-1% (FTP: 91W)');
     });
 
-    // The hook must show whatever adjustLoad() returns verbatim - it must not re-derive Watts itself.
-    it('shows a fractional adjusted-FTP value rounded to a whole number', () => {
+    // Regression: a step that allows a power range (e.g. 120-170W) nudges targetPower directly,
+    // without touching FTP - feedback must show the plain Watts value, with no "FTP:" label, since
+    // it isn't the workout's FTP that moved.
+    it('shows a range-step target power adjustment as a bare watt value, no FTP label', () => {
         mockGetValue.mockImplementation(() => 1);
-        mockAdjustLoad.mockReturnValue(154.6);
+        mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: 155 });
         const { result } = renderHook(() => useWorkoutRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
@@ -188,7 +194,18 @@ describe('useWorkoutRideGestures', () => {
         expect(result.current.feedback.message).toBe('+1% (155W)');
     });
 
-    it('falls back to a bare percentage when adjustLoad cannot report an adjusted FTP (e.g. no FTP configured)', () => {
+    // The hook must show whatever adjustLoad() returns verbatim - it must not re-derive Watts itself.
+    it('shows a fractional adjusted value rounded to a whole number', () => {
+        mockGetValue.mockImplementation(() => 1);
+        mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 154.6 });
+        const { result } = renderHook(() => useWorkoutRideGestures());
+        act(() => {
+            capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+        });
+        expect(result.current.feedback.message).toBe('+1% (FTP: 155W)');
+    });
+
+    it('falls back to a bare percentage when adjustLoad cannot report an adjustment (e.g. no FTP configured)', () => {
         mockGetValue.mockImplementation(() => 5);
         mockAdjustLoad.mockReturnValue(undefined);
         const { result } = renderHook(() => useWorkoutRideGestures());

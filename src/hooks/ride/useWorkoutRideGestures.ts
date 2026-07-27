@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, Vibration } from 'react-native';
-import { getWorkoutRidePageService, useUserSettings } from 'incyclist-services';
+import { getWorkoutRidePageService, useUserSettings, type PowerAdjustmentResult } from 'incyclist-services';
 import { useLogging } from '../logging';
 
 // Conditional import to prevent Storybook/web from crashing (same pattern as RouteItemView/WorkoutItemView)
@@ -50,15 +50,17 @@ export const classifySwipe = (
     return translationY > 0 ? 'down' : 'up';
 };
 
-// Appends the adjusted Workout FTP to the swipe feedback, e.g. "+5% (220W)". The value comes
-// straight from adjustLoad()'s return (the actual post-adjustment settings.ftp reported by
-// WorkoutRideService.powerUp()/powerDown()). Omitted entirely if the value is unavailable (e.g. no
-// FTP configured for this workout).
-export const formatAdjustedFtp = (adjustedFtp: number | undefined): string => {
-    if (adjustedFtp === undefined || adjustedFtp === null || Number.isNaN(adjustedFtp)) {
+// Appends the adjusted quantity to the swipe feedback. adjustLoad() reports two distinct cases
+// (WorkoutRideService.powerUp()/powerDown()): a step that allows a power range (e.g. 120-170W)
+// has its targetPower nudged directly - "+5% (155W)"; otherwise the Workout FTP itself was scaled -
+// "+5% (FTP: 220W)", labelled so it isn't mistaken for the current step's target. Omitted entirely
+// when unavailable (e.g. no FTP configured and the current step isn't a power range).
+export const formatPowerAdjustment = (result: PowerAdjustmentResult | undefined): string => {
+    if (!result || Number.isNaN(result.value)) {
         return '';
     }
-    return ` (${Math.round(adjustedFtp)}W)`;
+    const watts = Math.round(result.value);
+    return result.type === 'ftp' ? ` (FTP: ${watts}W)` : ` (${watts}W)`;
 };
 
 export interface WorkoutRideGestureFeedback {
@@ -123,15 +125,15 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
             case 'up': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });
-                const adjustedFtp = service.adjustLoad(increment);
-                showFeedback(`+${increment}%${formatAdjustedFtp(adjustedFtp)}`);
+                const result = service.adjustLoad(increment);
+                showFeedback(`+${increment}%${formatPowerAdjustment(result)}`);
                 break;
             }
             case 'down': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-down', action: 'decrease-load', increment, eventSource: 'user' });
-                const adjustedFtp = service.adjustLoad(-increment);
-                showFeedback(`-${increment}%${formatAdjustedFtp(adjustedFtp)}`);
+                const result = service.adjustLoad(-increment);
+                showFeedback(`-${increment}%${formatPowerAdjustment(result)}`);
                 break;
             }
         }
