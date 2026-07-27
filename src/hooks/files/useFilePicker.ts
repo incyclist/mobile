@@ -4,8 +4,11 @@ import { useLogging } from '../logging'
 import { Platform } from 'react-native'
 import { buildFileInfo } from '../../utils/file'
 
+// Module-level re-entrancy guard to prevent concurrent pick() calls
+let inFlightPick = false
+
 export interface FilePickerProps {
-    extensions?:Array<string>    
+    extensions?:Array<string>
 }
 
 /**
@@ -29,6 +32,14 @@ export const useFilePicker = (): UseFilePickerResult => {
 
         if (Platform.OS==='web')
             return null
+
+        // Guard against concurrent pick() calls from rapid user input (e.g., double-tap)
+        if (inFlightPick) {
+            logEvent({ message:'file picker already in progress, ignoring duplicate call' })
+            return null
+        }
+
+        inFlightPick = true
 
         try {
             logEvent({ message:'file picker shown', props:pickProps })
@@ -102,6 +113,10 @@ export const useFilePicker = (): UseFilePickerResult => {
             }
             // Re-throw real errors to the caller
             throw err
+        }
+        finally {
+            // Always reset the guard, even if an error occurs or user cancels
+            inFlightPick = false
         }
     }
 
