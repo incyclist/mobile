@@ -132,7 +132,8 @@ export const App = ({ secretsStatus }: AppProps) => {
                     const platform = Platform.OS
                     const emulator = await isEmulator()
                     const release = getSystemVersion()
-                    const mem = await getTotalMemory()
+                    const memBytes = await getTotalMemory()
+                    const mem = Math.round(memBytes/1024/1024/1024) + ' GB'
         
                     logEvent( {message:'os info',platform,release,emulator, mem})
                     
