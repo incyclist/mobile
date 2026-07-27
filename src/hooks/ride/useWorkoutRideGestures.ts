@@ -50,16 +50,15 @@ export const classifySwipe = (
     return translationY > 0 ? 'down' : 'up';
 };
 
-// Appends the resulting absolute power target to the swipe feedback, e.g. "+5% (275W)". The value
-// comes straight from adjustLoad()'s return (the actual post-adjustment targetPower reported by
-// WorkoutRideService.powerUp()/powerDown()) rather than being re-derived from FTP on this side -
-// the "graduated" step case adjusts targetPower directly without changing FTP, so an FTP-based
-// recompute here would be wrong for that case. Omitted entirely if the value is unavailable.
-export const formatTargetPower = (targetPower: number | undefined): string => {
-    if (targetPower === undefined || targetPower === null || Number.isNaN(targetPower)) {
+// Appends the adjusted Workout FTP to the swipe feedback, e.g. "+5% (220W)". The value comes
+// straight from adjustLoad()'s return (the actual post-adjustment settings.ftp reported by
+// WorkoutRideService.powerUp()/powerDown()). Omitted entirely if the value is unavailable (e.g. no
+// FTP configured for this workout).
+export const formatAdjustedFtp = (adjustedFtp: number | undefined): string => {
+    if (adjustedFtp === undefined || adjustedFtp === null || Number.isNaN(adjustedFtp)) {
         return '';
     }
-    return ` (${Math.round(targetPower)}W)`;
+    return ` (${Math.round(adjustedFtp)}W)`;
 };
 
 export interface WorkoutRideGestureFeedback {
@@ -124,15 +123,15 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
             case 'up': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });
-                const targetPower = service.adjustLoad(increment);
-                showFeedback(`+${increment}%${formatTargetPower(targetPower)}`);
+                const adjustedFtp = service.adjustLoad(increment);
+                showFeedback(`+${increment}%${formatAdjustedFtp(adjustedFtp)}`);
                 break;
             }
             case 'down': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-down', action: 'decrease-load', increment, eventSource: 'user' });
-                const targetPower = service.adjustLoad(-increment);
-                showFeedback(`-${increment}%${formatTargetPower(targetPower)}`);
+                const adjustedFtp = service.adjustLoad(-increment);
+                showFeedback(`-${increment}%${formatAdjustedFtp(adjustedFtp)}`);
                 break;
             }
         }
