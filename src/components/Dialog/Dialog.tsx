@@ -20,6 +20,21 @@ import { colors, textSizes } from '../../theme';
 import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
 import { EventLogger } from 'gd-eventlog';
 
+// Conditional import - same pattern as DeviceEntry/RouteItemView/WorkoutItemView: a static
+// import of react-native-gesture-handler crashes in Jest (no native RNGestureHandlerModule)
+// and in Storybook/Vite. RN's Modal renders its subtree on a separate native surface, outside
+// the app root's GestureHandlerRootView (see App.tsx), so any Swipeable/gesture-handler content
+// rendered inside a Dialog needs its own nested root - falling back to a plain View keeps
+// Dialog's own tests/Storybook usage working when the native module isn't available.
+let GestureHandlerRootView: any = View;
+try {
+    if (Platform.OS !== 'web') {
+        GestureHandlerRootView = require('react-native-gesture-handler').GestureHandlerRootView;
+    }
+} catch {
+    GestureHandlerRootView = View;
+}
+
 export const Dialog = ({
     title,
     titleStyle,
@@ -143,48 +158,50 @@ export const Dialog = ({
                 presentationStyle="overFullScreen"                              
                 onRequestClose={onOutsideClick}
             >
-                <Animated.View style={[
-                    styles.fullScreenWrapper,
-                    { transform: [dynamicTransform] },
-                ]}>
-                    <View style={styles.fullLayout}>
-                        <TouchableOpacity
-                            style={styles.strip}
-                            onPress={onOutsideClick}
-                            activeOpacity={1}
-                        />
-                        <BackgroundContainer
-                            colors={gradientColors}
-                            style={[backgroundStyle, styles.fullContentArea, style]}
-                        >
-                            <View style={styles.header}>
-                                <Text style={[styles.title, titleStyle]}>{title}</Text>
-                            </View>
+                <GestureHandlerRootView style={styles.fullScreenWrapper}>
+                    <Animated.View style={[
+                        styles.fullScreenWrapper,
+                        { transform: [dynamicTransform] },
+                    ]}>
+                        <View style={styles.fullLayout}>
+                            <TouchableOpacity
+                                style={styles.strip}
+                                onPress={onOutsideClick}
+                                activeOpacity={1}
+                            />
+                            <BackgroundContainer
+                                colors={gradientColors}
+                                style={[backgroundStyle, styles.fullContentArea, style]}
+                            >
+                                <View style={styles.header}>
+                                    <Text style={[styles.title, titleStyle]}>{title}</Text>
+                                </View>
 
-                            {scrollable ? (
-                                <ScrollView
-                                    style={styles.scrollArea}
-                                    contentContainerStyle={styles.content}
-                                    bounces={false}
-                                >
-                                    {children}
-                                </ScrollView>
-                            ) : (
-                                <View style={styles.scrollArea}>
-                                    <View style={styles.content}>
+                                {scrollable ? (
+                                    <ScrollView
+                                        style={styles.scrollArea}
+                                        contentContainerStyle={styles.content}
+                                        bounces={false}
+                                    >
                                         {children}
+                                    </ScrollView>
+                                ) : (
+                                    <View style={styles.scrollArea}>
+                                        <View style={styles.content}>
+                                            {children}
+                                        </View>
                                     </View>
-                                </View>
-                            )}
+                                )}
 
-                            {buttons?.length ? (
-                                <View style={styles.footer}>
-                                    <ButtonBar buttons={buttons} />
-                                </View>
-                            ) : <></>}
-                        </BackgroundContainer>
-                    </View>
-                </Animated.View>
+                                {buttons?.length ? (
+                                    <View style={styles.footer}>
+                                        <ButtonBar buttons={buttons} />
+                                    </View>
+                                ) : <></>}
+                            </BackgroundContainer>
+                        </View>
+                    </Animated.View>
+                </GestureHandlerRootView>
             </Modal>
         );
     }
@@ -198,43 +215,45 @@ export const Dialog = ({
             presentationStyle="overFullScreen"              
             supportedOrientations={['landscape']}
         >
-            <TouchableWithoutFeedback onPress={onOutsideClick}>
-                <View style={styles.overlay}>
-                    <TouchableWithoutFeedback>
-                        <BackgroundContainer
-                            colors={gradientColors}
-                            style={[backgroundStyle, style]}
-                        >
-                            <View style={styles.header}>
-                                <Text style={[styles.title, titleStyle]}>{title}</Text>
-                            </View>
+            <GestureHandlerRootView style={styles.fullScreenWrapper}>
+                <TouchableWithoutFeedback onPress={onOutsideClick}>
+                    <View style={styles.overlay}>
+                        <TouchableWithoutFeedback>
+                            <BackgroundContainer
+                                colors={gradientColors}
+                                style={[backgroundStyle, style]}
+                            >
+                                <View style={styles.header}>
+                                    <Text style={[styles.title, titleStyle]}>{title}</Text>
+                                </View>
 
-                            {scrollable ? (
-                                <ScrollView
-                                    style={styles.scrollArea}
-                                    contentContainerStyle={styles.content}
-                                    bounces={false}
-                                >
-                                    {children}
-                                </ScrollView>
-                            ) : (
-                                <View style={styles.scrollArea}>
-                                    <View style={styles.content}>
+                                {scrollable ? (
+                                    <ScrollView
+                                        style={styles.scrollArea}
+                                        contentContainerStyle={styles.content}
+                                        bounces={false}
+                                    >
                                         {children}
+                                    </ScrollView>
+                                ) : (
+                                    <View style={styles.scrollArea}>
+                                        <View style={styles.content}>
+                                            {children}
+                                        </View>
                                     </View>
-                                </View>
-                            )}
+                                )}
 
-                            {buttons?.length ? (
-                                <View style={styles.footer}>
-                                    <ButtonBar buttons={buttons} />
-                                </View>
-                            ) : <></>}
+                                {buttons?.length ? (
+                                    <View style={styles.footer}>
+                                        <ButtonBar buttons={buttons} />
+                                    </View>
+                                ) : <></>}
 
-                        </BackgroundContainer>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
+                            </BackgroundContainer>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </GestureHandlerRootView>
         </Modal>
     );
 };
