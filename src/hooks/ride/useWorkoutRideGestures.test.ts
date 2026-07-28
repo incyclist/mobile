@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { Vibration } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import {
     useWorkoutRideGestures,
     classifySwipe,
@@ -12,6 +12,11 @@ const mockOnStepBack = jest.fn();
 const mockOnStepForward = jest.fn();
 const mockAdjustLoad = jest.fn();
 const mockGetValue = jest.fn((_key: string, def: any) => def);
+const mockGetVersion = jest.fn(() => '1.0.19');
+
+jest.mock('react-native-device-info', () => ({
+    getVersion: () => mockGetVersion(),
+}));
 
 jest.mock('incyclist-services', () => ({
     getWorkoutRidePageService: () => ({
@@ -91,6 +96,8 @@ describe('useWorkoutRideGestures', () => {
         jest.clearAllMocks();
         mockGetValue.mockImplementation((_key: string, def: any) => def);
         mockAdjustLoad.mockReturnValue(undefined);
+        mockGetVersion.mockReturnValue('1.0.19');
+        Platform.OS = 'ios';
         jest.useFakeTimers();
         capturedOnEnd = undefined;
     });
@@ -147,6 +154,50 @@ describe('useWorkoutRideGestures', () => {
 
         expect(mockOnStepBack).toHaveBeenCalledTimes(1);
         expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+    });
+
+    // regression: older Android installs on this hot-updated bundle predate the VIBRATE manifest
+    // permission (added in 1.0.19) - calling Vibration.vibrate() there crashes the app, so it must
+    // be skipped based on the real installed native version, not the JS-bundled app.json version.
+    it('skips vibration on Android when the installed native version predates the VIBRATE permission', () => {
+        Platform.OS = 'android';
+        mockGetVersion.mockReturnValue('1.0.18');
+        const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+        const { result } = renderHook(() => useWorkoutRideGestures());
+
+        act(() => {
+            capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+        });
+
+        expect(vibrateSpy).not.toHaveBeenCalled();
+        expect(mockOnStepBack).toHaveBeenCalledTimes(1);
+        expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+    });
+
+    it('still vibrates on Android once the installed native version has the VIBRATE permission', () => {
+        Platform.OS = 'android';
+        mockGetVersion.mockReturnValue('1.0.19');
+        const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+        const { result } = renderHook(() => useWorkoutRideGestures());
+
+        act(() => {
+            capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+        });
+
+        expect(vibrateSpy).toHaveBeenCalled();
+        expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+    });
+
+    it('always vibrates on iOS regardless of version, since only Android requires the manifest permission', () => {
+        Platform.OS = 'ios';
+        const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+        renderHook(() => useWorkoutRideGestures());
+
+        act(() => {
+            capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+        });
+
+        expect(vibrateSpy).toHaveBeenCalled();
     });
 
     it('steps forward on a right swipe', () => {

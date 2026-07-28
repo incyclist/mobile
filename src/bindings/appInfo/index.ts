@@ -1,4 +1,5 @@
 import RNFS from 'react-native-fs';
+import DeviceInfo from 'react-native-device-info';
 import info from '../../../package.json';
 import appJson from '../../../app.json'
 import {Platform} from 'react-native';
@@ -19,7 +20,11 @@ export const getChannel = ():AppChannel=> {
 
 export const getAppInfo = () => {
     const {name} = info;
-    const {appVersion} = appJson
+    // DeviceInfo.getVersion() reads the real installed native app version. appJson.appVersion
+    // must not be used here: it is baked into this JS bundle at build time, and this bundle is
+    // served as a hot update to every installed native version, so it would report the same
+    // value on every device regardless of what native version is actually installed.
+    const appVersion = DeviceInfo.getVersion();
     const appDir = RNFS.DocumentDirectoryPath;
     const tempDir = RNFS.TemporaryDirectoryPath;
 
@@ -43,7 +48,8 @@ export const getAppInfoBinding = async () => {
 
     return {
         getOS,
-        getAppVersion:()=>appJson.appVersion,
+        // Real installed native version - see getAppInfo() above for why appJson.appVersion is wrong here.
+        getAppVersion:()=>DeviceInfo.getVersion(),
         getUIVersion,
         getAppDir:()=>RNFS.DocumentDirectoryPath,
         getSourceDir:()=>'',

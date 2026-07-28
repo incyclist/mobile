@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, Vibration } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import { getWorkoutRidePageService, useUserSettings, type PowerAdjustmentResult } from 'incyclist-services';
 import { useLogging } from '../logging';
+import { isVersionAtLeast } from '../../utils/version';
 
 // Conditional import to prevent Storybook/web from crashing (same pattern as RouteItemView/WorkoutItemView)
 let Gesture: any;
@@ -24,6 +26,21 @@ const SWIPE_VELOCITY_THRESHOLD = 300;
 
 const FEEDBACK_DURATION_MS = 1200;
 const VIBRATION_DURATION_MS = 40;
+
+// The VIBRATE permission was only added to AndroidManifest.xml starting with app version 1.0.19.
+// This bundle is a hot update served to every installed app regardless of native version, so an
+// older Android install can still load it and crash calling Vibration.vibrate() without the
+// permission. Gate on the actual installed native version (DeviceInfo.getVersion()), not
+// getAppInfo()/app.json - that value is baked into this JS bundle and is identical for every
+// device that loads it, so it can't tell old installs apart from new ones.
+const MIN_ANDROID_VIBRATION_VERSION = '1.0.19';
+
+const canVibrate = (): boolean => {
+    if (Platform.OS !== 'android') {
+        return true;
+    }
+    return isVersionAtLeast(DeviceInfo.getVersion(), MIN_ANDROID_VIBRATION_VERSION);
+};
 
 export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
 
@@ -104,11 +121,13 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
     const handleSwipe = useCallback((direction: SwipeDirection) => {
         // Vibration.vibrate() can throw natively (missing permission, no vibrator motor on this
         // device) - that must never take down an in-progress ride over haptic feedback.
-        try {
-            Vibration.vibrate(VIBRATION_DURATION_MS);
-        }
-        catch (err) {
-            logError(err as Error, 'handleSwipe - vibrate');
+        if (canVibrate()) {
+            try {
+                Vibration.vibrate(VIBRATION_DURATION_MS);
+            }
+            catch (err) {
+                logError(err as Error, 'handleSwipe - vibrate');
+            }
         }
 
         switch (direction) {

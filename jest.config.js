@@ -7,6 +7,7 @@ module.exports = {
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|uuid|@garmin/fitsdk)/)',
   ],
   moduleNameMapper: {
+    '^react-native-device-info$': '<rootDir>/node_modules/react-native-device-info/jest/react-native-device-info-mock.js',
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.tsx',
     'react-native-maps': '<rootDir>/__mocks__/react-native-maps.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
