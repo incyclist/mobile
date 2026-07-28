@@ -6,13 +6,14 @@ import {
     OnProgressData, 
     OnBufferData 
 } from 'react-native-video';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
 import { Platform } from 'react-native';
 import { getFileSystemBinding } from '../../bindings/fs';
 import { mapAndroidErrorCode } from './mapAndroidErrorCode';
+import { resolveNativeVideoSrc } from './resolveNativeVideoSrc';
 
 export const Video = (props: VideoProps) => {
     const {
@@ -36,7 +37,7 @@ export const Video = (props: VideoProps) => {
     const [paused, setPaused] = useState(false);
     const [rate, setRate] = useState(0);
     const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || src.startsWith('http') )
-
+    const {logEvent} = useLogging('Video')
 
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
@@ -266,7 +267,8 @@ export const Video = (props: VideoProps) => {
         return false;
     }
 
-    const cleanSrc =  Platform.OS==='ios' ? encodeURI(src) : src
+    const nativeSrc = resolveNativeVideoSrc(src)
+    const cleanSrc =  Platform.OS==='ios' ? encodeURI(nativeSrc) : nativeSrc
 
     return (
         <VideoView
