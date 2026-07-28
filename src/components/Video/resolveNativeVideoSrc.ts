@@ -30,7 +30,7 @@ const VIDEO_SCHEME_PREFIX = 'video://';
  * returned unchanged.
  */
 export const resolveNativeVideoSrc = (src: string): string => {
-    if (!src || !src.startsWith(VIDEO_SCHEME_PREFIX)) {
+    if (!src?.startsWith(VIDEO_SCHEME_PREFIX)) {
         return src;
     }
 

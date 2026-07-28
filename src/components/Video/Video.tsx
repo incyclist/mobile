@@ -6,7 +6,7 @@ import {
     OnProgressData, 
     OnBufferData 
 } from 'react-native-video';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
@@ -37,7 +37,6 @@ export const Video = (props: VideoProps) => {
     const [paused, setPaused] = useState(false);
     const [rate, setRate] = useState(0);
     const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || src.startsWith('http') )
-    const {logEvent} = useLogging('Video')
 
     const refVideo = useRef<any>(null);
     const refInitialized = useRef<boolean>(false);
