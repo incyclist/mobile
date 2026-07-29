@@ -20,6 +20,7 @@ export const WorkoutGraph = ({
     showAxes,
     showFtpLine,
     height,
+    axisFontSize,
     style,
 }: WorkoutGraphProps) => {
     const [layout, setLayout] = useState({ width: 0, height: 0 });
@@ -45,6 +46,7 @@ export const WorkoutGraph = ({
                     actuals={actuals}
                     showAxes={showAxes}
                     showFtpLine={showFtpLine}
+                    axisFontSize={axisFontSize}
                 />
             )}
         </View>
