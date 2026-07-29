@@ -8,7 +8,7 @@ jest.mock('react-native-device-info', () => ({
     isTablet: () => mockIsTablet(),
 }));
 
-const mockWorkoutGraph = jest.fn(() => null);
+const mockWorkoutGraph = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,

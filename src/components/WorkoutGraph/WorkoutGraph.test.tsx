@@ -15,7 +15,7 @@ const layout = (width: number, height: number) => ({
 
 describe('WorkoutGraph', () => {
     beforeEach(() => {
-        (WorkoutGraphView as jest.Mock).mockClear();
+        (WorkoutGraphView as unknown as jest.Mock).mockClear();
     });
 
     it('forwards an explicit axisFontSize to WorkoutGraphView', () => {
@@ -26,7 +26,7 @@ describe('WorkoutGraph', () => {
         fireEvent(container, 'layout', layout(360, 200));
 
         expect(WorkoutGraphView).toHaveBeenCalled();
-        const props = (WorkoutGraphView as jest.Mock).mock.calls.at(-1)?.[0];
+        const props = (WorkoutGraphView as unknown as jest.Mock).mock.calls.at(-1)?.[0];
         expect(props.axisFontSize).toBe(15);
     });
 
@@ -38,7 +38,7 @@ describe('WorkoutGraph', () => {
         fireEvent(container, 'layout', layout(360, 200));
 
         expect(WorkoutGraphView).toHaveBeenCalled();
-        const props = (WorkoutGraphView as jest.Mock).mock.calls.at(-1)?.[0];
+        const props = (WorkoutGraphView as unknown as jest.Mock).mock.calls.at(-1)?.[0];
         expect(props.axisFontSize).toBeUndefined();
     });
 });
