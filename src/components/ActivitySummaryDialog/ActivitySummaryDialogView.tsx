@@ -4,6 +4,7 @@ import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
+import { WorkoutGraph } from '../WorkoutGraph';
 import { ActivitySummaryDialogViewProps, isFormattedNumber } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
@@ -26,6 +27,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         showMap,
         showSave,
         showContinue,
+        showWorkoutSummary,
+        workoutGraph,
         preview,
         units,
         isSaving,
@@ -230,16 +233,33 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         </View>
     );
 
+    // Route-less workout (no GPS/route at all) - a map/preview makes no sense here, show the
+    // ridden power/HR trace against the plan instead, reusing WorkoutGraph's 'detail' mode (same
+    // component the live ride screen uses, just without a live position marker - see item #19).
+    const WorkoutSummaryPreview = workoutGraph ? (
+        <View style={isCompact ? styles.compactMapContainer : styles.mapContainer}>
+            <WorkoutGraph
+                mode="detail"
+                plan={workoutGraph.plan}
+                actuals={workoutGraph.actuals}
+                showAxes
+                showFtpLine
+            />
+        </View>
+    ) : null;
+
+    const showWorkoutSummaryPreview = showWorkoutSummary && !!WorkoutSummaryPreview;
+
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             {StatsContent}
-            {(showMap || preview) && MapPreview}
+            {showWorkoutSummaryPreview ? WorkoutSummaryPreview : (showMap || preview) && MapPreview}
             {GraphContent}
         </ScrollView>
     ) : (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             <View style={styles.topRow}>
-                {(showMap || preview) && MapPreview}
+                {showWorkoutSummaryPreview ? WorkoutSummaryPreview : (showMap || preview) && MapPreview}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>

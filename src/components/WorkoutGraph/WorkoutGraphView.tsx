@@ -251,10 +251,12 @@ const formatTime = (sec: number): string => {
  * Pure, presized WorkoutGraph renderer. Draws the zone-colored plan bars for
  * every mode — in `live` mode these span the whole current (skip-adjusted)
  * workout, ridden and remaining alike; `detail` adds an FTP reference line and
- * light axes. `live` additionally overlays `actuals` (Power + HR lines +
+ * light axes. `live` and `detail` both overlay `actuals` (Power + HR lines +
  * position marker, plus a color legend) on top of the bars via
  * `ActualsOverlay`/`ActualsLegend`, without greying out or suppressing the
- * already-ridden bars underneath.
+ * already-ridden bars underneath — a completed-ride summary (`detail` +
+ * actuals with `position` outside the domain) reuses this exact overlay,
+ * just without a live marker.
  */
 export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     const {
@@ -279,11 +281,15 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     // off would leave every live-mode caller unreadable unless it remembers to opt in.
     const axes = showAxes ?? (isDetail || isLive);
     const ftpLine = showFtpLine ?? isDetail;
-    const showLegend = isLive && !!actuals;
+    // detail mode overlays actuals too (completed-ride summary use case: the same plan-vs-actuals
+    // trace as live, minus the position marker - callers pass actuals.position outside the domain
+    // so ActualsOverlay's marker rendering is a no-op) - only strip stays plan-only.
+    const showActuals = (isLive || isDetail) && !!actuals;
+    const showLegend = showActuals;
     // Bpm has no relation to the plan's Watt-based y-domain, so Heartrate gets its
     // own axis (right side, colored to match its line) — computed once here and
     // shared with ActualsOverlay so the line and its axis always agree on scale.
-    const hrDomain = isLive ? computeHrDomain(actuals?.heartrate ?? []) : null;
+    const hrDomain = showActuals ? computeHrDomain(actuals?.heartrate ?? []) : null;
     const showHrAxis = axes && !!hrDomain;
 
     let marginRight = 0;
@@ -456,7 +462,7 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     return (
         <Svg width={width} height={height} style={svgStyle}>
             <PlanBars plan={plan} offsetX={offsetX} offsetY={offsetY} plotWidth={plotWidth} plotHeight={plotHeight} />
-            {isLive && actuals && (
+            {showActuals && actuals && (
                 <ActualsOverlay
                     actuals={actuals}
                     domain={plan.domain}

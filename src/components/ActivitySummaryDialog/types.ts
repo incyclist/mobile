@@ -1,8 +1,13 @@
-import { ActivityDetailsUI, FormattedNumber } from 'incyclist-services';
+import { ActivityDetailsUI, FormattedNumber, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
 
 export interface ActivitySummaryDialogProps {
     onClose: () => void;   // dismiss -> back to RideMenu (caller's responsibility)
     onExit: () => void;    // navigate away (caller's responsibility)
+}
+
+export interface ActivityWorkoutSummaryGraph {
+    plan: WorkoutGraphPlan;
+    actuals: WorkoutGraphActuals;
 }
 
 export interface ActivitySummaryDialogViewProps {
@@ -10,6 +15,12 @@ export interface ActivitySummaryDialogViewProps {
     showMap: boolean;
     showSave: boolean;
     showContinue: boolean,
+    // true for a route-less workout (no GPS/route data at all) - render workoutGraph instead of
+    // the map/preview. Mutually exclusive with showMap in practice, but kept as its own flag
+    // (rather than inferred from showMap being false) since "no map, no preview either" is also a
+    // valid state (e.g. workoutGraph itself unavailable).
+    showWorkoutSummary?: boolean;
+    workoutGraph?: ActivityWorkoutSummaryGraph;
     preview?: string;
     units?: Record<string, string>;
     isSaving: boolean;

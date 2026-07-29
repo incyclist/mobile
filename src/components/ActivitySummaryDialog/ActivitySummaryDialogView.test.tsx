@@ -62,6 +62,10 @@ jest.mock('../ActivityGraph', () => ({
     ActivityGraph: 'ActivityGraph',
 }));
 
+jest.mock('../WorkoutGraph', () => ({
+    WorkoutGraph: 'WorkoutGraph',
+}));
+
 jest.mock('../SecureImage', () => ({
     SecureImage: ({ source, ...props }: any) => {
         const { Image } = require('react-native');
@@ -132,5 +136,51 @@ describe('ActivitySummaryDialogView', () => {
     });
     it('renders with showMap=true', () => {
         render(<ActivitySummaryDialogView {...MOCK_PROPS} showMap={true} compact={false} />);
+    });
+
+    describe('route-less workout summary', () => {
+        const MOCK_WORKOUT_GRAPH = {
+            plan: { bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 60], y: [0, 220] } },
+            actuals: { power: [], heartrate: [], position: -1 },
+        } as any;
+
+        it('renders WorkoutGraph instead of the map when showWorkoutSummary is set', () => {
+            const { UNSAFE_root, UNSAFE_queryAllByType } = render(
+                <ActivitySummaryDialogView
+                    {...MOCK_PROPS}
+                    showMap={false}
+                    showWorkoutSummary={true}
+                    workoutGraph={MOCK_WORKOUT_GRAPH}
+                />
+            );
+            expect(UNSAFE_queryAllByType('WorkoutGraph' as any).length).toBe(1);
+            expect(UNSAFE_queryAllByType('FreeMap' as any).length).toBe(0);
+            expect(UNSAFE_root).toBeTruthy();
+        });
+
+        it('falls back to the map/preview when showWorkoutSummary is set but no graph data is available', () => {
+            const { UNSAFE_queryAllByType } = render(
+                <ActivitySummaryDialogView
+                    {...MOCK_PROPS}
+                    showMap={true}
+                    showWorkoutSummary={true}
+                    workoutGraph={undefined}
+                />
+            );
+            expect(UNSAFE_queryAllByType('WorkoutGraph' as any).length).toBe(0);
+            expect(UNSAFE_queryAllByType('FreeMap' as any).length).toBe(1);
+        });
+
+        it('does not render WorkoutGraph when showWorkoutSummary is false, even if graph data is present', () => {
+            const { UNSAFE_queryAllByType } = render(
+                <ActivitySummaryDialogView
+                    {...MOCK_PROPS}
+                    showMap={false}
+                    showWorkoutSummary={false}
+                    workoutGraph={MOCK_WORKOUT_GRAPH}
+                />
+            );
+            expect(UNSAFE_queryAllByType('WorkoutGraph' as any).length).toBe(0);
+        });
     });
 });

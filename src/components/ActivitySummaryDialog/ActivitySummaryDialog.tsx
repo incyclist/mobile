@@ -1,7 +1,7 @@
 import React, { useState, useCallback} from 'react';
 import { useActivityRide  } from 'incyclist-services';
 import Share from 'react-native-share';
-import { ActivitySummaryDialogProps } from './types';
+import { ActivitySummaryDialogProps, ActivitySummaryDialogViewProps } from './types';
 import { ActivitySummaryDialogView } from './ActivitySummaryDialogView';
 import { useLogging } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -107,6 +107,17 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
         return null;
     }
 
+        // TODO(services release): showWorkoutSummary/workoutGraph aren't in the currently
+        // installed incyclist-services type yet (added in services PR #493, "Ride Summary shows
+        // a map for a route-less workout ride" - pending npm release + a package.json bump here).
+        // Bridge them loosely until then so this screen is ready the moment that lands, without
+        // blocking on it - remove this cast and type displayProps normally once the dependency is
+        // bumped.
+        const extendedDisplayProps = displayProps as typeof displayProps & {
+            showWorkoutSummary?: boolean
+            workoutGraph?: ActivitySummaryDialogViewProps['workoutGraph']
+        }
+
         return (
             <ErrorBoundary >
                 <ActivitySummaryDialogView
@@ -114,6 +125,8 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
                     showMap={displayProps.showMap ?? false}
                     showSave={displayProps.showSave ?? false}
                     showContinue = {displayProps.showContinue ?? true}
+                    showWorkoutSummary={extendedDisplayProps.showWorkoutSummary ?? false}
+                    workoutGraph={extendedDisplayProps.workoutGraph}
                     preview={displayProps.preview}
                     units={displayProps.units}
                     isSaving={isSaving}
