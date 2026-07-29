@@ -107,12 +107,11 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
         return null;
     }
 
-        // TODO(services release): showWorkoutSummary/workoutGraph aren't in the currently
-        // installed incyclist-services type yet (added in services PR #493, "Ride Summary shows
-        // a map for a route-less workout ride" - pending npm release + a package.json bump here).
-        // Bridge them loosely until then so this screen is ready the moment that lands, without
-        // blocking on it - remove this cast and type displayProps normally once the dependency is
-        // bumped.
+        // showWorkoutSummary/workoutGraph aren't in the currently installed incyclist-services
+        // type yet (added in services PR #493, "Ride Summary shows a map for a route-less
+        // workout ride" - pending npm release + a package.json bump here). Bridged loosely so
+        // this screen is ready the moment that lands, without blocking on it. Once the
+        // dependency is bumped, drop this cast and type displayProps normally.
         const extendedDisplayProps = displayProps as typeof displayProps & {
             showWorkoutSummary?: boolean
             workoutGraph?: ActivitySummaryDialogViewProps['workoutGraph']
