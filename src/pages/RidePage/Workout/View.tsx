@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-import { IObserver, WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
+import type { IObserver, WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
 import {
     Button,
     Dynamic,
@@ -186,6 +186,7 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
             {menuProps && (
                 <RideMenu
                     visible={true}
+                    finished={menuProps.finished}
                     workout={true}
                     onClose={onMenuClose}
                     onCloseRidePage={onCloseRidePage}

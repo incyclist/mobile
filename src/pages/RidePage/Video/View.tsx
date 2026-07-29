@@ -203,6 +203,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 {menuProps && (
                     <RideMenu
                         visible={true}
+                        finished={menuProps.finished}
                         onClose={onMenuClose}
                         onCloseRidePage={onCloseRidePage}
                     />
