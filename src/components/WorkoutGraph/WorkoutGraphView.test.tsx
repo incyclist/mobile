@@ -123,10 +123,36 @@ describe('WorkoutGraphView', () => {
             expect(countByType(UNSAFE_root, 'Circle')).toBe(0);
         });
 
-        it('ignores actuals for non-live modes', () => {
+        it('detail mode also overlays actuals (completed-ride summary reuse)', () => {
             const { UNSAFE_root } = render(
                 <WorkoutGraphView
                     mode="detail"
+                    plan={MOCK_PLAN_LIVE_MID}
+                    actuals={MOCK_ACTUALS_MID}
+                    width={360}
+                    height={200}
+                />
+            );
+            expect(countByType(UNSAFE_root, 'Circle')).toBe(1);
+        });
+
+        it('detail mode omits the position marker when actuals.position is outside the domain (completed ride, no live cursor)', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView
+                    mode="detail"
+                    plan={MOCK_PLAN_LIVE_MID}
+                    actuals={{ ...MOCK_ACTUALS_MID, position: -1 }}
+                    width={360}
+                    height={200}
+                />
+            );
+            expect(countByType(UNSAFE_root, 'Circle')).toBe(0);
+        });
+
+        it('strip mode still ignores actuals entirely (plan-only, no summary/live reuse)', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView
+                    mode="strip"
                     plan={MOCK_PLAN_LIVE_MID}
                     actuals={MOCK_ACTUALS_MID}
                     width={360}

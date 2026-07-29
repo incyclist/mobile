@@ -4,11 +4,40 @@ import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
+import { WorkoutGraph } from '../WorkoutGraph';
 import { ActivitySummaryDialogViewProps, isFormattedNumber } from './types';
+import { ButtonProps } from '../ButtonBar/types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { SecureImage } from '../SecureImage';
+
+const buildDialogButtons = (props: {
+    isSaved: boolean;
+    showSave: boolean;
+    isSaving: boolean;
+    showContinue: boolean;
+    onClose: () => void;
+    onSave: () => void;
+    onDelete: () => void;
+}): ButtonProps[] => {
+    const { isSaved, showSave, isSaving, showContinue, onClose, onSave, onDelete } = props;
+
+    if (isSaved) {
+        return [{ label: 'Close', onClick: onClose, primary: true }];
+    }
+
+    const buttons: ButtonProps[] = [];
+    if (showSave) {
+        buttons.push({ label: isSaving ? 'Saving...' : 'Save', onClick: onSave, primary: true, disabled: isSaving });
+    }
+    buttons.push({ label: 'Delete', onClick: onDelete, primary: false, disabled: false });
+    if (showContinue) {
+        buttons.push({ label: 'Close', onClick: onClose, primary: false, disabled: false });
+    }
+
+    return buttons;
+};
 
 const safeNum = (v: any): number | undefined => {
     try {
@@ -26,6 +55,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         showMap,
         showSave,
         showContinue,
+        showWorkoutSummary,
+        workoutGraph,
         preview,
         units,
         isSaving,
@@ -48,23 +79,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
     const graphMinHeight = Math.round(screenWidth * 3 / 4);
     const graphContainerStyle = { ...styles.graphContainer, minHeight: graphMinHeight };
 
-    const dialogButtons = isSaved
-        ? [{ label: 'Close', onClick: onClose, primary: true }]
-        : [
-            ...(showSave ? [{
-                label: isSaving ? 'Saving...' : 'Save',
-                onClick: onSave,
-                primary: true,
-                disabled: isSaving,
-            }] : []),
-            { label: 'Delete', onClick: onDelete, primary:false, disabled:false },
-        ];
-
-    if ( showContinue && !isSaved) {
-        dialogButtons.push(
-            { label: 'Close', onClick: onClose, primary:false, disabled:false }
-        )
-    } 
+    const dialogButtons = buildDialogButtons({ isSaved, showSave, isSaving, showContinue, onClose, onSave, onDelete });
 
     const renderKeyFact = (label: string, value: any, unitKey?: 'distance' | 'elevation' | 'speed' | 'time' | 'power') => {
         let displayValue: string;
@@ -230,16 +245,41 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         </View>
     );
 
+    // Route-less workout (no GPS/route at all) - a map/preview makes no sense here, show the
+    // ridden power/HR trace against the plan instead, reusing WorkoutGraph's 'detail' mode (same
+    // component the live ride screen uses, just without a live position marker - see item #19).
+    const WorkoutSummaryPreview = workoutGraph ? (
+        <View style={isCompact ? styles.compactMapContainer : styles.mapContainer}>
+            <WorkoutGraph
+                mode="detail"
+                plan={workoutGraph.plan}
+                actuals={workoutGraph.actuals}
+                showAxes
+                showFtpLine
+            />
+        </View>
+    ) : null;
+
+    const showWorkoutSummaryPreview = showWorkoutSummary && !!WorkoutSummaryPreview;
+
+    // Which preview area to show (workout summary graph / map / static preview / none) is decided
+    // once here, rather than repeating the same ternary in both the compact and normal layouts
+    // below.
+    const renderPreviewArea = () => {
+        if (showWorkoutSummaryPreview) return WorkoutSummaryPreview;
+        return (showMap || preview) ? MapPreview : null;
+    };
+
     const MainContent = isCompact ? (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             {StatsContent}
-            {(showMap || preview) && MapPreview}
+            {renderPreviewArea()}
             {GraphContent}
         </ScrollView>
     ) : (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
             <View style={styles.topRow}>
-                {(showMap || preview) && MapPreview}
+                {renderPreviewArea()}
                 <View style={styles.statsWrapper}>
                     {StatsContent}
                 </View>
