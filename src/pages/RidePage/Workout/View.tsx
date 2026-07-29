@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import { IObserver, WorkoutGraphActuals, WorkoutRidePageDisplayProps } from 'incyclist-services';
 import {
     Button,
@@ -23,6 +24,14 @@ import { useScreenLayout, WorkoutRideGestureFeedback } from '../../../hooks';
 // future ride type can supply its own copy). Same gesture content 5.6's now-removed
 // StartRideDisplay legend had.
 const GESTURE_HINT_MESSAGE = 'Start pedalling to start the workout';
+
+// WorkoutGraphView's default axisFontSize (10, phone-tuned) reads as illegibly small on a
+// tablet's much larger physical screen — confirmed unreadable via real tablet ride testing
+// on 2026-07-29 (phone was fine). 1.5x is a reasonable first pass to bring axis tick labels
+// back to a comfortable size; it has not been eyeballed on physical tablet hardware and needs
+// manual visual confirmation there. Phones are untouched — they never pass axisFontSize, so
+// WorkoutGraphView's own default still applies exactly as before.
+const TABLET_GRAPH_AXIS_FONT_SIZE = 15;
 
 // Conditional import — same pattern as WorkoutItemView / useWorkoutRideGestures (session 5.4):
 // keeps Storybook (Vite/web) and any environment without the native module from crashing.
@@ -97,6 +106,10 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
+    // Undefined (not 0/false) on phones — WorkoutGraphView's own default axisFontSize must
+    // apply exactly as it does today; only tablets get an explicit override.
+    const graphAxisFontSize = DeviceInfo.isTablet() ? TABLET_GRAPH_AXIS_FONT_SIZE : undefined;
+
     // Same gesture content 5.6's now-removed StartRideDisplay legend had — reads the live
     // preferences.workouts.loadIncrement setting (never hardcoded), just relocated here since
     // the legend now lives in this overlay instead of the start-overlay dialog.
@@ -157,7 +170,14 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                     prop="actuals"
                     transform={getGraphActuals}
                 >
-                    <WorkoutGraph mode="live" plan={graph} showAxes={true} showFtpLine={true} style={styles.graph} />
+                    <WorkoutGraph
+                        mode="live"
+                        plan={graph}
+                        showAxes={true}
+                        showFtpLine={true}
+                        axisFontSize={graphAxisFontSize}
+                        style={styles.graph}
+                    />
                 </Dynamic>
             </View>
 

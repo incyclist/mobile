@@ -47,5 +47,7 @@ export interface WorkoutGraphProps {
     showFtpLine?: boolean;
     /** Fixed height (e.g. strip rows). When omitted the wrapper measures it. */
     height?: number;
+    /** Forwarded to WorkoutGraphView. Omit to keep its default (phone-sized) axis font. */
+    axisFontSize?: number;
     style?: StyleProp<ViewStyle>;
 }
