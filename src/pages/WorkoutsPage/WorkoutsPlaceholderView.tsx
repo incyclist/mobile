@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { MainBackground, NavigationBar, TNavigationItem } from '../../components';
 import { Button } from '../../components/ButtonBar';
 import { WorkoutTrainerIllustration } from './WorkoutTrainerIllustration';
 import { colors, textSizes } from '../../theme';
+import { useLogging } from '../../hooks';
 
 export interface WorkoutsPlaceholderViewProps {
     onNavigate: (item: TNavigationItem) => void;
@@ -12,6 +13,16 @@ export interface WorkoutsPlaceholderViewProps {
 export const WorkoutsPlaceholderView = ({ onNavigate }: WorkoutsPlaceholderViewProps) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
+    const { logEvent } = useLogging('WorkoutsPlaceholderView');
+
+    // Distinguishes a placeholder view from the real Workouts list in the
+    // shared `page shown`/page:'Workouts' event (services/src/workouts/page/
+    // service.ts:59), which fires unconditionally for both and can't tell
+    // them apart on its own — see the Kibana "Mobile Workouts" dashboard's
+    // "Placeholder shown" panel, which filters on this pageType field.
+    useEffect(() => {
+        logEvent({ message: 'page shown', page: 'Workouts', pageType: 'placeholder' });
+    }, [logEvent]);
 
     return (
         <MainBackground>
