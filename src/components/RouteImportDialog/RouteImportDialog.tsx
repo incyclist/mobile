@@ -35,6 +35,10 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const refParseObserver = useRef<IObserver | null>(null);
     const refIngestObserver = useRef<IObserver | null>(null);
     const refSingleObserver = useRef<IObserver | null>(null);
+    // diagnostic-only: tracks whether this dialog is still mounted when an async picker
+    // continuation resumes, to help diagnose crashes from a picker result landing after
+    // the dialog/page has already torn down (importProps/pageObserver already cleared)
+    const refIsMounted = useRef(true);
 
     // --- Stable Event Handlers ---
 
@@ -187,6 +191,10 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
             const fileInfo = await pickFile({ extensions: ['gpx', 'xml'] });
             if (!fileInfo) return;
 
+            if (!refIsMounted.current) {
+                logEvent({ message: 'picker resolved after unmount', fn: 'onAddGpx', fileName: fileInfo.filename });
+            }
+
             setIsSingleImporting(true);
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
             refSingleObserver.current = observer;
@@ -196,12 +204,16 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         } catch (err) {
             logError(err, 'onAddGpx');
         }
-    }, [pickFile, onSingleResult, logError]);
+    }, [pickFile, onSingleResult, logError, logEvent]);
 
     const onAddVideoRoute = useCallback(async () => {
         try {
             const fileInfo = await pickFile();
             if (!fileInfo) return;
+
+            if (!refIsMounted.current) {
+                logEvent({ message: 'picker resolved after unmount', fn: 'onAddVideoRoute', fileName: fileInfo.filename });
+            }
 
             setIsSingleImporting(true);
             const observer = getRoutesPageService().importSingleRoute(fileInfo);
@@ -212,7 +224,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         } catch (err) {
             logError(err, 'onAddVideoRoute');
         }
-    }, [pickFile, onSingleResult, logError]);
+    }, [pickFile, onSingleResult, logError, logEvent]);
 
     const onSelectFolder = useCallback(async () => {
         try {
@@ -277,6 +289,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     }, [onUpdate]);
 
     useUnmountEffect(() => {
+        refIsMounted.current = false;
         getRoutesPageService().onImportClosed();
         cleanUpObservers();
     });

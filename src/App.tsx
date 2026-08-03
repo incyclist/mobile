@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
 import { AppFeatures, IncyclistBindings } from 'incyclist-services';
-import { ApiConfiguration, useIncyclist } from './services';
+import { ApiConfiguration, flushLogs, useIncyclist } from './services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json';
 import { useLogging, useUnmountEffect } from './hooks';
@@ -71,32 +71,44 @@ export const App = ({ secretsStatus }: AppProps) => {
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
+            // raw transition, logged unconditionally (unlike onAppPause/onAppResume below,
+            // which only fire on a boundary crossing to/from 'active') — kept for diagnosing
+            // page/session state changes that happen while the app is backgrounded
+            logEvent({ message: 'AppState changed', from: lastState, to: nextState });
+
             if (lastState === 'active' && nextState !== 'active') {
                 service.onAppPause()
             }
 
             if (lastState !== 'active' && nextState === 'active') {
                 ble.initializeAuthorization();
-                service.onAppResume();               
+                service.onAppResume();
             }
 
             lastState = nextState;
         });
 
         return () => sub.remove();
-    }, [service, ble]);
+    }, [service, ble, logEvent]);
 
     useEffect(() => {
         if (Platform.OS !== 'android') return;
         const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-            service.onAppExit().then(() => {
-                getUIBinding().quit();
-            });
+            logEvent({ message: 'hardwareBackPress received' });
+            // best-effort: this path can end in a hard process kill (see UIBinding.quit()),
+            // which would otherwise silently drop onAppExit()'s own log lines along with
+            // whatever else is still queued in the batch — flush after it resolves, right
+            // before the potential kill, so this path is diagnosable if it fires again
+            service.onAppExit()
+                .then(() => flushLogs())
+                .finally(() => {
+                    getUIBinding().quit();
+                });
             return false; // allow default exit
         });
 
         return () => sub.remove();
-    }, [service]);
+    }, [service, logEvent]);
 
     useEffect(() => {
         if (initialized) return;
