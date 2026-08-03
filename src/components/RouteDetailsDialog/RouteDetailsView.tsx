@@ -295,7 +295,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 variant="full"
                 buttons={dialogButtons}
                 onOutsideClick={onCancel}
-                belowContent={infoBar}
+                aboveContent={infoBar}
                 scrollable={false}
             >
                 <View style={styles.compactRoot}>
@@ -383,9 +383,10 @@ const styles = StyleSheet.create({
     // minHeight: 0 + overflow: 'hidden' counter CSS flexbox's default min-height: auto (a flex
     // item won't shrink below its content's intrinsic size unless told to) - without it, on
     // react-native-web the inner ScrollView's tall content pushes compactLeft past compactRoot's
-    // real height instead of clipping/scrolling within it, visually overlapping the info bar and
-    // footer below. Native Yoga doesn't default to min-height: auto, but setting this explicitly
-    // is harmless there and keeps behaviour identical across platforms.
+    // real height instead of clipping/scrolling within it, visually overlapping the footer below
+    // (and the info bar above, via Dialog's aboveContent slot). Native Yoga doesn't default to
+    // min-height: auto, but setting this explicitly is harmless there and keeps behaviour
+    // identical across platforms.
     compactLeft: { flex: 1, minHeight: 0, overflow: 'hidden' },
     compactLeftScroll: { flex: 1 },
     compactLeftScrollContent: { paddingBottom: 4 },
@@ -394,10 +395,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        // Rendered via Dialog's `aboveContent` slot, directly below the header - a bottom border
+        // separates it from the form/map content that follows, rather than a top border (which
+        // would sit redundantly close to the header's own border-bottom).
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
     },
-    infoBarText: { color: colors.disabled, fontSize: 12 },
-    errorText: { color: colors.error, fontSize: 14, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+    infoBarText: { color: colors.disabled, fontSize: 14 },
+    errorText: { color: colors.error, fontSize: 16, fontWeight: '700', marginTop: 4, textAlign: 'center' },
     fullErrorText: { color: colors.error, fontSize: 13, marginTop: 10, textAlign: 'center' },
 });

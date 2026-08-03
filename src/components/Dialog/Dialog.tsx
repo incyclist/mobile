@@ -47,7 +47,7 @@ export const Dialog = ({
     onOutsideClick,
     slideFrom,
     scrollable = true,
-    belowContent,
+    aboveContent,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
@@ -178,6 +178,8 @@ export const Dialog = ({
                                     <Text style={[styles.title, titleStyle]}>{title}</Text>
                                 </View>
 
+                                {aboveContent}
+
                                 {scrollable ? (
                                     <ScrollView
                                         style={styles.scrollArea}
@@ -193,8 +195,6 @@ export const Dialog = ({
                                         </View>
                                     </View>
                                 )}
-
-                                {belowContent}
 
                                 {buttons?.length ? (
                                     <View style={styles.footer}>
@@ -230,6 +230,8 @@ export const Dialog = ({
                                     <Text style={[styles.title, titleStyle]}>{title}</Text>
                                 </View>
 
+                                {aboveContent}
+
                                 {scrollable ? (
                                     <ScrollView
                                         style={styles.scrollArea}
@@ -245,8 +247,6 @@ export const Dialog = ({
                                         </View>
                                     </View>
                                 )}
-
-                                {belowContent}
 
                                 {buttons?.length ? (
                                     <View style={styles.footer}>
@@ -325,7 +325,7 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             // when scrollable=false wraps it in a plain View instead of a ScrollView. Without it,
             // a child taller than the available space (e.g. RouteDetailsView's compact form)
             // silently overflows past `scrollArea`'s clamped box and paints over any sibling
-            // rendered after it (belowContent/footer), since neither view clips by default.
+            // rendered after it (footer), since neither view clips by default.
             flexShrink: 1,
             minHeight: 0,
             padding: 2,

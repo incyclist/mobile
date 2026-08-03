@@ -124,12 +124,15 @@ export const CompactWithMap: Story = {
 
 // FIXES_BACKLOG #27 - compact mode's info bar (route type/distance/elevation, plus
 // `canNotStartReason` when the route can't be started) is rendered outside the Dialog's
-// ScrollView via the new `belowContent` slot (see Dialog.tsx), so it stays visible no matter how
-// tall the segment/switch form above it grows. These stories exercise the tallest compact form -
-// many segments (dropdown, not chips, since count > SEGMENT_CHIP_THRESHOLD) plus all three
-// conditional switch rows (Stop at end of loop, Stop at end of movie, Compare prev rides) - on
-// both a tall and a short landscape viewport, verified via headless Playwright screenshot that
-// the info bar/error text is never clipped or scrolled out of the initial view.
+// ScrollView via the `aboveContent` slot (see Dialog.tsx), at the top of the dialog above the
+// form/map row, so it stays visible no matter how tall the segment/switch form below it grows -
+// and the map itself shrinks to fit whatever space remains (compactRoot/compactLeft flex chain in
+// RouteDetailsView.tsx), rather than needing the form to scroll further to reveal it. These
+// stories exercise the tallest compact form - many segments (dropdown, not chips, since count >
+// SEGMENT_CHIP_THRESHOLD) plus all three conditional switch rows (Stop at end of loop, Stop at
+// end of movie, Compare prev rides) - on both a tall and a short landscape viewport, verified via
+// headless Playwright screenshot that the info bar/error text is never clipped, overlapped, or
+// scrolled out of the initial view, and that the map shrinks (not clips) on the short viewport.
 const tallestCompactFormProps = () => mockRouteProps({
     compact: true,
     hasGpx: true,
