@@ -45,7 +45,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;
     const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
-    const showExitForVertical = Platform.OS === 'android';
+    const showExitIcon = Platform.OS === 'android';
 
     const handleOnClick = useCallback((item: TNavigationItem) => {
         if (item === 'user') {
@@ -114,7 +114,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 <NavigationBarViewCompact
                     selected={selected}
                     onClick={handleOnClick}
-                    showExit={false}
+                    showExit={showExitIcon}
                     disabled={disabled}
                 />
             ) : (
@@ -125,7 +125,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                     disabled={disabled}
                     iconSize={verticalIconSize}
                     navWidth={verticalNavWidth}
-                    showExit={showExitForVertical}
+                    showExit={showExitIcon}
                 />
             )}
             {showUserSettings && <UserSettings onClose={handleUserSettingsClose} />}

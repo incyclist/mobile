@@ -71,7 +71,27 @@ export const DisabledCompact: Story = {
 };
 
 
-export const CompactHorizontal: Story = {
+export const Compact: Story = {
+    render: (args) => (
+        <NavigationBarViewCompact
+            selected={args.selected as any}
+            onClick={args.onClick}
+            showExit={true}
+        />
+    ),
+    args: {
+        selected: 'routes',
+        onClick: fn(),
+    },
+    parameters: {
+        viewport: {
+            defaultViewport: 'iphone6p',
+        },
+        layout: 'fullscreen',
+    }
+};
+
+export const CompactNoExit: Story = {
     render: (args) => (
         <NavigationBarViewCompact
             selected={args.selected as any}

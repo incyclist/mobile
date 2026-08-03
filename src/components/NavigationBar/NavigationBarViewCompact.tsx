@@ -9,6 +9,7 @@ import {
     RouteIcon,
     WorkoutIcon,
     ActivityIcon,
+    ExitIcon,
 } from '../../assets/icons';
 
 export const COMPACT_NAV_HEIGHT = textSizes.smallText + 16;
@@ -27,6 +28,8 @@ const renderIcon = (item: TNavigationItem, isSelected: boolean, disabled:boolean
         case 'routes': return <RouteIcon {...iconProps} />;
         case 'workouts': return <WorkoutIcon {...iconProps} />;
         case 'activities': return <ActivityIcon {...iconProps} />;
+        case 'exit': return <ExitIcon {...iconProps} />;
+
         default: return null;
     }
 };
@@ -67,10 +70,11 @@ const leftItems: { item: TNavigationItem; label: string }[] = [
     { item: 'activities', label: 'Activities' },
 ];
 
-const rightItems: TNavigationItem[] = ['settings', 'user'];
 
 export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) => {
-    const { selected, disabled=false, onClick } = props;
+    const { selected, disabled=false, showExit, onClick } = props;
+
+    const rightItems: TNavigationItem[] = showExit ? ['exit','settings', 'user' ] : ['settings', 'user' ];
 
     return (
         <View style={styles.container}>
