@@ -279,8 +279,23 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     if (compact) {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
 
+        const infoBar = (
+            <View style={styles.infoBar}>
+                <Text style={styles.infoBarText}>
+                    {routeType} • {totalDistance.value}{totalDistance.unit} • {totalElevation.value}{totalElevation.unit}
+                </Text>
+                {canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
+            </View>
+        );
+
         return (
-            <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
+            <Dialog
+                title={title}
+                variant="full"
+                buttons={dialogButtons}
+                onOutsideClick={onCancel}
+                belowContent={infoBar}
+            >
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         {renderForm()}
@@ -290,12 +305,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             {hasGpx && points?.length ? renderMedia() : renderPreview()}
                         </View>
                     )}
-                </View>
-                <View style={styles.infoBar}>
-                    <Text style={styles.infoBarText}>
-                        {routeType} • {totalDistance.value}{totalDistance.unit} • {totalElevation.value}{totalElevation.unit}
-                    </Text>
-                    {canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
                 </View>
                 <DownloadModalView
                     visible={!!showDownloadModal}
@@ -362,8 +371,14 @@ const styles = StyleSheet.create({
     compactRoot: { flexDirection: 'row', padding: 10, gap: 15 },
     compactLeft: { flex: 1 },
     compactRight: { width: '35%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 6, overflow: 'hidden' },
-    infoBar: { paddingHorizontal: 10, paddingBottom: 10, alignItems: 'center' },
+    infoBar: {
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)',
+    },
     infoBarText: { color: colors.disabled, fontSize: 12 },
-    errorText: { color: colors.error, fontSize: 11, marginTop: 4 },
+    errorText: { color: colors.error, fontSize: 14, fontWeight: '700', marginTop: 4, textAlign: 'center' },
     fullErrorText: { color: colors.error, fontSize: 13, marginTop: 10, textAlign: 'center' },
 });

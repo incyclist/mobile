@@ -141,4 +141,38 @@ describe('RouteDetailsView', () => {
         // The mock renders the name of the component
         expect(getByText('DownloadModalView')).toBeTruthy();
     });
+
+    // Regression coverage for the compact-mode info bar move: `canNotStartReason` is the sole
+    // explanation shown to the user when `canStart` is false (startButtons is then empty), so it
+    // must always render regardless of layout - see Dialog's `belowContent` slot.
+    it('renders canNotStartReason in compact layout (via Dialog belowContent slot)', () => {
+        const { getByText } = render(
+            <RouteDetailsView
+                {...MOCK_PROPS}
+                compact={true}
+                canStart={false}
+                canNotStartReason="AVI videos are not supported on mobile"
+            />
+        );
+        expect(getByText('AVI videos are not supported on mobile')).toBeTruthy();
+    });
+
+    it('renders canNotStartReason in normal (non-compact) layout', () => {
+        const { getByText } = render(
+            <RouteDetailsView
+                {...MOCK_PROPS}
+                compact={false}
+                canStart={false}
+                canNotStartReason="AVI videos are not supported on mobile"
+            />
+        );
+        expect(getByText('AVI videos are not supported on mobile')).toBeTruthy();
+    });
+
+    it('does not render canNotStartReason when canStart is true', () => {
+        const { queryByText } = render(
+            <RouteDetailsView {...MOCK_PROPS} compact={true} canStart={true} canNotStartReason={undefined} />
+        );
+        expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
+    });
 });

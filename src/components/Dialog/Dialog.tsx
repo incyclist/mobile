@@ -47,6 +47,7 @@ export const Dialog = ({
     onOutsideClick,
     slideFrom,
     scrollable = true,
+    belowContent,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
@@ -193,6 +194,8 @@ export const Dialog = ({
                                     </View>
                                 )}
 
+                                {belowContent}
+
                                 {buttons?.length ? (
                                     <View style={styles.footer}>
                                         <ButtonBar buttons={buttons} />
@@ -242,6 +245,8 @@ export const Dialog = ({
                                         </View>
                                     </View>
                                 )}
+
+                                {belowContent}
 
                                 {buttons?.length ? (
                                     <View style={styles.footer}>
