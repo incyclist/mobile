@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { AppState, useWindowDimensions } from 'react-native';
 import { 
     getRoutesPageService, 
     useRouteList,
@@ -104,12 +104,16 @@ export const RoutesPage = () => {
     }, [service, logError, onUpdate]);
 
     useUnmountEffect(() => {
+        // diagnostic context for unexplained unmounts (e.g. while a native picker has focus) —
+        // see the 'onImportClosed'/'importSingle' crash pattern this is meant to help diagnose
+        logEvent({ message: 'RoutesPage unmounting', showImportDialog, appState: AppState.currentState });
+
         service.closePage();
         if (refObserver.current) {
             refObserver.current?.stop()
             refObserver.current = null
         }
-        
+
     });
 
     useEffect( ()=>{

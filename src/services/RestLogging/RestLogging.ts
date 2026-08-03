@@ -26,6 +26,23 @@ const restLogFilter = (context:string, event:any) => {
 
 }
 
+let restAdapter: RestLogAdapter | undefined
+
+/**
+ * Best-effort immediate flush of any queued log events, bypassing the normal 10s send interval.
+ * Used before app-exit paths that may kill the process (e.g. Android back button), since queued
+ * events would otherwise be lost rather than waiting for the next scheduled send.
+ * Bounded by a timeout so a hung request can never delay app exit.
+ */
+export const flushLogs = async (timeoutMs = 2000): Promise<void> => {
+    if (!restAdapter)
+        return
+
+    await Promise.race([
+        restAdapter.send(true),
+        new Promise<void>(resolve => setTimeout(resolve, timeoutMs))
+    ])
+}
 
 export const initRestLogging = async () => {
 
@@ -53,7 +70,7 @@ export const initRestLogging = async () => {
             apiConfig.addHeader('x-channel', getChannel())
             
 
-            const restAdapter = new RestLogAdapter({url:logUrl,sendInterval});            
+            restAdapter = new RestLogAdapter({url:logUrl,sendInterval});
             EventLogger.registerAdapter(restAdapter, restLogFilter)
         }
         else {
