@@ -295,9 +295,9 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 variant="full"
                 buttons={dialogButtons}
                 onOutsideClick={onCancel}
-                aboveContent={infoBar}
                 scrollable={false}
             >
+                {infoBar}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         <ScrollView
@@ -375,18 +375,19 @@ const styles = StyleSheet.create({
     inputRow: { flexDirection: 'row', gap: 20, marginBottom: 15 },
     editNumberWrapper: { flex: 1 },
     switchGrid: { gap: 4 },
-    // flex: 1 lets compactRoot fill the definite height Dialog's content area now provides
-    // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView), so
-    // compactRight's height: '100%' map resolves against real available space and shrinks/grows
-    // per viewport instead of just hugging compactLeft's natural content height.
+    // flex: 1 lets compactRoot fill whatever's left of Dialog's definite-height content area
+    // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView) after
+    // `infoBar` - rendered as a plain sibling before compactRoot, see the compact branch above -
+    // takes its own natural height. That makes compactRight's height: '100%' map resolve against
+    // real available space and shrink/grow per viewport, instead of just hugging compactLeft's
+    // natural content height.
     compactRoot: { flexDirection: 'row', padding: 10, gap: 15, flex: 1, minHeight: 0 },
     // minHeight: 0 + overflow: 'hidden' counter CSS flexbox's default min-height: auto (a flex
     // item won't shrink below its content's intrinsic size unless told to) - without it, on
     // react-native-web the inner ScrollView's tall content pushes compactLeft past compactRoot's
-    // real height instead of clipping/scrolling within it, visually overlapping the footer below
-    // (and the info bar above, via Dialog's aboveContent slot). Native Yoga doesn't default to
-    // min-height: auto, but setting this explicitly is harmless there and keeps behaviour
-    // identical across platforms.
+    // real height instead of clipping/scrolling within it, visually overlapping the footer below.
+    // Native Yoga doesn't default to min-height: auto, but setting this explicitly is harmless
+    // there and keeps behaviour identical across platforms.
     compactLeft: { flex: 1, minHeight: 0, overflow: 'hidden' },
     compactLeftScroll: { flex: 1 },
     compactLeftScrollContent: { paddingBottom: 4 },
@@ -395,9 +396,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         alignItems: 'center',
-        // Rendered via Dialog's `aboveContent` slot, directly below the header - a bottom border
-        // separates it from the form/map content that follows, rather than a top border (which
-        // would sit redundantly close to the header's own border-bottom).
+        // Rendered as the first child inside Dialog's content area (see the compact branch
+        // above), directly below the header - a bottom border separates it from the form/map
+        // content that follows, rather than a top border (which would sit redundantly close to
+        // the header's own border-bottom).
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.1)',
     },

@@ -39,36 +39,4 @@ describe('Dialog', () => {
 
         expect(getByText('my content')).toBeTruthy();
     });
-
-    // aboveContent renders as a non-scrolling sibling between the header and the scrollable
-    // content (RouteDetailsDialog uses this for a compact-mode info bar/error message that must
-    // always be visible before the user scrolls into the form/map below it) - verify it renders
-    // and appears before `children` in document order, in both the default and 'full' variants.
-    it('renders aboveContent before children (default variant)', () => {
-        const { getByText, UNSAFE_root } = render(
-            <Dialog title="Test Dialog" aboveContent={<Text>above content</Text>}>
-                <Text>children content</Text>
-            </Dialog>
-        );
-
-        expect(getByText('above content')).toBeTruthy();
-        expect(getByText('children content')).toBeTruthy();
-
-        const texts = UNSAFE_root.findAllByType(Text).map(t => t.props.children);
-        expect(texts.indexOf('above content')).toBeLessThan(texts.indexOf('children content'));
-    });
-
-    it('renders aboveContent before children (variant="full")', () => {
-        const { getByText, UNSAFE_root } = render(
-            <Dialog title="Test Dialog" variant="full" aboveContent={<Text>above content</Text>}>
-                <Text>children content</Text>
-            </Dialog>
-        );
-
-        expect(getByText('above content')).toBeTruthy();
-        expect(getByText('children content')).toBeTruthy();
-
-        const texts = UNSAFE_root.findAllByType(Text).map(t => t.props.children);
-        expect(texts.indexOf('above content')).toBeLessThan(texts.indexOf('children content'));
-    });
 });

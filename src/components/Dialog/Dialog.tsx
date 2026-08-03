@@ -47,7 +47,6 @@ export const Dialog = ({
     onOutsideClick,
     slideFrom,
     scrollable = true,
-    aboveContent,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
@@ -178,8 +177,6 @@ export const Dialog = ({
                                     <Text style={[styles.title, titleStyle]}>{title}</Text>
                                 </View>
 
-                                {aboveContent}
-
                                 {scrollable ? (
                                     <ScrollView
                                         style={styles.scrollArea}
@@ -229,8 +226,6 @@ export const Dialog = ({
                                 <View style={styles.header}>
                                     <Text style={[styles.title, titleStyle]}>{title}</Text>
                                 </View>
-
-                                {aboveContent}
 
                                 {scrollable ? (
                                     <ScrollView

@@ -145,8 +145,9 @@ describe('RouteDetailsView', () => {
 
     // Regression coverage for the compact-mode info bar move: `canNotStartReason` is the sole
     // explanation shown to the user when `canStart` is false (startButtons is then empty), so it
-    // must always render regardless of layout - see Dialog's `aboveContent` slot.
-    it('renders canNotStartReason in compact layout (via Dialog aboveContent slot)', () => {
+    // must always render regardless of layout - infoBar is rendered as the first child inside
+    // Dialog in compact mode, so it's never affected by how tall the form/map content below it is.
+    it('renders canNotStartReason in compact layout (infoBar as first Dialog child)', () => {
         const { getByText } = render(
             <RouteDetailsView
                 {...MOCK_PROPS}
