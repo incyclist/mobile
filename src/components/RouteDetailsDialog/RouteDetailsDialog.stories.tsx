@@ -121,6 +121,75 @@ export const CompactWithMap: Story = {
         ],
     }),
 };
+
+// FIXES_BACKLOG #27 - compact mode's info bar (route type/distance/elevation, plus
+// `canNotStartReason` when the route can't be started) is rendered as the first child inside
+// Dialog (which uses scrollable=false in compact mode, giving its content area a definite,
+// non-scrolling height - see RouteDetailsView.tsx), at the top of the dialog above the form/map
+// row, so it stays visible no matter how tall the segment/switch form below it grows - and the
+// map itself shrinks to fit whatever space remains (compactRoot/compactLeft flex chain in
+// RouteDetailsView.tsx), rather than needing the form to scroll further to reveal it. These
+// stories exercise the tallest compact form - many segments (dropdown, not chips, since count >
+// SEGMENT_CHIP_THRESHOLD) plus all three conditional switch rows (Stop at end of loop, Stop at
+// end of movie, Compare prev rides) - on both a tall and a short landscape viewport, verified via
+// headless Playwright screenshot that the info bar/error text is never clipped, overlapped, or
+// scrolled out of the initial view, and that the map shrinks (not clips) on the short viewport.
+const tallestCompactFormProps = () => mockRouteProps({
+    compact: true,
+    hasGpx: true,
+    points: [
+        { lat: 51.9, lng: 4.5, routeDistance: 0, elevation: 0 },
+        { lat: 51.91, lng: 4.51, routeDistance: 1000, elevation: 5 },
+    ],
+    segments: [
+        { name: 'Total Trip', start: 0, end: 47500 },
+        { name: '1st Climb', start: 5200, end: 12800 },
+        { name: '2nd Climb', start: 15200, end: 16800 },
+        { name: '3rd Climb', start: 17200, end: 18800 },
+        { name: '4th Climb', start: 19200, end: 20800 },
+        { name: '5th Climb', start: 21200, end: 22800 },
+        { name: '6th Climb', start: 23200, end: 24800 },
+    ],
+    showLoopOverwrite: true,
+    showNextOverwrite: true,
+    showPrev: true,
+    prevRides: [{ id: '1' }, { id: '2' }],
+    initialSettings: {
+        startPos: { value: 2.9, unit: 'km' },
+        realityFactor: 100,
+        segment: 'Total Trip',
+        endPos: { value: 12.8, unit: 'km' },
+    },
+});
+
+export const CompactTallestFormTallViewport: Story = {
+    args: tallestCompactFormProps(),
+    parameters: {
+        viewport: { defaultViewport: 'ipadAir' },
+        layout: 'fullscreen',
+    },
+};
+
+export const CompactTallestFormShortViewport: Story = {
+    args: tallestCompactFormProps(),
+    parameters: {
+        viewport: { defaultViewport: 'iphone15Pro' },
+        layout: 'fullscreen',
+    },
+};
+
+export const CompactCannotStart: Story = {
+    args: {
+        ...tallestCompactFormProps(),
+        canStart: false,
+        canNotStartReason: 'This route requires a video file that has not been downloaded yet. Connect to Wi-Fi and download the route before starting.',
+    },
+    parameters: {
+        viewport: { defaultViewport: 'iphone15Pro' },
+        layout: 'fullscreen',
+    },
+};
+
 export const DownloadRequired: Story = {
     args: mockRouteProps({
         canStart: false,
