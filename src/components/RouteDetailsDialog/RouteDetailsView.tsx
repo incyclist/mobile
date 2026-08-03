@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     ActivityIndicator,
+    ScrollView,
     useWindowDimensions,
 } from 'react-native';
 import type { UIRouteSettings, RoutePoint } from 'incyclist-services';
@@ -295,10 +296,16 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 buttons={dialogButtons}
                 onOutsideClick={onCancel}
                 belowContent={infoBar}
+                scrollable={false}
             >
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
-                        {renderForm()}
+                        <ScrollView
+                            style={styles.compactLeftScroll}
+                            contentContainerStyle={styles.compactLeftScrollContent}
+                        >
+                            {renderForm()}
+                        </ScrollView>
                     </View>
                     {showCompactPanel && (
                         <View style={styles.compactRight}>
@@ -368,8 +375,20 @@ const styles = StyleSheet.create({
     inputRow: { flexDirection: 'row', gap: 20, marginBottom: 15 },
     editNumberWrapper: { flex: 1 },
     switchGrid: { gap: 4 },
-    compactRoot: { flexDirection: 'row', padding: 10, gap: 15 },
-    compactLeft: { flex: 1 },
+    // flex: 1 lets compactRoot fill the definite height Dialog's content area now provides
+    // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView), so
+    // compactRight's height: '100%' map resolves against real available space and shrinks/grows
+    // per viewport instead of just hugging compactLeft's natural content height.
+    compactRoot: { flexDirection: 'row', padding: 10, gap: 15, flex: 1, minHeight: 0 },
+    // minHeight: 0 + overflow: 'hidden' counter CSS flexbox's default min-height: auto (a flex
+    // item won't shrink below its content's intrinsic size unless told to) - without it, on
+    // react-native-web the inner ScrollView's tall content pushes compactLeft past compactRoot's
+    // real height instead of clipping/scrolling within it, visually overlapping the info bar and
+    // footer below. Native Yoga doesn't default to min-height: auto, but setting this explicitly
+    // is harmless there and keeps behaviour identical across platforms.
+    compactLeft: { flex: 1, minHeight: 0, overflow: 'hidden' },
+    compactLeftScroll: { flex: 1 },
+    compactLeftScrollContent: { paddingBottom: 4 },
     compactRight: { width: '35%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 6, overflow: 'hidden' },
     infoBar: {
         paddingHorizontal: 15,

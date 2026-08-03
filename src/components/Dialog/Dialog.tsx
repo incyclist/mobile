@@ -316,9 +316,18 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             flexShrink: 1,
             flexGrow: variant === 'info' ? 0 : 1,
             padding: 8,
+            overflow: 'hidden',
         },
         content: {
             flexGrow: variant === 'details' || variant === 'full' ? 1 : 0,
+            // flexShrink/minHeight: 0 - unlike CSS, Yoga (RN's layout engine) defaults flexShrink
+            // to 0, so without this `content` refuses to shrink below its natural content height
+            // when scrollable=false wraps it in a plain View instead of a ScrollView. Without it,
+            // a child taller than the available space (e.g. RouteDetailsView's compact form)
+            // silently overflows past `scrollArea`'s clamped box and paints over any sibling
+            // rendered after it (belowContent/footer), since neither view clips by default.
+            flexShrink: 1,
+            minHeight: 0,
             padding: 2,
             color: colors.text,
         },

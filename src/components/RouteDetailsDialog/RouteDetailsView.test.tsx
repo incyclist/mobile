@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
 import { RouteDetailsView } from './RouteDetailsView';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
@@ -174,5 +175,22 @@ describe('RouteDetailsView', () => {
             <RouteDetailsView {...MOCK_PROPS} compact={true} canStart={true} canNotStartReason={undefined} />
         );
         expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
+    });
+
+    // Regression coverage for the map-shrinks-to-fit follow-up: compact mode now renders Dialog
+    // with scrollable={false} (a plain, definite-height View) so the map's height: '100%' can
+    // resolve against real available space, and wraps only the form (compactLeft) in its own
+    // ScrollView so a tall form can still scroll internally without ever affecting the map or the
+    // info bar/error text below it. There must be exactly one ScrollView in the compact tree.
+    it('renders exactly one ScrollView (the form) in compact layout, not one owned by Dialog', () => {
+        const { UNSAFE_root } = render(<RouteDetailsView {...MOCK_PROPS} compact={true} />);
+        expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
+    });
+
+    it('renders no ScrollView in normal (non-compact) layout (Dialog default scrollable=true wraps everything)', () => {
+        const { UNSAFE_root } = render(<RouteDetailsView {...MOCK_PROPS} compact={false} />);
+        // Dialog itself renders the ScrollView here (scrollable defaults to true), RouteDetailsView
+        // does not add its own on top of it.
+        expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
     });
 });
