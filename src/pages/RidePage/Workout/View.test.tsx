@@ -9,13 +9,17 @@ jest.mock('react-native-device-info', () => ({
 }));
 
 const mockWorkoutGraph = jest.fn();
+const mockStartRideDisplay = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
     MainBackground: () => null,
     RideDashboard: () => null,
     RideMenu: () => null,
-    StartRideDisplay: () => null,
+    StartRideDisplay: (props: any) => {
+        mockStartRideDisplay(props);
+        return null;
+    },
     WorkoutGestureHintOverlay: () => null,
     WorkoutGraph: (props: any) => {
         mockWorkoutGraph(props);
@@ -80,5 +84,38 @@ describe('WorkoutRidePageView — tablet graph font size', () => {
         expect(mockWorkoutGraph).toHaveBeenCalled();
         const props = mockWorkoutGraph.mock.calls.at(-1)?.[0];
         expect(props.axisFontSize).toBeGreaterThan(10);
+    });
+});
+
+describe('WorkoutRidePageView — start overlay "Start" button wiring', () => {
+    beforeEach(() => {
+        mockStartRideDisplay.mockClear();
+    });
+
+    it('wires the Start button to a handler that actually starts the ride (ignoring failed sensors), not a no-op', () => {
+        const onIgnoreStart = jest.fn();
+        const props = {
+            ...baseProps,
+            displayProps: {
+                ...baseDisplayProps,
+                startOverlayProps: {
+                    devices: [
+                        { udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status: 'Started' },
+                        { udid: 'hrm-1', name: 'HRM', isControl: false, status: 'Error' },
+                    ],
+                    rideState: 'Starting',
+                    readyToStart: true,
+                },
+            },
+            onIgnoreStart,
+        };
+
+        render(<WorkoutRidePageView {...props} />);
+
+        expect(mockStartRideDisplay).toHaveBeenCalled();
+        const startRideDisplayProps = mockStartRideDisplay.mock.calls.at(-1)?.[0];
+
+        startRideDisplayProps.onStart();
+        expect(onIgnoreStart).toHaveBeenCalled();
     });
 });
