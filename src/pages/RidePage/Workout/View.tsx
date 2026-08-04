@@ -66,8 +66,6 @@ export interface WorkoutRidePageViewProps {
     onGestureHintDismissed: (props: { dontShowAgain: boolean }) => void;
 }
 
-const noop = () => {};
-
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
     <Button id="menu" label="Menu" primary={true} onClick={onPress} />
 ));
@@ -222,7 +220,7 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
             {startOverlayProps && (
                 <StartRideDisplay
                     {...startOverlayProps}
-                    onStart={noop}
+                    onStart={onIgnoreStart}
                     onRetry={onRetryStart}
                     onIgnore={onIgnoreStart}
                     onCancel={onCancelStart}
