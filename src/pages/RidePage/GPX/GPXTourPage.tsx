@@ -4,7 +4,7 @@ import {
     getRidePageService,
     IObserver,
     GPXRidePageDisplayProps,
-    RidePageService,
+    IRidePageService,
     RideType,
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
@@ -22,7 +22,7 @@ interface GPXTourPageProps {
 export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,onClose }: GPXTourPageProps) => {
     const [displayProps, setDisplayProps] = useState<GPXRidePageDisplayProps | null>(null);
 
-    const refService = useRef<RidePageService | null>(null);
+    const refService = useRef<IRidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
     const refRideObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);

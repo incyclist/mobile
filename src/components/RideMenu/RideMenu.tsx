@@ -1,19 +1,23 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { RideMenuProps, ActiveDialog } from './types';
-import { getRidePageService, getWorkoutRidePageService } from 'incyclist-services';
+import { getRidePageService } from 'incyclist-services';
 import { RideMenuView } from './RideMenuView';
 import { useLogging } from '../../hooks';
 
 export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseRidePage=()=>{} }: RideMenuProps) => {
     const { logEvent } = useLogging('RideMenu');
-    const workoutService = workout ? getWorkoutRidePageService() : null;
-    const service = workoutService ?? getRidePageService();
+    // One unconditional call (FIXES_BACKLOG #24) - getRidePageService() resolves to the correct
+    // concrete page service on its own (keyed off the currently selected ride's type), so this no
+    // longer needs a workout-vs-not branch or an `as any` cast to reach menuProps. Workout-only
+    // calls below (onStepBack/onStepForward/onIncreaseLoad/onDecreaseLoad) are safe no-ops when
+    // `service` isn't actually a workout ride.
+    const service = getRidePageService();
     const refInitialized = useRef(false)
 
     const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
 
     // menuProps are derived from service display props, which means they reflect current state
-    const menuProps = (service.getPageDisplayProps() as any)?.menuProps;
+    const menuProps = service.getPageDisplayProps()?.menuProps;
     const showResume = menuProps?.showResume ?? false;
     const canStepBack = menuProps?.canStepBack ?? false;
     const canStepForward = menuProps?.canStepForward ?? false;
@@ -68,20 +72,20 @@ export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseR
     }, [showResume, service, logEvent, onClose]);
 
     const handleStepBack = useCallback(() => {
-        workoutService?.onStepBack();
-    }, [workoutService]);
+        service.onStepBack();
+    }, [service]);
 
     const handleStepForward = useCallback(() => {
-        workoutService?.onStepForward();
-    }, [workoutService]);
+        service.onStepForward();
+    }, [service]);
 
     const handleIncreaseLoad = useCallback(() => {
-        workoutService?.onIncreaseLoad();
-    }, [workoutService]);
+        service.onIncreaseLoad();
+    }, [service]);
 
     const handleDecreaseLoad = useCallback(() => {
-        workoutService?.onDecreaseLoad();
-    }, [workoutService]);
+        service.onDecreaseLoad();
+    }, [service]);
 
     // Generic handler to close any active dialog
     const handleDialogClose = useCallback(() => {

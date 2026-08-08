@@ -35,10 +35,10 @@ const mockOpenPage = jest.fn(() => {
     };
 });
 
-const mockGoBack = jest.fn();
-
+// Single factory (FIXES_BACKLOG #24) - WorkoutRidePage now calls getRidePageService(), same as
+// VideoRidePage/GPXTourPage; it always resolves to the workout-shaped service in this file's tests.
 jest.mock('incyclist-services', () => ({
-    getWorkoutRidePageService: () => ({
+    getRidePageService: () => ({
         openPage: mockOpenPage,
         closePage: mockClosePage,
         pausePage: mockPausePage,
@@ -64,13 +64,6 @@ jest.mock('../../../hooks', () => ({
         feedback: { visible: false, message: '' },
         loadIncrement: 1,
     }),
-}));
-
-jest.mock('../../../services', () => ({
-    // Indirected through a wrapper (not `goBack: mockGoBack` directly) — this factory runs at
-    // require-time, before the later `const mockGoBack = jest.fn()` assignment further down this
-    // file has executed, so capturing it eagerly here would freeze `goBack` at `undefined`.
-    goBack: (...args: unknown[]) => mockGoBack(...args),
 }));
 
 jest.mock('../../../components', () => {
@@ -134,12 +127,13 @@ describe('WorkoutRidePage', () => {
         expect(getByText('view:Active')).toBeTruthy();
     });
 
-    it('calls navigation.goBack() when the service emits navigate-back', () => {
+    // FIXES_BACKLOG #24, bug 2/2 (fixed): no more 'navigate-back' subscription - the ride
+    // reaching Finished now surfaces via menuProps.finished (getPageDisplayProps()), same as every
+    // other ride type, so RideMenu can render the Activity Summary instead of the page navigating
+    // away on its own. Confirmed no 'navigate-back' handler is ever registered.
+    it('does not subscribe to a navigate-back event', () => {
         render(<WorkoutRidePage onRideTypeChange={noop} onCancelStart={noop} onClose={noop} />);
-        expect(capturedHandlers['navigate-back']).toBeInstanceOf(Function);
-
-        capturedHandlers['navigate-back']();
-        expect(mockGoBack).toHaveBeenCalledTimes(1);
+        expect(capturedHandlers['navigate-back']).toBeUndefined();
     });
 
     it('pauses the page when the app goes to background and resumes on foreground', () => {

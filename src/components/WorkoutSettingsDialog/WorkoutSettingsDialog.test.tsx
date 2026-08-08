@@ -10,8 +10,10 @@ const mockOn = jest.fn((event: string, handler: (...args: any[]) => void) => { c
 const mockOff = jest.fn();
 const mockGetPageObserver = jest.fn(() => ({ on: mockOn, off: mockOff }));
 
+// Single factory (FIXES_BACKLOG #24) - WorkoutSettingsDialog now calls getRidePageService(),
+// same as every other ride page consumer; it always resolves to the workout-shaped service here.
 jest.mock('incyclist-services', () => ({
-    getWorkoutRidePageService: () => ({
+    getRidePageService: () => ({
         getPageDisplayProps: mockGetPageDisplayProps,
         getPageObserver: mockGetPageObserver,
         onSetLoadIncrement: mockOnSetLoadIncrement,

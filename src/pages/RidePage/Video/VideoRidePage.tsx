@@ -4,7 +4,7 @@ import {
     getRidePageService,
     IObserver,
     VideoRidePageDisplayProps,
-    RidePageService,
+    IRidePageService,
     RideType
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
@@ -22,7 +22,7 @@ interface VideoRidePageProps {
 export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStart,onClose }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
 
-    const refService = useRef<RidePageService | null>(null);
+    const refService = useRef<IRidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
     const refRideObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
