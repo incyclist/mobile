@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, Vibration } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-import { getWorkoutRidePageService, useUserSettings, type PowerAdjustmentResult } from 'incyclist-services';
+import { getRidePageService, useUserSettings, type PowerAdjustmentResult } from 'incyclist-services';
 import { useLogging } from '../logging';
 import { isVersionAtLeast } from '../../utils/version';
 
@@ -110,7 +110,9 @@ export interface UseWorkoutRideGesturesResult {
 export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
     const { logEvent, logError } = useLogging('WorkoutRideGestures');
     const userSettings = useUserSettings();
-    const service = getWorkoutRidePageService();
+    // Single factory (FIXES_BACKLOG #24) - this hook is only ever used on a workout ride
+    // (WorkoutRidePageView), so getRidePageService() always resolves to WorkoutRidePageService here.
+    const service = getRidePageService();
 
     const [feedback, setFeedback] = useState<WorkoutRideGestureFeedback>({ visible: false, message: '' });
     const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

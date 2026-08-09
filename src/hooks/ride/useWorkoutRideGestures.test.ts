@@ -20,8 +20,10 @@ jest.mock('react-native-device-info', () => ({
     getVersion: () => mockGetVersion(),
 }));
 
+// Single factory (FIXES_BACKLOG #24) - useWorkoutRideGestures now calls getRidePageService(),
+// same as every other ride page consumer; it always resolves to the workout-shaped service here.
 jest.mock('incyclist-services', () => ({
-    getWorkoutRidePageService: () => ({
+    getRidePageService: () => ({
         onStepBack: mockOnStepBack,
         onStepForward: mockOnStepForward,
         adjustLoad: mockAdjustLoad,

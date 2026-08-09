@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getWorkoutRidePageService, IObserver } from 'incyclist-services';
+import { getRidePageService, IObserver } from 'incyclist-services';
 import { useUnmountEffect } from '../../hooks';
 import { WorkoutSettingsDialogProps } from './types';
 import { WorkoutSettingsDialogView } from './WorkoutSettingsDialogView';
@@ -10,17 +10,22 @@ import { WorkoutSettingsDialogView } from './WorkoutSettingsDialogView';
  * Step Back/Forward/Load.
  *
  * Follows RideSettings' precedent of going through a service rather than a direct
- * useUserSettings() call - here that's WorkoutRidePageService itself (not a dedicated display
- * service like RideSettings' useRideSettingsDisplay(), since the load-increment setting is
- * already a WorkoutRidePageService display-prop/callback pair, session 5.10's services change).
+ * useUserSettings() call - here that's the (workout-resolved) ride page service itself, via the
+ * single getRidePageService() factory (FIXES_BACKLOG #24), not a dedicated display service like
+ * RideSettings' useRideSettingsDisplay() - the load-increment setting is already a display-prop/
+ * callback pair on that service (session 5.10's services change).
  * The page (and its observer) is already open for the duration of the ride, owned by
  * WorkoutRidePage - this dialog only subscribes to page-update, it never calls
  * openPage()/closePage() itself (doing so would tear down and restart the in-progress ride).
  */
 export const WorkoutSettingsDialog = ({ onClose }: WorkoutSettingsDialogProps) => {
-    const service = getWorkoutRidePageService();
+    const service = getRidePageService();
+    // loadIncrement is a Workout-only display prop (optional on the merged AnyRidePageDisplayProps
+    // shape now that one service/factory covers every ride type) - this dialog is only ever reached
+    // from a workout ride's RideMenu, so it is always populated in practice; ?? 1 is just a type-safe
+    // fallback, matching WorkoutRidePageService's own DEFAULT_LOAD_INCREMENT.
     const [loadIncrement, setLoadIncrement] = useState<number>(
-        () => service.getPageDisplayProps().loadIncrement
+        () => service.getPageDisplayProps().loadIncrement ?? 1
     );
     const refObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
@@ -28,7 +33,7 @@ export const WorkoutSettingsDialog = ({ onClose }: WorkoutSettingsDialogProps) =
     const onUpdate = useCallback(() => {
         const updated = service.getPageDisplayProps();
         if (updated) {
-            setLoadIncrement(updated.loadIncrement);
+            setLoadIncrement(updated.loadIncrement ?? 1);
         }
     }, [service]);
 

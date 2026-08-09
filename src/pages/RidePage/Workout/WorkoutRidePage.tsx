@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, AppState } from 'react-native';
 import {
-    getWorkoutRidePageService,
+    getRidePageService,
     IObserver,
+    IRidePageService,
     RideType,
     WorkoutGraphActuals,
     WorkoutRidePageDisplayProps,
-    WorkoutRidePageService,
 } from 'incyclist-services';
 import { useUnmountEffect, useWorkoutRideGestures } from '../../../hooks';
 import { colors } from '../../../theme';
 import { WorkoutRidePageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
-import { goBack } from '../../../services';
 
 interface WorkoutRidePageProps {
     simulate?: boolean;
@@ -24,22 +23,20 @@ interface WorkoutRidePageProps {
 const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position: 0 };
 
 /**
- * Smart page for a workout-only ride (workout-mobile-hld.md §3.2/§5, session 5.6). Owns
- * `WorkoutRidePageService`'s lifecycle and app background/foreground handling — mirrors
- * `VideoRidePage`/`GPXTourPage` exactly, except this page's service is a dedicated sibling
- * service (`WorkoutRidePageService`, session 2.2), not the shared `RidePageService` those two
- * ride types use (workout-ride-page-service-design.md §7 #5 — explicit non-goal).
+ * Smart page for a workout-only ride (workout-mobile-hld.md §3.2/§5, session 5.6). Owns the
+ * workout ride page service's lifecycle and app background/foreground handling — mirrors
+ * `VideoRidePage`/`GPXTourPage` exactly, including the single `getRidePageService()` factory
+ * (FIXES_BACKLOG #24): it resolves to the concrete `WorkoutRidePageService` on its own (keyed off
+ * the currently selected ride's type), so this page no longer needs a dedicated getter.
  *
- * One extra subscription vs. Video/GPX: `navigate-back`, emitted when the workout finishes,
- * is stopped, or the underlying ride reaches `Finished` on its own (design doc §5) — the UI
- * calls `navigation.goBack()` directly for that path. The RideMenu's own "End Ride" flow is
- * unchanged (pause + ActivitySummaryDialog review, then `onCloseRidePage` -> this page's
- * `onClose` prop -> the base `RidePageService.onEndRide()`, same as every other ride type).
+ * No `navigate-back` subscription anymore (FIXES_BACKLOG #24, bug 2/2) - the ride-observer
+ * 'Finished' path now converges onto `menuProps.finished`, same as every other completion path;
+ * the RideMenu already renders the Activity Summary overlay off that, same as Video/GPX.
  */
 export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: WorkoutRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<WorkoutRidePageDisplayProps | null>(null);
 
-    const refService = useRef<WorkoutRidePageService | null>(null);
+    const refService = useRef<IRidePageService | null>(null);
     const refObserver = useRef<IObserver | null>(null);
     const refRideObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
@@ -49,7 +46,11 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
     const onUpdate = useCallback(() => {
         const service = refService.current;
         if (service) {
-            const update = service.getPageDisplayProps();
+            // This page only ever mounts for a Workout ride (RidePage.tsx's rideType dispatch) -
+            // getPageDisplayProps() is typed AnyRidePageDisplayProps at the IRidePageService level
+            // since the same call also serves Video/GPX, but it is always the Workout-shaped
+            // WorkoutRidePageDisplayProps here.
+            const update = service.getPageDisplayProps() as WorkoutRidePageDisplayProps;
             setDisplayProps(update);
         }
     }, []);
@@ -58,7 +59,7 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
         if (refInitialized.current) return;
         refInitialized.current = true;
 
-        const service = getWorkoutRidePageService();
+        const service = getRidePageService();
         refService.current = service;
 
         // openPage returns the page observer
@@ -69,7 +70,6 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
         if (refObserver.current) {
             refObserver.current.on('page-update', onUpdate);
             refObserver.current.on('ride-type-update', onRideTypeChange);
-            refObserver.current.on('navigate-back', goBack);
         }
 
         onUpdate();
@@ -96,7 +96,6 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
         if (refObserver.current) {
             refObserver.current.off('page-update', onUpdate);
             refObserver.current.off('ride-type-update', onRideTypeChange);
-            refObserver.current.off('navigate-back', goBack);
         }
         refService.current?.closePage();
         refInitialized.current = false;
