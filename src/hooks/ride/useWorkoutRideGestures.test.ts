@@ -4,6 +4,7 @@ import {
     useWorkoutRideGestures,
     classifySwipe,
     formatPowerAdjustment,
+    formatSwipeFeedback,
     DEFAULT_WORKOUT_LOAD_INCREMENT,
     WORKOUT_LOAD_INCREMENT_SETTING_KEY,
 } from './useWorkoutRideGestures';
@@ -11,6 +12,7 @@ import {
 const mockOnStepBack = jest.fn();
 const mockOnStepForward = jest.fn();
 const mockAdjustLoad = jest.fn();
+const mockGetLoadButtonMode = jest.fn(() => 'power');
 const mockGetValue = jest.fn((_key: string, def: any) => def);
 const mockGetVersion = jest.fn(() => '1.0.19');
 
@@ -23,6 +25,7 @@ jest.mock('incyclist-services', () => ({
         onStepBack: mockOnStepBack,
         onStepForward: mockOnStepForward,
         adjustLoad: mockAdjustLoad,
+        getLoadButtonMode: mockGetLoadButtonMode,
     }),
     useUserSettings: () => ({ getValue: mockGetValue }),
 }));
@@ -65,6 +68,26 @@ describe('formatPowerAdjustment', () => {
     });
 });
 
+// FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting enabled, adjustLoad() performs a
+// gear shift instead of a power/FTP nudge - the swipe feedback must say so.
+describe('formatSwipeFeedback', () => {
+    it('shows a gear-shift result as "+N gear", not a "%" power adjustment', () => {
+        expect(formatSwipeFeedback('+', 1, { type: 'gear', value: 1 })).toBe('+1 gear');
+    });
+
+    it('shows a gear-shift-down result as "-N gear"', () => {
+        expect(formatSwipeFeedback('-', 5, { type: 'gear', value: -5 })).toBe('-5 gear');
+    });
+
+    it('falls back to the existing "%"-based message for power-mode results', () => {
+        expect(formatSwipeFeedback('+', 5, { type: 'ftp', value: 220 })).toBe('+5% (FTP: 220W)');
+    });
+
+    it('falls back to the existing "%"-based message when there is no result at all', () => {
+        expect(formatSwipeFeedback('+', 5, undefined)).toBe('+5%');
+    });
+});
+
 describe('classifySwipe', () => {
     it('returns null for movement below both thresholds', () => {
         expect(classifySwipe(10, 5, 50, 50)).toBeNull();
@@ -96,6 +119,7 @@ describe('useWorkoutRideGestures', () => {
         jest.clearAllMocks();
         mockGetValue.mockImplementation((_key: string, def: any) => def);
         mockAdjustLoad.mockReturnValue(undefined);
+        mockGetLoadButtonMode.mockReturnValue('power');
         mockGetVersion.mockReturnValue('1.0.19');
         Platform.OS = 'ios';
         jest.useFakeTimers();
@@ -288,5 +312,101 @@ describe('useWorkoutRideGestures', () => {
             jest.advanceTimersByTime(1200);
         });
         expect(result.current.feedback).toEqual({ visible: false, message: '' });
+    });
+
+    // FIXES_BACKLOG #37: SIM/Resistance mode with virtual shifting enabled - swipe up/down performs
+    // a gear shift (WorkoutRideService.gearChange(), reached via adjustLoad()) instead of a
+    // power/FTP nudge, and the feedback must say "gear", not "%".
+    describe('loadButtonMode="gear" (SIM/Resistance, virtual shifting enabled)', () => {
+        beforeEach(() => {
+            mockGetLoadButtonMode.mockReturnValue('gear');
+        });
+
+        it('still calls adjustLoad on an upward swipe (routing to gear shift happens in the service layer)', () => {
+            mockGetValue.mockImplementation(() => 1);
+            mockAdjustLoad.mockReturnValue({ type: 'gear', value: 1 });
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).toHaveBeenCalledWith(1);
+            expect(result.current.feedback.message).toBe('+1 gear');
+        });
+
+        it('shows "-N gear" feedback on a downward swipe', () => {
+            mockGetValue.mockImplementation(() => 5);
+            mockAdjustLoad.mockReturnValue({ type: 'gear', value: -5 });
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).toHaveBeenCalledWith(-5);
+            expect(result.current.feedback.message).toBe('-5 gear');
+        });
+
+        it('still vibrates and steps back/forward normally - only the load-adjust feedback text changes', () => {
+            const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(vibrateSpy).toHaveBeenCalled();
+            expect(mockOnStepBack).toHaveBeenCalledTimes(1);
+            expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+        });
+    });
+
+    // FIXES_BACKLOG #37: SIM/Resistance mode with virtual shifting disabled - there is no gear
+    // concept and no power target to nudge, so the load-adjust gesture is disabled outright (no
+    // service call, no vibration, no feedback) rather than showing a misleading "no effect" toast.
+    describe('loadButtonMode="hidden" (SIM/Resistance, virtual shifting disabled)', () => {
+        beforeEach(() => {
+            mockGetLoadButtonMode.mockReturnValue('hidden');
+        });
+
+        it('ignores an upward swipe entirely: no adjustLoad call, no vibration, no feedback', () => {
+            const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).not.toHaveBeenCalled();
+            expect(vibrateSpy).not.toHaveBeenCalled();
+            expect(result.current.feedback).toEqual({ visible: false, message: '' });
+        });
+
+        it('ignores a downward swipe entirely', () => {
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).not.toHaveBeenCalled();
+            expect(result.current.feedback.visible).toBe(false);
+        });
+
+        it('leaves step back/forward (left/right swipes) unaffected', () => {
+            const { result } = renderHook(() => useWorkoutRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockOnStepBack).toHaveBeenCalledTimes(1);
+            expect(result.current.feedback).toEqual({ visible: true, message: '◀ Step Back' });
+
+            act(() => {
+                capturedOnEnd!({ translationX: 100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockOnStepForward).toHaveBeenCalledTimes(1);
+        });
     });
 });

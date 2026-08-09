@@ -80,6 +80,18 @@ export const formatPowerAdjustment = (result: PowerAdjustmentResult | undefined)
     return result.type === 'ftp' ? ` (FTP: ${watts}W)` : ` (${watts}W)`;
 };
 
+// FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting enabled, adjustLoad() performs a
+// gear shift instead of a power/FTP nudge (WorkoutRideService.powerUp()/powerDown(), gear mode) -
+// the swipe feedback must say so, not claim a "%" power adjustment that didn't happen. `increment`
+// is always the raw magnitude actually applied (== the gearDelta WorkoutRideService.gearChange()
+// was called with), so it doubles as the gear-step count here.
+export const formatSwipeFeedback = (sign: '+' | '-', increment: number, result: PowerAdjustmentResult | undefined): string => {
+    if (result?.type === 'gear') {
+        return `${sign}${increment} gear`;
+    }
+    return `${sign}${increment}%${formatPowerAdjustment(result)}`;
+};
+
 export interface WorkoutRideGestureFeedback {
     visible: boolean;
     message: string;
@@ -119,6 +131,17 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
     }, [userSettings]);
 
     const handleSwipe = useCallback((direction: SwipeDirection) => {
+        // FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting disabled there is no
+        // gear concept and no power target to nudge, so a load-adjust swipe would be a silent
+        // no-op. Disable the gesture outright in that case (rather than a "no effect" toast, which
+        // has no existing precedent here) - avoids training the rider that swiping up/down does
+        // something in this mode. Step back/forward (left/right) are unaffected - re-check fresh on
+        // every swipe, since the rider can toggle ERG/SIM mid-ride.
+        if ((direction === 'up' || direction === 'down') && service.getLoadButtonMode() === 'hidden') {
+            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'loadButtonMode=hidden', eventSource: 'user' });
+            return;
+        }
+
         // Vibration.vibrate() can throw natively (missing permission, no vibrator motor on this
         // device) - that must never take down an in-progress ride over haptic feedback.
         if (canVibrate()) {
@@ -145,14 +168,14 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });
                 const result = service.adjustLoad(increment);
-                showFeedback(`+${increment}%${formatPowerAdjustment(result)}`);
+                showFeedback(formatSwipeFeedback('+', increment, result));
                 break;
             }
             case 'down': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-down', action: 'decrease-load', increment, eventSource: 'user' });
                 const result = service.adjustLoad(-increment);
-                showFeedback(`-${increment}%${formatPowerAdjustment(result)}`);
+                showFeedback(formatSwipeFeedback('-', increment, result));
                 break;
             }
         }
