@@ -128,6 +128,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     title: 'VO2 max (1/3)',
     gestureHint: null,
     loadIncrement: 1,
+    loadButtonMode: 'power',
 };
 
 const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
@@ -147,6 +148,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     title: 'Cooldown',
     gestureHint: null,
     loadIncrement: 1,
+    loadButtonMode: 'power',
 };
 
 const STARTING: WorkoutRidePageDisplayProps = {
@@ -169,6 +171,7 @@ const STARTING: WorkoutRidePageDisplayProps = {
     title: '',
     gestureHint: null,
     loadIncrement: 1,
+    loadButtonMode: 'power',
 };
 
 /**

@@ -99,6 +99,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     title: 'VO2 max (1/3)',
     gestureHint: null,
     loadIncrement: 1,
+    loadButtonMode: 'power',
 };
 
 const MID_WORKOUT_ACTUALS: WorkoutGraphActuals = MOCK_ACTUALS_MID;
@@ -128,6 +129,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     title: 'Cooldown',
     gestureHint: null,
     loadIncrement: 1,
+    loadButtonMode: 'power',
 };
 
 const AFTER_SKIP_BACK_ACTUALS: WorkoutGraphActuals = MOCK_ACTUALS_SKIPBACK;
