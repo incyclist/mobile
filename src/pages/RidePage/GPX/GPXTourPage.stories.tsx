@@ -58,3 +58,40 @@ export const ActiveRide: Story = {
         },
     },
 };
+
+// GPX route shaped with description/details (route.description.hasGpx + route.details.points),
+// used to exercise the corner orientation map (§1.3.1 of ride-overlay-layout-design.md).
+const gpxRoute = {
+    description: { hasGpx: true, isLoop: false },
+    details: { points: (sydneyRoute as any).points },
+};
+
+export const StreetViewWithCornerMap: Story = {
+    args: {
+        rideObserver: null,
+        displayProps: {
+            rideState: 'Active',
+            rideType: 'GPX',
+            startOverlayProps: null,
+            startGateProps: null,
+            menuProps: null,
+            route: gpxRoute as any,
+            rideView: 'sv' as any,
+        },
+    },
+};
+
+export const MapNoCornerMap: Story = {
+    args: {
+        rideObserver: null,
+        displayProps: {
+            rideState: 'Active',
+            rideType: 'GPX',
+            startOverlayProps: null,
+            startGateProps: null,
+            menuProps: null,
+            route: gpxRoute as any,
+            rideView: 'map' as any,
+        },
+    },
+};

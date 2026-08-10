@@ -59,6 +59,14 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // Derived properties
     const routeData = route?.details;
     const lapMode = route?.description?.isLoop;
+    const hasGpx = route?.description?.hasGpx;
+
+    // Whether the full-screen main view already shows a map, making the corner orientation map
+    // redundant. Deliberately not `rideView !== 'map'`: GPX also renders 'sat' through FreeMap as a
+    // full-screen map today ("currently also draw sv and sat as map - to be replaced later"), so that
+    // predicate would double-render a map on top of a map. Update to
+    // `rideView === 'sv' || rideView === 'sat'` once SatelliteView is a real, distinct view.
+    const mainViewIsNotAMap = rideView === 'sv';
 
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
@@ -87,6 +95,12 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         width: reservedRight,
     };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
+
+    const mapOverlayDynamicStyle = {
+        width: screenWidth * 0.15,
+        height: ELEVATION_PREVIEW_HEIGHT,
+        top: cornerTopOffset,
+    };
 
     const bottomBarStyle = {
         position: 'absolute' as const,
@@ -152,6 +166,25 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         </Dynamic>
                     )}
 
+                    {/* Corner orientation map — shown only when the main view above isn't itself a map */}
+                    {!isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
+                        <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
+                            <Dynamic
+                                observer={rideObserver ?? undefined}
+                                event='position-update'
+                                prop='position'
+                                transform={transformPosition}
+                            >
+                                <FreeMap
+                                    points={routeData.points as RoutePoint[]}
+                                    draggable={false}
+                                    followPosition={true}
+                                    colorActive='blue'
+                                    colorInactive='rgba(255,255,255,0.4)'
+                                />
+                            </Dynamic>
+                        </View>
+                    )}
 
                     {/* Dashboard */}
                     <View style={[
@@ -281,6 +314,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    mapOverlay: {
+        position: 'absolute',
+        left: 0,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 4,
+        overflow: 'hidden',
+        zIndex: 10,
+        elevation: 10,
     },
     placeholderContainer: {
         ...StyleSheet.absoluteFillObject,
