@@ -21,8 +21,9 @@ jest.mock('../../../components', () => ({
     },
 }));
 
+const mockUseScreenLayout = jest.fn(() => 'normal');
 jest.mock('../../../hooks', () => ({
-    useScreenLayout: () => 'normal',
+    useScreenLayout: () => mockUseScreenLayout(),
 }));
 
 jest.mock('../../../components/StreetView', () => ({ StreetView: () => null }));
@@ -51,6 +52,24 @@ const baseProps: GPXTourPageViewProps = {
     onCancelStart: () => {},
 };
 
+const activeRouteProps = {
+    hasGpx: true,
+    points: [{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }],
+};
+
+const activeProps = (rideView: 'map' | 'sat' | 'sv'): GPXTourPageViewProps => ({
+    ...baseProps,
+    displayProps: {
+        ...baseProps.displayProps,
+        startOverlayProps: null,
+        rideView,
+        route: {
+            description: { hasGpx: activeRouteProps.hasGpx, isLoop: false },
+            details: { points: activeRouteProps.points },
+        },
+    } as any,
+});
+
 describe('GPXTourPageView — start overlay "Start" button wiring', () => {
     beforeEach(() => {
         mockStartRideDisplay.mockClear();
@@ -67,5 +86,42 @@ describe('GPXTourPageView — start overlay "Start" button wiring', () => {
         // not silently do nothing.
         props.onStart();
         expect(onIgnoreStart).toHaveBeenCalled();
+    });
+});
+
+describe('GPXTourPageView — corner orientation map', () => {
+    beforeEach(() => {
+        mockUseScreenLayout.mockReturnValue('normal');
+    });
+
+    it('shows the corner map when the main view is StreetView', () => {
+        const { queryByTestId } = render(<GPXTourPageView {...activeProps('sv')} />);
+        expect(queryByTestId('gpx-corner-map')).not.toBeNull();
+    });
+
+    it('does not show the corner map when the main view is the Map', () => {
+        const { queryByTestId } = render(<GPXTourPageView {...activeProps('map')} />);
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+
+    it('does not show the corner map when the main view is Satellite (still rendered as a full-screen map today)', () => {
+        const { queryByTestId } = render(<GPXTourPageView {...activeProps('sat')} />);
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+
+    it('does not show the corner map in compact mode, even in StreetView', () => {
+        mockUseScreenLayout.mockReturnValue('compact');
+        const { queryByTestId } = render(<GPXTourPageView {...activeProps('sv')} />);
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+
+    it('does not show the corner map when there is no GPX route data', () => {
+        const props = activeProps('sv');
+        (props.displayProps as any).route = {
+            description: { hasGpx: false, isLoop: false },
+            details: { points: [] },
+        };
+        const { queryByTestId } = render(<GPXTourPageView {...props} />);
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
     });
 });
