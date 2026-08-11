@@ -28,7 +28,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
         title, compact, hasGpx, points, previewUrl, totalDistance,
         totalElevation, routeType, canStart, canNotStartReason,
-        showLoopOverwrite, showNextOverwrite, showWorkout, loading,
+        showLoopOverwrite, showNextOverwrite, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
         attachedWorkout, comboEnabled,
@@ -265,17 +265,16 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const cancelButton = { label: 'Cancel', onClick: onCancel }
 
-    // "one source per state" (workout-combo-service-design.md §3.5.1) - comboEnabled picks
-    // exactly one of the two sources below; they must never both drive the button/chip in the
-    // same render, or a `[x]` clear can leave the stale `showWorkout` flag hiding "Add Workout"
-    // forever (see the design doc for the concrete defect this guards against).
-    const showAddWorkoutButton = comboEnabled ? !attachedWorkout : showWorkout;
+    // Both driven only by `attachedWorkout`, only when combo is enabled (repo-owner correction,
+    // 2026-08-11) - mobile has no route+workout starting capability outside this phase's combo
+    // work, so unlike desktop there is no meaningful fallback state for `comboEnabled === false`;
+    // the button/chip simply don't exist pre-Phase-2 on mobile, full stop.
+    const showAddWorkoutButton = comboEnabled && !attachedWorkout;
     const showWorkoutChip = comboEnabled && !!attachedWorkout;
-    const workoutButtonLabel = comboEnabled ? 'Add Workout' : 'Start with Workout';
 
     const startButtons = canStart ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
-        ...(showAddWorkoutButton ? [{ label: workoutButtonLabel, onClick: () => onStartWithWorkout(data) }] : [])
+        ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onStartWithWorkout(data) }] : [])
     ] : []
 
     const downloadButton = downloadButtonLabel ? [{

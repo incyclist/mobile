@@ -27,10 +27,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const [showDownloadModal, setShowDownloadModal] = useState(false);
 
     // Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - additive side-channel, kept fresh on
-    // every 'page-update', separate from `cardProps` above (which is intentionally captured once
-    // - see workout-combo-service-design.md §3.5.1). RouteDetailsView follows the "one source per
-    // state" rule: this drives the button/chip when comboEnabled, `cardProps.showWorkoutOption`
-    // drives it otherwise - the two are never mixed for the same render.
+    // every 'page-update', separate from `cardProps` above (which is intentionally captured once).
+    // Drives the "Add Workout" button/chip whenever comboEnabled is true - mobile has no
+    // route+workout capability outside combo, so `cardProps.showWorkoutOption` is never read for
+    // this (repo-owner correction, 2026-08-11 - see RouteDetailsDialog/types.ts).
     const [routeDetailsProps, setRouteDetailsProps] = useState<RouteDetailsProps>(() =>
         pageService.getRouteDetailsProps(routeId)
     );
@@ -166,7 +166,6 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         totalElevation,
         showLoopOverwrite,
         showNextOverwrite,
-        showWorkoutOption,
         canStart: cardCanStart,
         updateStartPos,
         settings
@@ -253,7 +252,6 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             showLoopOverwrite={!!showLoopOverwrite}
             showNextOverwrite={!!showNextOverwrite}
             downloadButtonPrimary={downloadButtonPrimary}
-            showWorkout={!!showWorkoutOption}
             showPrev={showPrev}
             loading={loading}
             initialSettings={settings as UIRouteSettings}

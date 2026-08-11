@@ -19,7 +19,6 @@ const mockRouteProps = (overrides = {}): any => ({
     canNotStartReason: undefined,
     showLoopOverwrite: true,
     showNextOverwrite: false,
-    showWorkout: true,
     showPrev: false,
     loading: false,
     initialSettings: {
@@ -58,21 +57,18 @@ type Story = StoryObj<typeof RouteDetailsView>;
 
 export const Default: Story = { args: mockRouteProps() };
 
-export const WorkoutOptionHidden: Story = {
-    args: mockRouteProps({ showWorkout: false }),
-};
-
-// workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" rename + "Workout: <name> [x]" chip,
-// gated on MOBILE_WORKOUT_ROUTE_COMBO (workout-combo-service-design.md §3.5.1 "one source per
-// state").
+// workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + "Workout: <name> [x]" chip,
+// gated on MOBILE_WORKOUT_ROUTE_COMBO. Repo-owner correction, 2026-08-11: unlike desktop, mobile
+// has no route+workout starting capability outside this phase's combo work, so comboEnabled
+// false always hides both - there is no fallback "shipped today" behaviour to preserve here
+// (see RouteDetailsDialog/types.ts for the full reasoning).
 export const ComboOffNoWorkout: Story = {
-    // Toggle off: today's shipped label/behaviour - "Start with Workout", unattached.
-    args: mockRouteProps({ comboEnabled: false, showWorkout: true, attachedWorkout: null }),
+    args: mockRouteProps({ comboEnabled: false, attachedWorkout: null }),
 };
 
-export const ComboOffWorkoutAttachedSilentlyHidden: Story = {
-    // Toggle off: shipped silent-disappear-on-attach - showWorkout goes false, no chip appears.
-    args: mockRouteProps({ comboEnabled: false, showWorkout: false, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
+export const ComboOffWorkoutAttachedElsewhereStillHidden: Story = {
+    // Even with a workout attached elsewhere, comboEnabled false hides both button and chip.
+    args: mockRouteProps({ comboEnabled: false, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
 };
 
 export const ComboOnNoWorkout: Story = {

@@ -168,11 +168,15 @@ describe('RouteDetailsDialog - workout attachment (workout-combo-service-design.
         expect(getByText('Add Workout')).toBeTruthy();
     });
 
-    it('renders today\'s shipped "Start with Workout" label, driven only by cardProps.showWorkoutOption, when comboEnabled is false', () => {
+    // Repo-owner correction, 2026-08-11: unlike desktop, mobile has no route+workout starting
+    // capability outside this phase's combo work, so cardProps.showWorkoutOption is never read
+    // for this button/chip - comboEnabled false always hides both, even when showWorkoutOption
+    // reports true (desktop's own "shipped today" signal, not meaningful on mobile).
+    it('does not render "Start with Workout" when comboEnabled is false, even when cardProps.showWorkoutOption is true', () => {
         mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps({ comboEnabled: false, attachedWorkout: null }));
         mockCard.openSettings.mockReturnValue({ ...mockCardProps, showWorkoutOption: true });
-        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
-        expect(getByText('Start with Workout')).toBeTruthy();
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('Start with Workout')).toBeNull();
         expect(queryByText('Add Workout')).toBeNull();
     });
 

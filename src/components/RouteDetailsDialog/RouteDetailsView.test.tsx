@@ -59,7 +59,6 @@ const MOCK_PROPS = {
     canStart: true,
     showLoopOverwrite: false,
     showNextOverwrite: false,
-    showWorkout: false,
     showPrev: false,
     loading: false,
     initialSettings: MOCK_SETTINGS,
@@ -198,24 +197,25 @@ describe('RouteDetailsView', () => {
         expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
     });
 
-    // workout-combo-service-design.md §3.5.1 "one source per state" - the two sources
-    // (`showWorkout`/`cardProps.showWorkoutOption` vs. `attachedWorkout`/`comboEnabled`) must
-    // never both drive the button/chip in the same render.
+    // Repo-owner correction, 2026-08-11: unlike desktop, mobile has no route+workout starting
+    // capability outside this phase's combo work, so `comboEnabled === false` always hides both
+    // the button and the chip - there is no "shipped today" fallback state to preserve on
+    // mobile (see RouteDetailsDialog/types.ts for the full reasoning).
     describe('workout attachment (workout-mobile-hld-phase2.md §4.2)', () => {
-        it('comboEnabled false, showWorkout true: shows "Start with Workout" (today\'s shipped label), never the chip', () => {
-            const { getByText, queryByText } = render(
-                <RouteDetailsView {...MOCK_PROPS} comboEnabled={false} showWorkout={true} attachedWorkout={null} />
+        it('comboEnabled false, no attachedWorkout: shows neither the button nor the chip', () => {
+            const { queryByText } = render(
+                <RouteDetailsView {...MOCK_PROPS} comboEnabled={false} attachedWorkout={null} />
             );
-            expect(getByText('Start with Workout')).toBeTruthy();
+            expect(queryByText('Start with Workout')).toBeNull();
+            expect(queryByText('Add Workout')).toBeNull();
             expect(queryByText(/^Workout:/)).toBeNull();
         });
 
-        it('comboEnabled false, showWorkout false: shows neither the button nor the chip, even if attachedWorkout is set (stale showWorkoutOption must not be overridden)', () => {
+        it('comboEnabled false, attachedWorkout set elsewhere: still shows neither the button nor the chip', () => {
             const { queryByText } = render(
                 <RouteDetailsView
                     {...MOCK_PROPS}
                     comboEnabled={false}
-                    showWorkout={false}
                     attachedWorkout={{ id: 'w1', title: 'VO2 Max Intervals' }}
                 />
             );
@@ -224,20 +224,19 @@ describe('RouteDetailsView', () => {
             expect(queryByText(/^Workout:/)).toBeNull();
         });
 
-        it('comboEnabled true, no attachedWorkout: shows "Add Workout", ignoring showWorkout entirely', () => {
+        it('comboEnabled true, no attachedWorkout: shows "Add Workout"', () => {
             const { getByText, queryByText } = render(
-                <RouteDetailsView {...MOCK_PROPS} comboEnabled={true} showWorkout={false} attachedWorkout={null} />
+                <RouteDetailsView {...MOCK_PROPS} comboEnabled={true} attachedWorkout={null} />
             );
             expect(getByText('Add Workout')).toBeTruthy();
             expect(queryByText('Start with Workout')).toBeNull();
         });
 
-        it('comboEnabled true, attachedWorkout set: shows the "Workout: <name>" chip instead of the button, ignoring showWorkout entirely', () => {
+        it('comboEnabled true, attachedWorkout set: shows the "Workout: <name>" chip instead of the button', () => {
             const { getByText, queryByText } = render(
                 <RouteDetailsView
                     {...MOCK_PROPS}
                     comboEnabled={true}
-                    showWorkout={true}
                     attachedWorkout={{ id: 'w1', title: 'VO2 Max Intervals' }}
                 />
             );
