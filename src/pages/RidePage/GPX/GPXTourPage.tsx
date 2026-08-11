@@ -6,6 +6,7 @@ import {
     GPXRidePageDisplayProps,
     IRidePageService,
     RideType,
+    WorkoutGraphActuals,
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
@@ -18,6 +19,8 @@ interface GPXTourPageProps {
     onCancelStart: () => void;
     onClose: () => void;
 }
+
+const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position: 0 };
 
 export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,onClose }: GPXTourPageProps) => {
     const [displayProps, setDisplayProps] = useState<GPXRidePageDisplayProps | null>(null);
@@ -68,6 +71,11 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+    const getGraphActuals = useCallback(
+        () => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS,
+        []
+    );
+    const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -89,6 +97,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
                 onCancelStart={onCancelStart}
+                getGraphActuals={getGraphActuals}
+                onToggleCornerWidget={onToggleCornerWidget}
             />
         </ErrorBoundary>
     );

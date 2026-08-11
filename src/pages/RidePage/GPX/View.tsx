@@ -4,6 +4,8 @@ import {
     IObserver,
     RoutePoint,
     GPXRidePageDisplayProps,
+    WorkoutGraphActuals,
+    useAppState,
 } from 'incyclist-services';
 import {
     RideDashboard,
@@ -14,6 +16,7 @@ import {
     MainBackground,
     FreeMap,
     Dynamic,
+    WorkoutRideOverlay,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors, textSizes } from '../../../theme';
@@ -31,6 +34,10 @@ export interface GPXTourPageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
+    /** Only actually called when a workout is attached & MOBILE_WORKOUT_ROUTE_COMBO is on
+     *  (workout-mobile-hld-phase2.md §5/§9.1) — unused, harmless, otherwise. */
+    getGraphActuals: () => WorkoutGraphActuals;
+    onToggleCornerWidget: () => void;
 }
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -52,9 +59,11 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onRetryStart,
         onIgnoreStart,
         onCancelStart,
+        getGraphActuals,
+        onToggleCornerWidget,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,workoutAttached,graph,steps,dashboard,cornerWidget} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -72,6 +81,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
+    // Additive branch, workout-mobile-hld-phase2.md §5/§9.1 — see Video/View.tsx's identical comment.
+    const appState = useAppState();
+    const comboActive = !!workoutAttached && appState.hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
+
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
@@ -82,6 +95,13 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         setDashboardWidth(e.nativeEvent.layout.width);
         setDashboardHeight(e.nativeEvent.layout.height);
     }, []);
+
+    // RideDashboard's own reported tile count — see Video/View.tsx's identical comment.
+    const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
+    const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
+
+    // Same visibility condition the existing corner map below already uses (unchanged, §1.3.1).
+    const mapVisible = !isCompact && mainViewIsNotAMap && !!hasGpx && !!routeData?.points?.length;
 
     // Account for both elevation preview width
     const reservedRight = screenWidth * (isCompact ? 0.20 : 0.15);
@@ -166,8 +186,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         </Dynamic>
                     )}
 
-                    {/* Corner orientation map — shown only when the main view above isn't itself a map */}
-                    {!isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
+                    {/* Corner orientation map — shown only when the main view above isn't itself a map.
+                        Route-only rendering, untouched (HLD §9.1). Replaced by WorkoutRideOverlay's
+                        own corner-widget rects when a workout is attached and the combo toggle is on. */}
+                    {!comboActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
                         <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
                             <Dynamic
                                 observer={rideObserver ?? undefined}
@@ -193,25 +215,50 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         dashboardDynamicStyle,
                     ]}>
                         <View onLayout={updateDashboardDimensions}>
-                            <RideDashboard layout='icon-left' />
+                            <RideDashboard layout='icon-left' onMetrics={comboActive ? onDashboardMetrics : undefined} />
                         </View>
                     </View>
 
-                    {/* 2km Elevation Preview */}
-                    <ElevationGraph
-                        routeData={routeData}
-                        observer={rideObserver ?? undefined}
-                        range={2000}
-                        lapMode={lapMode}
-                        showLine={true}
-                        showColors={true}
-                        showXAxis={!isCompact}
-                        showYAxis={!isCompact}
-                        style={[
-                            isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
-                            elevationPreviewDynamicStyle,
-                        ]}
-                    />
+                    {/* 2km Elevation Preview — route-only rendering, untouched (HLD §9.1). See above. */}
+                    {!comboActive && (
+                        <ElevationGraph
+                            routeData={routeData}
+                            observer={rideObserver ?? undefined}
+                            range={2000}
+                            lapMode={lapMode}
+                            showLine={true}
+                            showColors={true}
+                            showXAxis={!isCompact}
+                            showYAxis={!isCompact}
+                            style={[
+                                isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
+                                elevationPreviewDynamicStyle,
+                            ]}
+                        />
+                    )}
+
+                    {/* Workout overlay (WorkoutDashboard + resolved arrangement) — additive,
+                        prop-driven branch. workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5. */}
+                    {comboActive && graph && steps && dashboard && (
+                        <WorkoutRideOverlay
+                            itemCount={dashboardItemCount}
+                            mapVisible={mapVisible}
+                            measuredRideDashboardHeight={dashboardHeight}
+                            graph={graph}
+                            steps={steps}
+                            dashboard={dashboard}
+                            cornerWidget={cornerWidget}
+                            dashboardHeight={dashboardHeight}
+                            compact={isCompact}
+                            rideObserver={rideObserver}
+                            getGraphActuals={getGraphActuals}
+                            onToggleCornerWidget={onToggleCornerWidget}
+                            routeData={routeData}
+                            lapMode={lapMode}
+                            mapPoints={routeData?.points as RoutePoint[]}
+                            transformPosition={transformPosition}
+                        />
+                    )}
 
                     {/* Bottom bar: Menu button + Full route elevation */}
                     <View style={bottomBarStyle}>

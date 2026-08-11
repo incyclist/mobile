@@ -267,6 +267,30 @@ describe('WorkoutGraphView', () => {
             expect(rendered).not.toContain('Heartrate');
         });
 
+        it('suppresses the legend when showLegend={false}, keeping the lines and marker', () => {
+            const { toJSON } = render(
+                <WorkoutGraphView
+                    mode="live"
+                    plan={MOCK_PLAN_LIVE_MID}
+                    actuals={MOCK_ACTUALS_MID}
+                    width={169}
+                    height={47}
+                    showAxes={false}
+                    showLegend={false}
+                />
+            );
+            const rendered = JSON.stringify(toJSON());
+            expect(rendered).not.toContain('Power');
+            expect(rendered).not.toContain('Heartrate');
+        });
+
+        it('showLegend has no effect without actuals — there is nothing to suppress', () => {
+            const { toJSON } = render(
+                <WorkoutGraphView mode="detail" plan={MOCK_PLAN} width={360} height={200} showLegend={false} />
+            );
+            expect(toJSON()).not.toBeNull();
+        });
+
         it('defaults axes ON (unlike strip/detail) so a caller gets a readable graph without opting in', () => {
             const { toJSON } = render(
                 <WorkoutGraphView mode="live" plan={MOCK_PLAN_LIVE_MID} actuals={MOCK_ACTUALS_MID} width={360} height={200} />

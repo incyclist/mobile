@@ -46,6 +46,17 @@ export interface WorkoutGraphViewProps {
      * already renders the full overlay including this same marker.
      */
     showPositionMarker?: boolean;
+    /**
+     * Override the Power/Heartrate color legend that `live` (and `detail`, when it has actuals)
+     * would otherwise draw. Default true (today's behaviour) — only meaningful when actuals are
+     * present, since the legend never renders without them regardless of this prop.
+     *
+     * Added for `workout-mobile-hld-phase2.md` §8.7 finding 3 / §5.4: at the phone fallback's
+     * corner-slot size (~47 px tall), `live` mode's legend + FTP label dominate the box and leave
+     * the workout's actual shape unreadable. `showAxes={false}` already solves this for the axes;
+     * this is the same escape hatch for the legend.
+     */
+    showLegend?: boolean;
     axisFontSize?: number;
     style?: StyleProp<ViewStyle>;
 }
@@ -59,6 +70,8 @@ export interface WorkoutGraphProps {
     showFtpLine?: boolean;
     showFtpLabel?: boolean;
     showPositionMarker?: boolean;
+    /** See `WorkoutGraphViewProps.showLegend`. Default true. */
+    showLegend?: boolean;
     /** Fixed height (e.g. strip rows). When omitted the wrapper measures it. */
     height?: number;
     /** Forwarded to WorkoutGraphView. Omit to keep its default (phone-sized) axis font. */

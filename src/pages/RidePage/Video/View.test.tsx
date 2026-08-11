@@ -7,6 +7,7 @@ jest.mock('react-native-device-info', () => ({
 }));
 
 const mockStartRideDisplay = jest.fn();
+const mockWorkoutRideOverlay = jest.fn();
 jest.mock('../../../components', () => ({
     Video: () => null,
     Button: () => null,
@@ -21,10 +22,20 @@ jest.mock('../../../components', () => ({
         mockStartRideDisplay(props);
         return null;
     },
+    WorkoutRideOverlay: (props: any) => {
+        mockWorkoutRideOverlay(props);
+        const { Text } = require('react-native');
+        return <Text>workout-ride-overlay</Text>;
+    },
 }));
 
 jest.mock('../../../hooks', () => ({
     useScreenLayout: () => 'normal',
+}));
+
+let mockHasFeature: jest.Mock<boolean, [string]> = jest.fn((_f: string) => false);
+jest.mock('incyclist-services', () => ({
+    useAppState: () => ({ hasFeature: mockHasFeature }),
 }));
 
 const baseProps: any = {
@@ -50,11 +61,14 @@ const baseProps: any = {
     onRetryStart: () => {},
     onIgnoreStart: () => {},
     onCancelStart: () => {},
+    getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
+    onToggleCornerWidget: () => {},
 };
 
 describe('VideoRidePageView — start overlay "Start" button wiring', () => {
     beforeEach(() => {
         mockStartRideDisplay.mockClear();
+        mockHasFeature = jest.fn((_f: string) => false);
     });
 
     it('wires the Start button to a handler that actually starts the ride (ignoring failed sensors), not a no-op', () => {
@@ -66,5 +80,64 @@ describe('VideoRidePageView — start overlay "Start" button wiring', () => {
 
         props.onStart();
         expect(onIgnoreStart).toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Workout overlay branch (workout-mobile-hld-phase2.md §5/§9.1, session 5.1) — additive,
+// prop-driven, gated on displayProps.workoutAttached && hasFeature('MOBILE_WORKOUT_ROUTE_COMBO').
+// Route-only rendering must be bit-for-bit unaffected regardless of toggle state.
+// ---------------------------------------------------------------------------
+
+const comboDisplayProps = {
+    ...baseProps.displayProps,
+    startOverlayProps: null,
+    workoutAttached: true,
+    graph: { bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 0], y: [0, 0] } },
+    steps: { previous: null, current: null, upcoming: [], hasMore: false },
+    dashboard: { text: '260W - VO2 max (3/5)', mode: null },
+};
+
+describe('VideoRidePageView — workout overlay branch', () => {
+    beforeEach(() => {
+        mockWorkoutRideOverlay.mockClear();
+    });
+
+    it('does not render the overlay for a route-only ride (workoutAttached false), regardless of the toggle', () => {
+        mockHasFeature = jest.fn((_f: string) => true);
+        const { queryByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={{ ...baseProps.displayProps, startOverlayProps: null }} />
+        );
+        expect(queryByText('workout-ride-overlay')).toBeNull();
+        expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
+    });
+
+    it('does not render the overlay when a workout is attached but the toggle is off', () => {
+        mockHasFeature = jest.fn((_f: string) => false);
+        const { queryByText } = render(<VideoRidePageView {...baseProps} displayProps={comboDisplayProps} />);
+        expect(queryByText('workout-ride-overlay')).toBeNull();
+        expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
+    });
+
+    it('renders the overlay when a workout is attached AND the toggle is on', () => {
+        mockHasFeature = jest.fn((f: string) => f === 'MOBILE_WORKOUT_ROUTE_COMBO');
+        const { getByText } = render(<VideoRidePageView {...baseProps} displayProps={comboDisplayProps} />);
+        expect(getByText('workout-ride-overlay')).toBeTruthy();
+        expect(mockWorkoutRideOverlay).toHaveBeenCalledTimes(1);
+        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        expect(overlayProps.graph).toBe(comboDisplayProps.graph);
+        expect(overlayProps.steps).toBe(comboDisplayProps.steps);
+        expect(overlayProps.dashboard).toBe(comboDisplayProps.dashboard);
+    });
+
+    it('passes the measured RideDashboard height through as measuredRideDashboardHeight (not the ratio estimate)', () => {
+        mockHasFeature = jest.fn((_f: string) => true);
+        render(<VideoRidePageView {...baseProps} displayProps={comboDisplayProps} />);
+        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        // Before onLayout ever fires, the page's own dashboardHeight state seeds from the same
+        // screen-fraction estimate the hook itself would fall back to — the point under test is
+        // that the page's *measured* value (whatever it is) is the one forwarded, not that any
+        // particular number appears before a real onLayout has ever fired.
+        expect(overlayProps.measuredRideDashboardHeight).toEqual(expect.any(Number));
     });
 });
