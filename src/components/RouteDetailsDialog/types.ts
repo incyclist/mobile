@@ -1,4 +1,4 @@
-import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps } from 'incyclist-services';
+import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
     routeId: string     
@@ -46,6 +46,18 @@ export interface RouteDetailsViewProps {
     loading: boolean;
     downloadButtonPrimary?: boolean
 
+    /**
+     * Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - the "Workout: <name> [x]" row and the
+     * "Add Workout" rename. `comboEnabled` selects which single source drives the button/chip
+     * (workout-combo-service-design.md §3.5.1 "one source per state" - never mixed):
+     *  - comboEnabled true:  driven only by `attachedWorkout` (button when null, chip when set).
+     *    `showWorkout` is ignored entirely.
+     *  - comboEnabled false: driven only by `showWorkout`, exactly as shipped today (label
+     *    "Start with Workout", silently disappears once attached). `attachedWorkout` is ignored.
+     */
+    attachedWorkout: AttachedWorkoutProps | null;
+    comboEnabled: boolean;
+
     // Settings
     initialSettings: UIRouteSettings;
     prevRides?: Array<any>;
@@ -54,6 +66,7 @@ export interface RouteDetailsViewProps {
     onStart: (settings: UIRouteSettings) => void;
     onCancel: () => void;
     onStartWithWorkout: (settings: UIRouteSettings) => void;
+    onClearWorkout: () => void;
     onSettingsChanged: (settings: UIRouteSettings) => Promise<{
         prevRides?: Array<any>;
         showPrev?: boolean;

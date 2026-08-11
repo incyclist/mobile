@@ -5,6 +5,7 @@ import { WorkoutGraph } from '../WorkoutGraph';
 import { EditNumber } from '../EditNumber';
 import { BinarySelect } from '../BinarySelect';
 import { GroupPicker } from '../GroupPicker';
+import { AttachmentChip } from '../AttachmentChip';
 import { WorkoutDetailsViewProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { WorkoutGraphPlan } from 'incyclist-services';
@@ -74,8 +75,10 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         ftp, useErgMode, groups, group, isScheduled, scheduledLabel,
         canDelete, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
+        attachedRoute, comboEnabled,
         onClose, onSetFtp, onSetErgMode, onChangeGroup, onStart,
         onDeleteRequest, onDeleteConfirm, onDeleteCancel,
+        onClearRoute, onAddRoute,
     } = props;
 
     const handleFtpChange = useCallback((value?: number) => {
@@ -90,9 +93,15 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         onChangeGroup(value);
     }, [onChangeGroup]);
 
+    // "Add Route" (workout-mobile-hld-phase2.md §4.2/§9.1) - toggle-gated, and only offered when
+    // nothing is attached yet (once attached, the chip below replaces it - one row/button never
+    // shown at the same time as the other).
+    const showAddRoute = comboEnabled && !attachedRoute;
+
     const dialogButtons = [
         { label: 'Close', onClick: onClose },
         ...(canDelete ? [{ label: 'Delete', onClick: onDeleteRequest }] : []),
+        ...(showAddRoute ? [{ label: 'Add Route', onClick: onAddRoute }] : []),
         ...(canStartWorkoutOnly ? [{ label: 'Start', onClick: onStart, primary: true }] : []),
     ];
 
@@ -115,6 +124,9 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
 
     return (
         <Dialog title={dialogTitle} variant="full" buttons={dialogButtons} onOutsideClick={onClose}>
+            {comboEnabled && attachedRoute && (
+                <AttachmentChip label="Route" name={attachedRoute.title} onClear={onClearRoute} />
+            )}
             {compact ? (
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>{settingsColumn}</View>

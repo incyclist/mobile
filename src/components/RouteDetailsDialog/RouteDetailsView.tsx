@@ -20,6 +20,7 @@ import { ChipSelect } from '../ChipSelect';
 import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
+import { AttachmentChip } from '../AttachmentChip';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -30,7 +31,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         showLoopOverwrite, showNextOverwrite, showWorkout, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
-        onStart, onCancel, onStartWithWorkout, onSettingsChanged, onUpdateStartPos,
+        attachedWorkout, comboEnabled,
+        onStart, onCancel, onStartWithWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
         onDownloadStop, onDownloadRetry, onDownloadDelete
@@ -263,9 +265,17 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const cancelButton = { label: 'Cancel', onClick: onCancel }
 
+    // "one source per state" (workout-combo-service-design.md §3.5.1) - comboEnabled picks
+    // exactly one of the two sources below; they must never both drive the button/chip in the
+    // same render, or a `[x]` clear can leave the stale `showWorkout` flag hiding "Add Workout"
+    // forever (see the design doc for the concrete defect this guards against).
+    const showAddWorkoutButton = comboEnabled ? !attachedWorkout : showWorkout;
+    const showWorkoutChip = comboEnabled && !!attachedWorkout;
+    const workoutButtonLabel = comboEnabled ? 'Add Workout' : 'Start with Workout';
+
     const startButtons = canStart ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
-        ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
+        ...(showAddWorkoutButton ? [{ label: workoutButtonLabel, onClick: () => onStartWithWorkout(data) }] : [])
     ] : []
 
     const downloadButton = downloadButtonLabel ? [{
@@ -276,6 +286,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }] : []
 
     const dialogButtons = [cancelButton, ...startButtons, ...downloadButton]
+
+    const workoutChip = showWorkoutChip && attachedWorkout ? (
+        <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
+    ) : null;
 
     if (compact) {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
@@ -298,6 +312,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 scrollable={false}
             >
                 {infoBar}
+                {workoutChip}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         <ScrollView
@@ -331,6 +346,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 <View style={styles.mediaContainer}>{renderMedia()}</View>
                 <View style={styles.mediaContainer}>{renderPreview()}</View>
             </View>
+            {workoutChip}
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Distance</Text>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { RouteDetailsView } from './RouteDetailsView';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
@@ -63,9 +63,12 @@ const MOCK_PROPS = {
     showPrev: false,
     loading: false,
     initialSettings: MOCK_SETTINGS,
+    attachedWorkout: null,
+    comboEnabled: false,
     onStart: jest.fn(),
     onCancel: jest.fn(),
     onStartWithWorkout: jest.fn(),
+    onClearWorkout: jest.fn(),
     onSettingsChanged: jest.fn().mockResolvedValue({}),
     onUpdateStartPos: jest.fn((value: number) => {
         return { startPos: { value, unit: 'km' } } as unknown as UIStartSettings;
@@ -193,5 +196,74 @@ describe('RouteDetailsView', () => {
         // Dialog itself renders the ScrollView here (scrollable defaults to true), RouteDetailsView
         // does not add its own on top of it.
         expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
+    });
+
+    // workout-combo-service-design.md §3.5.1 "one source per state" - the two sources
+    // (`showWorkout`/`cardProps.showWorkoutOption` vs. `attachedWorkout`/`comboEnabled`) must
+    // never both drive the button/chip in the same render.
+    describe('workout attachment (workout-mobile-hld-phase2.md §4.2)', () => {
+        it('comboEnabled false, showWorkout true: shows "Start with Workout" (today\'s shipped label), never the chip', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView {...MOCK_PROPS} comboEnabled={false} showWorkout={true} attachedWorkout={null} />
+            );
+            expect(getByText('Start with Workout')).toBeTruthy();
+            expect(queryByText(/^Workout:/)).toBeNull();
+        });
+
+        it('comboEnabled false, showWorkout false: shows neither the button nor the chip, even if attachedWorkout is set (stale showWorkoutOption must not be overridden)', () => {
+            const { queryByText } = render(
+                <RouteDetailsView
+                    {...MOCK_PROPS}
+                    comboEnabled={false}
+                    showWorkout={false}
+                    attachedWorkout={{ id: 'w1', title: 'VO2 Max Intervals' }}
+                />
+            );
+            expect(queryByText('Start with Workout')).toBeNull();
+            expect(queryByText('Add Workout')).toBeNull();
+            expect(queryByText(/^Workout:/)).toBeNull();
+        });
+
+        it('comboEnabled true, no attachedWorkout: shows "Add Workout", ignoring showWorkout entirely', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView {...MOCK_PROPS} comboEnabled={true} showWorkout={false} attachedWorkout={null} />
+            );
+            expect(getByText('Add Workout')).toBeTruthy();
+            expect(queryByText('Start with Workout')).toBeNull();
+        });
+
+        it('comboEnabled true, attachedWorkout set: shows the "Workout: <name>" chip instead of the button, ignoring showWorkout entirely', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView
+                    {...MOCK_PROPS}
+                    comboEnabled={true}
+                    showWorkout={true}
+                    attachedWorkout={{ id: 'w1', title: 'VO2 Max Intervals' }}
+                />
+            );
+            expect(getByText('Workout: VO2 Max Intervals')).toBeTruthy();
+            expect(queryByText('Add Workout')).toBeNull();
+            expect(queryByText('Start with Workout')).toBeNull();
+        });
+
+        it('calls onClearWorkout when the chip [x] is pressed', () => {
+            const { getByLabelText } = render(
+                <RouteDetailsView
+                    {...MOCK_PROPS}
+                    comboEnabled={true}
+                    attachedWorkout={{ id: 'w1', title: 'VO2 Max Intervals' }}
+                />
+            );
+            fireEvent.press(getByLabelText('Clear workout'));
+            expect(MOCK_PROPS.onClearWorkout).toHaveBeenCalledTimes(1);
+        });
+
+        it('calls onStartWithWorkout (same handler as the legacy button) when "Add Workout" is pressed', () => {
+            const { getByText } = render(
+                <RouteDetailsView {...MOCK_PROPS} comboEnabled={true} attachedWorkout={null} />
+            );
+            fireEvent.press(getByText('Add Workout'));
+            expect(MOCK_PROPS.onStartWithWorkout).toHaveBeenCalledTimes(1);
+        });
     });
 });

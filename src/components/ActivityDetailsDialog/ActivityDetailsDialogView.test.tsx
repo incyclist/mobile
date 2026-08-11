@@ -7,7 +7,7 @@ jest.mock('incyclist-services', () => ({
 }));
 
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { ActivityDetailsDialogViewProps } from './types';
 
@@ -18,11 +18,15 @@ const MOCK_LOADING = {
     uploads: [],
     canStart: false,
     units: {} as any,
-    onClose: () => {},
-    onRideAgain: () => {},
-    onShareFile: () => {},
-    onUpload: () => {},
-    onOpenUpload: () => {},
+    attachedWorkout: null,
+    comboEnabled: false,
+    onClose: jest.fn(),
+    onRideAgain: jest.fn(),
+    onShareFile: jest.fn(),
+    onUpload: jest.fn(),
+    onOpenUpload: jest.fn(),
+    onClearWorkout: jest.fn(),
+    onAddWorkout: jest.fn(),
 } as any
 
 describe('ActivityDetailsDialogView', () => {
@@ -49,5 +53,90 @@ describe('ActivityDetailsDialogView', () => {
         };
         const { getByTestId } = render(<ActivityDetailsDialogView {...props} />);
         expect(getByTestId).toBeDefined();
+    });
+
+    // workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + inline chip, gated on
+    // comboEnabled AND canStart (workout-mobile-session-plan-phase2.md session 3.3 note: a
+    // workout-only activity, canStart false, must get neither element).
+    describe('workout attachment', () => {
+        const loadedProps = (overrides = {}): ActivityDetailsDialogViewProps => ({
+            ...MOCK_LOADING,
+            loading: false,
+            canStart: true,
+            activity: {
+                title: 'Test Ride',
+                startTime: new Date().toISOString(),
+                distance: 10000,
+                time: 3600,
+                totalElevation: 500,
+                logs: [],
+                stats: { speed: { avg: 25, min: 0, max: 40 } },
+            } as any,
+            ...overrides,
+        });
+
+        it('hides "Add Workout" and the chip when comboEnabled is false', () => {
+            const { queryByText } = render(
+                <ActivityDetailsDialogView {...loadedProps({ comboEnabled: false, attachedWorkout: null })} />
+            );
+            expect(queryByText('Add Workout')).toBeNull();
+        });
+
+        it('shows "Add Workout" when comboEnabled is true, canStart is true, and nothing is attached', () => {
+            const { getByText } = render(
+                <ActivityDetailsDialogView {...loadedProps({ comboEnabled: true, canStart: true, attachedWorkout: null })} />
+            );
+            expect(getByText('Add Workout')).toBeTruthy();
+        });
+
+        it('calls onAddWorkout when "Add Workout" is pressed', () => {
+            const props = loadedProps({ comboEnabled: true, canStart: true, attachedWorkout: null });
+            const { getByText } = render(<ActivityDetailsDialogView {...props} />);
+            fireEvent.press(getByText('Add Workout'));
+            expect(props.onAddWorkout).toHaveBeenCalledTimes(1);
+        });
+
+        it('shows the "Workout: <name>" chip instead of "Add Workout" when a workout is attached', () => {
+            const { getByText, queryByText } = render(
+                <ActivityDetailsDialogView
+                    {...loadedProps({
+                        comboEnabled: true,
+                        canStart: true,
+                        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+                    })}
+                />
+            );
+            expect(getByText('Workout: VO2 Max Intervals')).toBeTruthy();
+            expect(queryByText('Add Workout')).toBeNull();
+        });
+
+        it('calls onClearWorkout when the chip [x] is pressed', () => {
+            const props = loadedProps({
+                comboEnabled: true,
+                canStart: true,
+                attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+            });
+            const { getByLabelText } = render(<ActivityDetailsDialogView {...props} />);
+            fireEvent.press(getByLabelText('Clear workout'));
+            expect(props.onClearWorkout).toHaveBeenCalledTimes(1);
+        });
+
+        // workout-mobile-session-plan-phase2.md session 3.3 note (2026-08-11): a workout-only
+        // activity (canStart false - Activity.canStart()'s `!details?.route` guard) must not
+        // offer "Add Workout" - there is no route to attach it to, and no retroactive-attach flow
+        // exists yet (HLD §1, deferred to a future phase).
+        it('hides "Add Workout" and the chip on a workout-only activity (canStart false), even when comboEnabled and attachedWorkout are set', () => {
+            const { queryByText } = render(
+                <ActivityDetailsDialogView
+                    {...loadedProps({
+                        comboEnabled: true,
+                        canStart: false,
+                        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+                    })}
+                />
+            );
+            expect(queryByText('Add Workout')).toBeNull();
+            expect(queryByText(/^Workout:/)).toBeNull();
+        });
     });
 });

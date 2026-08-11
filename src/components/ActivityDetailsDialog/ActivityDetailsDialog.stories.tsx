@@ -31,11 +31,15 @@ const meta: Meta<typeof ActivityDetailsDialogView> = {
             { type: 'TrainingPeaks', status: 'failed' },
         ],
         units: { speed: 'km/h', distance: 'km', elevation: 'm' } as any,
+        attachedWorkout: null,
+        comboEnabled: false,
         onClose: fn(),
         onRideAgain: fn(),
         onShareFile: fn(),
         onUpload: fn(),
         onOpenUpload: fn(),
+        onClearWorkout: fn(),
+        onAddWorkout: fn(),
     },
 };
 
@@ -60,5 +64,42 @@ export const Compact: Story = {
 export const NoMap: Story = {
     args: {
         showMap: false,
+    },
+};
+
+// workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + inline chip, net-new for this
+// dialog, gated on comboEnabled AND canStart (a route must exist to attach a workout to).
+export const ComboOffNoWorkout: Story = {
+    args: {
+        canStart: true,
+        comboEnabled: false,
+        attachedWorkout: null,
+    },
+};
+
+export const ComboOnNoWorkout: Story = {
+    args: {
+        canStart: true,
+        comboEnabled: true,
+        attachedWorkout: null,
+    },
+};
+
+export const ComboOnWorkoutAttached: Story = {
+    args: {
+        canStart: true,
+        comboEnabled: true,
+        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+    },
+};
+
+// Session 3.3 note (workout-mobile-session-plan-phase2.md, 2026-08-11): a workout-only activity
+// (no route - Activity.canStart() returns false) must not offer "Add Workout", even with the
+// toggle on and a workout attached elsewhere - there is no route to attach it to.
+export const WorkoutOnlyActivityNoAddWorkout: Story = {
+    args: {
+        canStart: false,
+        comboEnabled: true,
+        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
     },
 };

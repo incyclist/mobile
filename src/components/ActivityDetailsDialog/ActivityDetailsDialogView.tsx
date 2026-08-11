@@ -5,6 +5,7 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
 import { UploadPill } from '../UploadPill';
+import { AttachmentChip } from '../AttachmentChip';
 import { ActivityDetailsDialogViewProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
@@ -33,11 +34,15 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
         loading,
         canStart,
         uploads = [],
+        attachedWorkout,
+        comboEnabled,
         onClose,
         onRideAgain,
         onShareFile,
         onUpload,
         onOpenUpload,
+        onClearWorkout,
+        onAddWorkout,
         compact,
     } = props;
 
@@ -63,8 +68,17 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     const graphMinHeight = Math.round(screenWidth * 3 / 4);
     const graphContainerStyle = { ...styles.graphContainer, minHeight: graphMinHeight };
 
+    // "Add Workout" (workout-mobile-hld-phase2.md §4.2/§9.1) - net-new for this dialog, gated on
+    // comboEnabled AND canStart. `canStart` already encodes "this activity has a route"
+    // (Activity.canStart()'s `!details?.route` guard, the same prop that already disables "Ride
+    // Again" below) - a workout-only activity gets neither the button nor the chip (session 3.3
+    // note, workout-mobile-session-plan-phase2.md).
+    const showAddWorkout = comboEnabled && canStart && !attachedWorkout;
+    const showWorkoutChip = comboEnabled && canStart && !!attachedWorkout;
+
     const dialogButtons = [
         { label: 'Ride Again', onClick: onRideAgain, primary: true, disabled: !canStart },
+        ...(showAddWorkout ? [{ label: 'Add Workout', onClick: onAddWorkout }] : []),
         { label: 'Close', onClick: onClose },
     ];
 
@@ -200,6 +214,10 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
             </View>
 
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
+
+            {showWorkoutChip && attachedWorkout && (
+                <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
+            )}
 
             <View style={styles.uploadsRow}>
                 {uploads.map((upload, idx) => (
