@@ -82,6 +82,18 @@ const ROUTE_DATA = teideRoute as never;
 const RULER_SLOT_HEIGHT = 96;
 
 /**
+ * `NearbyRiders`/`PrevRides` are **variable-length lists, capped at 10 but usually shorter** on
+ * desktop today, and both can be on screen at once (repo owner, 2026-08-11 - e.g. a "ride again"
+ * that turns into a group ride). So the reserved slot is not a fixed box, and it is not a
+ * worst-case-10 box either: its height is `header + n · row` for whatever `n` currently is, clamped
+ * to what the ear can afford. These are stand-in metrics for the ghost - Phase 3 owns the real ones.
+ */
+const PHASE3_MAX_ENTRIES = 10;
+const PHASE3_TYPICAL_ENTRIES = 4;
+const PHASE3_ROW_HEIGHT = 24;
+const PHASE3_HEADER_HEIGHT = 22;
+
+/**
  * Rendered heights of `RideDashboardView`, measured in the browser (2026-08-11) rather than assumed.
  * The `icon-top` stack (icon ABOVE value above the secondary row) is 40% taller than `icon-left`'s —
  * which matters because the Gear tile forces `icon-top`, so the dashboard gets both narrower AND
@@ -123,6 +135,12 @@ interface RideOverlayPrototypeProps {
     cornerSlot: 'elevation' | 'workout';
     /** HLD OQ6 — a hypothetical (NOT built) gear-shift trigger, to check the arrangement leaves room. */
     showGearGhost: boolean;
+    /** HLD §5.5 — the reserved Phase 3 `NearbyRiders`/`PrevRides` slots, drawn as ghosts to check the
+     *  ear budget actually holds once occupied. Neither is designed or built in this phase. */
+    showPhase3Ghosts: boolean;
+    /** Entries per reserved list. Both are capped at 10 but are usually shorter, so the default is
+     *  the typical case, not the worst one. */
+    phase3Entries: number;
     /** §5.8's `inputs`, rendered on screen: Phase 1 found layout issues precisely because the
      *  numbers were visible. */
     showDebug: boolean;
@@ -140,6 +158,8 @@ const RideOverlayPrototypeView = (props: RideOverlayPrototypeProps) => {
         graphMode,
         cornerSlot,
         showGearGhost,
+        showPhase3Ghosts,
+        phase3Entries,
         showDebug,
     } = props;
 
@@ -183,6 +203,8 @@ const RideOverlayPrototypeView = (props: RideOverlayPrototypeProps) => {
                     sideAssignment={sideAssignment}
                     stopMechanism={stopMechanism}
                     showGearGhost={showGearGhost}
+                    showPhase3Ghosts={showPhase3Ghosts}
+                    phase3Entries={phase3Entries}
                     dashboardHeight={dashboardHeight}
                 />
             ) : (
@@ -192,6 +214,8 @@ const RideOverlayPrototypeView = (props: RideOverlayPrototypeProps) => {
                     compact={compact}
                     mapVisible={mapVisible}
                     showGearGhost={showGearGhost}
+                    showPhase3Ghosts={showPhase3Ghosts}
+                    phase3Entries={phase3Entries}
                 />
             )}
 
@@ -230,12 +254,15 @@ interface WorkoutOverlayProps {
     sideAssignment: SideAssignment;
     stopMechanism: StopMechanism;
     showGearGhost: boolean;
+    showPhase3Ghosts: boolean;
+    /** How many entries each reserved list currently holds (capped at `PHASE3_MAX_ENTRIES`). */
+    phase3Entries: number;
     /** Observed, not estimated - see `OBSERVED_RIDE_DASH_HEIGHT`. */
     dashboardHeight: number;
 }
 
 const WorkoutOverlay = (props: WorkoutOverlayProps) => {
-    const { layout, frameWidth, frameHeight, compact, graphMode, cornerSlot, sideAssignment, stopMechanism, showGearGhost, dashboardHeight } = props;
+    const { layout, frameWidth, frameHeight, compact, graphMode, cornerSlot, sideAssignment, stopMechanism, showGearGhost, showPhase3Ghosts, phase3Entries, dashboardHeight } = props;
     const { arrangement, workoutDashboard, map, elevation } = layout;
 
     // OQ2 — the two ears are geometrically identical, so swapping is purely which occupant goes
@@ -327,11 +354,36 @@ const WorkoutOverlay = (props: WorkoutOverlayProps) => {
                 </View>
             )}
 
-            {/* --- OQ6: hypothetical gear-shift trigger, NOT part of this phase. Drawn as a third
-                    stacked ear occupant, under the corner widget — the only place with room, since
-                    both top corners are already spoken for and `RideDashboard` is the widest thing
-                    on screen. The fallback's corner slot works the same way, with less room below. */}
-            {showGearGhost && elevationRect && <GearShiftGhost top={elevationRect.top + elevationRect.height + 8} compact={compact} />}
+            {/* --- §5.5's reserved Phase 3 occupants, NOT designed or built here. Informational
+                    occupants stack DOWNWARD from under each ear's corner widget: NearbyRiders under
+                    the Map (left), PrevRides under the Elevation (right). */}
+            {showPhase3Ghosts && mapRect && (
+                <SlotGhost
+                    label="NearbyRiders"
+                    side={sideAssignment === 'map-left' ? 'left' : 'right'}
+                    top={mapRect.top + mapRect.height + 8}
+                    width={mapRect.width}
+                    availableHeight={earFreeBand(frameHeight, mapRect.top + mapRect.height)}
+                    entries={phase3Entries}
+                />
+            )}
+            {showPhase3Ghosts && elevationRect && arrangement !== 'fallback' && (
+                <SlotGhost
+                    label="PrevRides"
+                    side={sideAssignment === 'map-left' ? 'right' : 'left'}
+                    top={elevationRect.top + elevationRect.height + 8}
+                    width={elevationRect.width}
+                    availableHeight={earFreeBand(frameHeight, elevationRect.top + elevationRect.height)}
+                    entries={phase3Entries}
+                />
+            )}
+
+            {/* --- OQ6: hypothetical gear-shift trigger, NOT part of this phase. BOTTOM-anchored in
+                    the right ear, not stacked under the corner widget: it is the only interactive
+                    occupant, so it must not shift position when an informational one appears above
+                    it. Bottom-right also keeps it diagonally opposite the Menu button (bottom-left),
+                    so the two controls can't be mis-tapped for each other. */}
+            {showGearGhost && <GearShiftGhost bottom={BOTTOM_BAR_RATIO * frameHeight + 8} compact={compact} />}
 
             <ArrangementBadge arrangement={arrangement} width={frameWidth} />
         </>
@@ -348,12 +400,16 @@ const RouteOnlyOverlay = ({
     compact,
     mapVisible,
     showGearGhost,
+    showPhase3Ghosts,
+    phase3Entries,
 }: {
     frameWidth: number;
     frameHeight: number;
     compact: boolean;
     mapVisible: boolean;
     showGearGhost: boolean;
+    showPhase3Ghosts: boolean;
+    phase3Entries: number;
 }) => {
     const elevationPreviewHeight = frameHeight * 0.2;
     const elevationFullHeight = frameHeight * 0.12;
@@ -399,12 +455,29 @@ const RouteOnlyOverlay = ({
                     {...computeGraphPoints(ROUTE_DATA, reservedRight, previewHeight, { range: 2000, position: 10000 })}
                 />
             </View>
-            {showGearGhost && (
-                <GearShiftGhost
-                    top={(compact ? dashboardHeight : cornerTopOffset) + previewHeight + 8}
-                    compact={compact}
+            {/* The same Phase 3 slots on a route-only ride — they are not workout-specific, so the
+                budget has to hold here too, where the widgets sit higher (no WorkoutDashboard). */}
+            {showPhase3Ghosts && mapVisible && (
+                <SlotGhost
+                    label="NearbyRiders"
+                    side="left"
+                    top={cornerTopOffset + elevationPreviewHeight + 8}
+                    width={frameWidth * 0.15}
+                    availableHeight={earFreeBand(frameHeight, cornerTopOffset + elevationPreviewHeight)}
+                    entries={phase3Entries}
                 />
             )}
+            {showPhase3Ghosts && (
+                <SlotGhost
+                    label="PrevRides"
+                    side="right"
+                    top={(compact ? dashboardHeight : cornerTopOffset) + previewHeight + 8}
+                    width={reservedRight}
+                    availableHeight={earFreeBand(frameHeight, (compact ? dashboardHeight : cornerTopOffset) + previewHeight)}
+                    entries={phase3Entries}
+                />
+            )}
+            {showGearGhost && <GearShiftGhost bottom={elevationFullHeight + 8} compact={compact} />}
             <ArrangementBadge arrangement="route-only (today's layout)" width={frameWidth} />
         </>
     );
@@ -440,10 +513,11 @@ const LongPressAffordance = ({ frameHeight, compact }: { frameHeight: number; co
     </>
 );
 
-/** HLD OQ6 — NOT built this phase. A plausible two-button shifter drawn where it would most
- *  likely live: immediately beside `RideDashboard`, which is the widest thing on screen. */
-const GearShiftGhost = ({ top, compact }: { top: number; compact: boolean }) => (
-    <View style={[styles.absolute, styles.gearGhost, { top }]}>
+/** HLD OQ6 — NOT built this phase. A plausible two-button shifter, drawn bottom-anchored in the
+ *  right ear (see §8.6): the ear's free vertical band is the only place with room, and an
+ *  interactive control has to keep a fixed position as informational occupants come and go above it. */
+const GearShiftGhost = ({ bottom, compact }: { bottom: number; compact: boolean }) => (
+    <View style={[styles.absolute, styles.gearGhost, { bottom }]}>
         <View style={[styles.gearGhostButton, compact && styles.gearGhostButtonCompact]}>
             <Icon name="chevron-up" size={compact ? 16 : 22} color={colors.text} />
         </View>
@@ -463,6 +537,42 @@ const GearShiftGhost = ({ top, compact }: { top: number; compact: boolean }) => 
  * 2026-08-11) — a flat colour makes every widget look legible, and the real question here is whether
  * the translucent widget backgrounds (`rgba(0,0,0,0.45)`) hold up over actual ride imagery.
  */
+/** A reserved-but-unbuilt overlay slot, drawn at the size the ear budget gives it. Deliberately an
+ *  empty labelled box: this session answers *where they go*, not what they contain (§5.5 — content
+ *  and triggers are Phase 3 and explicitly out of scope). */
+const SlotGhost = ({
+    label,
+    side,
+    top,
+    width,
+    availableHeight,
+    entries,
+}: {
+    label: string;
+    side: 'left' | 'right';
+    top: number;
+    width: number;
+    /** The ear's free vertical band below the corner widget, down to the bottom bar. */
+    availableHeight: number;
+    /** How many entries the list currently HAS - not its cap. The slot sizes to this, clamped. */
+    entries: number;
+}) => {
+    const fits = Math.max(0, Math.floor((availableHeight - PHASE3_HEADER_HEIGHT) / PHASE3_ROW_HEIGHT));
+    const visible = Math.min(entries, fits);
+    const height = PHASE3_HEADER_HEIGHT + visible * PHASE3_ROW_HEIGHT;
+
+    return (
+        <View style={[styles.slotGhost, side === 'left' ? styles.cornerLeft : styles.cornerRight, { top, width, height }]}>
+            <Text style={[styles.slotGhostText, visible < entries && styles.slotGhostTextShort]}>
+                {label} {visible}/{entries}
+            </Text>
+            {Array.from({ length: visible }, (_, i) => (
+                <View key={i} style={styles.slotGhostRow} />
+            ))}
+        </View>
+    );
+};
+
 const Backdrop = ({ kind }: { kind: BackdropKind }) => {
     if (kind === 'map') {
         return (
@@ -504,6 +614,16 @@ const DebugPanel = ({ layout, bottom }: { layout: RideOverlayLayout; bottom: num
     );
 };
 
+/** The free vertical band in an ear: from the bottom of its corner widget down to the bottom bar,
+ *  less a slot gap at each end.
+ *
+ *  Deliberately does NOT subtract a standing reserve for §8.6's gear-shift control. An earlier draft
+ *  did, and it cost ~220 px of screen-height requirement - enough to take a 430 px-tall landscape
+ *  frame from 8 list rows down to 1. The shifter is bottom-anchored and only exists on rides with
+ *  virtual shifting, so it should claim its space when it is actually there, not permanently. */
+const earFreeBand = (frameHeight: number, cornerWidgetBottom: number): number =>
+    frameHeight - BOTTOM_BAR_RATIO * frameHeight - cornerWidgetBottom - 16;
+
 const noop = () => undefined;
 
 const mirror = <T extends { left?: number; right?: number }>(rect: T): T => ({
@@ -540,6 +660,8 @@ const meta: Meta<typeof RideOverlayPrototypeView> = {
         graphMode: 'strip',
         cornerSlot: 'elevation',
         showGearGhost: false,
+        showPhase3Ghosts: false,
+        phase3Entries: PHASE3_TYPICAL_ENTRIES,
         showDebug: true,
     },
     argTypes: {
@@ -626,8 +748,70 @@ export const StopLongPressBlockSide: Story = { args: { ...frame(1400, 900), stop
 export const StopLongPressFallback: Story = { args: { ...frame(844, 390), stopMechanism: 'longpress' } };
 
 /** OQ6 — a hypothetical gear-shift trigger on the combined screen, drawn in the slot session 4.1
- *  recommends: a third stacked occupant in an ear, under the corner widget. */
+ *  recommends: bottom-anchored in the right ear. */
 export const GearGhostTSide: Story = { args: { ...frame(1194, 834), showGearGhost: true } };
+
+/**
+ * §5.5's reserved Phase 3 slots, occupied — the check the arrangement budget was designed for but
+ * that nothing had actually rendered. `NearbyRiders` stacks under the corner Map (left ear),
+ * `PrevRides` under the Elevation preview (right ear), and the gear-shift trigger sits
+ * bottom-anchored below both so an informational occupant appearing never moves a control.
+ */
+export const Phase3SlotsTSide: Story = {
+    args: { ...frame(1194, 834), showPhase3Ghosts: true, showGearGhost: true, backdrop: 'streetview' },
+};
+
+/** The same, with the ears at their most generous. */
+export const Phase3SlotsBlockSide: Story = {
+    args: { ...frame(1400, 900), showPhase3Ghosts: true, showGearGhost: true, backdrop: 'streetview' },
+};
+
+/** The tightest ear the side arrangements produce — a large phone in landscape, still non-compact.
+ *  If the Phase 3 budget breaks anywhere, it breaks here. */
+export const Phase3SlotsTight: Story = {
+    args: { ...frame(932, 430), showPhase3Ghosts: true, showGearGhost: true, backdrop: 'streetview' },
+};
+
+/** Both lists at their 10-entry cap — the worst case, not the common one. Shown so the clamp is
+ *  visible: where the ear runs out, the header reports `visible/total` rather than overflowing. */
+export const Phase3SlotsFullLists: Story = {
+    args: {
+        ...frame(1194, 834),
+        showPhase3Ghosts: true,
+        showGearGhost: true,
+        phase3Entries: PHASE3_MAX_ENTRIES,
+        backdrop: 'streetview',
+    },
+};
+
+/** The 10-entry cap on the tightest ear — where the clamp actually bites. */
+export const Phase3SlotsFullListsTight: Story = {
+    args: {
+        ...frame(932, 430),
+        showPhase3Ghosts: true,
+        showGearGhost: true,
+        phase3Entries: PHASE3_MAX_ENTRIES,
+        backdrop: 'streetview',
+    },
+};
+
+/** Phase 3 slots on a ROUTE-ONLY ride — neither widget is workout-specific, so the budget has to
+ *  hold on today's layout too, where the corner widgets sit higher. */
+export const Phase3SlotsRouteOnly: Story = {
+    args: { ...frame(1194, 834), showPhase3Ghosts: true, showGearGhost: true, workoutAttached: false, backdrop: 'streetview' },
+};
+
+/** `column-only` has no ears at all, so there is nowhere for them — the arg is on and nothing
+ *  renders. That is the finding, not a bug. */
+export const Phase3SlotsColumnOnly: Story = {
+    args: { ...frame(860, 480), showPhase3Ghosts: true, showGearGhost: true },
+};
+
+/** The phone fallback has exactly one corner slot and it is already a 2-way toggle, so PrevRides is
+ *  suppressed here too — extending the existing cycle is the only mechanism that could fit. */
+export const Phase3SlotsFallback: Story = {
+    args: { ...frame(844, 390), showPhase3Ghosts: true, showGearGhost: true },
+};
 
 /** OQ6, the case HLD §6.4 actually requires: the same trigger on a ROUTE-ONLY ride, which is
  *  where a shifter is relevant with or without a workout. */
@@ -857,6 +1041,33 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         paddingHorizontal: 14,
         paddingVertical: 8,
+    },
+    slotGhost: {
+        position: 'absolute',
+        paddingBottom: 4,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: 'rgba(255,255,255,0.55)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 4,
+        zIndex: 10,
+    },
+    slotGhostText: {
+        textAlign: 'center',
+        paddingVertical: 3,
+        color: colors.text,
+        fontWeight: '700',
+    },
+    slotGhostTextShort: {
+        color: '#ffcf70',
+    },
+    slotGhostRow: {
+        alignSelf: 'stretch',
+        height: PHASE3_ROW_HEIGHT - 6,
+        marginHorizontal: 6,
+        marginBottom: 2,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.14)',
     },
     gearGhost: {
         right: 8,
