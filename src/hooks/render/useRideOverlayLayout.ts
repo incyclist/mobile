@@ -13,28 +13,62 @@ import { useScreenLayout, ScreenLayout } from './useScreenLayout'
 // construction rather than by proving numeric equivalence with it.
 
 // -----------------------------------------------------------------------------------------------
-// §7 - threshold constants. These are v1 hypotheses ("starting hypothesis", design doc §7), meant
-// to be tuned by session 4.1 against real renders - kept as named exports, not inline literals, so
-// they can be adjusted from outside this file without touching the algorithm.
+// §7 - threshold constants.
+//
+// TUNED BY SESSION 4.1 (2026-08-11) against real renders - see `RideOverlayPrototype.stories.tsx`
+// and HLD §8's resolution table. The values below are the resolved ones; each carries the
+// hypothesis it replaced and why. Still exported as named constants rather than inlined.
 // -----------------------------------------------------------------------------------------------
 
-/** Below this an ear (2 km elevation preview, or corner map) stops conveying anything. ≈ today's 0.15·1080.
- *  The single most consequential constant - design doc §7.2: decides block-vs-T across the 1024-1230 px band. */
-export const SIDE_WIDGET_MIN_WIDTH = 160
-/** Same argument, vertically. ≈ today's 0.20·480. */
+/** Floor width for an ear occupant (2 km elevation preview, or corner map).
+ *
+ *  **Tuned 160 → 200 (session 4.1).** `SideWidgetWidthRuler` renders the real elevation preview at
+ *  140/160/184/200/220: at 160 the five x-axis tick labels collide into unreadable mush, at 184 the
+ *  first two still touch, and 200 is the first width where the preview reads as a distance-to-climb
+ *  graph rather than a coloured smear. (Only residual defect at 200: the leading tick carries the
+ *  unit - "9.8km" - and touches its neighbour. That is a label-formatting artifact of
+ *  `ElevationGraphAxes`, noted as an independent finding, not a reason to demand 220.) */
+export const SIDE_WIDGET_MIN_WIDTH = 200
+/** Same argument, vertically. ≈ today's 0.20·480. Unchanged - it is rarely the binding test. */
 export const SIDE_WIDGET_MIN_HEIGHT = 96
+/** Preferred ear-occupant width, as a fraction of screenWidth - today's `screenWidth * 0.15` on both
+ *  ride pages. Added by session 4.1: the ear is often much wider than the floor, and the previous
+ *  code rendered every widget at exactly `SIDE_WIDGET_MIN_*`, which visibly shrank the elevation
+ *  preview compared with today's route-only screen. The widget now renders at today's proportions
+ *  where they fit, and only falls back toward the floor when the ear is tight. */
+export const SIDE_WIDGET_WIDTH_RATIO = 0.15
+/** Preferred ear-occupant height, as a fraction of screenHeight - today's `ELEVATION_PREVIEW_HEIGHT`
+ *  (`screenHeight * 0.20`) on both ride pages. Same reasoning as `SIDE_WIDGET_WIDTH_RATIO`. */
+export const SIDE_WIDGET_HEIGHT_RATIO = 0.2
 /** Gutter between the column and an ear, and between an ear and the screen edge. Matches the existing 8 dp rhythm. */
 export const SIDE_GUTTER = 8
-/** Gap between stacked occupants on the same ear, and between the column and below-arrangement widgets. */
+/** Gap between stacked occupants on the same ear, and between `RideDashboard` and the ear below it. */
 export const SLOT_GAP = 8
-/** The narrow-T `WorkoutDashboard` width (step 2 of the cascade, §5.1/§5.5). */
-export const WORKOUT_DASH_MIN_WIDTH = 320
-/** `WorkoutDashboard` height, as a fraction of screenHeight. */
-export const WORKOUT_DASH_HEIGHT_RATIO = 0.30
-/** Floor for `WorkoutDashboard`'s height (description + graph + next steps). */
-export const WORKOUT_DASH_MIN_HEIGHT = 120
-/** Width:height ceiling for the `live` WorkoutGraph - above ~5:1 it is a letterbox. Only affects `t-below`'s reachability (§5.6). */
-export const WORKOUT_DASH_MAX_ASPECT = 5
+/** Floor width for `WorkoutDashboard` - below this the T stops being worth having and the corner
+ *  widgets are dropped instead ('column-only').
+ *
+ *  **Tuned 320 → 480 (session 4.1).** The 320 hypothesis was derived from `WorkoutStepsList`'s
+ *  compact width plus a graph Y axis, which predates session 3.1's rework into a three-column bar
+ *  (text row, then graph | steps | controls). `WorkoutDashboardWidthRuler` renders that real widget
+ *  at 320/400/480/560/640: at 320 the text bar truncates mid-sentence and the steps column collapses
+ *  to "2…", at 400 everything fits but the countdown crowds the progress marker, and 480 is the
+ *  first width where both rows read cleanly. */
+export const WORKOUT_DASH_MIN_WIDTH = 480
+/** `WorkoutDashboard` height, as a fraction of screenHeight.
+ *
+ *  **Tuned 0.30 → 0.15 (session 4.1)**, resolving the open question HLD §6.2 carried forward. 0.30
+ *  was ~3x `RIDE_DASH_HEIGHT_RATIO` and allocated ~240 px on a 1280×800 tablet to a widget that
+ *  renders at ~95 px - visible in the pre-retune `-below` renders as a ~145 px void between the
+ *  column and the widgets. 0.15 is exactly §6.2's "roughly ≤1.5x `RideDashboard`'s own height" rule
+ *  expressed as a ratio, so the rule now lives in the constant rather than in prose. */
+export const WORKOUT_DASH_HEIGHT_RATIO = 0.15
+/** Floor for `WorkoutDashboard`'s height (text bar + graph/steps row). Tuned 120 → 100: the widget's
+ *  own intrinsic height is ~78 (compact graph) to ~95 (normal), so 100 is a true floor rather than
+ *  an over-allocation. */
+export const WORKOUT_DASH_MIN_HEIGHT = 100
+/** Ceiling for `WorkoutDashboard`'s height. Added by session 4.1 alongside the ratio change: the
+ *  widget's content is fixed-height, so on a tall screen the ratio must stop growing the box. */
+export const WORKOUT_DASH_MAX_HEIGHT = 160
 /** `RideDashboard`'s height, as a fraction of screenHeight - the existing `DASHBOARD_HEIGHT` on both pages, reused not invented. */
 export const RIDE_DASH_HEIGHT_RATIO = 0.10
 /** The full-route elevation strip + Menu button bottom bar, as a fraction of screenHeight - existing `ELEVATION_FULL_HEIGHT`. */
@@ -103,7 +137,27 @@ export const FALLBACK_ELEVATION_HEIGHT_RATIO = 0.12
 // §5.8 - output shape
 // -----------------------------------------------------------------------------------------------
 
-export type RideOverlayArrangement = 'block-side' | 't-side' | 'block-below' | 't-below' | 'fallback'
+/**
+ * HLD §5.3 names four arrangements. Session 4.1's prototype replaced both `-below` ones with a
+ * single `'column-only'`, in two steps:
+ *
+ *  - `block-below` and `t-below` rendered 10 px apart and were indistinguishable. `-below` is only
+ *    reached when no side arrangement fits, i.e.
+ *    `screenWidth < 2·(SIDE_WIDGET_MIN_WIDTH + SIDE_GUTTER) + WORKOUT_DASH_MIN_WIDTH`, and in that
+ *    whole regime `WorkoutDashboard` takes `W_rd_eff` either way. `WORKOUT_DASH_MAX_ASPECT` - the
+ *    only thing that made them differ - is gone with them (see the constant block above).
+ *  - Dropping the corner widgets *below* the column was then rejected outright on review
+ *    (repo owner, 2026-08-11): on the narrow screens this arrangement occurs on, a full-width row of
+ *    map + elevation directly under a full-width dashboard column leaves the Video/GPX main view -
+ *    which is the point of a route ride - as a sliver. The corner widgets are auxiliary, so on a
+ *    screen with no room for them beside the column they are **dropped, not relocated**. HLD §5.3's
+ *    "drop below the block/column, split left/right of the screen" is superseded.
+ *
+ * `'column-only'` therefore renders the two dashboards over an unobstructed main view. It needs no
+ * fit test - it is what is left when nothing else fits - so `'fallback'` is now reached only via
+ * compact, which §6.1 already called its dominant path.
+ */
+export type RideOverlayArrangement = 'block-side' | 't-side' | 'column-only' | 'fallback'
 
 export interface Rect {
     top: number
@@ -126,8 +180,6 @@ export interface RideOverlayLayoutInputs {
     rideDashboardWidth: number
     /** W_rd_eff - `min(W_rd, screenWidth)`, what the algorithm actually reasons about. */
     rideDashboardWidthEffective: number
-    /** Whether a block (equal-width) column was geometrically possible at all (aspect ceiling, §5.2). Undefined in 'fallback'. */
-    blockPossible?: boolean
     /** The ear/half-screen width actually tested for the winning candidate. Undefined in 'fallback'. */
     earWidth?: number
     /** W_wd - the `WorkoutDashboard` width used by the winning candidate. Undefined in 'fallback'. */
@@ -140,7 +192,8 @@ export interface RideOverlayLayout {
     rideDashboard: { width: number }
     workoutDashboard: Rect | null
     map: Rect | null
-    elevation: Rect
+    /** Null in `'column-only'`, where both corner widgets are dropped rather than relocated. */
+    elevation: Rect | null
     /** True iff `arrangement === 'fallback'` (§6). */
     cornerSlotIsToggle: boolean
     inputs: RideOverlayLayoutInputs
@@ -154,51 +207,24 @@ const earWidthOf = (screenWidth: number, columnWidth: number): number => (screen
 
 const availableHeight = (top: number, screenHeight: number): number => screenHeight - top - BOTTOM_BAR_RATIO * screenHeight - SLOT_GAP
 
-/** Both v1 ear occupants (corner map, elevation preview) share `SIDE_WIDGET_MIN_WIDTH`/`_HEIGHT`
- *  (design doc §7.1: "Because both v1 occupants share the same SIDE_WIDGET_MIN_WIDTH, an empty left
- *  ear ... never changes the width verdict"), so a single width/height pair fit-checks either ear.
- *  `relaxed` implements §8's hysteresis: the minimum is relaxed by `ARRANGEMENT_HYSTERESIS_PX` when
- *  the candidate under test is the one currently in effect. */
-const earFits = (earWidth: number, availableHeightPx: number, relaxed: boolean): boolean => {
-    const effectiveMinWidth = SIDE_WIDGET_MIN_WIDTH - (relaxed ? ARRANGEMENT_HYSTERESIS_PX : 0)
-    return earWidth >= effectiveMinWidth && availableHeightPx >= SIDE_WIDGET_MIN_HEIGHT
-}
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max)
 
-const fitsSide = (
-    columnWidth: number,
-    decisionTop: number,
+/** §8's hysteresis: the ear floor is relaxed by `ARRANGEMENT_HYSTERESIS_PX` when the candidate under
+ *  test is the one currently in effect, so a marginal screen doesn't flip back and forth. Both
+ *  boundaries the cascade tests (block↔T and T↔below) are monotonic in this floor, so relaxing it is
+ *  all the hysteresis the algorithm needs. */
+const earFloorFor = (
     candidate: RideOverlayArrangement,
     previous: RideOverlayArrangement | null | undefined,
-    screenWidth: number,
-    screenHeight: number,
-    mapVisible: boolean,
-): boolean => {
-    const ear = earWidthOf(screenWidth, columnWidth)
-    const avail = availableHeight(decisionTop, screenHeight)
-    const relaxed = candidate === previous
-    const leftOk = !mapVisible || earFits(ear, avail, relaxed) // an empty ear imposes no requirement (§5.3)
-    const rightOk = earFits(ear, avail, relaxed) // the elevation preview is always present (§1.3)
-    return leftOk && rightOk
-}
-
-const fitsBelow = (
-    decisionTop: number,
-    candidate: RideOverlayArrangement,
-    previous: RideOverlayArrangement | null | undefined,
-    screenWidth: number,
-    screenHeight: number,
-    mapVisible: boolean,
-): boolean => {
-    const half = screenWidth / 2 - SIDE_GUTTER
-    const avail = availableHeight(decisionTop, screenHeight)
-    const relaxed = candidate === previous
-    const leftOk = !mapVisible || earFits(half, avail, relaxed)
-    const rightOk = earFits(half, avail, relaxed)
-    return leftOk && rightOk
-}
+): number => SIDE_WIDGET_MIN_WIDTH - (candidate === previous ? ARRANGEMENT_HYSTERESIS_PX : 0)
 
 // -----------------------------------------------------------------------------------------------
 // Rect builders
+//
+// Session 4.1: the widgets render at today's route-only proportions (`SIDE_WIDGET_*_RATIO`) wherever
+// those fit, and shrink toward the floor only when the ear is tight. The previous version rendered
+// every widget at exactly `SIDE_WIDGET_MIN_*`, which made the elevation preview visibly smaller than
+// on today's route-only screen (96 px tall against today's 160 on a 1280×800 tablet).
 // -----------------------------------------------------------------------------------------------
 
 const buildWorkoutDashboardRect = (screenWidth: number, width: number, top: number, height: number): Rect => ({
@@ -208,28 +234,28 @@ const buildWorkoutDashboardRect = (screenWidth: number, width: number, top: numb
     height,
 })
 
+const sideWidgetSize = (
+    screenWidth: number,
+    screenHeight: number,
+    earWidth: number,
+    top: number,
+): { width: number; height: number } => ({
+    width: clamp(SIDE_WIDGET_WIDTH_RATIO * screenWidth, SIDE_WIDGET_MIN_WIDTH, earWidth),
+    height: clamp(SIDE_WIDGET_HEIGHT_RATIO * screenHeight, SIDE_WIDGET_MIN_HEIGHT, availableHeight(top, screenHeight)),
+})
+
 const buildSideRects = (
     screenWidth: number,
+    screenHeight: number,
     columnWidth: number,
     top: number,
     mapVisible: boolean,
 ): { map: Rect | null; elevation: Rect } => {
     const ear = earWidthOf(screenWidth, columnWidth)
+    const { width, height } = sideWidgetSize(screenWidth, screenHeight, ear, top)
     return {
-        map: mapVisible ? { top, left: 0, width: ear, height: SIDE_WIDGET_MIN_HEIGHT } : null,
-        elevation: { top, right: 0, width: ear, height: SIDE_WIDGET_MIN_HEIGHT },
-    }
-}
-
-const buildBelowRects = (
-    screenWidth: number,
-    top: number,
-    mapVisible: boolean,
-): { map: Rect | null; elevation: Rect } => {
-    const half = screenWidth / 2 - SIDE_GUTTER
-    return {
-        map: mapVisible ? { top, left: 0, width: half, height: SIDE_WIDGET_MIN_HEIGHT } : null,
-        elevation: { top, right: 0, width: half, height: SIDE_WIDGET_MIN_HEIGHT },
+        map: mapVisible ? { top, left: 0, width, height } : null,
+        elevation: { top, right: 0, width, height },
     }
 }
 
@@ -319,9 +345,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
     const rideDashboardWidthEffective = Math.min(rideDashboardWidth, screenWidth) // §5.7 clamp
     const hRdEstimate = RIDE_DASH_HEIGHT_RATIO * screenHeight
     const hRd = measuredRideDashboardHeight ?? hRdEstimate // rect positioning only (invariant 2)
-    const hWd = Math.max(WORKOUT_DASH_MIN_HEIGHT, WORKOUT_DASH_HEIGHT_RATIO * screenHeight)
-    const wWdMax = WORKOUT_DASH_MAX_ASPECT * hWd
-    const blockPossible = rideDashboardWidthEffective <= wWdMax
+    const hWd = clamp(WORKOUT_DASH_HEIGHT_RATIO * screenHeight, WORKOUT_DASH_MIN_HEIGHT, WORKOUT_DASH_MAX_HEIGHT)
 
     const baseInputs = {
         screenWidth,
@@ -331,12 +355,37 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         mapVisible,
         rideDashboardWidth,
         rideDashboardWidthEffective,
-        blockPossible,
     }
 
-    // 1. block, side-fit
-    if (blockPossible && fitsSide(rideDashboardWidthEffective, 0, 'block-side', previousArrangement, screenWidth, screenHeight, mapVisible)) {
-        const { map, elevation } = buildSideRects(screenWidth, rideDashboardWidthEffective, 0, mapVisible)
+    // -------------------------------------------------------------------------------------------
+    // Session 4.1 reshaped steps 1-2. The design doc's cascade tried a full-width block first and,
+    // when it didn't fit, narrowed `WorkoutDashboard` all the way to `WORKOUT_DASH_MIN_WIDTH` to buy
+    // ear width. Rendered (the `TSide` story at 1194×834, before tuning) that read badly: the widget
+    // the rider deliberately attached ended up the NARROWEST thing in its own row, truncated to
+    // "…VO2 ma…" and "2…", while the two auxiliary widgets took 429 px each.
+    //
+    // Replaced by one continuous allocation, evaluated once:
+    //
+    //     W_wd = min(W_rd_eff, screenWidth - 2·(earFloor + SIDE_GUTTER))
+    //
+    // i.e. the ears get their floor first, `WorkoutDashboard` takes everything that is left up to
+    // `RideDashboard`'s width, and any surplus beyond that goes back to the ears. `block` vs `T` is
+    // then a DESCRIPTION of the result (did the dashboard reach `RideDashboard`'s width?) rather
+    // than a separate candidate to test - which is also what makes the two share a single code path.
+    //
+    // Two consequences worth knowing when reading the tests:
+    //  - the T is now shallow, not narrow: 1194×834 gives W_wd = 778 rather than 320;
+    //  - because W_wd is capped by screenWidth-derived terms in the T, the Gear tile (N 7↔8, which
+    //    moves W_rd by 152 px) usually cannot change the layout at all - see §8's note in HLD §8.
+    // -------------------------------------------------------------------------------------------
+
+    // 1/2. side arrangements
+    const blockEarFloor = earFloorFor('block-side', previousArrangement)
+    const blockEar = earWidthOf(screenWidth, rideDashboardWidthEffective)
+    const blockFits = blockEar >= blockEarFloor && availableHeight(0, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT
+
+    if (blockFits) {
+        const { map, elevation } = buildSideRects(screenWidth, screenHeight, rideDashboardWidthEffective, 0, mapVisible)
         return {
             arrangement: 'block-side',
             rideDashboard: { width: rideDashboardWidth },
@@ -344,30 +393,16 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
             map,
             elevation,
             cornerSlotIsToggle: false,
-            inputs: { ...baseInputs, earWidth: earWidthOf(screenWidth, rideDashboardWidthEffective), workoutDashboardWidth: rideDashboardWidthEffective },
+            inputs: { ...baseInputs, earWidth: blockEar, workoutDashboardWidth: rideDashboardWidthEffective },
         }
     }
 
-    // 2. T, side-fit - narrow WorkoutDashboard to buy ear width.
-    //
-    // Judgement call: the design doc's §5.5 pseudocode writes
-    // `W_wd_t = blockPossible ? WORKOUT_DASH_MIN_WIDTH : min(W_wd_max, W_rd_eff)`, but that
-    // contradicts its own §7.1 worked matrix and §5.6/§7.2 prose. The 932×430 row (blockPossible
-    // false there - W_wd_max=645 < W_rd_eff=895.6) is documented as landing in `t-side` with
-    // `ear = 298`, which only reproduces under `W_wd_t = WORKOUT_DASH_MIN_WIDTH = 320`
-    // (earWidthOf(932, 320) = 298) - the conditional branch would give `ear = 135.5` (not a fit) and
-    // wrongly fall through. Likewise §5.6's own worked 640×420 `t-below` example computes
-    // "ear at min width = 152" for a blockPossible=false screen, i.e. against 320, not against
-    // `min(W_wd_max, W_rd_eff)` = 630. §7.2 independently derives the `t-side` → `-below` boundary
-    // ("the narrowed ear fails at screenWidth < 656") by solving earWidthOf(w, 320) = 160, which
-    // only holds if W_wd_t is unconditionally WORKOUT_DASH_MIN_WIDTH. All three cross-checks agree
-    // with each other and disagree with the literal ternary, so this implementation uses
-    // `W_wd_t = WORKOUT_DASH_MIN_WIDTH` unconditionally.
-    const wWdT = WORKOUT_DASH_MIN_WIDTH
+    const tEarFloor = earFloorFor('t-side', previousArrangement)
+    const wWdT = Math.min(rideDashboardWidthEffective, screenWidth - 2 * (tEarFloor + SIDE_GUTTER))
     const tSideDecisionTop = hRdEstimate + SLOT_GAP // decision uses the estimate (invariant 2)
-    if (wWdT < rideDashboardWidthEffective && fitsSide(wWdT, tSideDecisionTop, 't-side', previousArrangement, screenWidth, screenHeight, mapVisible)) {
+    if (wWdT >= WORKOUT_DASH_MIN_WIDTH && availableHeight(tSideDecisionTop, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT) {
         const tSideRectTop = hRd + SLOT_GAP // rect uses the measured height when available
-        const { map, elevation } = buildSideRects(screenWidth, wWdT, tSideRectTop, mapVisible)
+        const { map, elevation } = buildSideRects(screenWidth, screenHeight, wWdT, tSideRectTop, mapVisible)
         return {
             arrangement: 't-side',
             rideDashboard: { width: rideDashboardWidth },
@@ -379,26 +414,18 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         }
     }
 
-    // 3/4. below - no reason to stay narrow unless the aspect ceiling forces it.
-    const wWdBelow = blockPossible ? rideDashboardWidthEffective : wWdMax
-    const belowLabel: RideOverlayArrangement = blockPossible ? 'block-below' : 't-below'
-    const belowDecisionTop = hRdEstimate + hWd + SLOT_GAP // decision uses the estimate (invariant 2)
-    if (fitsBelow(belowDecisionTop, belowLabel, previousArrangement, screenWidth, screenHeight, mapVisible)) {
-        const belowRectTop = hRd + hWd + SLOT_GAP
-        const { map, elevation } = buildBelowRects(screenWidth, belowRectTop, mapVisible)
-        return {
-            arrangement: belowLabel,
-            rideDashboard: { width: rideDashboardWidth },
-            workoutDashboard: buildWorkoutDashboardRect(screenWidth, wWdBelow, hRd, hWd),
-            map,
-            elevation,
-            cornerSlotIsToggle: false,
-            inputs: { ...baseInputs, earWidth: screenWidth / 2 - SIDE_GUTTER, workoutDashboardWidth: wWdBelow },
-        }
+    // 3. column-only - the two dashboards, and nothing else on top of the main view. No fit test:
+    // this is what is left when neither side arrangement fits, and the corner widgets are dropped
+    // rather than relocated (see `RideOverlayArrangement`'s doc comment).
+    return {
+        arrangement: 'column-only',
+        rideDashboard: { width: rideDashboardWidth },
+        workoutDashboard: buildWorkoutDashboardRect(screenWidth, rideDashboardWidthEffective, hRd, hWd),
+        map: null,
+        elevation: null,
+        cornerSlotIsToggle: false,
+        inputs: { ...baseInputs, workoutDashboardWidth: rideDashboardWidthEffective },
     }
-
-    // 5. fallback
-    return buildFallback(screenWidth, screenHeight, screenLayout, itemCount, mapVisible, rideDashboardWidth, measuredRideDashboardHeight)
 }
 
 // -----------------------------------------------------------------------------------------------
