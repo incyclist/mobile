@@ -20,6 +20,7 @@ import {
     MOCK_STEPS_REPEATED_SEGMENT,
     MOCK_STEPS_COMPACT_TRUNCATED,
     MOCK_STEPS_NONE,
+    MOCK_STEPS_AT_END,
 } from './WorkoutStepsList.mock';
 
 describe('WorkoutStepsList', () => {
@@ -88,5 +89,32 @@ describe('WorkoutStepsList', () => {
         const { toJSON } = render(<WorkoutStepsList steps={MOCK_STEPS_NONE} />);
 
         expect(toJSON()).toBeNull();
+    });
+
+    test('showEndHint=false suppresses both the "more ahead" and "end of workout" rows (WorkoutDashboard, session 3.1)', () => {
+        const more = render(<WorkoutStepsList steps={MOCK_STEPS_VO2} showEndHint={false} />);
+        expect(more.queryByText(/more steps ahead/i)).toBeNull();
+
+        const last = render(<WorkoutStepsList steps={MOCK_STEPS_LAST} showEndHint={false} />);
+        expect(last.queryByText(/end of workout/i)).toBeNull();
+    });
+
+    test('showEndHint defaults to true (existing WorkoutRidePageView usage unchanged)', () => {
+        const { getByText } = render(<WorkoutStepsList steps={MOCK_STEPS_LAST} />);
+        expect(getByText(/end of workout/i)).toBeTruthy();
+    });
+
+    // Repo-owner request, 2026-08-11 (WorkoutDashboard's "AtEnd" story) - suspected the current-
+    // row progress fill might stop short of the end rather than reaching exactly full width.
+    // Given remaining: 0 exactly, the formula (1 - remaining/duration) computes to exactly 1 -
+    // this component's own rendering is correct; if a real ride still looks short of the end,
+    // the gap is in the live service's timing, not here.
+    test('current step at remaining=0 fills the progress bar to exactly 100%, not short of it', () => {
+        const { getByTestId } = render(<WorkoutStepsList steps={MOCK_STEPS_AT_END} />);
+        const fill = getByTestId('step-progress-fill');
+        const flatStyle = Array.isArray(fill.props.style)
+            ? Object.assign({}, ...fill.props.style)
+            : fill.props.style;
+        expect(flatStyle.width).toBe('100.00%');
     });
 });

@@ -180,23 +180,52 @@ const ActualsOverlay = React.memo(({
         }
     }
 
-    let marker = null;
-    if (Number.isFinite(actuals.position) && actuals.position >= xMin && actuals.position <= xMax) {
-        const mx = offsetX + domainToPixel(actuals.position, xMin, xMax, 0, plotWidth);
-        marker = (
-            <G>
-                <Line x1={mx} y1={offsetY} x2={mx} y2={offsetY + plotHeight} stroke={POSITION_MARKER_COLOR} strokeWidth={1.5} strokeDasharray="3 3" />
-                <Circle cx={mx} cy={offsetY} r={3.5} fill={POSITION_MARKER_COLOR} />
-            </G>
-        );
-    }
-
     return (
         <>
             {powerLine}
             {hrLine}
-            {marker}
+            <PositionMarker
+                actuals={actuals}
+                domain={domain}
+                offsetX={offsetX}
+                offsetY={offsetY}
+                plotWidth={plotWidth}
+                plotHeight={plotHeight}
+            />
         </>
+    );
+});
+
+/**
+ * The "where am I" marker alone — split out of `ActualsOverlay` so a `showPositionMarker`
+ * graph (e.g. a compact `strip` graph, session 3.1's `WorkoutDashboard`) can render just this,
+ * without the power/HR lines or legend that come with the full `live`-mode overlay.
+ */
+const PositionMarker = React.memo(({
+    actuals,
+    domain,
+    offsetX,
+    offsetY,
+    plotWidth,
+    plotHeight,
+}: {
+    actuals: WorkoutGraphActuals;
+    domain: WorkoutGraphPlan['domain'];
+    offsetX: number;
+    offsetY: number;
+    plotWidth: number;
+    plotHeight: number;
+}) => {
+    const [xMin, xMax] = domain.x;
+
+    if (!Number.isFinite(actuals.position) || actuals.position < xMin || actuals.position > xMax) return null;
+
+    const mx = offsetX + domainToPixel(actuals.position, xMin, xMax, 0, plotWidth);
+    return (
+        <G>
+            <Line x1={mx} y1={offsetY} x2={mx} y2={offsetY + plotHeight} stroke={POSITION_MARKER_COLOR} strokeWidth={1.5} strokeDasharray="3 3" />
+            <Circle cx={mx} cy={offsetY} r={3.5} fill={POSITION_MARKER_COLOR} />
+        </G>
     );
 });
 
@@ -267,6 +296,8 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
         actuals,
         showAxes,
         showFtpLine,
+        showFtpLabel = true,
+        showPositionMarker = false,
         axisFontSize = 10,
         style,
     } = props;
@@ -286,6 +317,10 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     // so ActualsOverlay's marker rendering is a no-op) - only strip stays plan-only.
     const showActuals = (isLive || isDetail) && !!actuals;
     const showLegend = showActuals;
+    // Standalone marker (no power/HR lines, no legend) for a strip/detail graph that still wants
+    // a position indicator. Suppressed when the full overlay is already rendering - and already
+    // rendering this same marker - to avoid a double marker.
+    const standaloneMarker = showPositionMarker && !!actuals && !showActuals;
     // Bpm has no relation to the plan's Watt-based y-domain, so Heartrate gets its
     // own axis (right side, colored to match its line) — computed once here and
     // shared with ActualsOverlay so the line and its axis always agree on scale.
@@ -330,16 +365,18 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
                     strokeDasharray="4 3"
                     opacity={0.7}
                 />
-                <SvgText
-                    x={offsetX + plotWidth - 2}
-                    y={y - 3}
-                    fill={colors.text}
-                    fontSize={axisFontSize}
-                    fontWeight="600"
-                    textAnchor="end"
-                >
-                    {`FTP ${Math.round(plan.ftpLine)}W`}
-                </SvgText>
+                {showFtpLabel && (
+                    <SvgText
+                        x={offsetX + plotWidth - 2}
+                        y={y - 3}
+                        fill={colors.text}
+                        fontSize={axisFontSize}
+                        fontWeight="600"
+                        textAnchor="end"
+                    >
+                        {`FTP ${Math.round(plan.ftpLine)}W`}
+                    </SvgText>
+                )}
             </G>
         );
     };
@@ -473,6 +510,16 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
                     plotHeight={plotHeight}
                 />
             )}
+            {standaloneMarker && actuals && (
+                <PositionMarker
+                    actuals={actuals}
+                    domain={plan.domain}
+                    offsetX={offsetX}
+                    offsetY={offsetY}
+                    plotWidth={plotWidth}
+                    plotHeight={plotHeight}
+                />
+            )}
             {renderFtpLine()}
             {renderYAxis()}
             {renderHrAxis()}
@@ -489,7 +536,9 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     prev.plan === next.plan &&
     prev.actuals === next.actuals &&
     prev.showAxes === next.showAxes &&
-    prev.showFtpLine === next.showFtpLine
+    prev.showFtpLine === next.showFtpLine &&
+    prev.showFtpLabel === next.showFtpLabel &&
+    prev.showPositionMarker === next.showPositionMarker
 );
 
 const styles = StyleSheet.create({

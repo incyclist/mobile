@@ -108,6 +108,32 @@ export const MOCK_STEPS_JUST_STARTED: WorkoutUpcomingSteps = {
 };
 
 /**
+ * Current step at the exact instant it ends — `remaining: 0`, so `CurrentRow`'s progress fill
+ * (`1 - remaining/duration`) should compute to exactly 1 (full width), not "close to full".
+ * Repo-owner request, 2026-08-11 - paired with `WorkoutGraph.mock.ts`'s
+ * `MOCK_ACTUALS_AT_STEP_BOUNDARY` (position on the matching bar's boundary) in
+ * `WorkoutDashboard.mock.ts`'s `MOCK_DASHBOARD_AT_END`, to check whether the suspected
+ * "marker stops short of the end" is a rendering bug here or purely a live-service timing
+ * artifact this static fixture can't reproduce.
+ */
+export const MOCK_STEPS_AT_END: WorkoutUpcomingSteps = {
+    previous: { label: '200W', targetPower: 200, duration: 300, remaining: null, isCurrent: false },
+    current: {
+        label: '280W',
+        targetPower: 280,
+        duration: 180,
+        remaining: 0,
+        isCurrent: true,
+    },
+    upcoming: [
+        { label: '130W', targetPower: 130, duration: 120, remaining: null, isCurrent: false },
+        { label: '280W', targetPower: 280, duration: 180, remaining: null, isCurrent: false },
+        { label: '130W', targetPower: 130, duration: 120, remaining: null, isCurrent: false },
+    ],
+    hasMore: true,
+};
+
+/**
  * A repeated 2-step segment (40s work / 20s rest), flattened — 2nd repetition's "work" step is
  * current. Proves the list shows individual repetitions, not one row per segment.
  */

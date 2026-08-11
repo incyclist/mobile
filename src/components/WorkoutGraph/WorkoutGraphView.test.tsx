@@ -76,6 +76,60 @@ describe('WorkoutGraphView', () => {
         expect(toJSON()).not.toBeNull();
     });
 
+    it('showFtpLabel=false keeps the FTP reference line but drops its text label (WorkoutDashboard, session 3.1)', () => {
+        const withLabel = render(
+            <WorkoutGraphView mode="detail" plan={MOCK_PLAN} width={360} height={200} />
+        );
+        const withoutLabel = render(
+            <WorkoutGraphView mode="detail" plan={MOCK_PLAN} width={360} height={200} showFtpLabel={false} />
+        );
+
+        expect(JSON.stringify(withLabel.toJSON())).toContain('FTP');
+        expect(JSON.stringify(withoutLabel.toJSON())).not.toContain('FTP');
+        // The dashed line itself is still drawn - only the text label is suppressed.
+        expect(countByType(withLabel.UNSAFE_root, 'Line')).toBe(countByType(withoutLabel.UNSAFE_root, 'Line'));
+    });
+
+    describe('showPositionMarker (standalone, independent of mode)', () => {
+        it('renders just the marker in strip mode, no power/HR lines or legend', () => {
+            const { UNSAFE_root, toJSON } = render(
+                <WorkoutGraphView
+                    mode="strip"
+                    plan={MOCK_PLAN_LIVE_MID}
+                    actuals={MOCK_ACTUALS_MID}
+                    width={360}
+                    height={80}
+                    showPositionMarker
+                />
+            );
+            expect(countByType(UNSAFE_root, 'Circle')).toBe(1);
+            expect(countByType(UNSAFE_root, 'Path')).toBe(0);
+            expect(JSON.stringify(toJSON())).not.toContain('Power');
+            expect(JSON.stringify(toJSON())).not.toContain('Heartrate');
+        });
+
+        it('is a no-op without actuals', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView mode="strip" plan={MOCK_PLAN} width={360} height={80} showPositionMarker />
+            );
+            expect(countByType(UNSAFE_root, 'Circle')).toBe(0);
+        });
+
+        it('does not double the marker in live mode (full overlay already renders it)', () => {
+            const { UNSAFE_root } = render(
+                <WorkoutGraphView
+                    mode="live"
+                    plan={MOCK_PLAN_LIVE_MID}
+                    actuals={MOCK_ACTUALS_MID}
+                    width={360}
+                    height={200}
+                    showPositionMarker
+                />
+            );
+            expect(countByType(UNSAFE_root, 'Circle')).toBe(1);
+        });
+    });
+
     describe('live mode', () => {
         it('renders the recorded Power line, HR line and position marker on top of the plan bars', () => {
             const { UNSAFE_root } = render(
