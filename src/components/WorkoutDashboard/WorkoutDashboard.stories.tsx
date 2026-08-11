@@ -20,8 +20,12 @@ import { Button } from '../ButtonBar';
  *
  * Repo-owner review (2026-08-11): this widget must stay compact — not much taller than
  * `RideDashboard` — since on a Video/GPX ride it's auxiliary info, unlike the dedicated
- * Workout ride page where the workout is the whole screen. These stories are sized to a
- * ~360-420px-wide frame to reflect the "beside RideDashboard" ear placement it actually gets.
+ * Workout ride page where the workout is the whole screen. Height is tight, but *width* is
+ * usually generous: in the "block" arrangement (session 1.2/3.2) this widget's width equals
+ * `RideDashboard`'s own computed width, which is 700-900px on most tablets — the default
+ * story frame reflects that. `NarrowTShape` shows the other extreme, the narrowed T-side
+ * width (`WORKOUT_DASH_MIN_WIDTH` = 320, session 3.2), where the graph/steps row is
+ * genuinely tight.
  */
 const meta: Meta<typeof WorkoutDashboard> = {
     title: 'Components/WorkoutDashboard',
@@ -55,7 +59,7 @@ export const NoActuals: Story = {
     args: MOCK_DASHBOARD_NO_ACTUALS,
 };
 
-/** Compact (phone) layout — tighter text/graph, fewer visible steps. */
+/** Compact (phone) layout — tighter text sizing. */
 export const Compact: Story = {
     args: {
         ...MOCK_DASHBOARD_MID_INTERVAL,
@@ -64,6 +68,18 @@ export const Compact: Story = {
     decorators: [
         (Story) => (
             <View style={[styles.decorator, styles.decoratorCompact]}>
+                <Story />
+            </View>
+        ),
+    ],
+};
+
+/** The narrowed T-side width (session 3.2's WORKOUT_DASH_MIN_WIDTH) — the tightest real width this widget has to render at. */
+export const NarrowTShape: Story = {
+    args: MOCK_DASHBOARD_MID_INTERVAL,
+    decorators: [
+        (Story) => (
+            <View style={[styles.decorator, styles.decoratorNarrow]}>
                 <Story />
             </View>
         ),
@@ -83,11 +99,14 @@ export const WithControlsSlot: Story = {
 
 const styles = StyleSheet.create({
     decorator: {
-        width: 380,
+        width: 640,
         padding: 16,
         backgroundColor: colors.background,
     },
     decoratorCompact: {
-        width: 300,
+        width: 380,
+    },
+    decoratorNarrow: {
+        width: 320,
     },
 });

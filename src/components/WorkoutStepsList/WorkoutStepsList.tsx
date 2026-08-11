@@ -17,14 +17,14 @@ import { WorkoutStepDisplay, WorkoutStepsListProps } from './types';
  * step is active" marker — there is deliberately no separate pointer/triangle
  * on top of it.
  */
-export const WorkoutStepsList = ({ steps, compact = false, style }: WorkoutStepsListProps) => {
+export const WorkoutStepsList = ({ steps, compact = false, showEndHint: showEndHintProp = true, style }: WorkoutStepsListProps) => {
     const { previous, current, upcoming, hasMore } = steps ?? { previous: null, current: null, upcoming: [], hasMore: false };
     const visibleUpcoming = compact ? upcoming.slice(0, 1) : upcoming;
     const showPrevious = !!previous && !compact;
     // "More to come" beyond what's on screen — either the service already knows there's more
     // past the 2-3 it sent (hasMore), or compact mode itself is hiding some of what was sent.
     const moreBeyondVisible = hasMore || upcoming.length > visibleUpcoming.length;
-    const showEndHint = !!current;
+    const showEndHint = !!current && showEndHintProp;
 
     if (!current && visibleUpcoming.length === 0) {
         return null;

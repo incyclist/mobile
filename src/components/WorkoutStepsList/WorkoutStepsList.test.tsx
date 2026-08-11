@@ -89,4 +89,17 @@ describe('WorkoutStepsList', () => {
 
         expect(toJSON()).toBeNull();
     });
+
+    test('showEndHint=false suppresses both the "more ahead" and "end of workout" rows (WorkoutDashboard, session 3.1)', () => {
+        const more = render(<WorkoutStepsList steps={MOCK_STEPS_VO2} showEndHint={false} />);
+        expect(more.queryByText(/more steps ahead/i)).toBeNull();
+
+        const last = render(<WorkoutStepsList steps={MOCK_STEPS_LAST} showEndHint={false} />);
+        expect(last.queryByText(/end of workout/i)).toBeNull();
+    });
+
+    test('showEndHint defaults to true (existing WorkoutRidePageView usage unchanged)', () => {
+        const { getByText } = render(<WorkoutStepsList steps={MOCK_STEPS_LAST} />);
+        expect(getByText(/end of workout/i)).toBeTruthy();
+    });
 });

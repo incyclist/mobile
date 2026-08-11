@@ -46,7 +46,12 @@ export const WorkoutDashboard = ({
                     />
                 </View>
                 <View style={styles.stepsCol}>
-                    <WorkoutStepsList steps={steps} compact={compact} />
+                    {/* Always compact here, independent of this widget's own `compact` prop -
+                        the row budget is tight regardless of phone vs. tablet (repo-owner
+                        review, 2026-08-11): current + at most 1 upcoming, no end-of-workout
+                        hint (that reads fine in WorkoutRidePageView's full-height panel, not
+                        in a bar this short). */}
+                    <WorkoutStepsList steps={steps} compact showEndHint={false} />
                 </View>
                 {controls && (
                     <View testID="workout-dashboard-controls" style={styles.controlsCol}>
@@ -71,27 +76,33 @@ const styles = StyleSheet.create({
     },
     text: {
         color: colors.text,
-        fontSize: textSizes.subtitle,
+        // One tier above WorkoutStepsList's own (always-compact, per above) current-step label
+        // (subtitle) - the headline text reads as more prominent than a list row underneath it,
+        // not smaller (repo-owner review, 2026-08-11 - the reverse was true before this fix).
+        fontSize: textSizes.normalText,
         fontWeight: '700',
         textAlign: 'center',
     },
     textCompact: {
-        fontSize: textSizes.smallText,
+        fontSize: textSizes.subtitle,
     },
     row: {
         flexDirection: 'row',
         alignItems: 'stretch',
         gap: 6,
     },
+    // Graph wider than the steps column - with steps now capped to 2 short rows (current +
+    // at most 1 upcoming, no end hint), it needs much less width than the graph's own shape-
+    // of-the-whole-workout content (repo-owner review, 2026-08-11).
     graphCol: {
-        flex: 1,
+        flex: 2,
         justifyContent: 'center',
     },
     graph: {
         alignSelf: 'stretch',
     },
     stepsCol: {
-        flex: 2,
+        flex: 1,
     },
     controlsCol: {
         justifyContent: 'center',

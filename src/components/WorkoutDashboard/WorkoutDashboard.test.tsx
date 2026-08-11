@@ -75,19 +75,24 @@ describe('WorkoutDashboard', () => {
         expect(compactProps.height).toBe(32);
     });
 
-    test('forwards steps and compact to WorkoutStepsList unchanged', () => {
-        render(<WorkoutDashboard {...MOCK_DASHBOARD_NEAR_END} compact />);
+    test('forwards steps to WorkoutStepsList unchanged', () => {
+        render(<WorkoutDashboard {...MOCK_DASHBOARD_NEAR_END} />);
 
         expect(mockedWorkoutStepsList).toHaveBeenCalledTimes(1);
         const props = mockedWorkoutStepsList.mock.calls[0][0];
         expect(props.steps).toBe(MOCK_DASHBOARD_NEAR_END.steps);
-        expect(props.compact).toBe(true);
     });
 
-    test('compact defaults to false when not supplied', () => {
+    test('the embedded steps list is always compact with no end hint, independent of this widget\'s own compact prop', () => {
         render(<WorkoutDashboard {...MOCK_DASHBOARD_EARLY} />);
         const props = mockedWorkoutStepsList.mock.calls[0][0];
-        expect(props.compact).toBe(false);
+        expect(props.compact).toBe(true);
+        expect(props.showEndHint).toBe(false);
+
+        render(<WorkoutDashboard {...MOCK_DASHBOARD_EARLY} compact />);
+        const compactProps = mockedWorkoutStepsList.mock.calls[1][0];
+        expect(compactProps.compact).toBe(true);
+        expect(compactProps.showEndHint).toBe(false);
     });
 
     test('the reserved controls column renders nothing when no controls are supplied', () => {
