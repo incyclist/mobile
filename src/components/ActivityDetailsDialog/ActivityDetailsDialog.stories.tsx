@@ -103,3 +103,14 @@ export const WorkoutOnlyActivityNoAddWorkout: Story = {
         attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
     },
 };
+
+// Repo-owner review, 2026-08-11 - checking the AttachmentChip's impact on compact mode
+// specifically, since it's an extra row above content that's already tight on vertical space.
+export const CompactWorkoutAttached: Story = {
+    args: {
+        compact: true,
+        canStart: true,
+        comboEnabled: true,
+        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+    },
+};

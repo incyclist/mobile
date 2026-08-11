@@ -311,8 +311,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 onOutsideClick={onCancel}
                 scrollable={false}
             >
+                {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
                 {infoBar}
-                {workoutChip}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         <ScrollView
@@ -342,11 +342,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     return (
         <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
+            {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
             <View style={mediaRowStyle}>
                 <View style={styles.mediaContainer}>{renderMedia()}</View>
                 <View style={styles.mediaContainer}>{renderPreview()}</View>
             </View>
-            {workoutChip}
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Distance</Text>
@@ -379,6 +379,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 };
 
 const styles = StyleSheet.create({
+    chipWrapper: { paddingHorizontal: 15 },
     mediaRow: { flexDirection: 'row', gap: 10, padding: 10 },
     mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     fullMedia: { width: '100%', height: '100%' },

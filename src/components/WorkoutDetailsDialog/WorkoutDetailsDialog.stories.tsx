@@ -110,3 +110,13 @@ export const ComboOnRouteAttached: Story = {
         attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
     }),
 };
+
+// Repo-owner review, 2026-08-11 - checking the AttachmentChip's impact on compact mode
+// specifically, since it's an extra row above content that's already tight on vertical space.
+export const CompactRouteAttached: Story = {
+    args: mockDetailsProps({
+        compact: true,
+        comboEnabled: true,
+        attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+    }),
+};

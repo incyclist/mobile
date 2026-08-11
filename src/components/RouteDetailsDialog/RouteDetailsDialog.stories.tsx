@@ -135,6 +135,16 @@ export const WithPrevRides: Story = {
 
 export const Compact: Story = { args: mockRouteProps({ compact: true }) };
 
+// Repo-owner review, 2026-08-11 - checking the AttachmentChip's impact on compact mode
+// specifically, since it's an extra row above content that's already tight on vertical space.
+export const CompactWorkoutAttached: Story = {
+    args: mockRouteProps({
+        compact: true,
+        comboEnabled: true,
+        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+    }),
+};
+
 export const CompactWithMap: Story = {
     args: mockRouteProps({
         compact: true,

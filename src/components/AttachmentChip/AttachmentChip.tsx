@@ -36,9 +36,15 @@ const styles = StyleSheet.create({
         paddingLeft: 12,
         paddingRight: 6,
         paddingVertical: 6,
-        marginHorizontal: 10,
+        // Self-contained vertical rhythm only (repo-owner review, 2026-08-11 — a one-sided
+        // marginTop with no marginBottom left it flush against whatever followed). Horizontal
+        // placement is deliberately left to the call site: every dialog places this directly
+        // below the title, and each has its own existing horizontal padding convention there
+        // (10/15px) - baking a fixed marginHorizontal in here was what caused the misaligned-
+        // relative-to-siblings look in ActivityDetailsDialog.
         marginTop: 10,
-        maxWidth: '90%',
+        marginBottom: 10,
+        maxWidth: '100%',
     },
     text: {
         color: colors.text,

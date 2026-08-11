@@ -125,7 +125,9 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     return (
         <Dialog title={dialogTitle} variant="full" buttons={dialogButtons} onOutsideClick={onClose}>
             {comboEnabled && attachedRoute && (
-                <AttachmentChip label="Route" name={attachedRoute.title} onClear={onClearRoute} />
+                <View style={styles.chipWrapper}>
+                    <AttachmentChip label="Route" name={attachedRoute.title} onClear={onClearRoute} />
+                </View>
             )}
             {compact ? (
                 <View style={styles.compactRoot}>
@@ -173,6 +175,9 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
 };
 
 const styles = StyleSheet.create({
+    chipWrapper: {
+        paddingHorizontal: 10,
+    },
     graphContainer: {
         paddingHorizontal: 10,
         paddingTop: 10,

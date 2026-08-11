@@ -213,11 +213,11 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
                 </View>
             </View>
 
-            <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
-
             {showWorkoutChip && attachedWorkout && (
                 <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
             )}
+
+            <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
 
             <View style={styles.uploadsRow}>
                 {uploads.map((upload, idx) => (
