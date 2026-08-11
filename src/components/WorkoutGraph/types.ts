@@ -28,12 +28,24 @@ export interface WorkoutGraphViewProps {
     height: number;
     mode: WorkoutGraphMode;
     plan: WorkoutGraphPlan;
-    /** live-mode overlay (grey power area + HR line + position marker) — ignored by strip/detail. */
+    /**
+     * live-mode overlay (grey power area + HR line + position marker) — ignored by strip/detail
+     * unless `showPositionMarker` opts the marker alone back in for a strip/detail graph.
+     */
     actuals?: WorkoutGraphActuals | null;
     /** Override axis visibility. Defaults: strip=false, detail=true. */
     showAxes?: boolean;
     /** Override FTP reference line. Defaults: strip=false, detail=true. */
     showFtpLine?: boolean;
+    /** The "FTP 250W" text next to the line. Default true — only meaningful when showFtpLine is on. */
+    showFtpLabel?: boolean;
+    /**
+     * The `live`-mode "where am I" marker, without the rest of the actuals overlay (power/HR
+     * lines, legend) — usable independent of `mode`, e.g. a compact `strip` graph that still
+     * wants a position indicator. Default false. Ignored (no double marker) when `mode='live'`
+     * already renders the full overlay including this same marker.
+     */
+    showPositionMarker?: boolean;
     axisFontSize?: number;
     style?: StyleProp<ViewStyle>;
 }
@@ -45,6 +57,8 @@ export interface WorkoutGraphProps {
     actuals?: WorkoutGraphActuals | null;
     showAxes?: boolean;
     showFtpLine?: boolean;
+    showFtpLabel?: boolean;
+    showPositionMarker?: boolean;
     /** Fixed height (e.g. strip rows). When omitted the wrapper measures it. */
     height?: number;
     /** Forwarded to WorkoutGraphView. Omit to keep its default (phone-sized) axis font. */

@@ -71,7 +71,7 @@ const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: bool
 
     return (
         <View style={[styles.row, styles.currentRow]}>
-            {hasProgress && <View style={[styles.progressFill, { width: progressPct }]} />}
+            {hasProgress && <View testID="step-progress-fill" style={[styles.progressFill, { width: progressPct }]} />}
             {hasProgress && <View style={[styles.progressMarker, { left: progressPct }]} />}
             <View style={styles.currentAccent} />
             <View style={styles.rowText}>

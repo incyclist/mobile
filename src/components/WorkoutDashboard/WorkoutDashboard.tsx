@@ -42,6 +42,10 @@ export const WorkoutDashboard = ({
                         plan={graph}
                         actuals={actuals}
                         height={resolvedGraphHeight}
+                        showFtpLine
+                        // The live "where am I" marker, standalone - strip mode otherwise has no
+                        // actuals overlay at all (repo-owner review, 2026-08-11).
+                        showPositionMarker
                         style={styles.graph}
                     />
                 </View>

@@ -47,6 +47,13 @@ describe('WorkoutDashboard', () => {
         expect(props.mode).toBe('strip');
     });
 
+    test('requests the FTP reference line and the standalone position marker (repo-owner review, 2026-08-11)', () => {
+        render(<WorkoutDashboard {...MOCK_DASHBOARD_EARLY} />);
+        const props = mockedWorkoutGraph.mock.calls[0][0];
+        expect(props.showFtpLine).toBe(true);
+        expect(props.showPositionMarker).toBe(true);
+    });
+
     test('an explicit graphMode overrides the strip default', () => {
         render(<WorkoutDashboard {...MOCK_DASHBOARD_EARLY} graphMode="live" />);
         const props = mockedWorkoutGraph.mock.calls[0][0];

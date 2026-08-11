@@ -7,6 +7,7 @@ import {
     MOCK_DASHBOARD_MID_INTERVAL,
     MOCK_DASHBOARD_NEAR_END,
     MOCK_DASHBOARD_NO_ACTUALS,
+    MOCK_DASHBOARD_AT_END,
 } from './WorkoutDashboard.mock';
 import { colors } from '../../theme';
 import { Button } from '../ButtonBar';
@@ -57,6 +58,24 @@ export const NearEnd: Story = {
 
 export const NoActuals: Story = {
     args: MOCK_DASHBOARD_NO_ACTUALS,
+};
+
+/**
+ * The exact instant a step ends - `actuals.position` sits precisely on the bar boundary, and
+ * the current step's `remaining` is exactly 0. Repo-owner request, 2026-08-11: check the
+ * graph's position marker lands exactly at the bar's right edge, and whether
+ * `WorkoutStepsList`'s current-row progress fill reaches exactly full width rather than
+ * stopping short of it.
+ *
+ * This fixture uses mathematically correct boundary values (not whatever the live
+ * `WorkoutRide.getCurrentLimits()` tick timing happens to produce in practice) so it isolates
+ * one question: given correct data, does the *rendering* land exactly at the end? If this looks
+ * right here but still looks short of the end on a real device, the gap is in the live
+ * service's timing, not in either of these two components - worth separating before filing
+ * anything.
+ */
+export const AtEnd: Story = {
+    args: MOCK_DASHBOARD_AT_END,
 };
 
 /** Compact (phone) layout — tighter text sizing. */

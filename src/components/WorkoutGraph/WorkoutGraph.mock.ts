@@ -123,6 +123,22 @@ export const MOCK_ACTUALS_NO_HRM: WorkoutGraphActuals = {
 };
 
 /**
+ * `position` sits exactly on a bar boundary (x=1080, the end of the first 3x-VO2 "on" bar /
+ * start of its "off" bar) - repo-owner request, 2026-08-11, to check the marker lands exactly
+ * at the edge rather than short of it. Paired with `WorkoutStepsList.mock.ts`'s
+ * `MOCK_STEPS_AT_END` (current step's `remaining: 0`) in `WorkoutDashboard.mock.ts`'s
+ * `MOCK_DASHBOARD_AT_END` - the suspected bug is in the steps list's progress fill, not this
+ * graph, so this fixture uses the mathematically correct boundary values (remaining exactly 0)
+ * to isolate whether the *rendering* is correct, independent of whatever the live
+ * WorkoutRide.getCurrentLimits() tick timing produces in practice.
+ */
+export const MOCK_ACTUALS_AT_STEP_BOUNDARY: WorkoutGraphActuals = {
+    power: buildActualPower(MOCK_BARS, 1080),
+    heartrate: buildActualHeartrate(1080),
+    position: 1080,
+};
+
+/**
  * `live` mode, post-skip-back: the rider skipped back from the cooldown to
  * repeat the last VO2 on/off pair. The CURRENT workout (not the pristine plan
  * above) gets that pair re-inserted at x=1800, and the cooldown ramp shifts
