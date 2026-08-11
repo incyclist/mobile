@@ -19,16 +19,14 @@ import {
 
 /** Early workout — warmup ramp just started, no actuals yet (rider hasn't moved past the first samples). */
 export const MOCK_DASHBOARD_EARLY: WorkoutDashboardProps = {
-    title: 'VO2 Max Builder',
-    description: '3x 3min VO2 efforts, warmup and cooldown included.',
+    line: { text: '150W - Warmup (1/5)', mode: null },
     graph: MOCK_PLAN,
     steps: MOCK_STEPS_MIXED_TARGETS,
 };
 
 /** Mid-interval — inside the repeated VO2 block, with a live actuals overlay (Power/HR + position marker). */
 export const MOCK_DASHBOARD_MID_INTERVAL: WorkoutDashboardProps = {
-    title: 'VO2 Max Builder',
-    description: '3x 3min VO2 efforts, warmup and cooldown included.',
+    line: { text: '260W at 100-120HR for 5min - VO2 max (3/5)', mode: null },
     graph: MOCK_PLAN,
     actuals: MOCK_ACTUALS_MID,
     steps: MOCK_STEPS_VO2,
@@ -36,16 +34,15 @@ export const MOCK_DASHBOARD_MID_INTERVAL: WorkoutDashboardProps = {
 
 /** Near end — last step of the workout, no upcoming steps left ("end of workout" hint shows). */
 export const MOCK_DASHBOARD_NEAR_END: WorkoutDashboardProps = {
-    title: 'VO2 Max Builder',
-    description: '3x 3min VO2 efforts, warmup and cooldown included.',
+    line: { text: '120W - Cooldown (5/5)', mode: null },
     graph: MOCK_PLAN,
     actuals: { ...MOCK_ACTUALS_MID, position: 2040 },
     steps: MOCK_STEPS_LAST,
 };
 
-/** No description supplied — the description line must omit cleanly, not render an empty gap. */
-export const MOCK_DASHBOARD_NO_DESCRIPTION: WorkoutDashboardProps = {
-    title: 'Short Ramp Test',
+/** Short workout, no live actuals overlay yet. */
+export const MOCK_DASHBOARD_NO_ACTUALS: WorkoutDashboardProps = {
+    line: { text: '200W - Ramp Test', mode: null },
     graph: MOCK_PLAN_SHORT,
     steps: MOCK_STEPS_MIXED_TARGETS,
 };

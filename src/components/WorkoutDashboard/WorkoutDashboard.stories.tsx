@@ -6,16 +6,22 @@ import {
     MOCK_DASHBOARD_EARLY,
     MOCK_DASHBOARD_MID_INTERVAL,
     MOCK_DASHBOARD_NEAR_END,
-    MOCK_DASHBOARD_NO_DESCRIPTION,
+    MOCK_DASHBOARD_NO_ACTUALS,
 } from './WorkoutDashboard.mock';
 import { colors } from '../../theme';
+import { Button } from '../ButtonBar';
 
 /**
  * Three representative points in a ride — early workout (nothing ridden yet), mid-interval
  * (inside a repeated VO2 block, live actuals overlay), and near end (last step, "end of
- * workout" hint) — plus a no-description edge case. `graphHeight`/`graphMode` are exposed
- * as controls so the Wave 4 prototype session can experiment with sizing directly here
+ * workout" hint) — plus a no-actuals edge case. `graphHeight`/`graphMode` are exposed as
+ * controls so the Wave 4 prototype session can experiment with sizing directly here
  * (workout-mobile-hld-phase2.md §8, open question 4).
+ *
+ * Repo-owner review (2026-08-11): this widget must stay compact — not much taller than
+ * `RideDashboard` — since on a Video/GPX ride it's auxiliary info, unlike the dedicated
+ * Workout ride page where the workout is the whole screen. These stories are sized to a
+ * ~360-420px-wide frame to reflect the "beside RideDashboard" ear placement it actually gets.
  */
 const meta: Meta<typeof WorkoutDashboard> = {
     title: 'Components/WorkoutDashboard',
@@ -45,11 +51,11 @@ export const NearEnd: Story = {
     args: MOCK_DASHBOARD_NEAR_END,
 };
 
-export const NoDescription: Story = {
-    args: MOCK_DASHBOARD_NO_DESCRIPTION,
+export const NoActuals: Story = {
+    args: MOCK_DASHBOARD_NO_ACTUALS,
 };
 
-/** Compact (phone) layout — tighter title/description type, one fewer upcoming step. */
+/** Compact (phone) layout — tighter text/graph, fewer visible steps. */
 export const Compact: Story = {
     args: {
         ...MOCK_DASHBOARD_MID_INTERVAL,
@@ -64,21 +70,24 @@ export const Compact: Story = {
     ],
 };
 
-/** A smaller graph height, standing in for the "narrower overlay" T-shape arrangement (§5.3). */
-export const SmallGraph: Story = {
+/**
+ * The reserved third column with an example control in it — illustrative only, this component
+ * does not wire up any Stop-Workout behaviour itself (session 5.3, mechanism TBD by 4.1).
+ */
+export const WithControlsSlot: Story = {
     args: {
         ...MOCK_DASHBOARD_MID_INTERVAL,
-        graphHeight: 80,
+        controls: <Button id="stop" label="Stop" onClick={() => {}} />,
     },
 };
 
 const styles = StyleSheet.create({
     decorator: {
-        width: 360,
+        width: 380,
         padding: 16,
         backgroundColor: colors.background,
     },
     decoratorCompact: {
-        width: 260,
+        width: 300,
     },
 });
