@@ -1,4 +1,4 @@
-import { WorkoutGraphPlan } from 'incyclist-services';
+import { AttachedRouteProps, WorkoutGraphPlan } from 'incyclist-services';
 
 export interface WorkoutDetailsDialogProps {
     workoutId: string;
@@ -35,6 +35,14 @@ export interface WorkoutDetailsViewProps {
     showDeleteConfirm: boolean;
     deleting: boolean;
 
+    /**
+     * Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - the "Route: <name> [x]" row and "Add
+     * Route" button. `comboEnabled` gates both; when false neither element renders, mirroring
+     * today's shipped dialog exactly (MOBILE_WORKOUT_ROUTE_COMBO off).
+     */
+    attachedRoute: AttachedRouteProps | null;
+    comboEnabled: boolean;
+
     onClose: () => void;
     onSetFtp: (ftp: number) => void;
     onSetErgMode: (enabled: boolean) => void;
@@ -43,4 +51,6 @@ export interface WorkoutDetailsViewProps {
     onDeleteRequest: () => void;
     onDeleteConfirm: () => void;
     onDeleteCancel: () => void;
+    onClearRoute: () => void;
+    onAddRoute: () => void;
 }

@@ -19,7 +19,6 @@ const mockRouteProps = (overrides = {}): any => ({
     canNotStartReason: undefined,
     showLoopOverwrite: true,
     showNextOverwrite: false,
-    showWorkout: true,
     showPrev: false,
     loading: false,
     initialSettings: {
@@ -27,9 +26,12 @@ const mockRouteProps = (overrides = {}): any => ({
         realityFactor: 100,
     },
     prevRides: null,
+    attachedWorkout: null,
+    comboEnabled: false,
     onStart: fn(),
     onCancel: fn(),
     onStartWithWorkout: fn(),
+    onClearWorkout: fn(),
     onSettingsChanged: fn().mockResolvedValue({}),
     onUpdateStartPos: fn().mockReturnValue(null),
     ...overrides,
@@ -55,8 +57,26 @@ type Story = StoryObj<typeof RouteDetailsView>;
 
 export const Default: Story = { args: mockRouteProps() };
 
-export const WorkoutOptionHidden: Story = {
-    args: mockRouteProps({ showWorkout: false }),
+// workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + "Workout: <name> [x]" chip,
+// gated on MOBILE_WORKOUT_ROUTE_COMBO. Repo-owner correction, 2026-08-11: unlike desktop, mobile
+// has no route+workout starting capability outside this phase's combo work, so comboEnabled
+// false always hides both - there is no fallback "shipped today" behaviour to preserve here
+// (see RouteDetailsDialog/types.ts for the full reasoning).
+export const ComboOffNoWorkout: Story = {
+    args: mockRouteProps({ comboEnabled: false, attachedWorkout: null }),
+};
+
+export const ComboOffWorkoutAttachedElsewhereStillHidden: Story = {
+    // Even with a workout attached elsewhere, comboEnabled false hides both button and chip.
+    args: mockRouteProps({ comboEnabled: false, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
+};
+
+export const ComboOnNoWorkout: Story = {
+    args: mockRouteProps({ comboEnabled: true, attachedWorkout: null }),
+};
+
+export const ComboOnWorkoutAttached: Story = {
+    args: mockRouteProps({ comboEnabled: true, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
 };
 
 export const Loading: Story = { args: mockRouteProps({ loading: true }) };
@@ -110,6 +130,16 @@ export const WithPrevRides: Story = {
 };
 
 export const Compact: Story = { args: mockRouteProps({ compact: true }) };
+
+// Repo-owner review, 2026-08-11 - checking the AttachmentChip's impact on compact mode
+// specifically, since it's an extra row above content that's already tight on vertical space.
+export const CompactWorkoutAttached: Story = {
+    args: mockRouteProps({
+        compact: true,
+        comboEnabled: true,
+        attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
+    }),
+};
 
 export const CompactWithMap: Story = {
     args: mockRouteProps({

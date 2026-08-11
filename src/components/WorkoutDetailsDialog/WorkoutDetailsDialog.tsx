@@ -39,7 +39,7 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
     const service = getWorkoutListPageService();
     const layout = useScreenLayout();
     const compact = layout === 'compact';
-    const { logError } = useLogging('WorkoutDetailsDialog');
+    const { logError, logEvent } = useLogging('WorkoutDetailsDialog');
 
     const [details, setDetails] = useState<ServiceWorkoutDetailsProps | null>(() =>
         service.getWorkoutDetailsProps(workoutId)
@@ -111,6 +111,21 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             });
     }, [service, workoutId, logError]);
 
+    // '[x]' on the "Route: <name>" row (workout-mobile-hld-phase2.md §4.2). Clears only the route
+    // side; the workout stays selected. `onClearRouteSelection()` emits its own 'page-update',
+    // which the subscription above already turns into a refresh.
+    const onClearRoute = useCallback(() => {
+        service.onClearRouteSelection();
+    }, [service]);
+
+    // "Add Route" button - this session (3.3) only adds the toggle-gated UI element.
+    // workout-combo-service-design.md §3.4.4 explicitly assigns the actual wiring
+    // (`onMarkForRoute(id)` then `navigate('/routes')`) to session 5.2; logging the tap here keeps
+    // the button observable/testable without duplicating that session's design.
+    const onAddRoute = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'Add Route', eventSource: 'user' });
+    }, [logEvent]);
+
     if (!details) return null;
 
     const plan = buildDetailPlan(details.workout, details.ftp);
@@ -136,6 +151,8 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             canStartWorkoutOnly={details.canStartWorkoutOnly}
             showDeleteConfirm={showDeleteConfirm}
             deleting={deleting}
+            attachedRoute={details.attachedRoute}
+            comboEnabled={details.comboEnabled}
             onClose={onClose}
             onSetFtp={onSetFtp}
             onSetErgMode={onSetErgMode}
@@ -144,6 +161,8 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             onDeleteRequest={onDeleteRequest}
             onDeleteConfirm={onDeleteConfirm}
             onDeleteCancel={onDeleteCancel}
+            onClearRoute={onClearRoute}
+            onAddRoute={onAddRoute}
         />
     );
 };

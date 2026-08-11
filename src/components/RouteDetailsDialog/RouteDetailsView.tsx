@@ -20,6 +20,7 @@ import { ChipSelect } from '../ChipSelect';
 import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
+import { AttachmentChip } from '../AttachmentChip';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -27,10 +28,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
         title, compact, hasGpx, points, previewUrl, totalDistance,
         totalElevation, routeType, canStart, canNotStartReason,
-        showLoopOverwrite, showNextOverwrite, showWorkout, loading,
+        showLoopOverwrite, showNextOverwrite, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
-        onStart, onCancel, onStartWithWorkout, onSettingsChanged, onUpdateStartPos,
+        attachedWorkout, comboEnabled,
+        onStart, onCancel, onStartWithWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
         onDownloadStop, onDownloadRetry, onDownloadDelete
@@ -263,9 +265,16 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const cancelButton = { label: 'Cancel', onClick: onCancel }
 
+    // Both driven only by `attachedWorkout`, only when combo is enabled (repo-owner correction,
+    // 2026-08-11) - mobile has no route+workout starting capability outside this phase's combo
+    // work, so unlike desktop there is no meaningful fallback state for `comboEnabled === false`;
+    // the button/chip simply don't exist pre-Phase-2 on mobile, full stop.
+    const showAddWorkoutButton = comboEnabled && !attachedWorkout;
+    const showWorkoutChip = comboEnabled && !!attachedWorkout;
+
     const startButtons = canStart ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
-        ...(showWorkout ? [{ label: 'Start with Workout', onClick: () => onStartWithWorkout(data) }] : [])
+        ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onStartWithWorkout(data) }] : [])
     ] : []
 
     const downloadButton = downloadButtonLabel ? [{
@@ -276,6 +285,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }] : []
 
     const dialogButtons = [cancelButton, ...startButtons, ...downloadButton]
+
+    const workoutChip = showWorkoutChip && attachedWorkout ? (
+        <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
+    ) : null;
 
     if (compact) {
         const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
@@ -297,6 +310,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 onOutsideClick={onCancel}
                 scrollable={false}
             >
+                {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
                 {infoBar}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
@@ -327,6 +341,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     return (
         <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
+            {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
             <View style={mediaRowStyle}>
                 <View style={styles.mediaContainer}>{renderMedia()}</View>
                 <View style={styles.mediaContainer}>{renderPreview()}</View>
@@ -363,6 +378,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 };
 
 const styles = StyleSheet.create({
+    chipWrapper: { paddingHorizontal: 15 },
     mediaRow: { flexDirection: 'row', gap: 10, padding: 10 },
     mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     fullMedia: { width: '100%', height: '100%' },

@@ -9,6 +9,7 @@ const mockOnSetErgMode = jest.fn();
 const mockOnChangeGroup = jest.fn();
 const mockOnStart = jest.fn();
 const mockOnDelete = jest.fn(() => Promise.resolve(true));
+const mockOnClearRouteSelection = jest.fn();
 
 const baseDetails: any = {
     id: 'w1',
@@ -25,6 +26,8 @@ const baseDetails: any = {
     group: 'My Workouts',
     canDelete: true,
     isScheduled: false,
+    attachedRoute: null,
+    comboEnabled: false,
 };
 
 const mockGetWorkoutDetailsProps = jest.fn(() => baseDetails);
@@ -38,6 +41,7 @@ const mockService = {
     onChangeGroup: mockOnChangeGroup,
     onStart: mockOnStart,
     onDelete: mockOnDelete,
+    onClearRouteSelection: mockOnClearRouteSelection,
 };
 
 jest.mock('incyclist-services', () => ({
@@ -115,5 +119,51 @@ describe('WorkoutDetailsDialog', () => {
     it('unmounts without crashing', () => {
         const { unmount } = render(<WorkoutDetailsDialog workoutId="w1" />);
         expect(() => unmount()).not.toThrow();
+    });
+
+    describe('route attachment (workout-mobile-hld-phase2.md §4.2)', () => {
+        it('shows neither "Add Route" nor the chip when comboEnabled is false, even with a route attached', () => {
+            mockGetWorkoutDetailsProps.mockReturnValue({
+                ...baseDetails,
+                comboEnabled: false,
+                attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+            });
+            const { queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+            expect(queryByText('Add Route')).toBeNull();
+            expect(queryByText('Route: Alblasserwaard (SD)')).toBeNull();
+        });
+
+        it('shows "Add Route" when comboEnabled is true and nothing is attached', () => {
+            mockGetWorkoutDetailsProps.mockReturnValue({
+                ...baseDetails,
+                comboEnabled: true,
+                attachedRoute: null,
+            });
+            const { getByText, queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+            expect(getByText('Add Route')).toBeTruthy();
+            expect(queryByText(/^Route:/)).toBeNull();
+        });
+
+        it('shows the "Route: <name>" chip instead of "Add Route" when comboEnabled is true and a route is attached', () => {
+            mockGetWorkoutDetailsProps.mockReturnValue({
+                ...baseDetails,
+                comboEnabled: true,
+                attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+            });
+            const { getByText, queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+            expect(getByText('Route: Alblasserwaard (SD)')).toBeTruthy();
+            expect(queryByText('Add Route')).toBeNull();
+        });
+
+        it('calls service.onClearRouteSelection when the chip [x] is pressed', () => {
+            mockGetWorkoutDetailsProps.mockReturnValue({
+                ...baseDetails,
+                comboEnabled: true,
+                attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+            });
+            const { getByLabelText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+            fireEvent.press(getByLabelText('Clear route'));
+            expect(mockOnClearRouteSelection).toHaveBeenCalledTimes(1);
+        });
     });
 });

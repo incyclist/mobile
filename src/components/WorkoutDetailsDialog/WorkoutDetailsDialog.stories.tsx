@@ -23,6 +23,8 @@ const mockDetailsProps = (overrides = {}): any => ({
     canStartWorkoutOnly: true,
     showDeleteConfirm: false,
     deleting: false,
+    attachedRoute: null,
+    comboEnabled: false,
     onClose: fn(),
     onSetFtp: fn(),
     onSetErgMode: fn(),
@@ -31,6 +33,8 @@ const mockDetailsProps = (overrides = {}): any => ({
     onDeleteRequest: fn(),
     onDeleteConfirm: fn(),
     onDeleteCancel: fn(),
+    onClearRoute: fn(),
+    onAddRoute: fn(),
     ...overrides,
 });
 
@@ -81,4 +85,38 @@ export const DeleteConfirm: Story = {
 
 export const Deleting: Story = {
     args: mockDetailsProps({ showDeleteConfirm: true, deleting: true }),
+};
+
+// workout-mobile-hld-phase2.md §4.2/§9.1 - route attachment, gated on MOBILE_WORKOUT_ROUTE_COMBO.
+export const ComboOffNoRoute: Story = {
+    args: mockDetailsProps({ comboEnabled: false, attachedRoute: null }),
+};
+
+export const ComboOffRouteAttached: Story = {
+    // Toggle off: neither "Add Route" nor the chip render, even with a route attached elsewhere.
+    args: mockDetailsProps({
+        comboEnabled: false,
+        attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+    }),
+};
+
+export const ComboOnNoRoute: Story = {
+    args: mockDetailsProps({ comboEnabled: true, attachedRoute: null }),
+};
+
+export const ComboOnRouteAttached: Story = {
+    args: mockDetailsProps({
+        comboEnabled: true,
+        attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+    }),
+};
+
+// Repo-owner review, 2026-08-11 - checking the AttachmentChip's impact on compact mode
+// specifically, since it's an extra row above content that's already tight on vertical space.
+export const CompactRouteAttached: Story = {
+    args: mockDetailsProps({
+        compact: true,
+        comboEnabled: true,
+        attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+    }),
 };

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useRouteList, useActivityList  } from 'incyclist-services';
-import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings } from 'incyclist-services';
+import { useRouteList, useActivityList, getRoutesPageService } from 'incyclist-services';
+import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
@@ -12,6 +12,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
 
     const service = useRouteList();
     const activities = useActivityList();
+    const pageService = getRoutesPageService();
     const card = service.getCard(routeId);
 
     const { logEvent } = useLogging('RouteDetailsDialog');
@@ -24,6 +25,15 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const [prevRides, setPrevRides] = useState<any[] | null>(null);
     const [showPrev, setShowPrev] = useState(false);
     const [showDownloadModal, setShowDownloadModal] = useState(false);
+
+    // Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - additive side-channel, kept fresh on
+    // every 'page-update', separate from `cardProps` above (which is intentionally captured once).
+    // Drives the "Add Workout" button/chip whenever comboEnabled is true - mobile has no
+    // route+workout capability outside combo, so `cardProps.showWorkoutOption` is never read for
+    // this (repo-owner correction, 2026-08-11 - see RouteDetailsDialog/types.ts).
+    const [routeDetailsProps, setRouteDetailsProps] = useState<RouteDetailsProps>(() =>
+        pageService.getRouteDetailsProps(routeId)
+    );
 
     const route = card?.getData();
     const routeDescr = route?.description;
@@ -127,6 +137,24 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         }
     }, [card, subscribeToObserver]);
 
+    // Phase 2 (workout-combo-service-design.md §3.7) - the dialog's own page service's
+    // 'page-update' is the only subscription this session adds; a cross-screen attach/detach
+    // (e.g. clearing the workout from the Workouts page) is picked up on next mount instead, and
+    // the in-dialog '[x]' below already re-emits 'page-update' when it clears the selection.
+    useEffect(() => {
+        const refresh = () => setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+        const observer = pageService.getPageObserver();
+
+        observer?.on('page-update', refresh);
+        return () => {
+            observer?.off('page-update', refresh);
+        };
+    }, [pageService, routeId]);
+
+    const onClearWorkout = useCallback(() => {
+        pageService.onClearWorkoutSelection();
+    }, [pageService]);
+
     useUnmountEffect(() => {
         refMounted.current = false;
     });
@@ -138,7 +166,6 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         totalElevation,
         showLoopOverwrite,
         showNextOverwrite,
-        showWorkoutOption,
         canStart: cardCanStart,
         updateStartPos,
         settings
@@ -225,11 +252,12 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             showLoopOverwrite={!!showLoopOverwrite}
             showNextOverwrite={!!showNextOverwrite}
             downloadButtonPrimary={downloadButtonPrimary}
-            showWorkout={!!showWorkoutOption}
             showPrev={showPrev}
             loading={loading}
             initialSettings={settings as UIRouteSettings}
             prevRides={prevRides ?? undefined}
+            attachedWorkout={routeDetailsProps.attachedWorkout}
+            comboEnabled={routeDetailsProps.comboEnabled}
             onStart={(updatedSettings) => {
                 card.changeSettings(updatedSettings);
                 card.start();
@@ -242,6 +270,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
                 card.changeSettings(updatedSettings);
                 card.addWorkout();
             }}
+            onClearWorkout={onClearWorkout}
             onSettingsChanged={refreshPrevRides}
             onUpdateStartPos={(value) => {
                 if (!updateStartPos) return null;

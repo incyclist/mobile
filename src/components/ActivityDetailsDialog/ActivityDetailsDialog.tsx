@@ -3,14 +3,23 @@ import { Linking } from 'react-native';
 import Share from 'react-native-share';
 import { createMMKV } from 'react-native-mmkv';
 import RNFS from 'react-native-fs';
-import { useActivityList, SelectedActivityDisplayProperties, useUserSettings } from 'incyclist-services';
+import {
+    useActivityList,
+    SelectedActivityDisplayProperties,
+    useUserSettings,
+    getActivitiesPageService,
+    ActivityDetailsProps,
+} from 'incyclist-services';
 import { ActivityDetailsDialogProps } from './types';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
 
+const NO_WORKOUT_ATTACHMENT: ActivityDetailsProps = { activityId: '', attachedWorkout: null, comboEnabled: false };
+
 export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsDialogProps) => {
     const service = useActivityList();
+    const pageService = getActivitiesPageService();
     const userSettings = useUserSettings()
 
     const { logError, logEvent } = useLogging('ActivityDetailsDialog');
@@ -19,6 +28,51 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
     const refInitialized = useRef(false);
     const refObserver = useRef<any>(null);
     const ftp = userSettings.getValue('user.ftp',undefined)
+
+    // Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - net-new "Add Workout" button + inline
+    // chip. Additive side-channel (workout-combo-service-design.md §3.6), keyed off the activity
+    // id the dialog is currently showing - `SelectedActivityDisplayProperties` carries no
+    // workout-related field itself, so there is no "one source per state" hazard here (§3.5.1
+    // only applies to RouteDetailsDialog).
+    const activityId = displayProps?.activity?.id;
+    const [workoutAttachment, setWorkoutAttachment] = useState<ActivityDetailsProps>(NO_WORKOUT_ATTACHMENT);
+
+    const refActivityId = useRef<string | undefined>(undefined);
+
+    const refreshWorkoutAttachment = useCallback(() => {
+        const id = refActivityId.current;
+        setWorkoutAttachment(id ? pageService.getActivityDetailsProps(id) : NO_WORKOUT_ATTACHMENT);
+    }, [pageService]);
+
+    useEffect(() => {
+        refActivityId.current = activityId;
+        refreshWorkoutAttachment();
+    }, [activityId, refreshWorkoutAttachment]);
+
+    // Own page service's 'page-update' (workout-combo-service-design.md §3.7/§3.9) - picks up the
+    // in-dialog '[x]' clear (which emits it via onClearWorkoutSelection()); a cross-screen
+    // attach/detach is picked up on the next mount instead, same as RouteDetailsDialog.
+    useEffect(() => {
+        const observer = pageService.getPageObserver();
+        observer?.on('page-update', refreshWorkoutAttachment);
+        return () => {
+            observer?.off('page-update', refreshWorkoutAttachment);
+        };
+    }, [pageService, refreshWorkoutAttachment]);
+
+    const onClearWorkout = useCallback(() => {
+        pageService.onClearWorkoutSelection();
+    }, [pageService]);
+
+    // "Add Workout" button - this session (3.3) only adds the toggle-gated UI element. Unlike the
+    // Route dialog's existing "Start with Workout" -> card.addWorkout(), this dialog has zero
+    // workout-related wiring today; the full recipe (`activities.openRoute(); card.addWorkout();
+    // navigate('/workouts')`) is session 5.2's design (workout-combo-service-design.md §3.9),
+    // including the D4 ordering guarantees that recipe needs. Logging the tap keeps the button
+    // observable/testable without duplicating that session's work.
+    const onAddWorkout = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'Add Workout', eventSource: 'user' });
+    }, [logEvent]);
 
     const onUpdate = useCallback((updated: SelectedActivityDisplayProperties) => {
         if (updated) {
@@ -112,11 +166,15 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
                 {...(displayProps || ({} as SelectedActivityDisplayProperties))}
                 ftp={ftp}
                 loading={loading}
+                attachedWorkout={workoutAttachment.attachedWorkout}
+                comboEnabled={workoutAttachment.comboEnabled}
                 onClose={onClose}
                 onRideAgain={handleRideAgain}
                 onShareFile={handleShareFile}
                 onUpload={handleUpload}
                 onOpenUpload={handleOpenUpload}
+                onClearWorkout={onClearWorkout}
+                onAddWorkout={onAddWorkout}
             />
         </ErrorBoundary>
     );

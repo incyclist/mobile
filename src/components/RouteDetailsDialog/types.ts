@@ -1,4 +1,4 @@
-import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps } from 'incyclist-services';
+import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
     routeId: string     
@@ -41,10 +41,26 @@ export interface RouteDetailsViewProps {
     canNotStartReason?: string;
     showLoopOverwrite: boolean;
     showNextOverwrite: boolean;
-    showWorkout: boolean;
     showPrev: boolean;
     loading: boolean;
     downloadButtonPrimary?: boolean
+
+    /**
+     * Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - the "Workout: <name> [x]" row and the
+     * "Add Workout" button, both driven only by `attachedWorkout` when `comboEnabled` is true
+     * (button when null, chip when set).
+     *
+     * Repo-owner correction, 2026-08-11: this dialog previously fell back to
+     * `cardProps.showWorkoutOption` (desktop's pre-Phase-2 "Start with Workout" signal) when
+     * `comboEnabled` is false. That's correct on desktop, which already has route+workout
+     * starting - but mobile does not, outside this phase's combo work. `showWorkoutOption` on
+     * mobile only reflects `MOBILE_WORKOUTS` (workout-only rides, Phase 1) and has never known
+     * about `MOBILE_WORKOUT_ROUTE_COMBO` - it was never a meaningful signal for this button on
+     * mobile. `comboEnabled` false now always hides the button; `showWorkoutOption` is no
+     * longer read here at all.
+     */
+    attachedWorkout: AttachedWorkoutProps | null;
+    comboEnabled: boolean;
 
     // Settings
     initialSettings: UIRouteSettings;
@@ -54,6 +70,7 @@ export interface RouteDetailsViewProps {
     onStart: (settings: UIRouteSettings) => void;
     onCancel: () => void;
     onStartWithWorkout: (settings: UIRouteSettings) => void;
+    onClearWorkout: () => void;
     onSettingsChanged: (settings: UIRouteSettings) => Promise<{
         prevRides?: Array<any>;
         showPrev?: boolean;
