@@ -5,6 +5,7 @@ import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDe
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
+import { navigate } from '../../services';
 
 export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps) => {
     const { height } = useWindowDimensions();
@@ -266,9 +267,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             onCancel={() => {
                 card.cancel();
             }}
-            onStartWithWorkout={(updatedSettings) => {
+            onAddWorkout={(updatedSettings) => {
                 card.changeSettings(updatedSettings);
                 card.addWorkout();
+                navigate('workouts');
             }}
             onClearWorkout={onClearWorkout}
             onSettingsChanged={refreshPrevRides}

@@ -75,7 +75,6 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
     // goes on to Close/Cancel instead of confirming. Close/Cancel below stay untouched: they only
     // call onClose(), so a previously-attached route is left exactly as it was.
     const onAddWorkout = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'Add Workout', eventSource: 'user' });
         const card = service.openRoute();
         if (!card) {
             logError(new Error('openRoute() returned no route card'), 'onAddWorkout');
@@ -83,7 +82,7 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         }
         card.addWorkout();
         navigate('workouts');
-    }, [logEvent, logError, service]);
+    }, [logError, service]);
 
     const onUpdate = useCallback((updated: SelectedActivityDisplayProperties) => {
         if (updated) {

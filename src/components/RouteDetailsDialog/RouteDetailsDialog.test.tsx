@@ -108,6 +108,11 @@ jest.mock('../DownloadModal', () => ({
     DownloadModalView: () => null,
 }));
 
+const mockNavigate = jest.fn();
+jest.mock('../../services', () => ({
+    navigate: (page: string) => mockNavigate(page),
+}));
+
 describe('RouteDetailsDialog - workout attachment (workout-combo-service-design.md §3.5.1)', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -119,6 +124,18 @@ describe('RouteDetailsDialog - workout attachment (workout-combo-service-design.
         mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps({ comboEnabled: true, attachedWorkout: null }));
         const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
         expect(getByText('Add Workout')).toBeTruthy();
+    });
+
+    // Regression guard, session 5.2 PR review (2026-08-12): a prior revision attached the workout
+    // (card.addWorkout()) but never navigated to Workouts, leaving the user on the Route dialog
+    // with no visible next step - the only one of the three dialogs missing this.
+    it('pressing "Add Workout" applies settings, attaches the workout, and navigates to workouts', () => {
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps({ comboEnabled: true, attachedWorkout: null }));
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        fireEvent.press(getByText('Add Workout'));
+        expect(mockCard.changeSettings).toHaveBeenCalledTimes(1);
+        expect(mockCard.addWorkout).toHaveBeenCalledTimes(1);
+        expect(mockNavigate).toHaveBeenCalledWith('workouts');
     });
 
     it('renders the "Workout: <name>" chip when comboEnabled is true and a workout is attached', () => {

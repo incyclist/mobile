@@ -40,7 +40,7 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
     const service = getWorkoutListPageService();
     const layout = useScreenLayout();
     const compact = layout === 'compact';
-    const { logError, logEvent } = useLogging('WorkoutDetailsDialog');
+    const { logError } = useLogging('WorkoutDetailsDialog');
 
     const [details, setDetails] = useState<ServiceWorkoutDetailsProps | null>(() =>
         service.getWorkoutDetailsProps(workoutId)
@@ -124,10 +124,9 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
     // the user can pick one. No route is selected here - only the workout side of the attachment
     // is touched, mirroring the route dialog's symmetric "Add Workout" (card.addWorkout()).
     const onAddRoute = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'Add Route', eventSource: 'user' });
         service.onMarkForRoute(workoutId);
         navigate('routes');
-    }, [logEvent, service, workoutId]);
+    }, [service, workoutId]);
 
     if (!details) return null;
 

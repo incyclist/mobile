@@ -30,7 +30,7 @@ const mockRouteProps = (overrides = {}): any => ({
     comboEnabled: false,
     onStart: fn(),
     onCancel: fn(),
-    onStartWithWorkout: fn(),
+    onAddWorkout: fn(),
     onClearWorkout: fn(),
     onSettingsChanged: fn().mockResolvedValue({}),
     onUpdateStartPos: fn().mockReturnValue(null),
