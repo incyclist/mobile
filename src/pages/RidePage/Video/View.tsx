@@ -37,6 +37,11 @@ interface VideoRidePageViewProps {
      *  (session 2.2/3.3). Makes this component directly Storybook-testable with no toggle-mocking
      *  infrastructure needed. Defaults to `false` (matches the toggle's own off-by-default rule). */
     comboEnabled?: boolean;
+    /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — forwarded
+     *  as-is to `WorkoutRideOverlay`, which owns the undo-window/deferred-commit behaviour. Only
+     *  reachable through that overlay, so — like `getGraphActuals`/`onToggleCornerWidget` — this is
+     *  harmless when `comboActive` is false. */
+    onStopWorkout: () => void;
 }
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -56,6 +61,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         getGraphActuals,
         onToggleCornerWidget,
         comboEnabled,
+        onStopWorkout,
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget } = displayProps;
@@ -234,6 +240,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         lapMode={lapMode}
                         mapPoints={routeData?.points}
                         transformPosition={transformPosition}
+                        onStopWorkout={onStopWorkout}
                     />
                 )}
 

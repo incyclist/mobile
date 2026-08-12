@@ -40,6 +40,7 @@ const meta: Meta<typeof WorkoutRideOverlay> = {
         ] as never,
         transformPosition: () => undefined,
         cornerWidget: 'elevation',
+        onStopWorkout: () => {},
     },
     decorators: [
         (Story) => (

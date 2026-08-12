@@ -135,6 +135,10 @@ const triggerRouteEndsFirstTransition = (newType: 'Workout') => {
 jest.mock('incyclist-services', () => ({
     getRidePageService: () => mockService,
     useAppState: () => ({ hasFeature: () => false }),
+    // Stop-Workout button (workout-mobile-hld-phase2.md §8.3, session 5.3) — VideoRidePage.tsx/
+    // GPXTourPage.tsx call this directly (no RidePageService passthrough exists yet). Not exercised
+    // by this test file's mocked toggle-off ride types, but stubbed so the module mock stays valid.
+    useRideDisplay: () => ({ stopWorkout: jest.fn() }),
 }));
 
 jest.mock('../../hooks', () => ({

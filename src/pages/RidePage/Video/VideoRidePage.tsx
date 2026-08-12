@@ -8,6 +8,7 @@ import {
     RideType,
     WorkoutGraphActuals,
     useAppState,
+    useRideDisplay,
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
@@ -99,6 +100,13 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         []
     );
     const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
+    // "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3). No
+    // RidePageService passthrough exists for this yet (unlike onPause/onStepBack/etc.), so this
+    // calls the lower-level RideDisplayService's own public stopWorkout() directly — see this
+    // session's report for why a page-service wrapper wasn't added in this mobile-only session.
+    // useRideDisplay() (like getRidePageService()) resolves to a singleton, so it's safe to call
+    // from inside an event handler, not just at render time.
+    const onStopWorkout = useCallback(() => useRideDisplay().stopWorkout(), []);
     const comboEnabled = useAppState().hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
@@ -124,6 +132,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
                 comboEnabled={comboEnabled}
+                onStopWorkout={onStopWorkout}
             />
         </ErrorBoundary>
     );

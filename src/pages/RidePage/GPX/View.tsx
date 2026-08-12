@@ -40,6 +40,9 @@ export interface GPXTourPageViewProps {
     /** `hasFeature('MOBILE_WORKOUT_ROUTE_COMBO')`, read by the caller (`GPXTourPage`) — see
      *  `Video/View.tsx`'s identical prop for the full rationale. */
     comboEnabled?: boolean;
+    /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — see
+     *  `Video/View.tsx`'s identical prop for the full rationale. */
+    onStopWorkout: () => void;
 }
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -64,6 +67,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         getGraphActuals,
         onToggleCornerWidget,
         comboEnabled,
+        onStopWorkout,
     } = props;
 
     const { startOverlayProps,menuProps,rideView,route,displayObserver,workoutAttached,graph,steps,dashboard,cornerWidget} = displayProps??{};
@@ -259,6 +263,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             lapMode={lapMode}
                             mapPoints={routeData?.points as RoutePoint[]}
                             transformPosition={transformPosition}
+                            onStopWorkout={onStopWorkout}
                         />
                     )}
 
