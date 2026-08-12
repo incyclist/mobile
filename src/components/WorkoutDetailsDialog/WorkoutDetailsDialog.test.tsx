@@ -93,10 +93,28 @@ describe('WorkoutDetailsDialog', () => {
         expect(mockOnCloseDetails).toHaveBeenCalledTimes(1);
     });
 
-    it('calls service.onStart with noRoute:true on Start', () => {
+    it('calls service.onStart with noRoute:true on Start (workout-only, no route attached)', () => {
         const { getByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
         fireEvent.press(getByText('Start'));
         expect(mockOnStart).toHaveBeenCalledWith('w1', { noRoute: true });
+    });
+
+    // Regression guard, 2026-08-12 (first Wave 6 real-device pass): a route was attached via
+    // "Add Workout" on RouteDetailsDialog, then the same workout opened here - Start must appear
+    // and must NOT force noRoute:true, or the attached route is silently dropped on start.
+    // canStart mirrors desktop's WorkoutDetails `canStart` (route currently selected).
+    it('shows Start and calls service.onStart with noRoute:false when a route is attached (canStart true)', () => {
+        mockGetWorkoutDetailsProps.mockReturnValue({
+            ...baseDetails,
+            canStart: true,
+            canStartWorkoutOnly: false,
+            attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
+            comboEnabled: true,
+        });
+        const { getByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+        expect(getByText('Start')).toBeTruthy();
+        fireEvent.press(getByText('Start'));
+        expect(mockOnStart).toHaveBeenCalledWith('w1', { noRoute: false });
     });
 
     it('shows the delete confirmation and only deletes on Yes, not on No', () => {
