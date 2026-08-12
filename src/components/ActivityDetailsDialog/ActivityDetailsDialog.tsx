@@ -14,6 +14,7 @@ import { ActivityDetailsDialogProps } from './types';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { navigate } from '../../services';
 
 const NO_WORKOUT_ATTACHMENT: ActivityDetailsProps = { activityId: '', attachedWorkout: null, comboEnabled: false };
 
@@ -64,15 +65,25 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         pageService.onClearWorkoutSelection();
     }, [pageService]);
 
-    // "Add Workout" button - this session (3.3) only adds the toggle-gated UI element. Unlike the
-    // Route dialog's existing "Start with Workout" -> card.addWorkout(), this dialog has zero
-    // workout-related wiring today; the full recipe (`activities.openRoute(); card.addWorkout();
-    // navigate('/workouts')`) is session 5.2's design (workout-combo-service-design.md §3.9),
-    // including the D4 ordering guarantees that recipe needs. Logging the tap keeps the button
-    // observable/testable without duplicating that session's work.
+    // "Add Workout" button (workout-combo-service-design.md §2/§3.9, session 5.2). An activity is
+    // never a third attachment slot - it resolves to its RouteCard and *that* gets selected
+    // (`openRoute()` reads the activity `service.openSelected()` already put in
+    // `ActivityListService.selected`; `card.addWorkout()` is `RouteListService.select()`,
+    // unconditional last-write-wins, D4). Deliberately only ever called from this click handler,
+    // never eagerly (e.g. on mount to prefetch a route name/thumbnail) - an eager call would
+    // silently overwrite an already-attached route the moment this dialog opens, even if the user
+    // goes on to Close/Cancel instead of confirming. Close/Cancel below stay untouched: they only
+    // call onClose(), so a previously-attached route is left exactly as it was.
     const onAddWorkout = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'Add Workout', eventSource: 'user' });
-    }, [logEvent]);
+        const card = service.openRoute();
+        if (!card) {
+            logError(new Error('openRoute() returned no route card'), 'onAddWorkout');
+            return;
+        }
+        card.addWorkout();
+        navigate('workouts');
+    }, [logEvent, logError, service]);
 
     const onUpdate = useCallback((updated: SelectedActivityDisplayProperties) => {
         if (updated) {

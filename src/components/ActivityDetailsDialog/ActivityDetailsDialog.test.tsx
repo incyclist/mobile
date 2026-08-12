@@ -1,6 +1,9 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { ActivityDetailsDialog } from './ActivityDetailsDialog';
+import { navigate } from '../../services';
+
+const mockNavigate = navigate as jest.Mock;
 
 // workout-mobile-hld-phase2.md §4.2/§9.1 / workout-combo-service-design.md §3.6, §3.9 - the
 // dialog reads its own page service's getActivityDetailsProps(activityId), keyed off the id of
@@ -35,6 +38,8 @@ const baseDisplayProps: any = {
 };
 
 const mockOpenSelected = jest.fn(() => baseDisplayProps);
+const mockCard = { addWorkout: jest.fn() };
+const mockOpenRoute = jest.fn(() => mockCard);
 
 const mockActivityListService = {
     openSelected: mockOpenSelected,
@@ -42,6 +47,7 @@ const mockActivityListService = {
     getObserver: jest.fn(() => mockActivityObserver),
     rideAgain: jest.fn().mockResolvedValue({ canStart: false }),
     upload: jest.fn(),
+    openRoute: mockOpenRoute,
 };
 
 jest.mock('incyclist-services', () => ({
@@ -59,6 +65,10 @@ jest.mock('../../hooks', () => ({
     useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
     useUnmountEffect: jest.fn(),
     useScreenLayout: () => 'normal',
+}));
+
+jest.mock('../../services', () => ({
+    navigate: jest.fn(),
 }));
 
 jest.mock('react-native-share', () => ({ default: { open: jest.fn() } }));
@@ -114,6 +124,38 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         expect(mockPageObserver.on).toHaveBeenCalledWith('page-update', expect.any(Function));
         unmount();
         expect(mockPageObserver.off).toHaveBeenCalledWith('page-update', expect.any(Function));
+    });
+
+    // Session 5.2 wiring (workout-combo-service-design.md §2/§3.9): the "Add Workout" click
+    // resolves the activity to its RouteCard and attaches the workout to *that* route.
+    it('calls openRoute(), card.addWorkout() and navigates to workouts on "Add Workout" click', () => {
+        const { getByText } = render(<ActivityDetailsDialog onClose={jest.fn()} onRideAgain={jest.fn()} />);
+        fireEvent.press(getByText('Add Workout'));
+        expect(mockOpenRoute).toHaveBeenCalledTimes(1);
+        expect(mockCard.addWorkout).toHaveBeenCalledTimes(1);
+        expect(mockNavigate).toHaveBeenCalledWith('workouts');
+    });
+
+    // D4 regression guard #1 (session 5.2 brief): the select-and-navigate recipe must run only
+    // inside the click handler, never eagerly on mount - an eager call would silently overwrite an
+    // already-attached route (e.g. Route A "Add Workout"-ed earlier) the instant this dialog opens
+    // for an activity whose own route is B, even before the user decides anything.
+    it('does not call openRoute() merely from mounting the dialog - only the click does', () => {
+        render(<ActivityDetailsDialog onClose={jest.fn()} onRideAgain={jest.fn()} />);
+        expect(mockOpenRoute).not.toHaveBeenCalled();
+        expect(mockCard.addWorkout).not.toHaveBeenCalled();
+    });
+
+    // D4 regression guard #2: Close must not touch route selection at all, so a route attached
+    // before this dialog opened (Route A "Add Workout") survives a Close/Cancel on this dialog.
+    it('does not call openRoute() when Close is pressed - a previously attached route is left untouched', () => {
+        const onClose = jest.fn();
+        const { getByText } = render(<ActivityDetailsDialog onClose={onClose} onRideAgain={jest.fn()} />);
+        fireEvent.press(getByText('Close'));
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(mockOpenRoute).not.toHaveBeenCalled();
+        expect(mockCard.addWorkout).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it('re-reads getActivityDetailsProps on a page-update (the chip clears without a remount)', () => {

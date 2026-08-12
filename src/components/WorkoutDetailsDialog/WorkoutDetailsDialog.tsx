@@ -10,6 +10,7 @@ import {
 import { WorkoutDetailsView } from './WorkoutDetailsView';
 import { WorkoutDetailsDialogProps } from './types';
 import { useLogging, useScreenLayout, useUnmountEffect } from '../../hooks';
+import { navigate } from '../../services';
 
 /** Absolute-Watt bars + an FTP line at the effective (session-override) FTP — mirrors
  * `WorkoutsTable`'s strip-mode `buildPlan()`, but with `absValues:true` since `detail`
@@ -118,13 +119,15 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
         service.onClearRouteSelection();
     }, [service]);
 
-    // "Add Route" button - this session (3.3) only adds the toggle-gated UI element.
-    // workout-combo-service-design.md §3.4.4 explicitly assigns the actual wiring
-    // (`onMarkForRoute(id)` then `navigate('/routes')`) to session 5.2; logging the tap here keeps
-    // the button observable/testable without duplicating that session's design.
+    // "Add Route" button (workout-combo-service-design.md §3.4.4, session 5.2). `onMarkForRoute()`
+    // selects the workout without navigating away; the button then forward-navigates to Routes so
+    // the user can pick one. No route is selected here - only the workout side of the attachment
+    // is touched, mirroring the route dialog's symmetric "Add Workout" (card.addWorkout()).
     const onAddRoute = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'Add Route', eventSource: 'user' });
-    }, [logEvent]);
+        service.onMarkForRoute(workoutId);
+        navigate('routes');
+    }, [logEvent, service, workoutId]);
 
     if (!details) return null;
 
