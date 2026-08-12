@@ -58,6 +58,7 @@ const baseProps: GPXTourPageViewProps = {
     onCancelStart: () => {},
     getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
     onToggleCornerWidget: () => {},
+    onStopWorkout: () => {},
 };
 
 const activeRouteProps = {
@@ -182,5 +183,19 @@ describe('GPXTourPageView — workout overlay branch', () => {
         const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
         expect(overlayProps.graph).toEqual({ bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 0], y: [0, 0] } });
         expect(overlayProps.mapVisible).toBe(true); // StreetView main view + GPX route data present
+    });
+
+    it('forwards onStopWorkout through to the overlay unchanged (workout-mobile-hld-phase2.md §8.3, session 5.3)', () => {
+        const onStopWorkout = jest.fn();
+        render(
+            <GPXTourPageView
+                {...baseProps}
+                comboEnabled={true}
+                displayProps={comboDisplayProps() as any}
+                onStopWorkout={onStopWorkout}
+            />
+        );
+        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
     });
 });

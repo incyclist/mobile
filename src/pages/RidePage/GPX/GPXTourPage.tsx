@@ -77,6 +77,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
         []
     );
     const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
+    // "Stop Workout, keep riding" — see VideoRidePage.tsx's identical comment for the full rationale.
+    const onStopWorkout = useCallback(() => refService.current?.onStopWorkout(), []);
     const comboEnabled = useAppState().hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
@@ -102,6 +104,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange,onCancelStart,o
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
                 comboEnabled={comboEnabled}
+                onStopWorkout={onStopWorkout}
             />
         </ErrorBoundary>
     );

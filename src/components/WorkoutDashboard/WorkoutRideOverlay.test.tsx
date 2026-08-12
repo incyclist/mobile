@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { WorkoutRideOverlay, WorkoutRideOverlayProps } from './WorkoutRideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from './WorkoutDashboard.mock';
 
@@ -43,6 +43,7 @@ const baseProps: WorkoutRideOverlayProps = {
     onToggleCornerWidget: () => {},
     mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
     transformPosition: () => undefined,
+    onStopWorkout: () => {},
 };
 
 describe('WorkoutRideOverlay', () => {
@@ -120,5 +121,47 @@ describe('WorkoutRideOverlay', () => {
         expect(() =>
             render(<WorkoutRideOverlay {...baseProps} itemCount={8} measuredRideDashboardHeight={93} />)
         ).not.toThrow();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Stop-Workout button (workout-mobile-hld-phase2.md §8.3, session 5.3). §8.3: single tap, no
+// pre-confirm dialog. Repo-owner review (2026-08-12): no undo window either — the button is small,
+// isolated from the Menu button, and distinct enough that an accidental tap isn't a realistic
+// concern, unlike a swipe/gesture control. onStopWorkout() fires directly on tap.
+// ---------------------------------------------------------------------------
+
+describe('WorkoutRideOverlay — Stop-Workout button', () => {
+    beforeEach(() => {
+        setDimensions(1280, 800);
+    });
+
+    it('tablet: renders the Stop-Workout button inside the WorkoutDashboard controls column', () => {
+        const { getByTestId } = render(<WorkoutRideOverlay {...baseProps} />);
+        expect(getByTestId('stop-workout-button')).toBeTruthy();
+    });
+
+    it('a tap calls onStopWorkout directly, exactly once, with no confirmation step', () => {
+        const onStopWorkout = jest.fn();
+        const { getByTestId } = render(
+            <WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />
+        );
+
+        fireEvent.press(getByTestId('stop-workout-button'));
+
+        expect(onStopWorkout).toHaveBeenCalledTimes(1);
+    });
+
+    it('fallback: renders the Stop-Workout button in its own mirrored slot, and tapping it calls onStopWorkout directly', () => {
+        setDimensions(844, 390); // fallback per §8.1's table
+        const onStopWorkout = jest.fn();
+        const { getByTestId } = render(<WorkoutRideOverlay {...baseProps} compact onStopWorkout={onStopWorkout} />);
+
+        expect(getByTestId('workout-ride-overlay-stop-slot')).toBeTruthy();
+        expect(getByTestId('stop-workout-button')).toBeTruthy();
+
+        fireEvent.press(getByTestId('stop-workout-button'));
+
+        expect(onStopWorkout).toHaveBeenCalledTimes(1);
     });
 });

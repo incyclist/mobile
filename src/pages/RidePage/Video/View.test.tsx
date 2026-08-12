@@ -58,6 +58,7 @@ const baseProps: any = {
     onCancelStart: () => {},
     getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
     onToggleCornerWidget: () => {},
+    onStopWorkout: () => {},
 };
 
 describe('VideoRidePageView — start overlay "Start" button wiring', () => {
@@ -139,5 +140,19 @@ describe('VideoRidePageView — workout overlay branch', () => {
         // that the page's *measured* value (whatever it is) is the one forwarded, not that any
         // particular number appears before a real onLayout has ever fired.
         expect(overlayProps.measuredRideDashboardHeight).toEqual(expect.any(Number));
+    });
+
+    it('forwards onStopWorkout through to the overlay unchanged (workout-mobile-hld-phase2.md §8.3, session 5.3)', () => {
+        const onStopWorkout = jest.fn();
+        render(
+            <VideoRidePageView
+                {...baseProps}
+                comboEnabled={true}
+                displayProps={comboDisplayProps}
+                onStopWorkout={onStopWorkout}
+            />
+        );
+        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
     });
 });

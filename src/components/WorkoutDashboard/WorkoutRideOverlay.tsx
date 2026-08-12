@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { IObserver, RouteApiDetail, RoutePoint, WorkoutGraphActuals } from 'incyclist-services';
 import { WorkoutDashboard } from './WorkoutDashboard';
+import { StopWorkoutButton } from './StopWorkoutButton';
 import { Dynamic } from '../Dynamic';
 import { ElevationGraph } from '../ElevationGraph';
 import { FreeMap } from '../FreeMap';
@@ -59,6 +60,11 @@ export interface WorkoutRideOverlayProps {
      *  Video's and GPX's own `transformPosition` return slightly different (but `FreeMap`-
      *  compatible) shapes, so this is deliberately not narrowed to `LatLng`. */
     transformPosition: (val: unknown) => unknown;
+    /** "Stop Workout, keep riding" (§6.3/§8.3, session 5.3) — called directly on tap. No
+     *  confirmation dialog and no undo window: the button is small, deliberately isolated from
+     *  the Menu button, and distinct enough (per repo-owner review) that an accidental tap isn't
+     *  a realistic concern here the way it would be for a swipe/gesture control. */
+    onStopWorkout: () => void;
 }
 
 const rectStyle = (rect: Rect) => ({
@@ -87,6 +93,7 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
         lapMode,
         mapPoints,
         transformPosition,
+        onStopWorkout,
     } = props;
 
     const { workoutDashboard, map, elevation, cornerSlotIsToggle, arrangement } = useRideOverlayLayout({
@@ -98,7 +105,7 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
 
     return (
         <>
-            {/* --- WorkoutDashboard — null only in 'fallback' (§5.8) ---------------------- */}
+            {/* --- WorkoutDashboard — null only in 'fallback' (§5.8) --------------------------- */}
             {workoutDashboard && (
                 <View
                     testID="workout-ride-overlay-dashboard"
@@ -113,7 +120,13 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
                     ]}
                 >
                     <Dynamic observer={rideObserver ?? undefined} event="data-update" prop="actuals" transform={getGraphActuals}>
-                        <WorkoutDashboard line={dashboard} graph={graph} steps={steps} compact={compact} />
+                        <WorkoutDashboard
+                            line={dashboard}
+                            graph={graph}
+                            steps={steps}
+                            compact={compact}
+                            controls={<StopWorkoutButton onPress={onStopWorkout} compact={compact} />}
+                        />
                     </Dynamic>
                 </View>
             )}
@@ -185,12 +198,24 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
                 </View>
             )}
 
-            {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback' */}
+            {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback' --- */}
             {arrangement === 'fallback' && (
                 <View testID="workout-ride-overlay-shoutout" style={[styles.absolute, styles.fallbackShoutout, { top: dashboardHeight }]}>
                     <Text style={styles.fallbackShoutoutText} numberOfLines={1}>
                         {dashboard.text}
                     </Text>
+                </View>
+            )}
+
+            {/* --- Stop-Workout button, fallback arrangement only: there is no WorkoutDashboard
+                    to host the reserved controls column (§6.2), so it gets its own slot mirroring
+                    the corner widget's position on the right (§8.3). ------------------------- */}
+            {arrangement === 'fallback' && (
+                <View
+                    testID="workout-ride-overlay-stop-slot"
+                    style={[styles.absolute, styles.fallbackStopSlot, { top: dashboardHeight + 26 }]}
+                >
+                    <StopWorkoutButton onPress={onStopWorkout} compact={compact} />
                 </View>
             )}
         </>
@@ -225,5 +250,12 @@ const styles = StyleSheet.create({
         fontSize: textSizes.subtitle,
         paddingHorizontal: 8,
         paddingVertical: 2,
+    },
+    // §8.3: "off the centre of the swipe surface... must not look like, or sit near, the Menu
+    // button" — mirrors the corner widget's position on the opposite (left) side, at the same
+    // vertical offset the fallback shoutout line itself uses as a reference point.
+    fallbackStopSlot: {
+        left: 8,
+        zIndex: 11,
     },
 });

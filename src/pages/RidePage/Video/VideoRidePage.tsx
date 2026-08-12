@@ -99,6 +99,10 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         []
     );
     const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
+    // "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3).
+    // RidePageService.onStopWorkout() (incyclist-services #519) — depends on that PR being merged
+    // and released; do not build/release this PR before then.
+    const onStopWorkout = useCallback(() => refService.current?.onStopWorkout(), []);
     const comboEnabled = useAppState().hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
@@ -124,6 +128,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
                 comboEnabled={comboEnabled}
+                onStopWorkout={onStopWorkout}
             />
         </ErrorBoundary>
     );

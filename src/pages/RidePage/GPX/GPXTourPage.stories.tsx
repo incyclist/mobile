@@ -17,6 +17,7 @@ const meta: Meta<typeof GPXTourPageView> = {
         onCancelStart: fn(),
         getGraphActuals: () => MOCK_DASHBOARD_MID_INTERVAL.actuals ?? { power: [], heartrate: [], position: 0 },
         onToggleCornerWidget: fn(),
+        onStopWorkout: fn(),
     },
 };
 
