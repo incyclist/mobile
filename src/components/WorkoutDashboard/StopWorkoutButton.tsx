@@ -11,8 +11,9 @@ export interface StopWorkoutButtonProps {
 
 /**
  * "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3). Single tap,
- * no pre-confirm dialog — recoverability comes from `StopWorkoutToast`'s short undo window, not a
- * modal in front of a rider mid-interval.
+ * no pre-confirm dialog, no undo window — the button is small, isolated from the Menu button, and
+ * distinct enough (repo-owner review) that an accidental tap isn't a realistic risk here, unlike a
+ * swipe/gesture control.
  *
  * Deliberately small and single-purpose (≈56×44, §8.3's prototype sizing) — sized against
  * `WorkoutDashboard`'s reserved third `controls` column (session 3.1), not the app's standard

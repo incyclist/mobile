@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
-import { WorkoutRideOverlay, WorkoutRideOverlayProps, STOP_WORKOUT_UNDO_WINDOW_MS } from './WorkoutRideOverlay';
+import { WorkoutRideOverlay, WorkoutRideOverlayProps } from './WorkoutRideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from './WorkoutDashboard.mock';
 
 // Same pattern useRideOverlayLayout.test.ts (session 3.2) uses — the hook reads the real browser
@@ -125,20 +125,15 @@ describe('WorkoutRideOverlay', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Stop-Workout button, undo toast, deferred commit (workout-mobile-hld-phase2.md §8.3, session
-// 5.3). §8.3: single tap, no pre-confirm dialog, recoverability via a short toast — this component
-// defers the real onStopWorkout() call for STOP_WORKOUT_UNDO_WINDOW_MS so "Undo" never has to
-// re-attach an already-stopped workout (a capability incyclist-services does not expose today).
+// Stop-Workout button (workout-mobile-hld-phase2.md §8.3, session 5.3). §8.3: single tap, no
+// pre-confirm dialog. Repo-owner review (2026-08-12): no undo window either — the button is small,
+// isolated from the Menu button, and distinct enough that an accidental tap isn't a realistic
+// concern, unlike a swipe/gesture control. onStopWorkout() fires directly on tap.
 // ---------------------------------------------------------------------------
 
-describe('WorkoutRideOverlay — Stop-Workout button, toast, deferred commit', () => {
+describe('WorkoutRideOverlay — Stop-Workout button', () => {
     beforeEach(() => {
         setDimensions(1280, 800);
-        jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-        jest.useRealTimers();
     });
 
     it('tablet: renders the Stop-Workout button inside the WorkoutDashboard controls column', () => {
@@ -146,82 +141,27 @@ describe('WorkoutRideOverlay — Stop-Workout button, toast, deferred commit', (
         expect(getByTestId('stop-workout-button')).toBeTruthy();
     });
 
-    it('a tap hides the WorkoutDashboard immediately and shows the undo toast, without calling onStopWorkout yet', () => {
+    it('a tap calls onStopWorkout directly, exactly once, with no confirmation step', () => {
         const onStopWorkout = jest.fn();
-        const { getByTestId, queryByTestId } = render(
+        const { getByTestId } = render(
             <WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />
         );
 
         fireEvent.press(getByTestId('stop-workout-button'));
-
-        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
-        expect(getByTestId('workout-ride-overlay-stop-toast')).toBeTruthy();
-        expect(onStopWorkout).not.toHaveBeenCalled();
-    });
-
-    it('tapping Undo within the window restores the dashboard and never calls onStopWorkout', () => {
-        const onStopWorkout = jest.fn();
-        const { getByTestId, queryByTestId } = render(
-            <WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />
-        );
-
-        fireEvent.press(getByTestId('stop-workout-button'));
-        fireEvent.press(getByTestId('stop-workout-toast-undo'));
-
-        expect(getByTestId('workout-ride-overlay-dashboard')).toBeTruthy();
-        expect(queryByTestId('workout-ride-overlay-stop-toast')).toBeNull();
-
-        jest.advanceTimersByTime(STOP_WORKOUT_UNDO_WINDOW_MS + 100);
-        expect(onStopWorkout).not.toHaveBeenCalled();
-    });
-
-    it('lets the window elapse without Undo: commits the real stop exactly once', () => {
-        const onStopWorkout = jest.fn();
-        const { getByTestId } = render(<WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />);
-
-        fireEvent.press(getByTestId('stop-workout-button'));
-        jest.advanceTimersByTime(STOP_WORKOUT_UNDO_WINDOW_MS + 100);
 
         expect(onStopWorkout).toHaveBeenCalledTimes(1);
     });
 
-    it('a stray Undo tap after the window already committed is a no-op (does not resurrect the dashboard)', () => {
-        const onStopWorkout = jest.fn();
-        const { getByTestId, queryByTestId } = render(
-            <WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />
-        );
-
-        fireEvent.press(getByTestId('stop-workout-button'));
-        jest.advanceTimersByTime(STOP_WORKOUT_UNDO_WINDOW_MS + 100);
-        fireEvent.press(getByTestId('stop-workout-toast-undo'));
-
-        expect(onStopWorkout).toHaveBeenCalledTimes(1);
-        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
-        expect(getByTestId('workout-ride-overlay-stop-toast')).toBeTruthy();
-    });
-
-    it('unmounting before the window elapses drops the pending stop without ever committing it', () => {
-        const onStopWorkout = jest.fn();
-        const { getByTestId, unmount } = render(<WorkoutRideOverlay {...baseProps} onStopWorkout={onStopWorkout} />);
-
-        fireEvent.press(getByTestId('stop-workout-button'));
-        unmount();
-        jest.advanceTimersByTime(STOP_WORKOUT_UNDO_WINDOW_MS + 100);
-
-        expect(onStopWorkout).not.toHaveBeenCalled();
-    });
-
-    it('fallback: renders the Stop-Workout button in its own mirrored slot, and the toast still shows on tap', () => {
+    it('fallback: renders the Stop-Workout button in its own mirrored slot, and tapping it calls onStopWorkout directly', () => {
         setDimensions(844, 390); // fallback per §8.1's table
-        const { getByTestId, queryByTestId } = render(<WorkoutRideOverlay {...baseProps} compact />);
+        const onStopWorkout = jest.fn();
+        const { getByTestId } = render(<WorkoutRideOverlay {...baseProps} compact onStopWorkout={onStopWorkout} />);
 
         expect(getByTestId('workout-ride-overlay-stop-slot')).toBeTruthy();
         expect(getByTestId('stop-workout-button')).toBeTruthy();
 
         fireEvent.press(getByTestId('stop-workout-button'));
 
-        expect(queryByTestId('workout-ride-overlay-stop-slot')).toBeNull();
-        expect(queryByTestId('workout-ride-overlay-shoutout')).toBeNull();
-        expect(getByTestId('workout-ride-overlay-stop-toast')).toBeTruthy();
+        expect(onStopWorkout).toHaveBeenCalledTimes(1);
     });
 });
