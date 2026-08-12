@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { IObserver, VideoRidePageDisplayProps, WorkoutGraphActuals, useAppState } from 'incyclist-services';
+import { IObserver, VideoRidePageDisplayProps, WorkoutGraphActuals } from 'incyclist-services';
 import {
     Video,
     RideDashboard,
@@ -31,6 +31,12 @@ interface VideoRidePageViewProps {
      *  (workout-mobile-hld-phase2.md §5/§9.1) — unused, harmless, otherwise. */
     getGraphActuals: () => WorkoutGraphActuals;
     onToggleCornerWidget: () => void;
+    /** `hasFeature('MOBILE_WORKOUT_ROUTE_COMBO')`, read by the caller (`VideoRidePage`) — kept out
+     *  of this pure view, mirroring how `WorkoutDetailsDialogView`/`RouteDetailsView` already
+     *  receive `comboEnabled` as an explicit prop rather than calling `useAppState()` themselves
+     *  (session 2.2/3.3). Makes this component directly Storybook-testable with no toggle-mocking
+     *  infrastructure needed. Defaults to `false` (matches the toggle's own off-by-default rule). */
+    comboEnabled?: boolean;
 }
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -49,6 +55,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         onCancelStart,
         getGraphActuals,
         onToggleCornerWidget,
+        comboEnabled,
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget } = displayProps;
@@ -66,10 +73,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // Additive branch, workout-mobile-hld-phase2.md §5/§9.1 — toggle-gated so route-only rides
     // (and any ride with the toggle off) render through the untouched path below, exactly as
     // today. `workoutAttached` is already the service-side attachment gate (workout-combo-
-    // service-design.md §4.2); MOBILE_WORKOUT_ROUTE_COMBO is the mobile-visible rollout gate on
-    // top of it (HLD §9.1: "one flag, not several").
-    const appState = useAppState();
-    const comboActive = !!workoutAttached && appState.hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
+    // service-design.md §4.2); `comboEnabled` (hasFeature('MOBILE_WORKOUT_ROUTE_COMBO'), read by
+    // the caller) is the mobile-visible rollout gate on top of it (HLD §9.1: "one flag, not
+    // several").
+    const comboActive = !!workoutAttached && !!comboEnabled;
 
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;

@@ -5,7 +5,6 @@ import {
     RoutePoint,
     GPXRidePageDisplayProps,
     WorkoutGraphActuals,
-    useAppState,
 } from 'incyclist-services';
 import {
     RideDashboard,
@@ -38,6 +37,9 @@ export interface GPXTourPageViewProps {
      *  (workout-mobile-hld-phase2.md §5/§9.1) — unused, harmless, otherwise. */
     getGraphActuals: () => WorkoutGraphActuals;
     onToggleCornerWidget: () => void;
+    /** `hasFeature('MOBILE_WORKOUT_ROUTE_COMBO')`, read by the caller (`GPXTourPage`) — see
+     *  `Video/View.tsx`'s identical prop for the full rationale. */
+    comboEnabled?: boolean;
 }
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -61,6 +63,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCancelStart,
         getGraphActuals,
         onToggleCornerWidget,
+        comboEnabled,
     } = props;
 
     const { startOverlayProps,menuProps,rideView,route,displayObserver,workoutAttached,graph,steps,dashboard,cornerWidget} = displayProps??{};
@@ -82,8 +85,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const isCompact = layout === 'compact';
 
     // Additive branch, workout-mobile-hld-phase2.md §5/§9.1 — see Video/View.tsx's identical comment.
-    const appState = useAppState();
-    const comboActive = !!workoutAttached && appState.hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
+    const comboActive = !!workoutAttached && !!comboEnabled;
 
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;

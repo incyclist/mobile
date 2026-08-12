@@ -7,6 +7,7 @@ import {
     IRidePageService,
     RideType,
     WorkoutGraphActuals,
+    useAppState,
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
@@ -98,6 +99,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         []
     );
     const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
+    const comboEnabled = useAppState().hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -121,6 +123,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 onCancelStart={onCancelStart}
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
+                comboEnabled={comboEnabled}
             />
         </ErrorBoundary>
     );
