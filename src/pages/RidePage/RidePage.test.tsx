@@ -134,6 +134,7 @@ const triggerRouteEndsFirstTransition = (newType: 'Workout') => {
 
 jest.mock('incyclist-services', () => ({
     getRidePageService: () => mockService,
+    useAppState: () => ({ hasFeature: () => false }),
 }));
 
 jest.mock('../../hooks', () => ({
