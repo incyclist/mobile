@@ -32,7 +32,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
         attachedWorkout, comboEnabled,
-        onStart, onCancel, onStartWithWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
+        onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
         onDownloadStop, onDownloadRetry, onDownloadDelete
@@ -274,7 +274,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const startButtons = canStart ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
-        ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onStartWithWorkout(data) }] : [])
+        ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onAddWorkout(data) }] : [])
     ] : []
 
     const downloadButton = downloadButtonLabel ? [{

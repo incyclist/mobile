@@ -66,7 +66,7 @@ const MOCK_PROPS = {
     comboEnabled: false,
     onStart: jest.fn(),
     onCancel: jest.fn(),
-    onStartWithWorkout: jest.fn(),
+    onAddWorkout: jest.fn(),
     onClearWorkout: jest.fn(),
     onSettingsChanged: jest.fn().mockResolvedValue({}),
     onUpdateStartPos: jest.fn((value: number) => {
@@ -257,12 +257,12 @@ describe('RouteDetailsView', () => {
             expect(MOCK_PROPS.onClearWorkout).toHaveBeenCalledTimes(1);
         });
 
-        it('calls onStartWithWorkout (same handler as the legacy button) when "Add Workout" is pressed', () => {
+        it('calls onAddWorkout (same handler as the legacy button) when "Add Workout" is pressed', () => {
             const { getByText } = render(
                 <RouteDetailsView {...MOCK_PROPS} comboEnabled={true} attachedWorkout={null} />
             );
             fireEvent.press(getByText('Add Workout'));
-            expect(MOCK_PROPS.onStartWithWorkout).toHaveBeenCalledTimes(1);
+            expect(MOCK_PROPS.onAddWorkout).toHaveBeenCalledTimes(1);
         });
     });
 });

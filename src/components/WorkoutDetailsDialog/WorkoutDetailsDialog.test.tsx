@@ -1,6 +1,9 @@
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import { WorkoutDetailsDialog } from './WorkoutDetailsDialog';
+import { navigate } from '../../services';
+
+const mockNavigate = navigate as jest.Mock;
 
 const mockObserver = { on: jest.fn(), off: jest.fn() };
 const mockOnCloseDetails = jest.fn();
@@ -10,6 +13,7 @@ const mockOnChangeGroup = jest.fn();
 const mockOnStart = jest.fn();
 const mockOnDelete = jest.fn(() => Promise.resolve(true));
 const mockOnClearRouteSelection = jest.fn();
+const mockOnMarkForRoute = jest.fn();
 
 const baseDetails: any = {
     id: 'w1',
@@ -42,6 +46,7 @@ const mockService = {
     onStart: mockOnStart,
     onDelete: mockOnDelete,
     onClearRouteSelection: mockOnClearRouteSelection,
+    onMarkForRoute: mockOnMarkForRoute,
 };
 
 jest.mock('incyclist-services', () => ({
@@ -164,6 +169,20 @@ describe('WorkoutDetailsDialog', () => {
             const { getByLabelText } = render(<WorkoutDetailsDialog workoutId="w1" />);
             fireEvent.press(getByLabelText('Clear route'));
             expect(mockOnClearRouteSelection).toHaveBeenCalledTimes(1);
+        });
+
+        // Session 5.2 wiring (workout-combo-service-design.md §3.4.4): "Add Route" selects the
+        // workout (without unselecting any route) and forward-navigates to Routes.
+        it('calls service.onMarkForRoute and navigates to routes when "Add Route" is pressed', () => {
+            mockGetWorkoutDetailsProps.mockReturnValue({
+                ...baseDetails,
+                comboEnabled: true,
+                attachedRoute: null,
+            });
+            const { getByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+            fireEvent.press(getByText('Add Route'));
+            expect(mockOnMarkForRoute).toHaveBeenCalledWith('w1');
+            expect(mockNavigate).toHaveBeenCalledWith('routes');
         });
     });
 });

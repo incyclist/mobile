@@ -69,7 +69,7 @@ export interface RouteDetailsViewProps {
     // Callbacks
     onStart: (settings: UIRouteSettings) => void;
     onCancel: () => void;
-    onStartWithWorkout: (settings: UIRouteSettings) => void;
+    onAddWorkout: (settings: UIRouteSettings) => void;
     onClearWorkout: () => void;
     onSettingsChanged: (settings: UIRouteSettings) => Promise<{
         prevRides?: Array<any>;
