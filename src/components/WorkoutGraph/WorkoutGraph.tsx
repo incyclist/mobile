@@ -21,6 +21,7 @@ export const WorkoutGraph = ({
     showFtpLine,
     showFtpLabel,
     showPositionMarker,
+    showLegend,
     height,
     axisFontSize,
     style,
@@ -50,6 +51,7 @@ export const WorkoutGraph = ({
                     showFtpLine={showFtpLine}
                     showFtpLabel={showFtpLabel}
                     showPositionMarker={showPositionMarker}
+                    showLegend={showLegend}
                     axisFontSize={axisFontSize}
                 />
             )}

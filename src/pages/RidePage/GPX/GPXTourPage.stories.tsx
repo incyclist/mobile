@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { GPXTourPageView } from './View';
+import { MOCK_DASHBOARD_MID_INTERVAL } from '../../../components/WorkoutDashboard/WorkoutDashboard.mock';
 
 import sydneyRoute from '../../../../__tests__/testdata/sydney.json';
 
@@ -14,6 +15,8 @@ const meta: Meta<typeof GPXTourPageView> = {
         onRetryStart: fn(),
         onIgnoreStart: fn(),
         onCancelStart: fn(),
+        getGraphActuals: () => MOCK_DASHBOARD_MID_INTERVAL.actuals ?? { power: [], heartrate: [], position: 0 },
+        onToggleCornerWidget: fn(),
     },
 };
 
@@ -93,5 +96,59 @@ export const MapNoCornerMap: Story = {
             route: gpxRoute as any,
             rideView: 'map' as any,
         },
+    },
+};
+
+// ---------------------------------------------------------------------------
+// Workout overlay (session 5.1 — workout-mobile-hld-phase2.md §5/§9.1). Real `WorkoutRideOverlay`
+// via `useRideOverlayLayout()`, so the arrangement (block-side/t-side/column-only/fallback) tracks
+// whichever Storybook viewport is active — resize the toolbar viewport picker to see it re-decide,
+// same as `Components/WorkoutDashboard/WorkoutRideOverlay` does directly.
+// ---------------------------------------------------------------------------
+
+const comboDisplayProps = {
+    rideState: 'Active' as const,
+    rideType: 'GPX' as const,
+    startOverlayProps: null,
+    startGateProps: null,
+    menuProps: null,
+    route: gpxRoute as any,
+    rideView: 'sv' as any,
+    workoutAttached: true,
+    graph: MOCK_DASHBOARD_MID_INTERVAL.graph,
+    steps: MOCK_DASHBOARD_MID_INTERVAL.steps,
+    dashboard: MOCK_DASHBOARD_MID_INTERVAL.line,
+};
+
+/** Workout attached + combo toggle on — the new overlay renders and owns the corner-widget slots
+ *  (the plain StreetView corner map above is suppressed, not double-rendered). */
+export const WorkoutOverlayActive: Story = {
+    args: {
+        rideObserver: null,
+        comboEnabled: true,
+        displayProps: comboDisplayProps as any,
+    },
+};
+
+/** Same attached workout, toggle off — must render byte-for-byte like a plain GPX ride (regression
+ *  guard: this is the "always-off correctness" case §9.1 makes non-negotiable during rollout). */
+export const WorkoutAttachedToggleOff: Story = {
+    args: {
+        rideObserver: null,
+        comboEnabled: false,
+        displayProps: comboDisplayProps as any,
+    },
+};
+
+/** Phone-landscape viewport — pick a "phone" preset in the toolbar to see the fallback arrangement
+ *  (2-way Elevation/Workout corner toggle) instead of block-side/t-side. */
+export const WorkoutOverlayFallback: Story = {
+    args: {
+        rideObserver: null,
+        comboEnabled: true,
+        displayProps: { ...comboDisplayProps, cornerWidget: 'elevation' } as any,
+    },
+    parameters: {
+        viewport: { defaultViewport: 's23Ultra' },
     },
 };

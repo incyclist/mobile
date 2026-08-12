@@ -298,6 +298,7 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
         showFtpLine,
         showFtpLabel = true,
         showPositionMarker = false,
+        showLegend: showLegendProp,
         axisFontSize = 10,
         style,
     } = props;
@@ -316,7 +317,9 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     // trace as live, minus the position marker - callers pass actuals.position outside the domain
     // so ActualsOverlay's marker rendering is a no-op) - only strip stays plan-only.
     const showActuals = (isLive || isDetail) && !!actuals;
-    const showLegend = showActuals;
+    // Legend never renders without actuals regardless of the override — showLegend only ever
+    // SUPPRESSES it, never conjures it up on its own.
+    const showLegend = showActuals && (showLegendProp ?? true);
     // Standalone marker (no power/HR lines, no legend) for a strip/detail graph that still wants
     // a position indicator. Suppressed when the full overlay is already rendering - and already
     // rendering this same marker - to avoid a double marker.
@@ -538,7 +541,8 @@ export const WorkoutGraphView = React.memo((props: WorkoutGraphViewProps) => {
     prev.showAxes === next.showAxes &&
     prev.showFtpLine === next.showFtpLine &&
     prev.showFtpLabel === next.showFtpLabel &&
-    prev.showPositionMarker === next.showPositionMarker
+    prev.showPositionMarker === next.showPositionMarker &&
+    prev.showLegend === next.showLegend
 );
 
 const styles = StyleSheet.create({

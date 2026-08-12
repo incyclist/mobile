@@ -1,6 +1,13 @@
 import React, { useState,useCallback } from 'react';
 import { View, StyleSheet, useWindowDimensions, Image  } from 'react-native';
-import { IObserver, VideoRidePageDisplayProps, ActivityDashboardItem } from 'incyclist-services';
+import type {
+    IObserver,
+    VideoRidePageDisplayProps,
+    ActivityDashboardItem,
+    WorkoutGraphPlan,
+    WorkoutUpcomingSteps,
+    WorkoutDashboardLine,
+} from 'incyclist-services';
 import {
     RideDashboardView,
     ElevationGraph,
@@ -8,7 +15,8 @@ import {
     StartRideDisplay,
     RideMenu,
     Button,
-    MainBackground
+    MainBackground,
+    WorkoutRideOverlay,
 } from '../../../components';
 import { colors } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
@@ -23,6 +31,18 @@ interface VideoRidePageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
+    /** Overrides the 7-tile default — pass `MOCK_DASHBOARD_ITEMS_VIRTUAL_SHIFTING` to show the
+     *  8th Gear tile (`ride-overlay-layout-design.md` §1.2's virtual-shifting-adds-a-tile case). */
+    dashboardItems?: ActivityDashboardItem[];
+    /** Workout overlay (session 5.1), mock-driven the same way the rest of this test view is —
+     *  the real `WorkoutRideOverlay` component, real `useRideOverlayLayout()` hook, but fed a
+     *  static dashboard-item count instead of a live `useActivityRide()` observer, since Storybook
+     *  has no running ride service for the real `RideDashboard` (which this test view intentionally
+     *  never uses) to attach to either. Omit all three to render the plain, no-workout baseline. */
+    workoutGraph?: WorkoutGraphPlan;
+    workoutSteps?: WorkoutUpcomingSteps;
+    workoutDashboardLine?: WorkoutDashboardLine;
+    cornerWidget?: 'elevation' | 'workout';
 }
 
 const noop = () => {};
@@ -35,6 +55,13 @@ const MOCK_DASHBOARD_ITEMS: ActivityDashboardItem[] = [
     { title: 'Slope',     dataState: 'green', data: [{ value: '3.2', unit: '%' }] },
     { title: 'Heartrate', dataState: 'green', data: [{ value: '158', unit: 'bpm' }, { value: '152', unit: 'avg' }] },
     { title: 'Cadence',   dataState: 'green', data: [{ value: '88', unit: 'rpm' }, { value: '85', unit: 'avg' }] },
+];
+
+/** Virtual shifting on adds the Gear tile as the 8th column, which is also what forces
+ *  `RideDashboard`'s real 'icon-top' layout switch (`items.length>7`, `RideDashboard.tsx`). */
+export const MOCK_DASHBOARD_ITEMS_VIRTUAL_SHIFTING: ActivityDashboardItem[] = [
+    ...MOCK_DASHBOARD_ITEMS,
+    { title: 'Gear', dataState: 'green', data: [{ value: '3', unit: 'front' }, { value: '7', unit: 'rear' }] },
 ];
 
 const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
@@ -50,7 +77,12 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
-        onCancelStart
+        onCancelStart,
+        dashboardItems = MOCK_DASHBOARD_ITEMS,
+        workoutGraph,
+        workoutSteps,
+        workoutDashboardLine,
+        cornerWidget,
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps } = displayProps;
@@ -65,6 +97,13 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
+    // Mirrors View.tsx's real comboActive gate — see that file for the full rationale. Storybook
+    // has no feature-toggle service to read, so this test view is driven entirely by whether the
+    // three workout props are present, per-story, rather than a toggle.
+    const comboActive = !!(workoutGraph && workoutSteps && workoutDashboardLine);
+    const confirmedDbLayout = dashboardItems.length > 7 ? 'icon-top' : dbLayout;
+    const mapVisible = !isCompact && !!route?.description?.hasGpx && !!routeData?.points?.length;
+
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
@@ -74,7 +113,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
     const reservedRight = screenWidth * 0.15;
     const dashboardRightEdge = (screenWidth / 2) + (dashboardWidth / 2);
-    const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight+2 : 0;    
+    const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight+2 : 0;
 
     // Dynamic style constants to satisfy no-inline-styles
     const elevationPreviewDynamicStyle = {
@@ -119,28 +158,52 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                 ]}>
                     <View onLayout={updateDashboardDimensions}>
                         <RideDashboardView
-                            items={MOCK_DASHBOARD_ITEMS}
-                            layout={dbLayout}
+                            items={dashboardItems}
+                            layout={confirmedDbLayout}
                             compact={isCompact}
                         />
                     </View>
                 </View>
 
-                {/* 2km Elevation Preview */}
-                <ElevationGraph
-                    routeData={routeData}
-                    observer={undefined}
-                    range={2000}
-                    lapMode={lapMode}
-                    showLine={true}
-                    showColors={true}
-                    showXAxis={!isCompact}
-                    showYAxis={!isCompact}
-                    style={[
-                        isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
-                        elevationPreviewDynamicStyle,
-                    ]}
-                />
+                {/* 2km Elevation Preview — suppressed when the workout overlay owns the corner
+                    widgets instead (mirrors View.tsx's real `!comboActive` gate). */}
+                {!comboActive && (
+                    <ElevationGraph
+                        routeData={routeData}
+                        observer={undefined}
+                        range={2000}
+                        lapMode={lapMode}
+                        showLine={true}
+                        showColors={true}
+                        showXAxis={!isCompact}
+                        showYAxis={!isCompact}
+                        style={[
+                            isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
+                            elevationPreviewDynamicStyle,
+                        ]}
+                    />
+                )}
+
+                {comboActive && (
+                    <WorkoutRideOverlay
+                        itemCount={dashboardItems.length}
+                        mapVisible={mapVisible}
+                        measuredRideDashboardHeight={dashboardHeight}
+                        graph={workoutGraph!}
+                        steps={workoutSteps!}
+                        dashboard={workoutDashboardLine!}
+                        cornerWidget={cornerWidget}
+                        dashboardHeight={dashboardHeight}
+                        compact={isCompact}
+                        rideObserver={null}
+                        getGraphActuals={() => ({ power: [], heartrate: [], position: 0 })}
+                        onToggleCornerWidget={noop}
+                        routeData={routeData}
+                        lapMode={lapMode}
+                        mapPoints={routeData?.points}
+                        transformPosition={(v) => v}
+                    />
+                )}
 
                 {infoText && <InfoText {...infoText} />}
 

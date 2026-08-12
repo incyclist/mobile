@@ -5,7 +5,9 @@ import {
     IObserver,
     VideoRidePageDisplayProps,
     IRidePageService,
-    RideType
+    RideType,
+    WorkoutGraphActuals,
+    useAppState,
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 import { colors } from '../../../theme';
@@ -18,6 +20,8 @@ interface VideoRidePageProps {
     onCancelStart: () => void;
     onClose:()=>void,
 }
+
+const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position: 0 };
 
 export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStart,onClose }: VideoRidePageProps) => {
     const [displayProps, setDisplayProps] = useState<VideoRidePageDisplayProps | null>(null);
@@ -75,6 +79,12 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
     useUnmountEffect(() => {
         if (refObserver.current) {
             refObserver.current.off('page-update', onUpdate);
+            // Matches GPXTourPage/WorkoutRidePage's own cleanup (previously missing here — a real
+            // gap: the page observer persists across a mid-ride ride-type transition
+            // (workout-combo-service-design.md §4.5.1's openPage() returns the SAME observer
+            // rather than creating a new one), so leaving this attached would leak a second
+            // 'ride-type-update' listener onto it once the next page mounts and subscribes too.
+            refObserver.current.off('ride-type-update', onRideTypeChange);
         }
         refService.current?.closePage();
         refInitialized.current = false;
@@ -84,6 +94,12 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+    const getGraphActuals = useCallback(
+        () => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS,
+        []
+    );
+    const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), []);
+    const comboEnabled = useAppState().hasFeature('MOBILE_WORKOUT_ROUTE_COMBO');
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -105,6 +121,9 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
                 onCancelStart={onCancelStart}
+                getGraphActuals={getGraphActuals}
+                onToggleCornerWidget={onToggleCornerWidget}
+                comboEnabled={comboEnabled}
             />
         </ErrorBoundary>
     );
