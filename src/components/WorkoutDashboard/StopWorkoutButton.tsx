@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme';
+import { useLogging } from '../../hooks';
 
 export interface StopWorkoutButtonProps {
     onPress: () => void;
@@ -23,19 +24,31 @@ export interface StopWorkoutButtonProps {
  * (`RideOverlayPrototype.stories.tsx`), which rendered every arrangement including the fallback and
  * found this mechanism has a home everywhere (§8.3's decision).
  */
-export const StopWorkoutButton = ({ onPress, compact = false, disabled = false }: StopWorkoutButtonProps) => (
-    <Pressable
-        testID="stop-workout-button"
-        style={[styles.button, compact && styles.buttonCompact, disabled && styles.buttonDisabled]}
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel="Stop Workout"
-    >
-        <View style={styles.glyph} />
-        <Text style={[styles.label, compact && styles.labelCompact]}>Stop{'\n'}Workout</Text>
-    </Pressable>
-);
+export const StopWorkoutButton = ({ onPress, compact = false, disabled = false }: StopWorkoutButtonProps) => {
+    // This button doesn't go through ButtonBar's `Button` (too big for the reserved controls
+    // slot, see the size rationale above), which is where 'button clicked' logging normally comes
+    // from — so it needs its own, matching ButtonBar's exact event shape/wording.
+    const { logEvent } = useLogging('Incyclist');
+
+    const onPressLogged = () => {
+        logEvent({ message: 'button clicked', button: 'Stop Workout', eventSource: 'user' });
+        onPress();
+    };
+
+    return (
+        <Pressable
+            testID="stop-workout-button"
+            style={[styles.button, compact && styles.buttonCompact, disabled && styles.buttonDisabled]}
+            onPress={onPressLogged}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Stop Workout"
+        >
+            <View style={styles.glyph} />
+            <Text style={[styles.label, compact && styles.labelCompact]}>Stop{'\n'}Workout</Text>
+        </Pressable>
+    );
+};
 
 const styles = StyleSheet.create({
     button: {
