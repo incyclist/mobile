@@ -3,6 +3,8 @@ import {
     useRideOverlayLayout,
     computeRideOverlayLayout,
     getRideDashboardWidth,
+    fitsSideBySide,
+    buildSideRects,
     RideOverlayArrangement,
     SIDE_WIDGET_MIN_WIDTH,
     TILE_COUNT_SETTLE_MS,
@@ -42,6 +44,46 @@ describe('getRideDashboardWidth', () => {
 
     it('collapses to screenWidth exactly in compact mode (RideDashboard is alignSelf: stretch there)', () => {
         expect(getRideDashboardWidth({ itemCount: 7, layout: 'icon-left', compact: true, screenWidth: 844 })).toBe(844)
+    })
+})
+
+// Exported post-Wave-6 for VideoRidePageView/GPXTourPageView's route-only (no workout attached)
+// corner-widget placement — real-device finding: the old measured-width heuristic kept stacking
+// map/elevation below RideDashboard even when there was genuinely room beside it. These reuse the
+// exact same fit-check/sizing the combo overlay's block-side arrangement already uses.
+describe('fitsSideBySide / buildSideRects - exported for route-only reuse', () => {
+    // Worked numbers from the getRideDashboardWidth tests above, at screenWidth 1280: the 7-tile
+    // icon-left dashboard (895.6 wide) leaves only a 184.2 ear (below the 200 floor) - the exact
+    // non-monotonic-width case ride-overlay-layout-design.md §1.2 documents. The 8-tile icon-top
+    // dashboard that replaces it once the Gear tile appears (743.0 wide) leaves a 260.5 ear instead
+    // - wide enough. This is the real-device transition the bug report described.
+    it('7-tile icon-left dashboard at 1280 width: ear (184.2) is below the floor - does not fit', () => {
+        const w = getRideDashboardWidth({ itemCount: 7, layout: 'icon-left', compact: false, screenWidth: 1280 })
+        expect(fitsSideBySide(1280, 800, w)).toBe(false)
+    })
+
+    it('8-tile icon-top dashboard at 1280 width: ear (260.5) clears the floor - fits', () => {
+        const w = getRideDashboardWidth({ itemCount: 8, layout: 'icon-top', compact: false, screenWidth: 1280 })
+        expect(fitsSideBySide(1280, 800, w)).toBe(true)
+    })
+
+    it('buildSideRects positions the map at left:0 and elevation at right:0, both top:0', () => {
+        const w = getRideDashboardWidth({ itemCount: 8, layout: 'icon-top', compact: false, screenWidth: 1280 })
+        const { map, elevation } = buildSideRects(1280, 800, w, 0, true)
+        expect(map).toMatchObject({ top: 0, left: 0 })
+        expect(elevation).toMatchObject({ top: 0, right: 0 })
+        expect(map!.width).toBeGreaterThanOrEqual(SIDE_WIDGET_MIN_WIDTH)
+    })
+
+    it('buildSideRects omits the map rect when mapVisible is false', () => {
+        const w = getRideDashboardWidth({ itemCount: 8, layout: 'icon-top', compact: false, screenWidth: 1280 })
+        const { map } = buildSideRects(1280, 800, w, 0, false)
+        expect(map).toBeNull()
+    })
+
+    it('a very narrow screen: neither tile count leaves room beside the dashboard', () => {
+        const w = getRideDashboardWidth({ itemCount: 8, layout: 'icon-top', compact: false, screenWidth: 700 })
+        expect(fitsSideBySide(700, 500, w)).toBe(false)
     })
 })
 

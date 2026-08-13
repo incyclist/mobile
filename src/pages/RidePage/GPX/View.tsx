@@ -22,6 +22,13 @@ import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 import { StreetView } from '../../../components/StreetView';
 import { IPosition } from '../../../components/StreetView/types';
+import {
+    getRideDashboardWidth,
+    fitsSideBySide,
+    buildSideRects,
+    RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD,
+    DEFAULT_ROUTE_RIDE_TILE_COUNT,
+} from '../../../hooks/render/useRideOverlayLayout';
 
 export interface GPXTourPageViewProps {
     displayProps: GPXRidePageDisplayProps;
@@ -95,38 +102,59 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
 
-    const [dashboardWidth, setDashboardWidth] = useState(0);
+    // Width is no longer measured (post-Wave-6 fix, see Video/View.tsx's identical comment).
     const [dashboardHeight, setDashboardHeight] = useState(DASHBOARD_HEIGHT);
     const updateDashboardDimensions = useCallback((e: any) => {
-        setDashboardWidth(e.nativeEvent.layout.width);
         setDashboardHeight(e.nativeEvent.layout.height);
     }, []);
 
-    // RideDashboard's own reported tile count — see Video/View.tsx's identical comment.
+    // RideDashboard's own reported tile count — tracked unconditionally now, see Video/View.tsx's
+    // identical comment.
     const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
     const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
 
     // Same visibility condition the existing corner map below already uses (unchanged, §1.3.1).
     const mapVisible = !isCompact && mainViewIsNotAMap && !!hasGpx && !!routeData?.points?.length;
 
-    // Account for both elevation preview width
-    const reservedRight = screenWidth * (isCompact ? 0.20 : 0.15);
-    const dashboardRightEdge = (screenWidth / 2) + (dashboardWidth / 2);
-    const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight + 2 : 0;
+    // Route-only corner-widget placement — see Video/View.tsx's identical comment for the full
+    // rationale (ports the combo overlay's analytic fit-check/sizing instead of the old
+    // measured-width heuristic).
+    const dashboardLayoutMode = (dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT) > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD
+        ? 'icon-top' : 'icon-left';
+    const rideDashboardWidthEffective = Math.min(
+        getRideDashboardWidth({
+            itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
+            layout: dashboardLayoutMode,
+            compact: isCompact,
+            screenWidth,
+        }),
+        screenWidth,
+    );
+    const sideBySideFits = !isCompact && fitsSideBySide(screenWidth, screenHeight, rideDashboardWidthEffective);
+    const sideRects = sideBySideFits
+        ? buildSideRects(screenWidth, screenHeight, rideDashboardWidthEffective, 0, mapVisible)
+        : null;
 
-    // Dynamic style constants to satisfy no-inline-styles
-    const elevationPreviewDynamicStyle = {
-        height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-        top: isCompact ? dashboardHeight : cornerTopOffset,
-        width: reservedRight,
-    };
+    // Stacked-below fallback — compact, or the side widgets don't fit beside the dashboard.
+    // Unchanged from before the fix.
+    const reservedRight = screenWidth * (isCompact ? 0.20 : 0.15);
+    const cornerTopOffset = dashboardHeight + 2;
+    const elevationPreviewDynamicStyle = sideRects
+        ? { top: sideRects.elevation.top, right: sideRects.elevation.right, width: sideRects.elevation.width, height: sideRects.elevation.height }
+        : {
+            height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
+            top: isCompact ? dashboardHeight : cornerTopOffset,
+            width: reservedRight,
+        };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
 
-    const mapOverlayDynamicStyle = {
-        width: screenWidth * 0.15,
-        height: ELEVATION_PREVIEW_HEIGHT,
-        top: cornerTopOffset,
-    };
+    const mapOverlayDynamicStyle = sideRects?.map
+        ? { top: sideRects.map.top, left: sideRects.map.left, width: sideRects.map.width, height: sideRects.map.height }
+        : {
+            width: screenWidth * 0.15,
+            height: ELEVATION_PREVIEW_HEIGHT,
+            top: cornerTopOffset,
+        };
 
     const bottomBarStyle = {
         position: 'absolute' as const,
@@ -221,7 +249,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         dashboardDynamicStyle,
                     ]}>
                         <View onLayout={updateDashboardDimensions}>
-                            <RideDashboard layout='icon-left' onMetrics={comboActive ? onDashboardMetrics : undefined} />
+                            <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
                         </View>
                     </View>
 
