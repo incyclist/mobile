@@ -17,6 +17,13 @@ import {
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
+import {
+    getRideDashboardWidth,
+    fitsSideBySide,
+    buildSideRects,
+    RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD,
+    DEFAULT_ROUTE_RIDE_TILE_COUNT,
+} from '../../../hooks/render/useRideOverlayLayout';
 
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
@@ -88,16 +95,19 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
     const DASHBOARD_HEIGHT = screenHeight * 0.10;
 
-    const [dashboardWidth, setDashboardWidth] = useState(0);
+    // Width is no longer measured (post-Wave-6 fix: the corner-widget placement below now uses
+    // RideDashboard's analytic width, same as the combo overlay does and for the same reason —
+    // ride-overlay-layout-design.md §1.1 found onLayout-measured values unreliable). Height still
+    // is; nothing analytic replaces it and the stacked-below fallback still needs it.
     const [dashboardHeight, setDashboardHeight] = useState(DASHBOARD_HEIGHT );
     const updateDashboardDimensions = useCallback((e: any) => {
-        setDashboardWidth(e.nativeEvent.layout.width);
         setDashboardHeight(e.nativeEvent.layout.height);
     }, []);
 
     // RideDashboard's own reported tile count (session 5.1 — ride-overlay-layout-design.md §3.2).
-    // Only consumed by the combo overlay below; falls back to the hook's own default (7) until
-    // the first report lands, and whenever combo is inactive.
+    // Tracked unconditionally now (post-Wave-6 fix): the route-only corner-widget placement below
+    // needs it just as much as the combo overlay does, to compute RideDashboard's real analytic
+    // width rather than guess at the default 7-tile one.
     const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
     const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
 
@@ -105,25 +115,51 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // as the combo layout hook's `mapVisible` input (ride-overlay-layout-design.md §3.1).
     const mapVisible = !isCompact && !!route?.description?.hasGpx && !!routeData?.points?.length;
 
-    // Account for both elevation preview and map width
-    const reservedRight = screenWidth * 0.15 * 2;
-    const dashboardRightEdge = (screenWidth / 2) + (dashboardWidth / 2);
-    const cornerTopOffset = dashboardRightEdge > (screenWidth - reservedRight) ? dashboardHeight+2 : 0;    
+    // Route-only corner-widget placement (map + 2km elevation preview), fixed post-Wave-6: this
+    // used to be a crude heuristic based on the *measured* dashboard width (onLayout), which is
+    // exactly the value ride-overlay-layout-design.md §1.1 found unreliable and replaced with an
+    // analytic formula for the combo screen — ported here rather than reinvented, via the same
+    // `getRideDashboardWidth()`/`fitsSideBySide()`/`buildSideRects()` the combo overlay uses, so a
+    // route-only ride gets the identical fit-check and widget sizing quality. Real-device Wave 6
+    // finding: the old heuristic kept stacking the widgets below the dashboard even when there was
+    // genuinely room beside it.
+    const dashboardLayoutMode = (dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT) > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD
+        ? 'icon-top' : 'icon-left';
+    const rideDashboardWidthEffective = Math.min(
+        getRideDashboardWidth({
+            itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
+            layout: dashboardLayoutMode,
+            compact: isCompact,
+            screenWidth,
+        }),
+        screenWidth,
+    );
+    const sideBySideFits = !isCompact && fitsSideBySide(screenWidth, screenHeight, rideDashboardWidthEffective);
+    const sideRects = sideBySideFits
+        ? buildSideRects(screenWidth, screenHeight, rideDashboardWidthEffective, 0, mapVisible)
+        : null;
 
-    // Dynamic style constants to satisfy no-inline-styles
-    const elevationPreviewDynamicStyle = {
-        height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-        top: isCompact ? dashboardHeight : cornerTopOffset,
-        width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
-    };
+    // Stacked-below fallback — compact, or the side widgets don't fit beside the dashboard.
+    // Unchanged from before the fix (not reported as wrong; only the "should have fit beside but
+    // didn't" case was).
+    const cornerTopOffset = dashboardHeight + 2;
+    const elevationPreviewDynamicStyle = sideRects
+        ? { top: sideRects.elevation.top, right: sideRects.elevation.right, width: sideRects.elevation.width, height: sideRects.elevation.height }
+        : {
+            height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
+            top: isCompact ? dashboardHeight : cornerTopOffset,
+            width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
+        };
     const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
 
-    const mapOverlayDynamicStyle = {
-        width: screenWidth * 0.15,
-        height: ELEVATION_PREVIEW_HEIGHT,
-        top: cornerTopOffset,
-    };
-    
+    const mapOverlayDynamicStyle = sideRects?.map
+        ? { top: sideRects.map.top, left: sideRects.map.left, width: sideRects.map.width, height: sideRects.map.height }
+        : {
+            width: screenWidth * 0.15,
+            height: ELEVATION_PREVIEW_HEIGHT,
+            top: cornerTopOffset,
+        };
+
     const bottomBarStyle = {
         position: 'absolute' as const,
         bottom: 0,
@@ -155,7 +191,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     dashboardDynamicStyle
                 ]}>
                     <View onLayout={updateDashboardDimensions}>
-                        <RideDashboard layout='icon-left' onMetrics={comboActive ? onDashboardMetrics : undefined} />
+                        <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
                     </View>
                 </View>
             </View>}

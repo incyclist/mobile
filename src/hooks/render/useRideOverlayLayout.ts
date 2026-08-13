@@ -203,7 +203,10 @@ export interface RideOverlayLayout {
 // §5.3 - per-ear fit check
 // -----------------------------------------------------------------------------------------------
 
-const earWidthOf = (screenWidth: number, columnWidth: number): number => (screenWidth - columnWidth) / 2 - SIDE_GUTTER
+/** Exported for `Video/View.tsx`/`GPX/View.tsx`'s route-only (no workout attached) corner-widget
+ *  placement — the same "does the ear have room" question the combo algorithm's block-side
+ *  candidate asks, minus the WorkoutDashboard-fitting concern that doesn't apply there. */
+export const earWidthOf = (screenWidth: number, columnWidth: number): number => (screenWidth - columnWidth) / 2 - SIDE_GUTTER
 
 const availableHeight = (top: number, screenHeight: number): number => screenHeight - top - BOTTOM_BAR_RATIO * screenHeight - SLOT_GAP
 
@@ -244,7 +247,10 @@ const sideWidgetSize = (
     height: clamp(SIDE_WIDGET_HEIGHT_RATIO * screenHeight, SIDE_WIDGET_MIN_HEIGHT, availableHeight(top, screenHeight)),
 })
 
-const buildSideRects = (
+/** Exported for the same route-only reuse `earWidthOf` is — the exact rect sizing/positioning
+ *  quality session 4.1 tuned for the combo screen (`SIDE_WIDGET_WIDTH_RATIO`/`_HEIGHT_RATIO`,
+ *  shrinking toward the floor only when the ear is tight), with no WorkoutDashboard dependency. */
+export const buildSideRects = (
     screenWidth: number,
     screenHeight: number,
     columnWidth: number,
@@ -258,6 +264,12 @@ const buildSideRects = (
         elevation: { top, right: 0, width, height },
     }
 }
+
+/** Whether the side widgets fit beside a column of the given effective width, at `top: 0` (the
+ *  route-only case's only vertical candidate — there is no WorkoutDashboard band to sit below
+ *  first, unlike the combo screen's t-side candidate). */
+export const fitsSideBySide = (screenWidth: number, screenHeight: number, columnWidth: number): boolean =>
+    earWidthOf(screenWidth, columnWidth) >= SIDE_WIDGET_MIN_WIDTH && availableHeight(0, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT
 
 // -----------------------------------------------------------------------------------------------
 // §5.5 - the cascade itself
