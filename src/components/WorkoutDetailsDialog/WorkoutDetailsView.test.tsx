@@ -17,6 +17,7 @@ const baseProps = {
     isScheduled: false,
     scheduledLabel: undefined,
     canDelete: true,
+    canStart: false,
     canStartWorkoutOnly: true,
     showDeleteConfirm: false,
     deleting: false,
@@ -45,9 +46,20 @@ describe('WorkoutDetailsView', () => {
         expect(queryByText('Delete')).toBeNull();
     });
 
-    it('hides the Start button when canStartWorkoutOnly is false', () => {
-        const { queryByText } = render(<WorkoutDetailsView {...baseProps} canStartWorkoutOnly={false} />);
+    it('hides the Start button when neither canStart nor canStartWorkoutOnly is true', () => {
+        const { queryByText } = render(
+            <WorkoutDetailsView {...baseProps} canStart={false} canStartWorkoutOnly={false} />
+        );
         expect(queryByText('Start')).toBeNull();
+    });
+
+    // Regression guard, 2026-08-12 (first Wave 6 real-device pass): Start was only ever gated on
+    // canStartWorkoutOnly, so it silently disappeared the moment a route got attached.
+    it('shows the Start button when canStart is true (route attached, combo)', () => {
+        const { getByText } = render(
+            <WorkoutDetailsView {...baseProps} canStart={true} canStartWorkoutOnly={false} />
+        );
+        expect(getByText('Start')).toBeTruthy();
     });
 
     it('hides the group picker for a scheduled workout', () => {

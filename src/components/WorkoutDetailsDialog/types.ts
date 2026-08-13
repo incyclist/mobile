@@ -30,6 +30,9 @@ export interface WorkoutDetailsViewProps {
     scheduledLabel?: string;
 
     canDelete: boolean;
+    /** True when a route is currently attached - a combo Start is available (mirrors desktop's
+     *  WorkoutDetails `canStart`, mutually exclusive with canStartWorkoutOnly below). */
+    canStart: boolean;
     canStartWorkoutOnly: boolean;
 
     showDeleteConfirm: boolean;

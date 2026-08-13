@@ -85,9 +85,14 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
         service.onChangeGroup(workoutId, group);
     }, [service, workoutId]);
 
+    // canStart (route attached, combo start) and canStartWorkoutOnly (!canStart, no route) are
+    // mutually exclusive - mirrors desktop's WorkoutDetails onStartClicked()/onStartWorkoutClicked()
+    // split (web-ui/src/components/modules/workout/selection/WorkoutDetails/component.jsx), just
+    // collapsed into mobile's single "Start" button rather than two labelled buttons. noRoute is
+    // only forced when there is no route to start with.
     const onStart = useCallback(() => {
-        service.onStart(workoutId, { noRoute: true });
-    }, [service, workoutId]);
+        service.onStart(workoutId, { noRoute: !details?.canStart });
+    }, [service, workoutId, details?.canStart]);
 
     const onDeleteRequest = useCallback(() => {
         setShowDeleteConfirm(true);
@@ -150,6 +155,7 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             isScheduled={details.isScheduled}
             scheduledLabel={scheduledLabel}
             canDelete={details.canDelete}
+            canStart={details.canStart}
             canStartWorkoutOnly={details.canStartWorkoutOnly}
             showDeleteConfirm={showDeleteConfirm}
             deleting={deleting}

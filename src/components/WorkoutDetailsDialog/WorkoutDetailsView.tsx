@@ -73,7 +73,7 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const {
         title, description, duration, plan, compact,
         ftp, useErgMode, groups, group, isScheduled, scheduledLabel,
-        canDelete, canStartWorkoutOnly,
+        canDelete, canStart, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
         attachedRoute, comboEnabled,
         onClose, onSetFtp, onSetErgMode, onChangeGroup, onStart,
@@ -102,7 +102,9 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         { label: 'Close', onClick: onClose },
         ...(canDelete ? [{ label: 'Delete', onClick: onDeleteRequest }] : []),
         ...(showAddRoute ? [{ label: 'Add Route', onClick: onAddRoute }] : []),
-        ...(canStartWorkoutOnly ? [{ label: 'Start', onClick: onStart, primary: true }] : []),
+        // canStart (route attached, combo) and canStartWorkoutOnly (!canStart) are mutually
+        // exclusive - either one means Start is available, onStart itself decides noRoute.
+        ...(canStart || canStartWorkoutOnly ? [{ label: 'Start', onClick: onStart, primary: true }] : []),
     ];
 
     // Web/desktop also shows total duration — folded into the title bar (rather than a
