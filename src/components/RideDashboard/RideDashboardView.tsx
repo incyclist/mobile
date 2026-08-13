@@ -67,6 +67,15 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false,
         const effectiveValueSize =  isTimeColumn
             ? valueSize * 0.75
             : valueSize;
+        // Same reasoning extended to the secondary (remaining-time) value — icon-top's colWidthBase
+        // is a fixed 90dp with no icon-width bonus (unlike icon-left's colWidthLeft), and a
+        // remaining-time string like "-1:51:53" doesn't fit at the un-shrunk size, wrapping the
+        // Text onto a second line and growing the whole tile's (and dashboard row's) height. Found
+        // on a real device, Wave 6 session: this only ever showed up at >7 tiles (icon-top layout),
+        // never in icon-left, where the wider column already had enough room by coincidence.
+        const effectiveSecValueSize = isTimeColumn
+            ? secValueSize * 0.75
+            : secValueSize;
 
         // Secondary row is never shown in compact mode, and is replaced wholesale by the
         // workout shoutout line (below) when one is supplied — not shown alongside it.
@@ -89,16 +98,19 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false,
                         </View>
                         {showSecondaryRow && (
                             <View style={styles.valueRow}>
-                                <Text style={[styles.secValue, { fontSize: secValueSize }]}>
+                                <Text
+                                    style={[styles.secValue, { fontSize: effectiveSecValueSize }]}
+                                    numberOfLines={1}
+                                >
                                     {secondary.value ?? '--'}
                                 </Text>
                                 {secondary.unit && (
-                                    <Text style={[styles.secUnit, { fontSize: secUnitSize }]}>
+                                    <Text style={[styles.secUnit, { fontSize: secUnitSize }]} numberOfLines={1}>
                                         {secondary.unit}
                                     </Text>
                                 )}
                                 {secondary.label && (
-                                    <Text style={[styles.secUnit, { fontSize: secUnitSize }]}>
+                                    <Text style={[styles.secUnit, { fontSize: secUnitSize }]} numberOfLines={1}>
                                         {secondary.label}
                                     </Text>
                                 )}

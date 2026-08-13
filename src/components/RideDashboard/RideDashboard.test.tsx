@@ -55,6 +55,29 @@ describe('RideDashboardView — workout shoutout', () => {
     });
 });
 
+// Regression guard, real-device Wave 6 finding (2026-08-12): at >7 tiles RideDashboard.tsx forces
+// icon-top layout, whose fixed colWidthBase (90dp, no icon-width bonus unlike icon-left) is too
+// narrow for a remaining-time string like "-1:51:53" at the un-shrunk secondary font size — it
+// wrapped onto a second line, growing the whole dashboard row's height.
+describe('RideDashboardView — Time column secondary value, icon-top layout', () => {
+    const iconTopItems: ActivityDashboardItem[] = [
+        { title: 'Time', data: [{ value: '01:23' }, { value: '-1:51:53' }] },
+        { title: 'Power', data: [{ value: '154', unit: 'W' }, { value: '145', label: 'avg' }] },
+    ];
+
+    test('renders the remaining-time value with numberOfLines=1 (no wrap-driven height growth)', () => {
+        const { getByText } = render(<RideDashboardView items={iconTopItems} layout="icon-top" compact={false} />);
+        expect(getByText('-1:51:53').props.numberOfLines).toBe(1);
+    });
+
+    test('shrinks the Time column\'s secondary font size the same way its primary value already is', () => {
+        const { getByText } = render(<RideDashboardView items={iconTopItems} layout="icon-top" compact={false} />);
+        const timeSecondaryStyle = getByText('-1:51:53').props.style.find((s: any) => s?.fontSize);
+        const powerSecondaryStyle = getByText('145').props.style.find((s: any) => s?.fontSize);
+        expect(timeSecondaryStyle.fontSize).toBeLessThan(powerSecondaryStyle.fontSize);
+    });
+});
+
 // ---------------------------------------------------------------------------
 // RideDashboard (the smart wrapper) — onMetrics reporting
 // (ride-overlay-layout-design.md §3.2: the only way useRideOverlayLayout() learns the current
