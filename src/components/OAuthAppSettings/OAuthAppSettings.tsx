@@ -24,6 +24,7 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
 
     const refInitialized = useRef<boolean>(false);
     const refStateParam = useRef<string>('');
+    const refConnecting = useRef<boolean>(false);
 
     useEffect(() => {
         if (refInitialized.current || !service) return;
@@ -37,12 +38,13 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
     }, [service, appKey]);
 
     const onConnect = useCallback(async () => {
-        if (!service) return;
+        if (!service || refConnecting.current) return;
+        refConnecting.current = true;
 
         const stateParam = Math.random().toString(36).substring(2);
         refStateParam.current = stateParam;
 
-        logEvent({ message: 'oauth connect start', appKey, eventSource: 'user' });
+        logEvent({ message: 'button clicked', button:`connect  ${appKey}`, eventSource: 'user' });
         setIsConnecting(true);
 
         const url = `${OAUTH_BASE}/${appKey}?sid=${encodeURIComponent(REDIRECT_URI)}&state=${stateParam}`;
@@ -111,16 +113,20 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
         } catch (err) {
             logError(err as Error, 'onConnect');
         } finally {
+            refConnecting.current = false;
             setIsConnecting(false);
         }
     }, [service, appKey, logEvent, logError]);
 
     const onDisconnect = useCallback(() => {
+
+        logEvent({ message: 'button clicked', button:`disconnect  ${appKey}`, eventSource: 'user' });
+
         if (!service) return;
         service.disconnect(appKey);
         setIsConnected(false);
         setOperations([]);
-    }, [service, appKey]);
+    }, [logEvent, appKey, service]);
 
     const onOperationsChanged = useCallback(
         (operation: AppsOperation, enabled: boolean) => {
@@ -133,16 +139,16 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
 
     const stravaConnectButton = useCallback(
         () => (
-            <TouchableOpacity onPress={onConnect}>
+            <TouchableOpacity onPress={onConnect} disabled={isConnecting}>
                 <StravaConnectSvg />
             </TouchableOpacity>
         ),
-        [onConnect],
+        [onConnect, isConnecting],
     );
 
     const intervalsConnectButton = useCallback(
         () => (
-            <TouchableOpacity onPress={onConnect} style={styles.intervalsButton}>
+            <TouchableOpacity onPress={onConnect} disabled={isConnecting} style={styles.intervalsButton}>
                 {React.createElement(
                     require('react-native').Text,
                     { style: styles.intervalsButtonText },
@@ -150,7 +156,7 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
                 )}
             </TouchableOpacity>
         ),
-        [onConnect],
+        [onConnect, isConnecting],
     );
 
     const connectButton = appKey === 'strava' ? stravaConnectButton : intervalsConnectButton;
