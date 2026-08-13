@@ -2,15 +2,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { RideMenuProps, ActiveDialog } from './types';
 import { getRidePageService } from 'incyclist-services';
 import { RideMenuView } from './RideMenuView';
-import { useLogging } from '../../hooks';
 
 export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseRidePage=()=>{} }: RideMenuProps) => {
-    const { logEvent } = useLogging('RideMenu');
-    // One unconditional call (FIXES_BACKLOG #24) - getRidePageService() resolves to the correct
-    // concrete page service on its own (keyed off the currently selected ride's type), so this no
-    // longer needs a workout-vs-not branch or an `as any` cast to reach menuProps. Workout-only
-    // calls below (onStepBack/onStepForward/onIncreaseLoad/onDecreaseLoad) are safe no-ops when
-    // `service` isn't actually a workout ride.
     const service = getRidePageService();
     const refInitialized = useRef(false)
 
@@ -38,10 +31,9 @@ export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseR
     // ride stops the workout too in phase 1 - there's no route to fall back to, so a
     // separate "Stop Workout" action doesn't apply until a ride can carry both (phase 2).
     const handleEndRide = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'End Ride' });
         service.onPause();
         setActiveDialog('activitySummary');
-    }, [service, logEvent]);
+    }, [service]);
 
     const handleExitFromSummary = useCallback(() => {
         setActiveDialog(null);
@@ -62,14 +54,12 @@ export const RideMenu = ({ visible, finished, workout = false, onClose, onCloseR
 
     const handlePauseResume = useCallback(() => {
         if (showResume) {
-            logEvent({ message: 'button clicked', button: 'Resume' });
             service.onResume();
         } else {
-            logEvent({ message: 'button clicked', button: 'Pause' });
             service.onPause();
         }
         onClose(); // Close menu after action
-    }, [showResume, service, logEvent, onClose]);
+    }, [showResume, service, onClose]);
 
     const handleStepBack = useCallback(() => {
         service.onStepBack();

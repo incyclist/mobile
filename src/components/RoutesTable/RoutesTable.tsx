@@ -3,8 +3,8 @@ import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { Observer } from 'incyclist-services';
 import { RoutesTableProps } from './types';
 import { RouteItem } from '../RouteItem';
- import { Dynamic } from '../Dynamic';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { Dynamic } from '../Dynamic';
+import { useUnmountEffect } from '../../hooks';
 import { colors, textSizes } from '../../theme';
 
 const LOOKAHEAD = 5;
@@ -14,7 +14,6 @@ export const RoutesTable = memo(({
     routes,
 }: RoutesTableProps) => {
     const refInitialized = useRef(false);
-    const {logEvent} = useLogging('RoutesTable')
 
     // Synchronously compute initial fold state during render
     const estimatedVisible = Math.ceil(600 / ITEM_HEIGHT);
