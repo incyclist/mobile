@@ -41,10 +41,6 @@ export const RoutesTable = memo(({
         refInitialized.current = false;
     });
 
-    useEffect( ()=>{
-        logEvent({message:'RoutesTable render done'})
-    },[logEvent])
-
     const onScroll = useCallback((event: any) => {
         if (!routesObserver || !refElementsOutsideFold.current) return;
         

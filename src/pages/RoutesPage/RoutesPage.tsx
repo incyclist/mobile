@@ -116,10 +116,6 @@ export const RoutesPage = () => {
 
     });
 
-    useEffect( ()=>{
-        logEvent({message:'RoutesPage render completed'})
-    })
-
     const setFilterVisible = useCallback( (visible:boolean) => {
         setProps( (current)=>({...current,filterVisible:visible}))
     },[])
