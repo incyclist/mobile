@@ -10,7 +10,6 @@ const mockSetState = jest.fn((key: string, value: any) => {
     if (value === null) delete appStateStore[key];
     else appStateStore[key] = value;
 });
-let mockHasFeature = jest.fn(() => true);
 
 class FakeWorkoutCalendar extends EventEmitter {
     getScheduledToday = jest.fn();
@@ -18,7 +17,7 @@ class FakeWorkoutCalendar extends EventEmitter {
 let mockCalendar: FakeWorkoutCalendar;
 
 jest.mock('incyclist-services', () => ({
-    useAppState: () => ({ getState: mockGetState, setState: mockSetState, hasFeature: mockHasFeature }),
+    useAppState: () => ({ getState: mockGetState, setState: mockSetState }),
     useWorkoutCalendar: () => mockCalendar,
 }));
 
@@ -43,7 +42,6 @@ describe('useScheduledWorkoutPrompt', () => {
         jest.clearAllMocks();
         appStateStore = {};
         mockCalendar = new FakeWorkoutCalendar();
-        mockHasFeature = jest.fn(() => true);
     });
 
     it('shows nothing when no workout is scheduled today', () => {
@@ -87,19 +85,6 @@ describe('useScheduledWorkoutPrompt', () => {
     it('does nothing while disabled (enabled=false), even with a workout scheduled and no guard', () => {
         mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
         const { result } = renderHook(() => useScheduledWorkoutPrompt(false));
-        expect(result.current.prompt).toBeNull();
-        expect(mockSetState).not.toHaveBeenCalled();
-    });
-
-    it('does nothing while the MOBILE_WORKOUTS feature toggle is off, even with a workout scheduled and no guard', () => {
-        // WorkoutCalendarService is synced unconditionally at launch (preloadData()), regardless
-        // of the MOBILE_WORKOUTS toggle - so without this gate the prompt would fire and its
-        // Yes/Check-workouts actions would navigate to a Workouts page stuck on its "under
-        // development" placeholder (WorkoutListPageService.getPageDisplayProps() short-circuits
-        // to pageType:'placeholder' when the toggle is off, never rendering WorkoutDetailsDialog).
-        mockHasFeature = jest.fn(() => false);
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
-        const { result } = renderHook(() => useScheduledWorkoutPrompt());
         expect(result.current.prompt).toBeNull();
         expect(mockSetState).not.toHaveBeenCalled();
     });

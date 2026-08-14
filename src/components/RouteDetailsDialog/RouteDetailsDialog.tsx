@@ -27,11 +27,9 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const [showPrev, setShowPrev] = useState(false);
     const [showDownloadModal, setShowDownloadModal] = useState(false);
 
-    // Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - additive side-channel, kept fresh on
-    // every 'page-update', separate from `cardProps` above (which is intentionally captured once).
-    // Drives the "Add Workout" button/chip whenever comboEnabled is true - mobile has no
-    // route+workout capability outside combo, so `cardProps.showWorkoutOption` is never read for
-    // this (repo-owner correction, 2026-08-11 - see RouteDetailsDialog/types.ts).
+    // Phase 2 (workout-mobile-hld-phase2.md §4.2) - additive side-channel, kept fresh on every
+    // 'page-update', separate from `cardProps` above (which is intentionally captured once).
+    // Drives the "Add Workout" button/chip.
     const [routeDetailsProps, setRouteDetailsProps] = useState<RouteDetailsProps>(() =>
         pageService.getRouteDetailsProps(routeId)
     );
@@ -258,7 +256,6 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             initialSettings={settings as UIRouteSettings}
             prevRides={prevRides ?? undefined}
             attachedWorkout={routeDetailsProps.attachedWorkout}
-            comboEnabled={routeDetailsProps.comboEnabled}
             onStart={(updatedSettings) => {
                 card.changeSettings(updatedSettings);
                 card.start();

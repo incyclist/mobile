@@ -22,7 +22,6 @@ const baseProps = {
     showDeleteConfirm: false,
     deleting: false,
     attachedRoute: null,
-    comboEnabled: false,
     onClose: jest.fn(),
     onSetFtp: jest.fn(),
     onSetErgMode: jest.fn(),
@@ -89,35 +88,16 @@ describe('WorkoutDetailsView', () => {
     });
 
     describe('route attachment (workout-mobile-hld-phase2.md §4.2)', () => {
-        it('hides "Add Route" and the chip when comboEnabled is false', () => {
-            const { queryByText } = render(
-                <WorkoutDetailsView {...baseProps} comboEnabled={false} attachedRoute={null} />
-            );
-            expect(queryByText('Add Route')).toBeNull();
-        });
-
-        it('hides "Add Route" and the chip when comboEnabled is false even if a route is attached', () => {
-            const { queryByText } = render(
-                <WorkoutDetailsView
-                    {...baseProps}
-                    comboEnabled={false}
-                    attachedRoute={{ id: 'r1', title: 'Alblasserwaard (SD)' }}
-                />
-            );
-            expect(queryByText('Add Route')).toBeNull();
-            expect(queryByText('Route: Alblasserwaard (SD)')).toBeNull();
-        });
-
-        it('shows "Add Route" when comboEnabled is true and nothing is attached', () => {
+        it('shows "Add Route" when nothing is attached', () => {
             const { getByText } = render(
-                <WorkoutDetailsView {...baseProps} comboEnabled={true} attachedRoute={null} />
+                <WorkoutDetailsView {...baseProps} attachedRoute={null} />
             );
             expect(getByText('Add Route')).toBeTruthy();
         });
 
         it('calls onAddRoute when "Add Route" is pressed', () => {
             const { getByText } = render(
-                <WorkoutDetailsView {...baseProps} comboEnabled={true} attachedRoute={null} />
+                <WorkoutDetailsView {...baseProps} attachedRoute={null} />
             );
             fireEvent.press(getByText('Add Route'));
             expect(baseProps.onAddRoute).toHaveBeenCalledTimes(1);
@@ -127,7 +107,6 @@ describe('WorkoutDetailsView', () => {
             const { getByText, queryByText } = render(
                 <WorkoutDetailsView
                     {...baseProps}
-                    comboEnabled={true}
                     attachedRoute={{ id: 'r1', title: 'Alblasserwaard (SD)' }}
                 />
             );
@@ -139,7 +118,6 @@ describe('WorkoutDetailsView', () => {
             const { getByLabelText } = render(
                 <WorkoutDetailsView
                     {...baseProps}
-                    comboEnabled={true}
                     attachedRoute={{ id: 'r1', title: 'Alblasserwaard (SD)' }}
                 />
             );

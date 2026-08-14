@@ -5,14 +5,13 @@ export interface ActivityDetailsDialogViewProps extends SelectedActivityDisplayP
     ftp?: number;
 
     /**
-     * Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - "Add Workout" button + inline
-     * "Workout: <name> [x]" row, net-new for this dialog. Gated on `comboEnabled` AND on the
-     * dialog's existing `canStart` (same prop that already disables "Ride Again" - a workout-only
-     * activity, no route, gets neither element; see the session 3.3 note in
+     * Phase 2 (workout-mobile-hld-phase2.md §4.2) - "Add Workout" button + inline
+     * "Workout: <name> [x]" row, net-new for this dialog. Gated on the dialog's existing
+     * `canStart` (same prop that already disables "Ride Again" - a workout-only activity, no
+     * route, gets neither element; see the session 3.3 note in
      * workout-mobile-session-plan-phase2.md).
      */
     attachedWorkout: AttachedWorkoutProps | null;
-    comboEnabled: boolean;
 
     onClose: () => void;
     onRideAgain: () => void;

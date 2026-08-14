@@ -19,7 +19,6 @@ const MOCK_LOADING = {
     canStart: false,
     units: {} as any,
     attachedWorkout: null,
-    comboEnabled: false,
     onClose: jest.fn(),
     onRideAgain: jest.fn(),
     onShareFile: jest.fn(),
@@ -55,9 +54,9 @@ describe('ActivityDetailsDialogView', () => {
         expect(getByTestId).toBeDefined();
     });
 
-    // workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + inline chip, gated on
-    // comboEnabled AND canStart (workout-mobile-session-plan-phase2.md session 3.3 note: a
-    // workout-only activity, canStart false, must get neither element).
+    // workout-mobile-hld-phase2.md §4.2 - "Add Workout" button + inline chip, gated on canStart
+    // (workout-mobile-session-plan-phase2.md session 3.3 note: a workout-only activity, canStart
+    // false, must get neither element).
     describe('workout attachment', () => {
         const loadedProps = (overrides = {}): ActivityDetailsDialogViewProps => ({
             ...MOCK_LOADING,
@@ -75,22 +74,15 @@ describe('ActivityDetailsDialogView', () => {
             ...overrides,
         });
 
-        it('hides "Add Workout" and the chip when comboEnabled is false', () => {
-            const { queryByText } = render(
-                <ActivityDetailsDialogView {...loadedProps({ comboEnabled: false, attachedWorkout: null })} />
-            );
-            expect(queryByText('Add Workout')).toBeNull();
-        });
-
-        it('shows "Add Workout" when comboEnabled is true, canStart is true, and nothing is attached', () => {
+        it('shows "Add Workout" when canStart is true and nothing is attached', () => {
             const { getByText } = render(
-                <ActivityDetailsDialogView {...loadedProps({ comboEnabled: true, canStart: true, attachedWorkout: null })} />
+                <ActivityDetailsDialogView {...loadedProps({ canStart: true, attachedWorkout: null })} />
             );
             expect(getByText('Add Workout')).toBeTruthy();
         });
 
         it('calls onAddWorkout when "Add Workout" is pressed', () => {
-            const props = loadedProps({ comboEnabled: true, canStart: true, attachedWorkout: null });
+            const props = loadedProps({ canStart: true, attachedWorkout: null });
             const { getByText } = render(<ActivityDetailsDialogView {...props} />);
             fireEvent.press(getByText('Add Workout'));
             expect(props.onAddWorkout).toHaveBeenCalledTimes(1);
@@ -100,7 +92,6 @@ describe('ActivityDetailsDialogView', () => {
             const { getByText, queryByText } = render(
                 <ActivityDetailsDialogView
                     {...loadedProps({
-                        comboEnabled: true,
                         canStart: true,
                         attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
                     })}
@@ -112,7 +103,6 @@ describe('ActivityDetailsDialogView', () => {
 
         it('calls onClearWorkout when the chip [x] is pressed', () => {
             const props = loadedProps({
-                comboEnabled: true,
                 canStart: true,
                 attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
             });
@@ -125,11 +115,10 @@ describe('ActivityDetailsDialogView', () => {
         // activity (canStart false - Activity.canStart()'s `!details?.route` guard) must not
         // offer "Add Workout" - there is no route to attach it to, and no retroactive-attach flow
         // exists yet (HLD §1, deferred to a future phase).
-        it('hides "Add Workout" and the chip on a workout-only activity (canStart false), even when comboEnabled and attachedWorkout are set', () => {
+        it('hides "Add Workout" and the chip on a workout-only activity (canStart false), even when attachedWorkout is set', () => {
             const { queryByText } = render(
                 <ActivityDetailsDialogView
                     {...loadedProps({
-                        comboEnabled: true,
                         canStart: false,
                         attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
                     })}

@@ -57,13 +57,6 @@ export const useScheduledWorkoutPrompt = (enabled: boolean = true): UseScheduled
 
     const checkAndShow = useCallback(() => {
         if (!enabled) return;
-        // Mirrors WorkoutListPageService.getPageDisplayProps()'s own MOBILE_WORKOUTS gate (returns
-        // pageType:'placeholder' when off) - the calendar/sync engine itself isn't feature-gated
-        // (preloadData() always calls workouts.preload()), so without this check the prompt could
-        // fire even while the Workouts page is showing its "under development" placeholder, and
-        // Yes/Check-workouts would navigate there with nothing real to land on (autoOpenDetailsId
-        // silently ignored, since the placeholder never renders WorkoutDetailsDialog).
-        if (!appState.hasFeature('MOBILE_WORKOUTS')) return;
         if (appState.getState(SCHEDULED_PROMPT_GUARD_KEY)) return;
 
         const scheduled: ScheduledWorkout | undefined = calendar.getScheduledToday();

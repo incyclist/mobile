@@ -24,7 +24,6 @@ const mockDetailsProps = (overrides = {}): any => ({
     showDeleteConfirm: false,
     deleting: false,
     attachedRoute: null,
-    comboEnabled: false,
     onClose: fn(),
     onSetFtp: fn(),
     onSetErgMode: fn(),
@@ -87,26 +86,13 @@ export const Deleting: Story = {
     args: mockDetailsProps({ showDeleteConfirm: true, deleting: true }),
 };
 
-// workout-mobile-hld-phase2.md §4.2/§9.1 - route attachment, gated on MOBILE_WORKOUT_ROUTE_COMBO.
-export const ComboOffNoRoute: Story = {
-    args: mockDetailsProps({ comboEnabled: false, attachedRoute: null }),
+// workout-mobile-hld-phase2.md §4.2 - route attachment.
+export const NoRoute: Story = {
+    args: mockDetailsProps({ attachedRoute: null }),
 };
 
-export const ComboOffRouteAttached: Story = {
-    // Toggle off: neither "Add Route" nor the chip render, even with a route attached elsewhere.
+export const RouteAttached: Story = {
     args: mockDetailsProps({
-        comboEnabled: false,
-        attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
-    }),
-};
-
-export const ComboOnNoRoute: Story = {
-    args: mockDetailsProps({ comboEnabled: true, attachedRoute: null }),
-};
-
-export const ComboOnRouteAttached: Story = {
-    args: mockDetailsProps({
-        comboEnabled: true,
         attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
     }),
 };
@@ -116,7 +102,6 @@ export const ComboOnRouteAttached: Story = {
 export const CompactRouteAttached: Story = {
     args: mockDetailsProps({
         compact: true,
-        comboEnabled: true,
         attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
     }),
 };

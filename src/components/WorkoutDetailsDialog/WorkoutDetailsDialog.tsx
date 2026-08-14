@@ -160,7 +160,6 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             showDeleteConfirm={showDeleteConfirm}
             deleting={deleting}
             attachedRoute={details.attachedRoute}
-            comboEnabled={details.comboEnabled}
             onClose={onClose}
             onSetFtp={onSetFtp}
             onSetErgMode={onSetErgMode}

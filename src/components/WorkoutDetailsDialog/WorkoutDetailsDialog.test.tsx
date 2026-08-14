@@ -31,7 +31,6 @@ const baseDetails: any = {
     canDelete: true,
     isScheduled: false,
     attachedRoute: null,
-    comboEnabled: false,
 };
 
 const mockGetWorkoutDetailsProps = jest.fn(() => baseDetails);
@@ -109,7 +108,6 @@ describe('WorkoutDetailsDialog', () => {
             canStart: true,
             canStartWorkoutOnly: false,
             attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
-            comboEnabled: true,
         });
         const { getByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
         expect(getByText('Start')).toBeTruthy();
@@ -145,21 +143,9 @@ describe('WorkoutDetailsDialog', () => {
     });
 
     describe('route attachment (workout-mobile-hld-phase2.md §4.2)', () => {
-        it('shows neither "Add Route" nor the chip when comboEnabled is false, even with a route attached', () => {
+        it('shows "Add Route" when nothing is attached', () => {
             mockGetWorkoutDetailsProps.mockReturnValue({
                 ...baseDetails,
-                comboEnabled: false,
-                attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
-            });
-            const { queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
-            expect(queryByText('Add Route')).toBeNull();
-            expect(queryByText('Route: Alblasserwaard (SD)')).toBeNull();
-        });
-
-        it('shows "Add Route" when comboEnabled is true and nothing is attached', () => {
-            mockGetWorkoutDetailsProps.mockReturnValue({
-                ...baseDetails,
-                comboEnabled: true,
                 attachedRoute: null,
             });
             const { getByText, queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
@@ -167,10 +153,9 @@ describe('WorkoutDetailsDialog', () => {
             expect(queryByText(/^Route:/)).toBeNull();
         });
 
-        it('shows the "Route: <name>" chip instead of "Add Route" when comboEnabled is true and a route is attached', () => {
+        it('shows the "Route: <name>" chip instead of "Add Route" when a route is attached', () => {
             mockGetWorkoutDetailsProps.mockReturnValue({
                 ...baseDetails,
-                comboEnabled: true,
                 attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
             });
             const { getByText, queryByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
@@ -181,7 +166,6 @@ describe('WorkoutDetailsDialog', () => {
         it('calls service.onClearRouteSelection when the chip [x] is pressed', () => {
             mockGetWorkoutDetailsProps.mockReturnValue({
                 ...baseDetails,
-                comboEnabled: true,
                 attachedRoute: { id: 'r1', title: 'Alblasserwaard (SD)' },
             });
             const { getByLabelText } = render(<WorkoutDetailsDialog workoutId="w1" />);
@@ -194,7 +178,6 @@ describe('WorkoutDetailsDialog', () => {
         it('calls service.onMarkForRoute and navigates to routes when "Add Route" is pressed', () => {
             mockGetWorkoutDetailsProps.mockReturnValue({
                 ...baseDetails,
-                comboEnabled: true,
                 attachedRoute: null,
             });
             const { getByText } = render(<WorkoutDetailsDialog workoutId="w1" />);

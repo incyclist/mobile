@@ -20,12 +20,12 @@ import type { WorkoutDashboardLine, WorkoutGraphPlan, WorkoutUpcomingSteps } fro
  * otherwise identical (same widget set, same rects), only their full-screen main view (Video vs.
  * Map/StreetView) differs, and that stays entirely outside this component.
  *
- * Everything about *whether* to show a workout overlay at all
- * (`workoutAttached && MOBILE_WORKOUT_ROUTE_COMBO`) is decided by the caller, which renders this
- * component only in that case — so `useRideOverlayLayout()` (called INSIDE this component, not
- * passed in as a prop) is never invoked for a route-only ride, satisfying design doc §2 ("route-
- * only rides never call it — by construction") structurally rather than by discipline at the
- * call site: the hook simply isn't reachable unless this component is mounted.
+ * Everything about *whether* to show a workout overlay at all (`workoutAttached`) is decided by
+ * the caller, which renders this component only in that case — so `useRideOverlayLayout()`
+ * (called INSIDE this component, not passed in as a prop) is never invoked for a route-only ride,
+ * satisfying design doc §2 ("route-only rides never call it — by construction") structurally
+ * rather than by discipline at the call site: the hook simply isn't reachable unless this
+ * component is mounted.
  */
 export interface WorkoutRideOverlayProps {
     /** From `RideDashboard`'s `onMetrics` report; defaults to 7 inside the hook until the first report lands. */

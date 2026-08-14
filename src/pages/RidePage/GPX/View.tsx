@@ -40,13 +40,10 @@ export interface GPXTourPageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
-    /** Only actually called when a workout is attached & MOBILE_WORKOUT_ROUTE_COMBO is on
-     *  (workout-mobile-hld-phase2.md §5/§9.1) — unused, harmless, otherwise. */
+    /** Only actually called when a workout is attached (workout-mobile-hld-phase2.md §5) —
+     *  unused, harmless, otherwise. */
     getGraphActuals: () => WorkoutGraphActuals;
     onToggleCornerWidget: () => void;
-    /** `hasFeature('MOBILE_WORKOUT_ROUTE_COMBO')`, read by the caller (`GPXTourPage`) — see
-     *  `Video/View.tsx`'s identical prop for the full rationale. */
-    comboEnabled?: boolean;
     /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — see
      *  `Video/View.tsx`'s identical prop for the full rationale. */
     onStopWorkout: () => void;
@@ -73,7 +70,6 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCancelStart,
         getGraphActuals,
         onToggleCornerWidget,
-        comboEnabled,
         onStopWorkout,
     } = props;
 
@@ -95,8 +91,8 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
-    // Additive branch, workout-mobile-hld-phase2.md §5/§9.1 — see Video/View.tsx's identical comment.
-    const comboActive = !!workoutAttached && !!comboEnabled;
+    // Additive branch, workout-mobile-hld-phase2.md §5 — see Video/View.tsx's identical comment.
+    const comboActive = !!workoutAttached;
 
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;

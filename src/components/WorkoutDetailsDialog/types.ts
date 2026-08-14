@@ -39,12 +39,10 @@ export interface WorkoutDetailsViewProps {
     deleting: boolean;
 
     /**
-     * Phase 2 (workout-mobile-hld-phase2.md §4.2/§9.1) - the "Route: <name> [x]" row and "Add
-     * Route" button. `comboEnabled` gates both; when false neither element renders, mirroring
-     * today's shipped dialog exactly (MOBILE_WORKOUT_ROUTE_COMBO off).
+     * Phase 2 (workout-mobile-hld-phase2.md §4.2) - the "Route: <name> [x]" row and "Add Route"
+     * button, shown whenever nothing/something is attached respectively.
      */
     attachedRoute: AttachedRouteProps | null;
-    comboEnabled: boolean;
 
     onClose: () => void;
     onSetFtp: (ftp: number) => void;
