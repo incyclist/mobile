@@ -34,16 +34,10 @@ interface VideoRidePageViewProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
-    /** Only actually called when a workout is attached & MOBILE_WORKOUT_ROUTE_COMBO is on
-     *  (workout-mobile-hld-phase2.md §5/§9.1) — unused, harmless, otherwise. */
+    /** Only actually called when a workout is attached (workout-mobile-hld-phase2.md §5) —
+     *  unused, harmless, otherwise. */
     getGraphActuals: () => WorkoutGraphActuals;
     onToggleCornerWidget: () => void;
-    /** `hasFeature('MOBILE_WORKOUT_ROUTE_COMBO')`, read by the caller (`VideoRidePage`) — kept out
-     *  of this pure view, mirroring how `WorkoutDetailsDialogView`/`RouteDetailsView` already
-     *  receive `comboEnabled` as an explicit prop rather than calling `useAppState()` themselves
-     *  (session 2.2/3.3). Makes this component directly Storybook-testable with no toggle-mocking
-     *  infrastructure needed. Defaults to `false` (matches the toggle's own off-by-default rule). */
-    comboEnabled?: boolean;
     /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — forwarded
      *  as-is to `WorkoutRideOverlay`, which owns the undo-window/deferred-commit behaviour. Only
      *  reachable through that overlay, so — like `getGraphActuals`/`onToggleCornerWidget` — this is
@@ -67,7 +61,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         onCancelStart,
         getGraphActuals,
         onToggleCornerWidget,
-        comboEnabled,
         onStopWorkout,
     } = props;
 
@@ -83,13 +76,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
-    // Additive branch, workout-mobile-hld-phase2.md §5/§9.1 — toggle-gated so route-only rides
-    // (and any ride with the toggle off) render through the untouched path below, exactly as
-    // today. `workoutAttached` is already the service-side attachment gate (workout-combo-
-    // service-design.md §4.2); `comboEnabled` (hasFeature('MOBILE_WORKOUT_ROUTE_COMBO'), read by
-    // the caller) is the mobile-visible rollout gate on top of it (HLD §9.1: "one flag, not
-    // several").
-    const comboActive = !!workoutAttached && !!comboEnabled;
+    // Additive branch, workout-mobile-hld-phase2.md §5 — route-only rides render through the
+    // untouched path below, exactly as today. `workoutAttached` is the service-side attachment
+    // gate (workout-combo-service-design.md §4.2).
+    const comboActive = !!workoutAttached;
 
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
     const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
@@ -216,9 +206,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     />
                 )})}
 
-                {/* 2km Elevation Preview — route-only rendering, untouched (HLD §9.1). Replaced by
-                    WorkoutRideOverlay's own corner-widget rects when a workout is attached and the
-                    combo toggle is on. */}
+                {/* 2km Elevation Preview — route-only rendering, untouched. Replaced by
+                    WorkoutRideOverlay's own corner-widget rects when a workout is attached. */}
                 {!comboActive && (
                     <ElevationGraph
                         routeData={routeData}

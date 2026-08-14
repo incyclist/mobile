@@ -85,7 +85,6 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         mockGetActivityDetailsProps.mockReturnValue({
             activityId: 'a1',
             attachedWorkout: null,
-            comboEnabled: true,
         });
     });
 
@@ -94,7 +93,7 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         expect(mockGetActivityDetailsProps).toHaveBeenCalledWith('a1');
     });
 
-    it('shows "Add Workout" when comboEnabled is true, canStart is true, nothing attached', () => {
+    it('shows "Add Workout" when canStart is true, nothing attached', () => {
         const { getByText } = render(<ActivityDetailsDialog onClose={jest.fn()} onRideAgain={jest.fn()} />);
         expect(getByText('Add Workout')).toBeTruthy();
     });
@@ -103,7 +102,6 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         mockGetActivityDetailsProps.mockReturnValue({
             activityId: 'a1',
             attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
-            comboEnabled: true,
         });
         const { getByText, getByLabelText } = render(
             <ActivityDetailsDialog onClose={jest.fn()} onRideAgain={jest.fn()} />
@@ -162,7 +160,6 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         mockGetActivityDetailsProps.mockReturnValue({
             activityId: 'a1',
             attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
-            comboEnabled: true,
         });
         const { getByText, queryByText } = render(
             <ActivityDetailsDialog onClose={jest.fn()} onRideAgain={jest.fn()} />
@@ -172,7 +169,6 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         mockGetActivityDetailsProps.mockReturnValue({
             activityId: 'a1',
             attachedWorkout: null,
-            comboEnabled: true,
         });
         const refreshHandler = mockPageObserver.on.mock.calls.find(([event]) => event === 'page-update')?.[1];
         act(() => {

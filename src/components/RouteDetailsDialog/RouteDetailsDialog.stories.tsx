@@ -27,7 +27,6 @@ const mockRouteProps = (overrides = {}): any => ({
     },
     prevRides: null,
     attachedWorkout: null,
-    comboEnabled: false,
     onStart: fn(),
     onCancel: fn(),
     onAddWorkout: fn(),
@@ -57,26 +56,13 @@ type Story = StoryObj<typeof RouteDetailsView>;
 
 export const Default: Story = { args: mockRouteProps() };
 
-// workout-mobile-hld-phase2.md §4.2/§9.1 - "Add Workout" button + "Workout: <name> [x]" chip,
-// gated on MOBILE_WORKOUT_ROUTE_COMBO. Repo-owner correction, 2026-08-11: unlike desktop, mobile
-// has no route+workout starting capability outside this phase's combo work, so comboEnabled
-// false always hides both - there is no fallback "shipped today" behaviour to preserve here
-// (see RouteDetailsDialog/types.ts for the full reasoning).
-export const ComboOffNoWorkout: Story = {
-    args: mockRouteProps({ comboEnabled: false, attachedWorkout: null }),
+// workout-mobile-hld-phase2.md §4.2 - "Add Workout" button + "Workout: <name> [x]" chip.
+export const NoWorkout: Story = {
+    args: mockRouteProps({ attachedWorkout: null }),
 };
 
-export const ComboOffWorkoutAttachedElsewhereStillHidden: Story = {
-    // Even with a workout attached elsewhere, comboEnabled false hides both button and chip.
-    args: mockRouteProps({ comboEnabled: false, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
-};
-
-export const ComboOnNoWorkout: Story = {
-    args: mockRouteProps({ comboEnabled: true, attachedWorkout: null }),
-};
-
-export const ComboOnWorkoutAttached: Story = {
-    args: mockRouteProps({ comboEnabled: true, attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
+export const WorkoutAttached: Story = {
+    args: mockRouteProps({ attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' } }),
 };
 
 export const Loading: Story = { args: mockRouteProps({ loading: true }) };
@@ -136,7 +122,6 @@ export const Compact: Story = { args: mockRouteProps({ compact: true }) };
 export const CompactWorkoutAttached: Story = {
     args: mockRouteProps({
         compact: true,
-        comboEnabled: true,
         attachedWorkout: { id: 'w1', title: 'VO2 Max Intervals' },
     }),
 };

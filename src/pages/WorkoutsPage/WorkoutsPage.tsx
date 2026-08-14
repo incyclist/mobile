@@ -7,12 +7,20 @@ import {
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
-import { WorkoutsPlaceholderView } from './WorkoutsPlaceholderView';
 import { WorkoutListView } from './WorkoutListView';
 import { ErrorBoundary, ScheduledWorkoutPromptModal, TNavigationItem, WorkoutDetailsDialog, WorkoutImportDialog } from '../../components';
 import { navigate } from '../../services';
 
-const initialProps: WorkoutListPageDisplayProps = { pageType: 'placeholder' };
+const initialProps: WorkoutListPageDisplayProps = {
+    pageType: 'list',
+    loading: true,
+    upcoming: null,
+    groups: { available: [], selected: null },
+    workouts: [],
+    selectedId: null,
+    isEmpty: true,
+    detailWorkoutId: null,
+};
 
 // Consumed by session 5.7's post-pairing prompt: `navigation.navigate('workouts', { autoOpenDetailsId })`.
 interface WorkoutsPageRouteParams {
@@ -91,9 +99,6 @@ export const WorkoutsPage = () => {
 
     return (
         <ErrorBoundary>
-            {props.pageType === 'placeholder' && (
-                <WorkoutsPlaceholderView onNavigate={onNavigate} />
-            )}
             {props.pageType === 'list' && (
                 <WorkoutListView
                     data={props}

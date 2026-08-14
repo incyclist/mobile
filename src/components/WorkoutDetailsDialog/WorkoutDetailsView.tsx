@@ -75,7 +75,7 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         ftp, useErgMode, groups, group, isScheduled, scheduledLabel,
         canDelete, canStart, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
-        attachedRoute, comboEnabled,
+        attachedRoute,
         onClose, onSetFtp, onSetErgMode, onChangeGroup, onStart,
         onDeleteRequest, onDeleteConfirm, onDeleteCancel,
         onClearRoute, onAddRoute,
@@ -93,10 +93,10 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         onChangeGroup(value);
     }, [onChangeGroup]);
 
-    // "Add Route" (workout-mobile-hld-phase2.md §4.2/§9.1) - toggle-gated, and only offered when
-    // nothing is attached yet (once attached, the chip below replaces it - one row/button never
-    // shown at the same time as the other).
-    const showAddRoute = comboEnabled && !attachedRoute;
+    // "Add Route" (workout-mobile-hld-phase2.md §4.2) - only offered when nothing is attached yet
+    // (once attached, the chip below replaces it - one row/button never shown at the same time as
+    // the other).
+    const showAddRoute = !attachedRoute;
 
     const dialogButtons = [
         { label: 'Close', onClick: onClose },
@@ -126,7 +126,7 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
 
     return (
         <Dialog title={dialogTitle} variant="full" buttons={dialogButtons} onOutsideClick={onClose}>
-            {comboEnabled && attachedRoute && (
+            {attachedRoute && (
                 <View style={styles.chipWrapper}>
                     <AttachmentChip label="Route" name={attachedRoute.title} onClear={onClearRoute} />
                 </View>

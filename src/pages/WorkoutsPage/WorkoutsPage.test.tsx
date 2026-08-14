@@ -7,7 +7,16 @@ const mockOnImportOpen = jest.fn();
 const mockOnSelectGroup = jest.fn();
 const mockOpenPage = jest.fn(() => ({ on: jest.fn(), stop: jest.fn() }));
 const mockClosePage = jest.fn();
-const mockGetPageDisplayProps = jest.fn(() => ({ pageType: 'placeholder' }));
+const mockGetPageDisplayProps = jest.fn(() => ({
+    pageType: 'list',
+    loading: true,
+    upcoming: null,
+    groups: { available: [], selected: null },
+    workouts: [],
+    selectedId: null,
+    isEmpty: true,
+    detailWorkoutId: null,
+}));
 const mockUseRoute = jest.fn(() => ({ key: 't', name: 'workouts', params: undefined as any }));
 
 jest.mock('../../services', () => ({
@@ -28,18 +37,13 @@ jest.mock('incyclist-services', () => ({
         onSelectGroup: mockOnSelectGroup,
     }),
     // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
-    // WorkoutsPage - now calls. hasFeature (6.1 integration pass) gates the prompt on
-    // MOBILE_WORKOUTS, mirroring WorkoutListPageService.getPageDisplayProps()'s own gate.
-    useAppState: () => ({ getState: jest.fn(), setState: jest.fn(), hasFeature: jest.fn(() => true) }),
+    // WorkoutsPage - now calls.
+    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
     useWorkoutCalendar: () => ({
         getScheduledToday: jest.fn(),
         on: jest.fn(),
         off: jest.fn(),
     }),
-}));
-
-jest.mock('./WorkoutsPlaceholderView', () => ({
-    WorkoutsPlaceholderView: () => null,
 }));
 
 jest.mock('./WorkoutListView', () => ({
@@ -59,7 +63,16 @@ jest.mock('../../components', () => {
 describe('WorkoutsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockGetPageDisplayProps.mockReturnValue({ pageType: 'placeholder' } as any);
+        mockGetPageDisplayProps.mockReturnValue({
+            pageType: 'list',
+            loading: true,
+            upcoming: null,
+            groups: { available: [], selected: null },
+            workouts: [],
+            selectedId: null,
+            isEmpty: true,
+            detailWorkoutId: null,
+        } as any);
         mockUseRoute.mockReturnValue({ key: 't', name: 'workouts', params: undefined });
         mockOpenPage.mockReturnValue({ on: jest.fn(), stop: jest.fn() });
     });

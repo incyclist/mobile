@@ -16,7 +16,7 @@ import { useLogging, useUnmountEffect } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { navigate } from '../../services';
 
-const NO_WORKOUT_ATTACHMENT: ActivityDetailsProps = { activityId: '', attachedWorkout: null, comboEnabled: false };
+const NO_WORKOUT_ATTACHMENT: ActivityDetailsProps = { activityId: '', attachedWorkout: null };
 
 export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsDialogProps) => {
     const service = useActivityList();
@@ -177,7 +177,6 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
                 ftp={ftp}
                 loading={loading}
                 attachedWorkout={workoutAttachment.attachedWorkout}
-                comboEnabled={workoutAttachment.comboEnabled}
                 onClose={onClose}
                 onRideAgain={handleRideAgain}
                 onShareFile={handleShareFile}

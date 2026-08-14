@@ -31,7 +31,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         showLoopOverwrite, showNextOverwrite, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
-        attachedWorkout, comboEnabled,
+        attachedWorkout,
         onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
@@ -265,12 +265,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const cancelButton = { label: 'Cancel', onClick: onCancel }
 
-    // Both driven only by `attachedWorkout`, only when combo is enabled (repo-owner correction,
-    // 2026-08-11) - mobile has no route+workout starting capability outside this phase's combo
-    // work, so unlike desktop there is no meaningful fallback state for `comboEnabled === false`;
-    // the button/chip simply don't exist pre-Phase-2 on mobile, full stop.
-    const showAddWorkoutButton = comboEnabled && !attachedWorkout;
-    const showWorkoutChip = comboEnabled && !!attachedWorkout;
+    const showAddWorkoutButton = !attachedWorkout;
+    const showWorkoutChip = !!attachedWorkout;
 
     const startButtons = canStart ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },

@@ -136,11 +136,9 @@ describe('GPXTourPageView — corner orientation map', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Workout overlay branch (workout-mobile-hld-phase2.md §5/§9.1, session 5.1) — additive,
-// prop-driven, gated on displayProps.workoutAttached && the caller-supplied `comboEnabled` prop
-// (hasFeature('MOBILE_WORKOUT_ROUTE_COMBO'), read one layer up by GPXTourPage — session 2.2/3.3's
-// established pattern, kept out of this pure view so it's directly prop-testable). Route-only
-// rendering (including the corner-map tests above) must be bit-for-bit unaffected.
+// Workout overlay branch (workout-mobile-hld-phase2.md §5, session 5.1) — additive, prop-driven,
+// gated on displayProps.workoutAttached. Route-only rendering (including the corner-map tests
+// above) must be bit-for-bit unaffected.
 // ---------------------------------------------------------------------------
 
 const comboDisplayProps = () => ({
@@ -157,23 +155,15 @@ describe('GPXTourPageView — workout overlay branch', () => {
         mockUseScreenLayout.mockReturnValue('normal');
     });
 
-    it('does not render the overlay for a route-only ride, regardless of the toggle', () => {
-        const { queryByText } = render(<GPXTourPageView {...activeProps('sv')} comboEnabled={true} />);
+    it('does not render the overlay for a route-only ride', () => {
+        const { queryByText } = render(<GPXTourPageView {...activeProps('sv')} />);
         expect(queryByText('workout-ride-overlay')).toBeNull();
         expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
     });
 
-    it('does not render the overlay when a workout is attached but the toggle is off', () => {
-        const { queryByText } = render(
-            <GPXTourPageView {...baseProps} comboEnabled={false} displayProps={comboDisplayProps() as any} />
-        );
-        expect(queryByText('workout-ride-overlay')).toBeNull();
-        expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
-    });
-
-    it('renders the overlay when a workout is attached AND the toggle is on, and suppresses the route-only corner map', () => {
+    it('renders the overlay when a workout is attached, and suppresses the route-only corner map', () => {
         const { getByText, queryByTestId } = render(
-            <GPXTourPageView {...baseProps} comboEnabled={true} displayProps={comboDisplayProps() as any} />
+            <GPXTourPageView {...baseProps} displayProps={comboDisplayProps() as any} />
         );
         expect(getByText('workout-ride-overlay')).toBeTruthy();
         // The old corner-map element is suppressed — WorkoutRideOverlay owns corner-widget
@@ -190,7 +180,6 @@ describe('GPXTourPageView — workout overlay branch', () => {
         render(
             <GPXTourPageView
                 {...baseProps}
-                comboEnabled={true}
                 displayProps={comboDisplayProps() as any}
                 onStopWorkout={onStopWorkout}
             />
