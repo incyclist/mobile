@@ -59,6 +59,10 @@ jobs:
           MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
           MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
           MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
+          # Without this the manifest ships an empty com.google.android.geo.API_KEY and
+          # Street View shows a black screen on every released build. The Gradle build now
+          # fails rather than substituting an empty key, so this must stay set.
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
         run: |
           ./gradlew clean bundleRelease
 
