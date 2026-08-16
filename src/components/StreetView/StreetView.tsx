@@ -19,6 +19,21 @@ const WATCHDOG_MARKS = [2000, 5000, 10000, 20000, 30000];
 const RETRY_DELAYS = [8000, 20000, 40000];
 
 /**
+ * Age at which an unanswered request stops being treated as in-flight. Position updates are
+ * held back while a load is outstanding, but only up to this point: on a device where the
+ * panorama never resolves, continuing to hold them back would leave the component making no
+ * further attempts at all once the retries are exhausted.
+ */
+const STALE_AFTER = RETRY_DELAYS[0];
+
+/**
+ * Number of unanswered load attempts reported in full. The first attempt happens while the
+ * start overlay is up and carries the diagnostic payload; repeating all of it for every
+ * attempt of a permanently failing ride would flood the log without adding information.
+ */
+const REPORTED_ATTEMPTS = 2;
+
+/**
  * Offset applied to a retried position: large enough that neither our own comparison nor the
  * Maps SDK can treat the request as a no-op, small enough (~1cm) to be invisible to the rider.
  */
@@ -60,6 +75,7 @@ export const StreetView = (props: StreetViewProps) => {
     const pendingRef = useRef<IPosition | undefined>(undefined);
     const loadedRef = useRef(false);
     const retriesRef = useRef(0);
+    const attemptsRef = useRef(0);
     const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
     const sizeRef = useRef<{ width: number, height: number } | undefined>(undefined);
 
@@ -68,29 +84,38 @@ export const StreetView = (props: StreetViewProps) => {
         timersRef.current = [];
     }, []);
 
-    const armWatchdog = useCallback((sent: IPosition) => {
-        WATCHDOG_MARKS.forEach(elapsed => {
-            timersRef.current.push(setTimeout(() => {
-                logEvent({
-                    message: 'streetview still waiting',
-                    elapsed,
-                    retries: retriesRef.current,
-                    lat: sent.lat,
-                    lng: sent.lng,
-                    ...sizeRef.current,
-                });
-            }, elapsed));
-        });
+    const armWatchdog = useCallback((sent: IPosition, attempt: number) => {
+        if (attempt <= REPORTED_ATTEMPTS) {
+            WATCHDOG_MARKS.forEach(elapsed => {
+                timersRef.current.push(setTimeout(() => {
+                    logEvent({
+                        message: 'streetview still waiting',
+                        elapsed,
+                        attempt,
+                        retries: retriesRef.current,
+                        lat: sent.lat,
+                        lng: sent.lng,
+                        ...sizeRef.current,
+                    });
+                }, elapsed));
+            });
+        }
+
+        // Retries only matter for the first attempt: it happens while the start overlay is up
+        // and nothing else is driving the view. Once the ride is running, position updates
+        // supply the re-attempts themselves (see the staleness check below).
+        if (attempt > 1)
+            return;
 
         RETRY_DELAYS.forEach((delay, i) => {
             timersRef.current.push(setTimeout(() => {
-                const attempt = i + 1;
-                const retried = { ...sent, lat: sent.lat + RETRY_OFFSET * attempt };
+                const retry = i + 1;
+                const retried = { ...sent, lat: sent.lat + RETRY_OFFSET * retry };
 
-                retriesRef.current = attempt;
+                retriesRef.current = retry;
                 sentRef.current = retried;
                 sentAtRef.current = Date.now();
-                logEvent({ message: 'streetview retry', attempt, lat: retried.lat, lng: retried.lng });
+                logEvent({ message: 'streetview retry', retry, lat: retried.lat, lng: retried.lng });
                 setApplied(retried);
             }, delay));
         });
@@ -100,14 +125,20 @@ export const StreetView = (props: StreetViewProps) => {
         clearTimers();
         sentRef.current = next;
         sentAtRef.current = Date.now();
+        pendingRef.current = undefined;
         setApplied(next);
 
+        const attempt = loadedRef.current ? 0 : attemptsRef.current + 1;
+        if (!loadedRef.current)
+            attemptsRef.current = attempt;
+
         // steady-state updates are already logged by the service - only log what the service
-        // cannot see, i.e. everything around an initial load that has not completed yet
+        // cannot see, i.e. everything around a load that has not completed yet
         if (!loadedRef.current || reason !== 'update') {
             logEvent({
                 message: 'streetview position applied',
                 reason,
+                attempt: attempt || undefined,
                 lat: next.lat,
                 lng: next.lng,
                 heading: next.heading,
@@ -116,7 +147,7 @@ export const StreetView = (props: StreetViewProps) => {
         }
 
         if (!loadedRef.current)
-            armWatchdog(next);
+            armWatchdog(next, attempt);
     }, [clearTimers, armWatchdog, logEvent]);
 
     useEffect(() => {
@@ -125,12 +156,17 @@ export const StreetView = (props: StreetViewProps) => {
         if (samePosition(position, sentRef.current))
             return;
 
-        // While the first panorama is still in flight, queue the update instead of sending it:
-        // every setPosition() supersedes the outstanding request, so a stream of updates on a
-        // slow connection can keep the initial load from ever completing.
+        // While a panorama is still in flight, queue the update instead of sending it: every
+        // setPosition() supersedes the outstanding request, so a stream of updates on a slow
+        // connection can keep the load from ever completing. Past STALE_AFTER the request is
+        // no longer treated as in-flight - on a device where the panorama never resolves,
+        // holding updates back forever would stop the view from ever trying again.
         if (!loadedRef.current && sentRef.current) {
-            pendingRef.current = position;
-            return;
+            const age = Date.now() - (sentAtRef.current ?? 0);
+            if (age < STALE_AFTER) {
+                pendingRef.current = position;
+                return;
+            }
         }
 
         applyPosition(position, sentRef.current ? 'update' : 'initial');
@@ -148,7 +184,7 @@ export const StreetView = (props: StreetViewProps) => {
 
         loadedRef.current = true;
         clearTimers();
-        logEvent({message:'streetview loaded', elapsed, retries: retriesRef.current})
+        logEvent({message:'streetview loaded', elapsed, attempts: attemptsRef.current, retries: retriesRef.current})
         onLoaded?.();
 
         const pending = pendingRef.current;

@@ -93,6 +93,43 @@ it('retries the position when the initial load never completes', () => {
     }
 });
 
+it('keeps applying position updates when the load never completes', () => {
+    // On a device whose panorama never resolves, holding updates back forever would leave the
+    // view making no attempts at all once the retries are exhausted - worse than not gating.
+    jest.useFakeTimers();
+    try {
+        const result = render(<StreetView position={P1} />);
+        act(() => { jest.advanceTimersByTime(60000); });
+
+        // the ride is running now, so position updates keep arriving
+        for (let i = 1; i <= 6; i++) {
+            result.rerender(<StreetView position={{ ...P2, lat: P2.lat + i * 0.0001 }} />);
+            act(() => { jest.advanceTimersByTime(3000); });
+        }
+
+        // the view must have moved on from where it started, not stayed stuck on it
+        expect(nativeProps(result).latitude).not.toBeCloseTo(P1.lat, 3);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
+it('still holds back an update that arrives while a load is genuinely in flight', () => {
+    jest.useFakeTimers();
+    try {
+        const result = render(<StreetView position={P1} />);
+        act(() => { jest.advanceTimersByTime(1000); });
+
+        result.rerender(<StreetView position={P2} />);
+
+        expect(nativeProps(result).latitude).toBe(P1.lat);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
 it('stops retrying once loaded', () => {
     jest.useFakeTimers();
     try {
