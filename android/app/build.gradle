@@ -29,6 +29,35 @@ def getEnv = { propName ->
 }
 
 /**
+ * A release build with an empty MAPS_API_KEY looks completely healthy: it compiles, installs,
+ * and the Maps SDK initialises — but every Street View panorama request is rejected, so the
+ * ride screen stays black and nothing reports why. That shipped to production undetected
+ * because `getEnv("MAPS_API_KEY") ?: ""` substituted an empty string in silence.
+ *
+ * Release builds now fail instead. Debug/dev builds only warn, so the app can still be built
+ * without a local .env — Street View is simply unavailable in those builds.
+ */
+gradle.taskGraph.whenReady { graph ->
+    if (getEnv("MAPS_API_KEY"))
+        return
+
+    // Matched on the release variant's own tasks, not on "release" anywhere in the name:
+    // the dev variant is `initWith release` and pulls in preReleaseBuild, so a substring
+    // match would block every dev build made without a .env.
+    def releaseTask = graph.allTasks.find { it.name ==~ /(?i)^(assemble|bundle|install|package)Release$/ }
+    if (releaseTask != null) {
+        throw new GradleException(
+            "MAPS_API_KEY is not set, and a release build with an empty Maps API key breaks " +
+            "Street View silently (black ride screen, no error). Set it in .env for local " +
+            "builds, or as a repository secret wired into the workflow env for CI " +
+            "(see .github/workflows/upload-google-play.yml). Triggered by task '${releaseTask.name}'."
+        )
+    }
+
+    logger.warn("MAPS_API_KEY is not set — Street View will not work in this build")
+}
+
+/**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
