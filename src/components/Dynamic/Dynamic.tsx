@@ -1,6 +1,9 @@
 import React, { useRef, useState, useEffect, ReactElement } from 'react';
+import { StyleSheet } from 'react-native';
 import { IObserver } from 'incyclist-services';
 import { useUnmountEffect } from '../../hooks';
+
+const HIDDEN_STYLE = { opacity: 0 };
 
 interface DynamingMapping {
     event: string;
@@ -99,13 +102,19 @@ export const Dynamic = (props: DynamicProps) => {
     });
 
     const staticProps = copyPropsExcluding(props, EXCLUDED_PROPS);
-    const extraStyle = hidden ? { opacity: 0 } : {};
 
     const renderChild = (child: ReactElement<any>) => {
         if (!child) return null;
-        
-        const childStyle = { ...((child.props as any).style ?? {}), ...extraStyle };
-        
+
+        // Pass the child's own style through untouched unless something has to be merged into
+        // it: a fresh object on every render changes the prop identity, which defeats any
+        // React.memo on the child and makes render tracing useless. flatten() (rather than an
+        // array) keeps the result a plain object, which not every child tolerates as an array.
+        const ownStyle = (child.props as any).style;
+        const childStyle = hidden
+            ? StyleSheet.flatten([ownStyle, HIDDEN_STYLE])
+            : ownStyle;
+
         return React.cloneElement(child, {
             ...staticProps,
             ...dynamicProps,
