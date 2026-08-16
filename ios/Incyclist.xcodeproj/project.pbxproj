@@ -151,6 +151,7 @@
 				111AB9066C5B03E6B2B5F495 /* [CP] Embed Pods Frameworks */,
 				A02DFD0BB3853B2DE54C92DA /* [CP] Copy Pods Resources */,
 				DF8D2F962F79AF1F00E245DB /* ShellScript */,
+				DFA5700A2FB3000000000010 /* [Incyclist] Write Maps API key */,
 			);
 			buildRules = (
 			);
@@ -308,6 +309,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		DFA5700A2FB3000000000010 /* [Incyclist] Write Maps API key */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[Incyclist] Write Maps API key";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/write-maps-key.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
