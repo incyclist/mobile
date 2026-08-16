@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions  } from 'react-native';
 import {
     IObserver,
@@ -180,21 +180,27 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // StreetViewEvent vocabulary here, so `onStreetViewEvent()` stays a single code path for
     // both platforms.
     //
+    // The service re-binds onDisplayEvent on every getDisplayProperties() call, so it is held
+    // in a ref: handlers that changed identity on every page update would push new props to
+    // the native view roughly once a second and drown the render trace in noise.
+    const displayEventRef = useRef(onDisplayEvent);
+    displayEventRef.current = onDisplayEvent;
+
     // 'Loaded' is what releases the start overlay - without it the overlay used to be torn
     // down onto a panorama that had not loaded yet, i.e. a black screen.
     const onSVLoaded = useCallback(() => {
-        onDisplayEvent?.('Loaded')
-    }, [onDisplayEvent]);
+        displayEventRef.current?.('Loaded')
+    }, []);
 
     // confirms a position update actually rendered - feeds the service's adaptive update delay
     const onSVPanoramaChanged = useCallback(() => {
-        onDisplayEvent?.('pano_changed')
-    }, [onDisplayEvent]);
+        displayEventRef.current?.('pano_changed')
+    }, []);
 
     // no imagery at the requested position: a valid answer, not a failure
     const onSVNoPanorama = useCallback(() => {
-        onDisplayEvent?.('status_changed')
-    }, [onDisplayEvent]);
+        displayEventRef.current?.('status_changed')
+    }, []);
 
     // Deliberately NOT reported as 'Error': the native 'unavailable' reason is only a timeout
     // and the panorama may still arrive, while a mapStateError puts the start overlay into a
