@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions  } from 'react-native';
 import {
     IObserver,
@@ -81,8 +81,24 @@ const SV = React.memo(StreetView
 // comparisons below as having no overlap.
 const M1_VERIFY_STREETVIEW: boolean = true;
 
-/** Times Square — dense, guaranteed Street View coverage. Matches StreetViewDemoPage. */
-const M1_TEST_POSITION: IPosition = { lat: 40.758, lng: -73.9855, heading: 0 };
+/**
+ * Cycled every M1_CYCLE_MS so position updates are actually exercised. A single
+ * fixed position cannot answer the two questions that matter on a ride screen:
+ * whether the SDK's loading indicator reappears on every panorama change, and
+ * how long an update round-trip takes on the slowest device this will ever run
+ * on. It also exercises onPanoramaChanged, which a static position never fires.
+ *
+ * Same coordinates as StreetViewDemoPage: dense, guaranteed coverage, and two
+ * distinct locations so both a heading-only change and a real move are covered.
+ */
+const M1_TEST_POSITIONS: IPosition[] = [
+    { lat: 40.758,  lng: -73.9855, heading: 0 },    // Times Square, N
+    { lat: 40.758,  lng: -73.9855, heading: 90 },   // Times Square, E — heading only
+    { lat: 40.7589, lng: -73.9851, heading: 0 },    // ~100m up 7th Ave — real move
+    { lat: 51.5055, lng: -0.0754,  heading: 0 },    // Tower Bridge — long jump
+];
+
+const M1_CYCLE_MS = 5000;
 
 export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const {
@@ -111,6 +127,17 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // full-screen map today ("currently also draw sv and sat as map - to be replaced later"), so that
     // predicate would double-render a map on top of a map. Update to
     // `rideView === 'sv' || rideView === 'sat'` once SatelliteView is a real, distinct view.
+    // TEMPORARY (M1/M2): cycles the forced position. Revert with the M1 block.
+    const [m1Index, setM1Index] = useState(0);
+    useEffect(() => {
+        if (!M1_VERIFY_STREETVIEW) return;
+        const timer = setInterval(
+            () => setM1Index(i => (i + 1) % M1_TEST_POSITIONS.length),
+            M1_CYCLE_MS,
+        );
+        return () => clearInterval(timer);
+    }, []);
+
     const mainViewIsNotAMap = rideView === 'sv';
 
     // TEMPORARY (M1): used ONLY to suppress the full-screen map layer, which is a
@@ -249,7 +276,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                 closes the overlay when 'Loaded' arrives. */}
             { (M1_VERIFY_STREETVIEW) && (
                 <SV
-                    position={M1_TEST_POSITION}
+                    position={M1_TEST_POSITIONS[m1Index]}
                     style={styles.fullScreenMap}
                     onLoaded={onSVLoaded}
                     onPanoramaChanged={onSVPanoramaChanged}
