@@ -16,6 +16,7 @@
 		DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */; };
 		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
 		DF6FB3E12F76C8C300067D3E /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 545B78D46B72D3C354028E49 /* MapLibre */; };
+		DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */ = {isa = PBXBuildFile; fileRef = DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,8 @@
 		DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderAccessModule.m; sourceTree = "<group>"; };
 		DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderAccessModule.swift; sourceTree = "<group>"; };
 		DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "incyclist--Bridging-Header.h"; sourceTree = "<group>"; };
+		DFA5700A2FB3000000000002 /* RCTStreetViewComponentView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTStreetViewComponentView.h; sourceTree = "<group>"; };
+		DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RCTStreetViewComponentView.mm; sourceTree = "<group>"; };
 		DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Incyclist.entitlements; path = Incyclist/Incyclist.entitlements; sourceTree = "<group>"; };
 		E9D6821723439ED529EBAFF2 /* Pods-Incyclist.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.debug.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -62,6 +65,7 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				DF2F0E632FA9F4D700340FFD /* FolderAccess */,
+				DFA5700A2FB3000000000001 /* StreetView */,
 			);
 			name = Incyclist;
 			sourceTree = "<group>";
@@ -121,6 +125,15 @@
 				DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */,
 			);
 			path = FolderAccess;
+			sourceTree = "<group>";
+		};
+		DFA5700A2FB3000000000001 /* StreetView */ = {
+			isa = PBXGroup;
+			children = (
+				DFA5700A2FB3000000000002 /* RCTStreetViewComponentView.h */,
+				DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */,
+			);
+			path = StreetView;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -308,6 +321,7 @@
 				DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */,
+				DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

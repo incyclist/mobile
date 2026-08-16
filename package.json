@@ -126,6 +126,11 @@
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.incyclist.app"
+    },
+    "ios": {
+      "componentProvider": {
+        "StreetView": "RCTStreetViewComponentView"
+      }
     }
   }
 }
