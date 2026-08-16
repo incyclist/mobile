@@ -1,6 +1,7 @@
 package com.incyclist.app
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -128,6 +129,7 @@ class StreetViewManager(
         // Whether the Maps SDK is healthy on this device is the main open question for the
         // black-screen reports, so every instance reports what it is working with.
         emitLog(view, "createViewInstance", mapOf(
+            "apiKey" to apiKeyState(context),
             "mapsInit" to mapsInitResult,
             "mapsInitName" to connectionResultName(mapsInitResult),
             "renderer" to (activeRenderer ?: "pending"),
@@ -230,6 +232,30 @@ class StreetViewManager(
         } catch (t: Throwable) {
             mapsInitError = t.message
             mapsInitResult = INIT_THREW
+        }
+    }
+
+    /**
+     * Whether the manifest carries a Maps API key at all — reported as present/missing, never
+     * the value itself.
+     *
+     * This exists because released builds shipped `android:value=""` for months: the key was
+     * absent from CI and the Gradle build substituted an empty string. An empty key produces
+     * a build that initialises cleanly and then has every panorama request rejected, so the
+     * ride screen was black with nothing anywhere saying why. One line here would have made
+     * that obvious from the first user report.
+     */
+    private fun apiKeyState(context: Context): String {
+        return try {
+            @Suppress("DEPRECATION")
+            val info = context.packageManager.getApplicationInfo(
+                context.packageName,
+                PackageManager.GET_META_DATA,
+            )
+            val key = info.metaData?.getString(API_KEY_META_DATA)
+            if (key.isNullOrBlank()) "missing" else "present"
+        } catch (t: Throwable) {
+            "unreadable"
         }
     }
 
@@ -508,6 +534,7 @@ class StreetViewManager(
 
         private const val PANORAMA_SEARCH_RADIUS = 50
         private const val PLAY_SERVICES_PACKAGE = "com.google.android.gms"
+        private const val API_KEY_META_DATA = "com.google.android.geo.API_KEY"
 
         /** sentinel for "MapsInitializer.initialize threw", which has no ConnectionResult */
         private const val INIT_THREW = -1
