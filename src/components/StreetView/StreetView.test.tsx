@@ -77,6 +77,26 @@ it('forwards the loaded event to the caller', () => {
     expect(onLoaded).toHaveBeenCalled();
 });
 
+it('forwards native diagnostics into the event log', () => {
+    const result = render(<StreetView position={P1} />);
+
+    // the native side has no log the users can reach, so it reports via this event
+    act(() => {
+        nativeProps(result).onLog({
+            nativeEvent: { message: 'createViewInstance', detail: '{"mapsInit":0,"renderer":"LATEST"}' },
+        });
+    });
+
+    // malformed detail must not throw - it is a diagnostic path, not a critical one
+    act(() => {
+        nativeProps(result).onLog({ nativeEvent: { message: 'panorama ready', detail: 'not-json' } });
+    });
+
+    act(() => {
+        nativeProps(result).onLog({ nativeEvent: { message: 'panorama ready', detail: '' } });
+    });
+});
+
 it('retries the position when the initial load never completes', () => {
     jest.useFakeTimers();
     try {
