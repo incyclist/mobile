@@ -58,6 +58,32 @@ const SV = React.memo(StreetView
 //    ,(prev,next)=>prev.position?.lat!==next.position?.lat || prev.position?.lng!==next.position?.lng || prev.position?.heading!==next.position?.heading
 )
 
+/**
+ * TEMPORARY — M1 verification on iOS. REVERT BEFORE MERGE.
+ *
+ * incyclist-services gates Street View off for iOS in two places
+ * (settings/display/ride/service.ts:63 and :79), so 'sv' is never offered in
+ * ride settings, and getDisplayProperties() consequently never calls
+ * getStreetViewProps() — meaning no Street View position is supplied either.
+ * Both have to be bypassed to get the native component on screen at all.
+ *
+ * This flag renders the native component directly with a fixed position,
+ * deliberately skipping the observer/Dynamic plumbing. M1 asks one question —
+ * does the native component register, mount and emit its diagnostics — and
+ * routing that through service code that is still gated off would answer a
+ * different one.
+ *
+ * Delete this block, `effectiveRideView`, and the M1 branch in the render once
+ * the services gate is lifted.
+ */
+// Annotated `boolean`, not left to inference: as a `true` literal TypeScript
+// narrows effectiveRideView to 'sv' and then rejects the 'map'/'sat'
+// comparisons below as having no overlap.
+const M1_VERIFY_STREETVIEW: boolean = true;
+
+/** Times Square — dense, guaranteed Street View coverage. Matches StreetViewDemoPage. */
+const M1_TEST_POSITION: IPosition = { lat: 40.758, lng: -73.9855, heading: 0 };
+
 export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const {
         displayProps,
@@ -86,6 +112,12 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // predicate would double-render a map on top of a map. Update to
     // `rideView === 'sv' || rideView === 'sat'` once SatelliteView is a real, distinct view.
     const mainViewIsNotAMap = rideView === 'sv';
+
+    // TEMPORARY (M1): used ONLY to suppress the full-screen map layer, which is a
+    // later absolute-fill sibling and would otherwise paint over the Street View.
+    // Deliberately not used for mainViewIsNotAMap — the corner-map logic is no part
+    // of what M1 verifies, and overriding it there just breaks its tests.
+    const effectiveRideView = M1_VERIFY_STREETVIEW ? 'sv' : rideView;
 
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
@@ -215,7 +247,17 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                 being gone guaranteed the rider saw an empty screen for the whole load. It now
                 loads behind the overlay (which covers it via MainBackground) and the service
                 closes the overlay when 'Loaded' arrives. */}
-            { (rideView === 'sv') && (
+            { (M1_VERIFY_STREETVIEW) && (
+                <SV
+                    position={M1_TEST_POSITION}
+                    style={styles.fullScreenMap}
+                    onLoaded={onSVLoaded}
+                    onPanoramaChanged={onSVPanoramaChanged}
+                    onNoPanorama={onSVNoPanorama}
+                />
+            )}
+
+            { (!M1_VERIFY_STREETVIEW && rideView === 'sv') && (
                 <Dynamic
                     observer={displayObserver}
                     event='position-update'
@@ -236,7 +278,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
             {!startOverlayProps && (
                 <View style={StyleSheet.absoluteFill}>
                     {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
-                    { (rideView === 'map' || rideView === 'sat') && (
+                    { (effectiveRideView === 'map' || effectiveRideView === 'sat') && (
                         <Dynamic
                             observer={rideObserver ?? undefined}
                             event='position-update'
