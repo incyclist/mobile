@@ -176,17 +176,19 @@ class StreetViewManager(
     }
 
     /**
-     * Props arrive one at a time, each as its own call. Applying the position from the
-     * individual setters therefore issued setPosition() once per prop — twice for a single
-     * position update, the second superseding the first. Applying once per transaction
-     * instead means one request per update.
+     * Used only to release the logs buffered during createViewInstance — this is the first
+     * point at which the view has a React tag and can carry an event.
+     *
+     * Applying the position here instead of from the individual prop setters would be the
+     * better behaviour (setters issue setPosition once per prop, so a position update sends
+     * two requests, the second superseding the first), but that is a behavioural change on a
+     * path with no automated coverage: if this hook does not fire as expected the panorama
+     * loads and then silently stops following the rider. Not worth risking in a build whose
+     * job is to carry diagnostics, so it is deliberately left alone here.
      */
     override fun onAfterUpdateTransaction(view: StreetViewPanoramaView) {
         super.onAfterUpdateTransaction(view)
-
-        // first point at which the view has a React tag and can carry its buffered logs
         flushPendingLogs(view)
-        states[view]?.applyIfReady(view)
     }
 
     override fun onDropViewInstance(view: StreetViewPanoramaView) {
@@ -319,22 +321,26 @@ class StreetViewManager(
     }
 
     // ── Props ─────────────────────────────────────────────────────────────
-    // Setters only record the value; the position is applied once per transaction in
-    // onAfterUpdateTransaction.
 
     @ReactProp(name = "latitude", defaultDouble = 0.0)
     override fun setLatitude(view: StreetViewPanoramaView, value: Double) {
-        states[view]?.pendingLat = value
+        val state = states[view] ?: return
+        state.pendingLat = value
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "longitude", defaultDouble = 0.0)
     override fun setLongitude(view: StreetViewPanoramaView, value: Double) {
-        states[view]?.pendingLng = value
+        val state = states[view] ?: return
+        state.pendingLng = value
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "heading", defaultDouble = 0.0)
     override fun setHeading(view: StreetViewPanoramaView, value: Double) {
-        states[view]?.pendingHeading = value
+        val state = states[view] ?: return
+        state.pendingHeading = value
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "readyTimeout", defaultDouble = DEFAULT_READY_TIMEOUT_MS.toDouble())
@@ -366,10 +372,6 @@ class StreetViewManager(
         var pendingLng: Double? = null
         var pendingHeading: Double? = null
 
-        // Last position actually requested, so an unchanged position is not re-requested.
-        var appliedLat: Double? = null
-        var appliedLng: Double? = null
-
         // Timeout configuration — overridable via props.
         var readyTimeoutMs: Long = DEFAULT_READY_TIMEOUT_MS
         var positionTimeoutMs: Long = DEFAULT_POSITION_TIMEOUT_MS
@@ -392,29 +394,22 @@ class StreetViewManager(
             if (requestedAt == 0L) -1 else System.currentTimeMillis() - requestedAt
 
         /**
-         * Apply pending lat/lng/heading to the panorama if it is ready. Called once per prop
-         * transaction and from the getStreetViewPanoramaAsync callback (panorama just became
-         * ready).
+         * Apply pending lat/lng/heading to the panorama if it is ready. Called from prop
+         * setters (panorama may not be ready yet) and from the getStreetViewPanoramaAsync
+         * callback (panorama just became ready).
          *
          * Position timeout is armed on each setPosition call and cancelled when
          * OnStreetViewPanoramaChangeListener fires.
+         *
+         * Skipping a request for a position the panorama already shows would avoid arming
+         * the timeout against what the SDK may treat as a no-op, but that is a behavioural
+         * change and this build is meant to carry diagnostics only.
          */
         fun applyIfReady(view: StreetViewPanoramaView) {
             val p = panorama ?: return
             val lat = pendingLat ?: return
             val lng = pendingLng ?: return
 
-            // Re-requesting a position the panorama already shows can be treated as a no-op
-            // by the SDK, which would leave the timeout below to expire against nothing.
-            // Only safe once a panorama has actually loaded: before that, re-requesting is
-            // the only recovery available.
-            if (licenseConsumed && lat == appliedLat && lng == appliedLng) {
-                applyHeading(p)
-                return
-            }
-
-            appliedLat = lat
-            appliedLng = lng
             requestedAt = System.currentTimeMillis()
 
             // Arm (or re-arm) the position timeout before calling setPosition.
