@@ -103,9 +103,15 @@ export const Dynamic = (props: DynamicProps) => {
 
     const renderChild = (child: ReactElement<any>) => {
         if (!child) return null;
-        
-        const childStyle = { ...((child.props as any).style ?? {}), ...extraStyle };
-        
+
+        // Reuse the child's own style object when there is nothing to merge into it: a fresh
+        // object on every render changes the prop identity, which defeats any React.memo on
+        // the child and makes render tracing useless.
+        const ownStyle = (child.props as any).style;
+        const childStyle = hidden
+            ? { ...(ownStyle ?? {}), ...extraStyle }
+            : ownStyle;
+
         return React.cloneElement(child, {
             ...staticProps,
             ...dynamicProps,
