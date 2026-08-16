@@ -223,6 +223,27 @@ export const StreetView = (props: StreetViewProps) => {
         [onError,logEvent],
     );
 
+    // The native side cannot log anywhere the users can reach - they cannot produce adb
+    // logs - so it reports diagnostics as events and they are logged from here instead.
+    const handleNativeLog = useCallback(
+        (event: NativeSyntheticEvent<{ message: string, detail: string }>) => {
+            const {message, detail} = event.nativeEvent;
+
+            let extra = {};
+            if (detail) {
+                try {
+                    extra = JSON.parse(detail);
+                }
+                catch {
+                    extra = {detail};
+                }
+            }
+
+            logEvent({message: 'streetview native', event: message, ...extra});
+        },
+        [logEvent],
+    );
+
     const handleLayout = useCallback((event: LayoutChangeEvent) => {
         const {width, height} = event.nativeEvent.layout;
         const prev = sizeRef.current;
@@ -254,6 +275,7 @@ export const StreetView = (props: StreetViewProps) => {
             onNoPanorama={handleNoPanorama}
             onPanoramaChanged={handlePanoramaChanged}
             onError={handleNativeError}
+            onLog={handleNativeLog}
             onLayout={handleLayout}
             style={mergedStyle}
         />

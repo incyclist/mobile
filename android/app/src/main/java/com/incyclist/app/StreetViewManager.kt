@@ -1,10 +1,13 @@
 package com.incyclist.app
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
@@ -12,14 +15,16 @@ import com.facebook.react.uimanager.ViewManagerDelegate
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
-import com.facebook.react.uimanager.events.EventDispatcher
 import com.facebook.react.viewmanagers.StreetViewManagerDelegate
 import com.facebook.react.viewmanagers.StreetViewManagerInterface
+import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.maps.MapsInitializer
+import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import com.google.android.gms.maps.StreetViewPanorama
 import com.google.android.gms.maps.StreetViewPanoramaView
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.StreetViewPanoramaCamera
+import org.json.JSONObject
 import java.util.WeakHashMap
 
 /**
@@ -64,17 +69,23 @@ import java.util.WeakHashMap
  *                     Fires throughout the component lifetime — the service
  *                     layer decides whether to act on single vs recurring errors.
  *
- * ── Timeout props ────────────────────────────────────────────────────────
+ * onLog               Diagnostics for the JS layer to forward to the app's own
+ *                     event log. See "Logging" below.
  *
- * readyTimeout        ms to wait for getStreetViewPanoramaAsync. Default 10000.
- *                     Cancelled when panorama ready callback fires.
- *                     Fires onError('unknown') on expiry.
+ * ── Logging ──────────────────────────────────────────────────────────────
  *
- * positionTimeout     ms to wait for OnStreetViewPanoramaChangeListener after
- *                     setPosition. Default 2000. Cancelled the moment the
- *                     change listener fires (null or non-null).
- *                     Fires onError('unavailable') on expiry.
- *                     Should be set below the position update interval.
+ * This component must never use android.util.Log for anything we actually need
+ * to see: the users hitting Street View problems are non-technical and cannot
+ * produce adb logs, so anything logged that way is invisible in practice.
+ * Everything diagnostic is emitted as onLog and ends up in the app's event log.
+ *
+ * The one exception is a failure of the event pipeline itself (see emitEvent) —
+ * an event cannot report that events are broken.
+ *
+ * Logs raised before the view has a React tag (createViewInstance runs before
+ * the tag is assigned) are buffered in PanoramaState and flushed from
+ * onAfterUpdateTransaction, which is the first point at which the view is
+ * addressable.
  *
  * ── Teardown / black screen workaround ───────────────────────────────────
  *
@@ -105,42 +116,50 @@ class StreetViewManager(
     override fun getName(): String = NAME
 
     override fun createViewInstance(context: ThemedReactContext): StreetViewPanoramaView {
-        android.util.Log.d(TAG, "createViewInstance")
-
-        try {
-            MapsInitializer.initialize(context.applicationContext)
-        } catch (t: Throwable) {
-            android.util.Log.w(TAG, "MapsInitializer.initialize threw: ${t.message}")
-        }
+        initializeMaps(context)
 
         val view = StreetViewPanoramaView(context)
+        val state = PanoramaState()
+        states[view] = state
+
         view.visibility = View.INVISIBLE // black-screen workaround companion
         view.onCreate(null)
         view.onResume()
 
-        val state = PanoramaState()
-        states[view] = state
+        // Whether the Maps SDK is healthy on this device is the main open question for the
+        // black-screen reports, so every instance reports what it is working with.
+        emitLog(view, "createViewInstance", mapOf(
+            "apiKey" to apiKeyState(context),
+            "mapsInit" to mapsInitResult,
+            "mapsInitName" to connectionResultName(mapsInitResult),
+            "renderer" to (activeRenderer ?: "pending"),
+            "playServices" to playServicesVersion(context),
+        ))
 
         // Arm the ready timeout. Cancelled when getStreetViewPanoramaAsync fires.
         val readyTimeoutRunnable = Runnable {
-            android.util.Log.d(TAG, "ready timeout expired")
+            emitLog(view, "ready timeout expired", mapOf("timeout" to state.readyTimeoutMs))
             emitError(view, "unknown")
         }
         state.readyTimeoutRunnable = readyTimeoutRunnable
         mainHandler.postDelayed(readyTimeoutRunnable, state.readyTimeoutMs)
 
         view.getStreetViewPanoramaAsync { panorama ->
-            android.util.Log.d(TAG, "onStreetViewPanoramaReady")
-
             // Cancel ready timeout — SDK is functional.
             state.readyTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
             state.readyTimeoutRunnable = null
 
             state.panorama = panorama
 
+            emitLog(view, "panorama ready", mapOf(
+                "renderer" to (activeRenderer ?: "unknown"),
+                "width" to view.width,
+                "height" to view.height,
+            ))
+
             panorama.isStreetNamesEnabled = false
             panorama.isZoomGesturesEnabled = false
-            panorama.isPanningGesturesEnabled = false            
+            panorama.isPanningGesturesEnabled = false
             panorama.isUserNavigationEnabled = false
 
             // Listen for panorama location changes. This is the primary signal
@@ -150,14 +169,29 @@ class StreetViewManager(
             }
 
             view.visibility = View.VISIBLE
-            state.applyIfReady()
+            state.applyIfReady(view)
         }
 
         return view
     }
 
+    /**
+     * Used only to release the logs buffered during createViewInstance — this is the first
+     * point at which the view has a React tag and can carry an event.
+     *
+     * Applying the position here instead of from the individual prop setters would be the
+     * better behaviour (setters issue setPosition once per prop, so a position update sends
+     * two requests, the second superseding the first), but that is a behavioural change on a
+     * path with no automated coverage: if this hook does not fire as expected the panorama
+     * loads and then silently stops following the rider. Not worth risking in a build whose
+     * job is to carry diagnostics, so it is deliberately left alone here.
+     */
+    override fun onAfterUpdateTransaction(view: StreetViewPanoramaView) {
+        super.onAfterUpdateTransaction(view)
+        flushPendingLogs(view)
+    }
+
     override fun onDropViewInstance(view: StreetViewPanoramaView) {
-        android.util.Log.d(TAG, "onDropViewInstance")
         val state = states[view]
         if (state != null) {
             // Cancel any pending timeouts to avoid firing events after teardown.
@@ -169,10 +203,82 @@ class StreetViewManager(
             view.onPause()
             view.onDestroy()
         } catch (t: Throwable) {
-            android.util.Log.w(TAG, "lifecycle teardown threw: ${t.message}")
+            emitLog(view, "lifecycle teardown threw", mapOf("error" to t.message))
         }
         states.remove(view)
         super.onDropViewInstance(view)
+    }
+
+    // ── Maps SDK initialisation ───────────────────────────────────────────
+
+    /**
+     * MapsInitializer is process-global and only takes effect on its first call, so the
+     * result and the renderer that was actually selected are cached for every later view.
+     *
+     * The renderer matters: the black screen we are chasing looks exactly like the panorama
+     * pipeline stalling on a specific device, and RENDERER_PREFERENCE is the one lever we
+     * have over it. The previous code used the deprecated single-argument overload and threw
+     * the ConnectionResult away, so a degraded Play Services install was indistinguishable
+     * from a healthy one.
+     */
+    private fun initializeMaps(context: Context) {
+        if (mapsInitResult != null)
+            return
+
+        try {
+            mapsInitResult = MapsInitializer.initialize(
+                context.applicationContext,
+                RENDERER_PREFERENCE,
+                OnMapsSdkInitializedCallback { renderer -> activeRenderer = renderer.name }
+            )
+        } catch (t: Throwable) {
+            mapsInitError = t.message
+            mapsInitResult = INIT_THREW
+        }
+    }
+
+    /**
+     * Whether the manifest carries a Maps API key at all — reported as present/missing, never
+     * the value itself.
+     *
+     * This exists because released builds shipped `android:value=""` for months: the key was
+     * absent from CI and the Gradle build substituted an empty string. An empty key produces
+     * a build that initialises cleanly and then has every panorama request rejected, so the
+     * ride screen was black with nothing anywhere saying why. One line here would have made
+     * that obvious from the first user report.
+     */
+    private fun apiKeyState(context: Context): String {
+        return try {
+            @Suppress("DEPRECATION")
+            val info = context.packageManager.getApplicationInfo(
+                context.packageName,
+                PackageManager.GET_META_DATA,
+            )
+            val key = info.metaData?.getString(API_KEY_META_DATA)
+            if (key.isNullOrBlank()) "missing" else "present"
+        } catch (t: Throwable) {
+            "unreadable"
+        }
+    }
+
+    private fun playServicesVersion(context: Context): String {
+        return try {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(PLAY_SERVICES_PACKAGE, 0).versionName ?: "unknown"
+        } catch (t: Throwable) {
+            "missing"
+        }
+    }
+
+    private fun connectionResultName(result: Int?): String = when (result) {
+        null -> "not-initialised"
+        ConnectionResult.SUCCESS -> "success"
+        ConnectionResult.SERVICE_MISSING -> "service-missing"
+        ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> "update-required"
+        ConnectionResult.SERVICE_DISABLED -> "service-disabled"
+        ConnectionResult.SERVICE_INVALID -> "service-invalid"
+        INIT_THREW -> "threw: ${mapsInitError ?: "unknown"}"
+        else -> "code-$result"
     }
 
     // ── Panorama change handler ────────────────────────────────────────────
@@ -193,6 +299,12 @@ class StreetViewManager(
             // First change event ever — emit license + loaded, then conditionally
             // noPanorama. onPanoramaChanged does NOT fire on initial load.
             state.licenseConsumed = true
+            emitLog(view, "first panorama change", mapOf(
+                "hasImagery" to hasImagery,
+                "elapsed" to state.elapsedSinceRequest(),
+                "width" to view.width,
+                "height" to view.height,
+            ))
             emitEvent(view, EVENT_LICENSE_CONSUMED, null)
             emitEvent(view, EVENT_LOADED, null)
             if (!hasImagery) {
@@ -214,21 +326,21 @@ class StreetViewManager(
     override fun setLatitude(view: StreetViewPanoramaView, value: Double) {
         val state = states[view] ?: return
         state.pendingLat = value
-        state.applyIfReady()
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "longitude", defaultDouble = 0.0)
     override fun setLongitude(view: StreetViewPanoramaView, value: Double) {
         val state = states[view] ?: return
         state.pendingLng = value
-        state.applyIfReady()
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "heading", defaultDouble = 0.0)
     override fun setHeading(view: StreetViewPanoramaView, value: Double) {
         val state = states[view] ?: return
         state.pendingHeading = value
-        state.applyIfReady()
+        state.applyIfReady(view)
     }
 
     @ReactProp(name = "readyTimeout", defaultDouble = DEFAULT_READY_TIMEOUT_MS.toDouble())
@@ -273,43 +385,61 @@ class StreetViewManager(
         // whether subsequent changes emit onPanoramaChanged vs initial events.
         var licenseConsumed: Boolean = false
 
+        // Logs raised before the view was addressable.
+        val pendingLogs = mutableListOf<WritableMap>()
+
+        var requestedAt: Long = 0
+
+        fun elapsedSinceRequest(): Long =
+            if (requestedAt == 0L) -1 else System.currentTimeMillis() - requestedAt
+
         /**
-         * Apply pending lat/lng/heading to the panorama if it is ready.
-         * Called from prop setters (panorama may not be ready yet) and from
-         * the getStreetViewPanoramaAsync callback (panorama just became ready).
+         * Apply pending lat/lng/heading to the panorama if it is ready. Called from prop
+         * setters (panorama may not be ready yet) and from the getStreetViewPanoramaAsync
+         * callback (panorama just became ready).
          *
-         * Position timeout is armed on each setPosition call and cancelled
-         * when OnStreetViewPanoramaChangeListener fires.
+         * Position timeout is armed on each setPosition call and cancelled when
+         * OnStreetViewPanoramaChangeListener fires.
+         *
+         * Skipping a request for a position the panorama already shows would avoid arming
+         * the timeout against what the SDK may treat as a no-op, but that is a behavioural
+         * change and this build is meant to carry diagnostics only.
          */
-        fun applyIfReady() {
+        fun applyIfReady(view: StreetViewPanoramaView) {
             val p = panorama ?: return
             val lat = pendingLat ?: return
             val lng = pendingLng ?: return
 
+            requestedAt = System.currentTimeMillis()
+
             // Arm (or re-arm) the position timeout before calling setPosition.
             positionTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
             val timeoutRunnable = Runnable {
-                android.util.Log.d(TAG, "position timeout expired")
-                // Find the view associated with this state to emit the event.
-                val view = states.entries.firstOrNull { it.value === this }?.key
-                    ?: return@Runnable
+                emitLog(view, "position timeout expired", mapOf(
+                    "timeout" to positionTimeoutMs,
+                    "loaded" to licenseConsumed,
+                    "width" to view.width,
+                    "height" to view.height,
+                ))
                 emitError(view, "unavailable")
             }
             positionTimeoutRunnable = timeoutRunnable
             mainHandler.postDelayed(timeoutRunnable, positionTimeoutMs)
 
-            p.setPosition(LatLng(lat, lng), 50)
+            p.setPosition(LatLng(lat, lng), PANORAMA_SEARCH_RADIUS)
+            applyHeading(p)
+        }
 
-            val heading = pendingHeading
-            if (heading != null) {
-                val current = p.panoramaCamera
-                val newCamera = StreetViewPanoramaCamera.Builder(current)
-                    .bearing(heading.toFloat())
-                    .build()
-                // 300ms animation — smooth enough for verification; production
-                // wiring may want 0ms to track position tightly.
-                p.animateTo(newCamera, 0)
-            }
+        private fun applyHeading(p: StreetViewPanorama) {
+            val heading = pendingHeading ?: return
+            val current = p.panoramaCamera
+            if (current.bearing == heading.toFloat())
+                return
+
+            val newCamera = StreetViewPanoramaCamera.Builder(current)
+                .bearing(heading.toFloat())
+                .build()
+            p.animateTo(newCamera, 0)
         }
     }
 
@@ -322,10 +452,54 @@ class StreetViewManager(
         emitEvent(view, EVENT_ERROR, payload)
     }
 
+    /**
+     * Reports a diagnostic to the JS layer, which forwards it to the app's event log.
+     * Buffered while the view has no React tag yet — see "Logging" in the class docs.
+     */
+    private fun emitLog(
+        view: StreetViewPanoramaView,
+        message: String,
+        detail: Map<String, Any?> = emptyMap(),
+    ) {
+        val payload = Arguments.createMap().apply {
+            putString("message", message)
+            putString("detail", toJson(detail))
+        }
+
+        if (view.id == View.NO_ID) {
+            states[view]?.pendingLogs?.add(payload)
+            return
+        }
+
+        flushPendingLogs(view)
+        emitEvent(view, EVENT_LOG, payload)
+    }
+
+    private fun flushPendingLogs(view: StreetViewPanoramaView) {
+        val pending = states[view]?.pendingLogs ?: return
+        if (pending.isEmpty() || view.id == View.NO_ID)
+            return
+
+        val buffered = pending.toList()
+        pending.clear()
+        buffered.forEach { emitEvent(view, EVENT_LOG, it) }
+    }
+
+    private fun toJson(detail: Map<String, Any?>): String {
+        if (detail.isEmpty())
+            return ""
+
+        return try {
+            JSONObject(detail).toString()
+        } catch (t: Throwable) {
+            ""
+        }
+    }
+
     private fun emitEvent(
         view: StreetViewPanoramaView,
         eventName: String,
-        payload: com.facebook.react.bridge.WritableMap?,
+        payload: WritableMap?,
     ) {
         val context = view.context as? ThemedReactContext ?: return
         try {
@@ -339,6 +513,8 @@ class StreetViewManager(
                 }
             )
         } catch (t: Throwable) {
+            // Deliberately the one android.util.Log left: an event cannot report that the
+            // event pipeline is broken.
             android.util.Log.w(TAG, "emitEvent $eventName threw: ${t.message}")
         }
     }
@@ -351,11 +527,36 @@ class StreetViewManager(
         private const val DEFAULT_READY_TIMEOUT_MS = 10_000L
         private const val DEFAULT_POSITION_TIMEOUT_MS = 2_000L
 
+        private const val PANORAMA_SEARCH_RADIUS = 50
+        private const val PLAY_SERVICES_PACKAGE = "com.google.android.gms"
+        private const val API_KEY_META_DATA = "com.google.android.geo.API_KEY"
+
+        /** sentinel for "MapsInitializer.initialize threw", which has no ConnectionResult */
+        private const val INIT_THREW = -1
+
+        /**
+         * Renderer used for the Maps SDK. LATEST is the SDK default and is what the failing
+         * builds have been running; LEGACY is the fallback to try if the diagnostics show
+         * the panorama pipeline stalling with LATEST. Process-global and applied on first
+         * use, so this cannot be switched at runtime — changing it needs a new build.
+         */
+        private val RENDERER_PREFERENCE = MapsInitializer.Renderer.LATEST
+
+        @Volatile
+        private var mapsInitResult: Int? = null
+
+        @Volatile
+        private var mapsInitError: String? = null
+
+        @Volatile
+        private var activeRenderer: String? = null
+
         // Event name constants — must match the prop names in the Codegen spec.
         private const val EVENT_LICENSE_CONSUMED = "onLicenseConsumed"
         private const val EVENT_LOADED           = "onLoaded"
         private const val EVENT_NO_PANORAMA      = "onNoPanorama"
         private const val EVENT_PANORAMA_CHANGED = "onPanoramaChanged"
         private const val EVENT_ERROR            = "onError"
+        private const val EVENT_LOG              = "onLog"
     }
 }
