@@ -164,9 +164,20 @@ class StreetViewManager(
 
             // Listen for panorama location changes. This is the primary signal
             // for all position-related events.
-            panorama.setOnStreetViewPanoramaChangeListener { location ->
-                handlePanoramaChange(view, state, location)
-            }
+            //
+            // Deliberately routed through the Java NullSafeStreetViewPanoramaChangeListener
+            // shim rather than a Kotlin lambda/override: the SDK annotates this parameter
+            // @NonNull yet legitimately calls it with null when there is no Street View
+            // imagery at the requested position - that IS how "no panorama" is reported. A
+            // Kotlin implementation is forced to match the (incorrect) @NonNull annotation,
+            // and Kotlin's compiler then generates a null-check that crashes the app the
+            // moment the SDK does exactly what its own contract says it will. See the shim's
+            // class doc. handlePanoramaChange already expects and handles null (hasImagery).
+            panorama.setOnStreetViewPanoramaChangeListener(
+                NullSafeStreetViewPanoramaChangeListener { location ->
+                    handlePanoramaChange(view, state, location)
+                }
+            )
 
             view.visibility = View.VISIBLE
             state.applyIfReady(view)
