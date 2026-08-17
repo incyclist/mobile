@@ -26,7 +26,7 @@ jest.mock('react-native-default-preference', () => ({
 jest.mock('../../bindings/appInfo', () => ({
     isDevVariant: false,
     isProdVariant: true,
-    getAppInfoBinding: jest.fn(),
+    getAppVersion: jest.fn(),
 }));
 
 jest.mock('../../bindings/user-settings', () => ({
@@ -48,13 +48,13 @@ jest.mock('../../../app.json', () => ({
 }));
 
 import DefaultPreference from 'react-native-default-preference';
-import { getAppInfoBinding } from '../../bindings/appInfo';
+import { getAppVersion } from '../../bindings/appInfo';
 import { getUserSettingsBinding } from '../../bindings/user-settings';
 import { getSecret } from '../../bindings/secret';
 import { UpdateService } from './UpdateService';
 
 describe('UpdateService - x-app-version header', () => {
-    const NATIVE_VERSION = '9.9.9'; // the real installed native version, per DeviceInfo/getAppInfoBinding
+    const NATIVE_VERSION = '9.9.9'; // the real installed native version, per DeviceInfo/getAppVersion
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -66,9 +66,7 @@ describe('UpdateService - x-app-version header', () => {
 
         (getSecret as jest.Mock).mockReturnValue(undefined);
 
-        (getAppInfoBinding as jest.Mock).mockResolvedValue({
-            getAppVersion: () => NATIVE_VERSION,
-        });
+        (getAppVersion as jest.Mock).mockReturnValue(NATIVE_VERSION);
 
         (DefaultPreference.get as jest.Mock).mockResolvedValue(null);
 
