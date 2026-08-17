@@ -114,6 +114,16 @@ jobs:
 
       # ── Archive ─────────────────────────────────────────────────────────────
       - name: Archive
+        env:
+          # Read by ios/scripts/write-maps-key.sh, which writes GMSApiKey.plist
+          # into the built app. Without it the Release guard fails the archive
+          # deliberately: on Android an empty Maps key produced a build that
+          # installed and initialised cleanly, then had every Street View
+          # panorama request rejected, and shipped that way for months.
+          #
+          # The value never reaches the log — the build phase sets
+          # showEnvVarsInLog = 0 and the script reports presence only.
+          MAPS_API_KEY_IOS: ${{ secrets.MAPS_API_KEY_IOS }}
         run: |
           # Remove stale MapLibre signature if present (known MapLibre bug)
           find "$BUILD_DIR" -name "MapLibre.xcframework-ios.signature" -delete 2>/dev/null || true
