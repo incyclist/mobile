@@ -563,7 +563,7 @@ static void EnsureGoogleMapsStarted(void)
 
 - (void)applyHeading
 {
-    const double before = _panoView.camera.heading;
+    const double before = _panoView.camera.orientation.heading;
 
     // Assigned rather than animated: Android uses animateTo(camera, 0), i.e. a
     // zero-duration animation, which is the same thing.
@@ -572,7 +572,7 @@ static void EnsureGoogleMapsStarted(void)
     [self emitLog:@"applyHeading" detail:@{
         @"requested": @(_heading),
         @"before": @(before),
-        @"after": @(_panoView.camera.heading),
+        @"after": @(_panoView.camera.orientation.heading),
     }];
 }
 
@@ -594,7 +594,7 @@ static void EnsureGoogleMapsStarted(void)
 
         [self emitLog:@"first panorama change" detail:@{
             @"hasImagery": @(hasImagery),
-            @"cameraHeading": @(_panoView.camera.heading),
+            @"cameraHeading": @(_panoView.camera.orientation.heading),
             @"requestedHeading": @(_heading),
             @"panoramaId": (hasImagery && panorama.panoramaID) ? panorama.panoramaID : @"",
             @"elapsed": @(elapsed),
@@ -622,7 +622,7 @@ static void EnsureGoogleMapsStarted(void)
         // assumed — if these two diverge, heading must be re-applied here too,
         // after the load, rather than only before it.
         [self emitLog:@"panorama changed" detail:@{
-            @"cameraHeading": @(_panoView.camera.heading),
+            @"cameraHeading": @(_panoView.camera.orientation.heading),
             @"requestedHeading": @(_heading),
         }];
         [self emitPanoramaChanged];
