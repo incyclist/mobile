@@ -73,24 +73,33 @@ using namespace facebook::react;
  * so onLoaded is sent regardless once that timeout expires, and the log says
  * which path was taken.
  *
- * ── Hidden until painted ──────────────────────────────────────────────────
+ * ── Hidden until ready to serve ───────────────────────────────────────────
  *
- * The panorama view is created hidden and revealed only once tiles have
- * actually painted, mirroring Android, which creates it INVISIBLE and flips it
- * to VISIBLE in the ready callback.
+ * The panorama view is created hidden and revealed at exactly one moment: when
+ * onLoaded is sent. "Loaded" means the component is ready to serve — not that
+ * there is a panorama — so the two are the same event and the view should
+ * appear precisely then.
  *
- * It matters more here than there, because of a case we do not control: a GPX
- * route imported by a rider can easily begin somewhere with no Street View
- * coverage at all. The first request then answers "no imagery", onLoaded is
- * sent so the start overlay lifts rather than hanging — and without this, the
- * rider would be left staring at Google's loading spinner over an empty view
- * for as long as the route stayed off-coverage.
+ * That gives, without special cases:
  *
- * Hidden, they see the ride page's own background instead, and the service
- * layer decides what to do about onNoPanorama. Once revealed the view stays
- * revealed: Android's contract is that on a later no-imagery position the
- * previous image remains on screen, and blanking it would be a worse answer
- * than a stale frame.
+ *   imagery      revealed once tiles have painted, so the start overlay lifts
+ *                onto a finished panorama rather than onto Google's spinner
+ *   no imagery   revealed immediately. Nothing will ever paint, so waiting
+ *                would be pointless — the rider sees whatever the SDK renders
+ *                for an empty position, and the service decides what to say
+ *                about it from onNoPanorama
+ *   timeout      revealed anyway; a permanently hidden view is worse than
+ *                whatever the SDK is showing
+ *
+ * Android creates its view INVISIBLE and flips it VISIBLE in the ready callback
+ * for the same reason.
+ *
+ * A route imported by a rider can begin somewhere with no Street View coverage
+ * at all, and that case resolves correctly: onLoaded and onNoPanorama both
+ * arrive, the start overlay lifts, and pedalling can begin. If the route later
+ * reaches coverage, that fetch happens with the view already visible, so the
+ * spinner may briefly appear — accepted, because it is an edge case and the
+ * alternative is a component that is ready but refuses to show itself.
  *
  * ── Logging ───────────────────────────────────────────────────────────────
  *
@@ -243,8 +252,6 @@ static void EnsureGoogleMapsStarted(void)
     BOOL _awaitingFirstRender;
     int64_t _renderToken;
 
-    /** Whether the most recent change reported imagery — gates the reveal. */
-    BOOL _hasImagery;
 
     /** Whether onError('unknown') has already been reported for a dead SDK. */
     BOOL _reportedUnusable;
@@ -334,7 +341,6 @@ static void EnsureGoogleMapsStarted(void)
     _licenseConsumed     = NO;
     _loadedEmitted       = NO;
     _awaitingFirstRender = NO;
-    _hasImagery          = NO;
     _reportedUnusable    = NO;
     _latitude          = 0;
     _longitude         = 0;
@@ -524,7 +530,6 @@ static void EnsureGoogleMapsStarted(void)
     [self cancelTimeouts];
 
     const BOOL hasImagery = (panorama != nil);
-    _hasImagery = hasImagery;
     const double elapsed = _requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1;
 
     if (!_licenseConsumed) {
@@ -627,13 +632,6 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
         @"elapsed": @(_requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1),
     }];
 
-    // Reveal only when there is something to show. A render pass with no
-    // panorama would otherwise put Google's spinner on screen.
-    if (_hasImagery && _panoView.hidden) {
-        _panoView.hidden = NO;
-        [self emitLog:@"panorama revealed" detail:@{}];
-    }
-
     if (_awaitingFirstRender) {
         _awaitingFirstRender = NO;
         _renderToken++;                     // cancel the safety timeout
@@ -662,11 +660,6 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
             @"timeout": @(kFirstRenderTimeoutMs),
             @"note": @"tiles never reported painting; releasing the overlay and revealing anyway",
         }];
-        // Revealed despite never having reported a paint: a permanently hidden
-        // view would be a worse outcome than whatever the SDK is showing.
-        if (strongSelf->_hasImagery) {
-            strongSelf->_panoView.hidden = NO;
-        }
         [strongSelf emitLoadedOnce:@"render-timeout"];
     });
 }
@@ -692,6 +685,10 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
 {
     if (_loadedEmitted) return;
     _loadedEmitted = YES;
+
+    // Ready to serve and visible are the same moment — see "Hidden until ready
+    // to serve". Covers all three reasons without any of them special-casing it.
+    _panoView.hidden = NO;
 
     [self emitLog:@"loaded" detail:@{
         @"reason": reason,
