@@ -35,9 +35,11 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const refParseObserver = useRef<IObserver | null>(null);
     const refIngestObserver = useRef<IObserver | null>(null);
     const refSingleObserver = useRef<IObserver | null>(null);
-    // diagnostic-only: tracks whether this dialog is still mounted when an async picker
-    // continuation resumes, to help diagnose crashes from a picker result landing after
-    // the dialog/page has already torn down (importProps/pageObserver already cleared)
+    // Tracks whether this dialog is still mounted when an async picker continuation
+    // resumes. Guards onAddGpx/onAddVideoRoute against continuing into
+    // importSingleRoute() after the dialog/page has already torn down (importProps/
+    // pageObserver already cleared), which otherwise crashes deep inside
+    // RouteLibraryScannerService (see FIXES_BACKLOG.md item #40).
     const refIsMounted = useRef(true);
 
     // --- Stable Event Handlers ---
@@ -193,6 +195,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
 
             if (!refIsMounted.current) {
                 logEvent({ message: 'picker resolved after unmount', fn: 'onAddGpx', fileName: fileInfo.filename });
+                return;
             }
 
             setIsSingleImporting(true);
@@ -213,6 +216,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
 
             if (!refIsMounted.current) {
                 logEvent({ message: 'picker resolved after unmount', fn: 'onAddVideoRoute', fileName: fileInfo.filename });
+                return;
             }
 
             setIsSingleImporting(true);
