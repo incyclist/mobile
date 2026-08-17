@@ -8,6 +8,7 @@ import Orientation from 'react-native-orientation-locker';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
 
 import app from '../app.json'
+import DefaultPreference from 'react-native-default-preference';
 import { UpdateService } from './services/UpdateManager';
 import { getSecret, getSecretsStatus, initSecrets } from './bindings/secret';
 import { SecretsStatus } from './bindings/secret/types';
@@ -68,6 +69,12 @@ export const Loader = () =>{
             UpdateService.checkForUpdates();
 
             setStatusMessage('Almost ready...');
+
+            // Boot confirmation: the app is demonstrably alive, so clear the natively-incremented
+            // failure counter before it reaches the two-strikes threshold that reverts to the
+            // embedded bundle. See MainApplication.kt's reactHost lazy block.
+            await DefaultPreference.set('bundle_boot_failures', '0');
+
             setIsLoading(false);
             refChecking.current    = null
         }

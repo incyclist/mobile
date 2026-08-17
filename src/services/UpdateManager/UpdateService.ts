@@ -1,4 +1,5 @@
 import { unzip } from 'react-native-zip-archive';
+import { Platform } from 'react-native';
 import DefaultPreference from 'react-native-default-preference';
 import { name as appName } from '../../../app.json';
 import { CachesDirectoryPath, DocumentDirectoryPath, downloadFile, DownloadFileOptions, exists, mkdir, readDir, unlink } from 'react-native-fs';
@@ -12,6 +13,13 @@ import { getSecret } from '../../bindings/secret';
 // TODO: change towards production URL
 const BASE_URL_PROD = 'https://updates.incyclist.com';
 const UPDATES_ROOT = `${DocumentDirectoryPath}/updates`;
+
+// OTA is Android-only: there is no bundle:ios build script, applyUpdate() below hardcodes
+// index.android.bundle, and AppDelegate never reads active_bundle_path. Without this gate iOS
+// devices are only excluded by the numeric coincidence that iOS's native version currently sits
+// below every minAppVersion in mobile.json - the first iOS release that crosses one would start
+// downloading and unzipping an Android bundle it can never run. Extend when iOS OTA ships.
+const OTA_PLATFORMS = new Set<string>(['android']);
 
 interface IAppBundleResponse {
   appVersion: string;
@@ -66,6 +74,12 @@ export class UpdateService {
      */
     static async checkForUpdates() {
 
+        // iOS is excluded hard here rather than relying on version-range coincidence on the
+        // server - see the OTA_PLATFORMS comment above.
+        if (!OTA_PLATFORMS.has(Platform.OS)) {
+            this.logger.logEvent({message:'Skipping update check: OTA not supported on this platform', platform: Platform.OS});
+            return;
+        }
 
         this.logger.logEvent( {message:'check for updates', isDevVariant, isProdVariant})
 
@@ -98,12 +112,19 @@ export class UpdateService {
                 this.logger.logEvent({message:'Current bundle',path:'<app-bundle>'});
             }
 
+            // Runs on every check, keyed on the active version rather than the response version,
+            // so it isn't skipped by the `if (!response) return` below - a 404 (the normal
+            // steady state, see the design doc §5) must not leave an orphaned bundle directory
+            // forever. When the native gate has just reset the device, activeVersion is null and
+            // this wipes all of updates/.
+            await this.cleanupOldBundles(activeVersion);
+
             const response = await this.fetchBundleInfo(activeVersion, uuid, bundleApiKey);
             if (!response) return;
 
             await this.applyUpdate(response, uuid, bundleApiKey);
             await this.cleanupOldBundles(response.bundleVersion);
-            
+
         } catch (err:any) {
             this.logger.logEvent({message:'error', fn:'checkForUpdates', error:err.message, stack:err.stack})
         }
@@ -136,10 +157,21 @@ export class UpdateService {
                 const bundleVersion = info.bundleVersion as string
                 const activeBundle = activeVersion??''
 
+                // A bundle reverted by the boot-confirmation mechanism (two consecutive
+                // unconfirmed boots) is blacklisted natively as failed_bundle_version. Without
+                // this refusal, isNewerVersion would say yes again and it would be re-downloaded
+                // identically - a slower crash loop. It stays refused until a higher bundle
+                // version is published.
+                const failedVersion = await DefaultPreference.get('failed_bundle_version');
+                if (failedVersion && bundleVersion === failedVersion) {
+                    this.logger.logEvent({message:'Refusing previously failed bundle version', bundleVersion});
+                    return null
+                }
+
                 if ( isNewerVersion(bundleVersion, activeBundle)) {
-                    this.logger.logEvent({message:'Bundle update available',bundleVersion:bundleVersion});                    
+                    this.logger.logEvent({message:'Bundle update available',bundleVersion:bundleVersion});
                     return info
-                }    
+                }
             }
 
         }
@@ -208,17 +240,35 @@ export class UpdateService {
         this.logger.logEvent({message:'Bundle installed successfully',bundleVersion});                    
     }
 
-    private static async cleanupOldBundles(currentVersion: string) {
+    private static async cleanupOldBundles(currentVersion: string | null | undefined) {
+        // Keyed on currentVersion rather than compared against a fixed "old" set: when
+        // currentVersion is null (e.g. right after the native gate resets the device) nothing
+        // under updates/ matches, so everything is wiped - deliberate, see the caller.
         try {
-            if (!(await exists(UPDATES_ROOT))) return;
-            
-            const items = await readDir(UPDATES_ROOT);
-            for (const item of items) {
-                // If the folder name doesn't match the one we just activated, delete it
-                if (item.isDirectory() && item.name !== currentVersion) {
-                    this.logger.logEvent({message:'Cleanup old bundle',bundleVersion:item.name});                    
-                    
-                    await unlink(item.path);
+            if (await exists(UPDATES_ROOT)) {
+                const items = await readDir(UPDATES_ROOT);
+                for (const item of items) {
+                    // Directories and stray files alike - only the currently active version survives.
+                    if (item.name !== currentVersion) {
+                        this.logger.logEvent({message:'Cleanup old bundle',name:item.name});
+                        await unlink(item.path);
+                    }
+                }
+            }
+        } catch (err:any) {
+            this.logger.logEvent({message:'error', fn:'cleanupOldBundles', error:err.message, stack:err.stack})
+        }
+
+        // Stale update_*.zip files leak into CachesDirectoryPath whenever unzip fails or the
+        // process dies mid-install (applyUpdate downloads before it unzips and deletes).
+        try {
+            if (await exists(CachesDirectoryPath)) {
+                const items = await readDir(CachesDirectoryPath);
+                for (const item of items) {
+                    if (!item.isDirectory() && /^update_.*\.zip$/.test(item.name)) {
+                        this.logger.logEvent({message:'Cleanup stale update zip',name:item.name});
+                        await unlink(item.path);
+                    }
                 }
             }
         } catch (err:any) {
