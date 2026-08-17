@@ -26,7 +26,7 @@ import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
 import { getMessageQueueBinding  } from './bindings/mq';
-import { isProdVariant } from './bindings/appInfo';
+import { getAppVersion, isProdVariant } from './bindings/appInfo';
 import { getUserSettingsBinding } from './bindings/user-settings';
 import { getSystemVersion, getTotalMemory, isEmulator } from 'react-native-device-info';
 
@@ -169,7 +169,7 @@ export const App = ({ secretsStatus }: AppProps) => {
 
     if (!initialized) {
         
-        return <LoadingScreen appVersion={app.appVersion} bundleVersion={app.bundleVersion} statusMessage='connecting ...' />;
+        return <LoadingScreen appVersion={getAppVersion()} bundleVersion={app.bundleVersion} statusMessage='connecting ...' />;
     }
 
     return (

@@ -12,6 +12,7 @@ import { UpdateService } from './services/UpdateManager';
 import { getSecret, getSecretsStatus, initSecrets } from './bindings/secret';
 import { SecretsStatus } from './bindings/secret/types';
 import { getUserSettingsBinding } from './bindings/user-settings';
+import { getAppVersion } from './bindings/appInfo';
 
 const initApi = async ()=> {
     const apiKey = getSecret('INCYCLIST_API_KEY');
@@ -79,8 +80,8 @@ export const Loader = () =>{
 
     if (isLoading) {
         return (
-            <LoadingScreen 
-                appVersion={app.appVersion} 
+            <LoadingScreen
+                appVersion={getAppVersion()}
                 bundleVersion={app.bundleVersion}
                 statusMessage={statusMessage}
             />

@@ -18,13 +18,18 @@ export const getChannel = ():AppChannel=> {
     return 'mobile' as AppChannel
 }
 
+/**
+ * The real installed native app version - the single place this value is defined.
+ *
+ * appJson.appVersion must never be used for this: it is baked into the JS bundle at build time,
+ * and that bundle is served as a hot update to every installed native version, so it would report
+ * the same value on every device regardless of what native version is actually installed.
+ */
+export const getAppVersion = ():string => DeviceInfo.getVersion();
+
 export const getAppInfo = () => {
     const {name} = info;
-    // DeviceInfo.getVersion() reads the real installed native app version. appJson.appVersion
-    // must not be used here: it is baked into this JS bundle at build time, and this bundle is
-    // served as a hot update to every installed native version, so it would report the same
-    // value on every device regardless of what native version is actually installed.
-    const appVersion = DeviceInfo.getVersion();
+    const appVersion = getAppVersion();
     const appDir = RNFS.DocumentDirectoryPath;
     const tempDir = RNFS.TemporaryDirectoryPath;
 
@@ -48,8 +53,7 @@ export const getAppInfoBinding = async () => {
 
     return {
         getOS,
-        // Real installed native version - see getAppInfo() above for why appJson.appVersion is wrong here.
-        getAppVersion:()=>DeviceInfo.getVersion(),
+        getAppVersion,
         getUIVersion,
         getAppDir:()=>RNFS.DocumentDirectoryPath,
         getSourceDir:()=>'',
