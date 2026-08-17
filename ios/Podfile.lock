@@ -8,6 +8,9 @@ PODS:
   - FBLazyVector (0.83.1)
   - fmt (11.0.2)
   - glog (0.3.5)
+  - GoogleMaps (9.4.0):
+    - GoogleMaps/Maps (= 9.4.0)
+  - GoogleMaps/Maps (9.4.0)
   - hermes-engine (0.14.0):
     - hermes-engine/Pre-built (= 0.14.0)
   - hermes-engine/Pre-built (0.14.0)
@@ -3030,7 +3033,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNBootSplash (7.1.0):
+  - RNBootSplash (7.3.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -3343,6 +3346,7 @@ DEPENDENCIES:
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
+  - GoogleMaps (= 9.4.0)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - "maplibre-react-native (from `../node_modules/@maplibre/maplibre-react-native`)"
   - NitroMmkv (from `../node_modules/react-native-mmkv`)
@@ -3454,6 +3458,7 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - CocoaAsyncSocket
+    - GoogleMaps
     - MMKV
     - MMKVCore
     - React-Codegen
@@ -3698,6 +3703,7 @@ SPEC CHECKSUMS:
   FBLazyVector: 309703e71d3f2f1ed7dc7889d58309c9d77a95a4
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
+  GoogleMaps: 0608099d4870cac8754bdba9b6953db543432438
   hermes-engine: 25082c52e7010e6a38b8095155239ea39466dc57
   maplibre-react-native: 37d86b5b7b04dedaceebc577644e67acd7b5f437
   MMKV: c953dbaac0da392c24b005e763c03ce2638b4ed7
@@ -3789,10 +3795,10 @@ SPEC CHECKSUMS:
   React-utils: 8ab26781c2f5c2f7fafb2022c8ab39d39f231b80
   React-webperformancenativemodule: 7953b7fe519f76fa595111fe18ff3d5de131bfe9
   ReactAppDependencyProvider: 0eb286cc274abb059ee601b862ebddac2e681d01
-  ReactCodegen: 9062c4950f37204a0859ad2459b2c6893f4c13d3
+  ReactCodegen: 9d4905fff42c7c7db7955f63247cb3ce61c9ca22
   ReactCommon: ac934cb340aee91282ecd6f273a26d24d4c55cae
   RNBleManager: 15d1eea9f494a89b47a0c9ed38afde7fd3fe7d23
-  RNBootSplash: 51262ea318e6f45b7b75941c9aa2ce0df3782908
+  RNBootSplash: 83bc1fef5ff2e9fd3ed0f20a472dd87d8a9ef898
   RNDefaultPreference: ee13d69e6693d193cd223d10e15e5b3c012d31ba
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
@@ -3811,6 +3817,6 @@ SPEC CHECKSUMS:
   SwiftCBOR: b873af28a9cc66003852fdc79a41852a7e54009a
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
-PODFILE CHECKSUM: 50a0cfdbcd65e54e5f30d4665c0134fa4832b03a
+PODFILE CHECKSUM: 58c4e7ea6d6f45f6dd71fafedca64303de19ae07
 
 COCOAPODS: 1.16.2

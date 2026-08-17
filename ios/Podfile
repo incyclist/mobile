@@ -25,6 +25,29 @@ target 'Incyclist' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Google Maps SDK for iOS — Street View (GMSPanoramaView).
+  #
+  # iOS has no native Street View, so the ride screen's 'sv' view needs Google's
+  # SDK here, the way Android needs play-services-maps.
+  #
+  # Pinned to 9.4.0, exactly, for two reasons:
+  #
+  #   1. It is the last release supporting iOS 15 (podspec: ios "15.0"). Every
+  #      10.x requires iOS 16, which would raise min_ios_version_supported and
+  #      make the app uninstallable on the iPhone 6s used for device testing.
+  #   2. A pessimistic constraint (~> 9.4) would silently pick up a 9.x that
+  #      moved the floor. This dependency is not one to let drift on its own.
+  #
+  # Note for whoever upgrades this: Google deprecated CocoaPods for the Maps SDK
+  # as of 11.0.0 (Aug 2026) — 10.15.0 is the last CocoaPods release ever. Moving
+  # past it means migrating this dependency to Swift Package Manager.
+  #
+  # Deliberately NOT wrapped in use_frameworks!: the podspec ships
+  # GoogleMaps.xcframework as vendored_frameworks, which CocoaPods links and
+  # embeds without it. Turning use_frameworks! on would rewrite linkage for every
+  # pod in this project, MapLibre and the Nitro/MMKV stack included.
+  pod 'GoogleMaps', '9.4.0'
+
   post_install do |installer|
     
     react_native_post_install(
