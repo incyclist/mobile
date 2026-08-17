@@ -1,8 +1,8 @@
 import { unzip } from 'react-native-zip-archive';
 import DefaultPreference from 'react-native-default-preference';
-import { name as appName, appVersion } from '../../../app.json';
+import { name as appName } from '../../../app.json';
 import { CachesDirectoryPath, DocumentDirectoryPath, downloadFile, DownloadFileOptions, exists, mkdir, readDir, unlink } from 'react-native-fs';
-import { isDevVariant, isProdVariant  } from '../../bindings/appInfo';
+import { isDevVariant, isProdVariant, getAppInfoBinding  } from '../../bindings/appInfo';
 import settings from '@settings'
 import { EventLogger } from 'gd-eventlog';
 import { getUserSettingsBinding } from '../../bindings/user-settings';
@@ -115,6 +115,10 @@ export class UpdateService {
 
         this.logger.logEvent({message:'Request bundle info',url});
 
+        // Real installed native version, not app.json's bundle-baked-in appVersion - see
+        // bindings/appInfo/index.ts for why the latter would misreport the running device.
+        const appVersion = (await getAppInfoBinding()).getAppVersion();
+
         const headers: Record<string, string> = {
             'x-uuid': uuid,
             'x-app-channel': 'mobile',
@@ -158,6 +162,10 @@ export class UpdateService {
 
         const BASE_URL = await getBaseUrl()
         const url = bundleInfo.bundleUrl?.startsWith('http') ?  bundleUrl : `${BASE_URL}${bundleUrl}`
+
+        // Real installed native version, not app.json's bundle-baked-in appVersion - see
+        // bindings/appInfo/index.ts for why the latter would misreport the running device.
+        const appVersion = (await getAppInfoBinding()).getAppVersion();
 
         const headers: Record<string, string> = {
             'x-uuid': uuid,
