@@ -527,8 +527,16 @@ static void EnsureGoogleMapsStarted(void)
     if ([self ensurePanorama]) {
         if (positionChanged) {
             [self applyPosition];
+            // Re-applied on every position change, not only when the value
+            // changes, because Android does exactly this (applyHeading(p)
+            // immediately after every setPosition). A rider travelling in a
+            // straight line changes position constantly and heading never — so
+            // if loading a panorama resets the camera, heading-only
+            // re-application would leave the view pointing the wrong way for
+            // the entire ride, and nothing would say so.
+            [self applyHeading];
         }
-        if (headingChanged) {
+        else if (headingChanged) {
             [self applyHeading];
         }
     }
@@ -555,9 +563,17 @@ static void EnsureGoogleMapsStarted(void)
 
 - (void)applyHeading
 {
+    const double before = _panoView.camera.heading;
+
     // Assigned rather than animated: Android uses animateTo(camera, 0), i.e. a
     // zero-duration animation, which is the same thing.
     _panoView.camera = [GMSPanoramaCamera cameraWithHeading:_heading pitch:0 zoom:1];
+
+    [self emitLog:@"applyHeading" detail:@{
+        @"requested": @(_heading),
+        @"before": @(before),
+        @"after": @(_panoView.camera.heading),
+    }];
 }
 
 #pragma mark - GMSPanoramaViewDelegate
@@ -578,6 +594,8 @@ static void EnsureGoogleMapsStarted(void)
 
         [self emitLog:@"first panorama change" detail:@{
             @"hasImagery": @(hasImagery),
+            @"cameraHeading": @(_panoView.camera.heading),
+            @"requestedHeading": @(_heading),
             @"panoramaId": (hasImagery && panorama.panoramaID) ? panorama.panoramaID : @"",
             @"elapsed": @(elapsed),
             @"width": @(self.bounds.size.width),
@@ -599,6 +617,14 @@ static void EnsureGoogleMapsStarted(void)
     }
 
     if (hasImagery) {
+        // Does loading a panorama reset the camera? Android re-applies heading
+        // after every setPosition without ever checking. Logged rather than
+        // assumed — if these two diverge, heading must be re-applied here too,
+        // after the load, rather than only before it.
+        [self emitLog:@"panorama changed" detail:@{
+            @"cameraHeading": @(_panoView.camera.heading),
+            @"requestedHeading": @(_heading),
+        }];
         [self emitPanoramaChanged];
     } else {
         [self emitNoPanorama];
