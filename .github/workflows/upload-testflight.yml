@@ -13,6 +13,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ── Toolchain ───────────────────────────────────────────────────────────
+      # Pinned. The macos-26 image defaults to the newest Xcode installed, and
+      # GitHub raises that silently on image updates — so "latest" is a moving
+      # target that changes the compiler under a build nobody touched.
+      #
+      # Xcode 26.6 cannot compile the `fmt` pod that React Native depends on
+      # (pinned at 11.0.2): its newer clang rejects fmt's FMT_STRING with
+      # "call to consteval function ... is not a constant expression", five
+      # errors in format-inl.h, and the archive fails. Nothing in this repo is
+      # involved.
+      #
+      # 26.3 (17C529) is the build all device testing has been done against, so
+      # this makes CI compile with the identical toolchain rather than merely a
+      # working one.
+      #
+      # Removing this pin needs `fmt` to build on the newer clang first — that
+      # means a React Native version carrying fmt 11.1+, not a change here.
+      - name: Select Xcode
+        run: |
+          XCODE=/Applications/Xcode_26.3.app
+          if [ ! -d "$XCODE" ]; then
+            echo "::error::$XCODE is not on this runner image. Installed versions:"
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
       # ── Node ────────────────────────────────────────────────────────────────
       - name: Set up Node.js
         uses: actions/setup-node@v4
