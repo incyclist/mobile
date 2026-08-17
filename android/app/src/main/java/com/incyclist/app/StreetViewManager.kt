@@ -34,16 +34,26 @@ import java.util.WeakHashMap
  *
  * ── Event contract ────────────────────────────────────────────────────────
  *
- * onLicenseConsumed   Fires once per component lifetime on the first
- *                     OnStreetViewPanoramaChangeListener callback. This is
- *                     the moment Google charges a Dynamic Street View SKU
- *                     event. Never fires again after the first time.
+ * onLicenseConsumed   Fires once per StreetViewPanoramaView instantiation, from
+ *                     createViewInstance immediately after the view is
+ *                     constructed and onCreate() is called. Google's Dynamic
+ *                     Street View SKU documentation names the trigger as the
+ *                     onCreate() method of StreetViewPanoramaView (and the
+ *                     fragment equivalents) and states that "a dynamic Street
+ *                     View panorama is charged for each instantiation of a
+ *                     panorama object" — so the charge happens here,
+ *                     regardless of whether imagery exists or the change
+ *                     listener ever fires. A recycled/recreated view is a new
+ *                     instantiation and is counted again. Matches iOS's
+ *                     ensurePanorama, which sends this immediately after the
+ *                     GMSPanoramaView is allocated.
  *
- * onLoaded            Fires once per component lifetime immediately after
- *                     onLicenseConsumed. Signals that the component has
- *                     settled on its first rendered state (panorama visible
- *                     or black screen if no imagery). Start overlay dismissal
- *                     should wait for this event.
+ * onLoaded            Fires once per component lifetime on the first
+ *                     OnStreetViewPanoramaChangeListener callback. Signals
+ *                     that the component has settled on its first rendered
+ *                     state (panorama visible or black screen if no
+ *                     imagery). Start overlay dismissal should wait for this
+ *                     event.
  *
  * onNoPanorama        Fires when OnStreetViewPanoramaChangeListener returns
  *                     a null location — no Street View imagery at the
@@ -85,7 +95,9 @@ import java.util.WeakHashMap
  * Logs raised before the view has a React tag (createViewInstance runs before
  * the tag is assigned) are buffered in PanoramaState and flushed from
  * onAfterUpdateTransaction, which is the first point at which the view is
- * addressable.
+ * addressable. onLicenseConsumed is buffered the same way — it is raised
+ * inside createViewInstance itself, before the tag exists, and emitting it
+ * directly there would silently drop the event.
  *
  * ── Teardown / black screen workaround ───────────────────────────────────
  *
@@ -125,6 +137,13 @@ class StreetViewManager(
         view.visibility = View.INVISIBLE // black-screen workaround companion
         view.onCreate(null)
         view.onResume()
+
+        // The billable moment — see onLicenseConsumed in the class docs. Emitted here,
+        // right after construction/onCreate, rather than on the first SDK response, so that
+        // a panorama object which is charged but never answers (no imagery, network failure,
+        // torn down before the SDK replies) is still counted. The view has no React tag yet,
+        // so this is buffered and flushed from onAfterUpdateTransaction like emitLog.
+        emitLicenseConsumed(view, state)
 
         // Whether the Maps SDK is healthy on this device is the main open question for the
         // black-screen reports, so every instance reports what it is working with.
@@ -187,8 +206,9 @@ class StreetViewManager(
     }
 
     /**
-     * Used only to release the logs buffered during createViewInstance — this is the first
-     * point at which the view has a React tag and can carry an event.
+     * Used to release the logs and the licence-consumed event buffered during
+     * createViewInstance — this is the first point at which the view has a React tag and can
+     * carry an event.
      *
      * Applying the position here instead of from the individual prop setters would be the
      * better behaviour (setters issue setPosition once per prop, so a position update sends
@@ -306,17 +326,17 @@ class StreetViewManager(
 
         val hasImagery = location != null
 
-        if (!state.licenseConsumed) {
-            // First change event ever — emit license + loaded, then conditionally
-            // noPanorama. onPanoramaChanged does NOT fire on initial load.
-            state.licenseConsumed = true
+        if (!state.firstResponseSeen) {
+            // First change event ever — emit loaded, then conditionally noPanorama.
+            // onPanoramaChanged does NOT fire on initial load. onLicenseConsumed is NOT
+            // emitted here — see createViewInstance, where the billable moment actually is.
+            state.firstResponseSeen = true
             emitLog(view, "first panorama change", mapOf(
                 "hasImagery" to hasImagery,
                 "elapsed" to state.elapsedSinceRequest(),
                 "width" to view.width,
                 "height" to view.height,
             ))
-            emitEvent(view, EVENT_LICENSE_CONSUMED, null)
             emitEvent(view, EVENT_LOADED, null)
             if (!hasImagery) {
                 emitEvent(view, EVENT_NO_PANORAMA, null)
@@ -391,13 +411,18 @@ class StreetViewManager(
         var readyTimeoutRunnable: Runnable? = null
         var positionTimeoutRunnable: Runnable? = null
 
-        // Whether the first OnStreetViewPanoramaChangeListener has fired.
-        // Controls onLicenseConsumed / onLoaded emission (once only) and
-        // whether subsequent changes emit onPanoramaChanged vs initial events.
-        var licenseConsumed: Boolean = false
+        // Whether the first OnStreetViewPanoramaChangeListener has fired. Controls onLoaded
+        // emission (once only) and whether subsequent changes emit onPanoramaChanged vs
+        // initial events. Deliberately distinct from "charged" — see onLicenseConsumed in
+        // the class docs — which is why this is named after "first response", not "license".
+        var firstResponseSeen: Boolean = false
 
         // Logs raised before the view was addressable.
         val pendingLogs = mutableListOf<WritableMap>()
+
+        // Whether onLicenseConsumed was raised before the view had a React tag and is
+        // waiting to be flushed from onAfterUpdateTransaction.
+        var pendingLicense: Boolean = false
 
         var requestedAt: Long = 0
 
@@ -428,7 +453,7 @@ class StreetViewManager(
             val timeoutRunnable = Runnable {
                 emitLog(view, "position timeout expired", mapOf(
                     "timeout" to positionTimeoutMs,
-                    "loaded" to licenseConsumed,
+                    "loaded" to firstResponseSeen,
                     "width" to view.width,
                     "height" to view.height,
                 ))
@@ -464,6 +489,20 @@ class StreetViewManager(
     }
 
     /**
+     * The billable moment — see onLicenseConsumed in the class docs. Called from
+     * createViewInstance, before the view has a React tag, so it is buffered on
+     * PanoramaState.pendingLicense and flushed from onAfterUpdateTransaction alongside the
+     * buffered logs, the same way emitLog buffers into pendingLogs.
+     */
+    private fun emitLicenseConsumed(view: StreetViewPanoramaView, state: PanoramaState) {
+        if (view.id == View.NO_ID) {
+            state.pendingLicense = true
+            return
+        }
+        emitEvent(view, EVENT_LICENSE_CONSUMED, null)
+    }
+
+    /**
      * Reports a diagnostic to the JS layer, which forwards it to the app's event log.
      * Buffered while the view has no React tag yet — see "Logging" in the class docs.
      */
@@ -486,14 +525,27 @@ class StreetViewManager(
         emitEvent(view, EVENT_LOG, payload)
     }
 
+    /**
+     * Releases everything buffered before the view had a React tag: pending logs, then the
+     * pending licence-consumed event, in that order. Called from onAfterUpdateTransaction and
+     * from emitLog itself (so a log raised once the view is addressable is preceded by
+     * anything still queued).
+     */
     private fun flushPendingLogs(view: StreetViewPanoramaView) {
-        val pending = states[view]?.pendingLogs ?: return
-        if (pending.isEmpty() || view.id == View.NO_ID)
+        val state = states[view] ?: return
+        if (view.id == View.NO_ID)
             return
 
-        val buffered = pending.toList()
-        pending.clear()
-        buffered.forEach { emitEvent(view, EVENT_LOG, it) }
+        if (state.pendingLogs.isNotEmpty()) {
+            val buffered = state.pendingLogs.toList()
+            state.pendingLogs.clear()
+            buffered.forEach { emitEvent(view, EVENT_LOG, it) }
+        }
+
+        if (state.pendingLicense) {
+            state.pendingLicense = false
+            emitEvent(view, EVENT_LICENSE_CONSUMED, null)
+        }
     }
 
     private fun toJson(detail: Map<String, Any?>): String {
