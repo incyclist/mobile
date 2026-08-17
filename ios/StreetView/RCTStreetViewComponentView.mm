@@ -26,9 +26,9 @@ using namespace facebook::react;
  *                     panoramaView:didMoveToPanorama:. This is the moment
  *                     Google charges a Dynamic Street View SKU event.
  *
- * onLoaded            Once per view lifetime, immediately after
- *                     onLicenseConsumed. StreetView.tsx waits for this to
- *                     dismiss the start overlay and stop its retry ladder.
+ * onLoaded            Once per view lifetime. On Android this follows
+ *                     onLicenseConsumed immediately; here it is deferred until
+ *                     the tiles have painted. See "Deferred onLoaded".
  *
  * onNoPanorama        didMoveToPanorama: with a nil panorama — no imagery at
  *                     the requested position. Fires on the initial load and on
@@ -45,6 +45,52 @@ using namespace facebook::react;
  *                                          reported an error for one.
  *
  * onLog               Diagnostics. See "Logging".
+ *
+ * ── Deferred onLoaded ─────────────────────────────────────────────────────
+ *
+ * The iOS Maps SDK shows its own loading indicator while it fetches the first
+ * panorama. Android's does not — measured on device, and it appears on the
+ * initial load only, never on later position changes however far they jump.
+ *
+ * GPX/View.tsx renders Street View *behind* the start overlay precisely so the
+ * panorama can load while the rider still sees the overlay, and the service
+ * lifts the overlay when 'Loaded' arrives. Sending onLoaded at the first
+ * panorama change — as Android does — would therefore lift the overlay onto
+ * Google's spinner. Waiting for panoramaViewDidFinishRendering: instead means
+ * it lifts onto a finished panorama and the spinner is never seen.
+ *
+ * The event *sequence* is unchanged; only the timing of onLoaded moves later,
+ * and only on iOS, to compensate for a platform difference that exists only on
+ * iOS.
+ *
+ * Two cases deliberately do not wait, because nothing will ever paint:
+ *
+ *   - a first panorama change with no imagery (nil panorama)
+ *   - didFinishRendering not arriving within kFirstRenderTimeoutMs
+ *
+ * The second is the important one. Trading a one-second spinner for a start
+ * overlay that never lifts would be a far worse bug than the one being fixed,
+ * so onLoaded is sent regardless once that timeout expires, and the log says
+ * which path was taken.
+ *
+ * ── Hidden until painted ──────────────────────────────────────────────────
+ *
+ * The panorama view is created hidden and revealed only once tiles have
+ * actually painted, mirroring Android, which creates it INVISIBLE and flips it
+ * to VISIBLE in the ready callback.
+ *
+ * It matters more here than there, because of a case we do not control: a GPX
+ * route imported by a rider can easily begin somewhere with no Street View
+ * coverage at all. The first request then answers "no imagery", onLoaded is
+ * sent so the start overlay lifts rather than hanging — and without this, the
+ * rider would be left staring at Google's loading spinner over an empty view
+ * for as long as the route stayed off-coverage.
+ *
+ * Hidden, they see the ride page's own background instead, and the service
+ * layer decides what to do about onNoPanorama. Once revealed the view stays
+ * revealed: Android's contract is that on a later no-imagery position the
+ * previous image remains on screen, and blanking it would be a worse answer
+ * than a stale frame.
  *
  * ── Logging ───────────────────────────────────────────────────────────────
  *
@@ -100,6 +146,13 @@ using namespace facebook::react;
  */
 static const double kDefaultReadyTimeoutMs    = 10000;
 static const double kDefaultPositionTimeoutMs = 2000;
+
+/**
+ * How long onLoaded will wait for the tiles to actually paint before being sent
+ * anyway. See "Deferred onLoaded" in the class docs — this exists so a missing
+ * didFinishRendering can never hang the start overlay.
+ */
+static const double kFirstRenderTimeoutMs = 8000;
 
 /** Matches Android's PANORAMA_SEARCH_RADIUS. */
 static const NSInteger kPanoramaSearchRadius = 50;
@@ -180,8 +233,18 @@ static void EnsureGoogleMapsStarted(void)
     NSMutableArray<NSDictionary *> *_pendingLogs;
     NSString *_pendingErrorReason;
 
-    /** First delegate callback seen — gates onLicenseConsumed/onLoaded. */
+    /** First delegate callback seen — gates onLicenseConsumed. */
     BOOL _licenseConsumed;
+
+    /** onLoaded is sent exactly once per view lifetime. */
+    BOOL _loadedEmitted;
+
+    /** Between the first panorama arriving and its tiles painting. */
+    BOOL _awaitingFirstRender;
+    int64_t _renderToken;
+
+    /** Whether the most recent change reported imagery — gates the reveal. */
+    BOOL _hasImagery;
 
     /** Whether onError('unknown') has already been reported for a dead SDK. */
     BOOL _reportedUnusable;
@@ -268,8 +331,11 @@ static void EnsureGoogleMapsStarted(void)
 
 - (void)resetState
 {
-    _licenseConsumed   = NO;
-    _reportedUnusable  = NO;
+    _licenseConsumed     = NO;
+    _loadedEmitted       = NO;
+    _awaitingFirstRender = NO;
+    _hasImagery          = NO;
+    _reportedUnusable    = NO;
     _latitude          = 0;
     _longitude         = 0;
     _heading           = 0;
@@ -279,6 +345,7 @@ static void EnsureGoogleMapsStarted(void)
     _requestedAt       = nil;
     _readyToken++;      // invalidate anything still scheduled
     _positionToken++;
+    _renderToken++;
 }
 
 #pragma mark - Panorama lifecycle
@@ -310,6 +377,9 @@ static void EnsureGoogleMapsStarted(void)
     _panoView = [[GMSPanoramaView alloc] initWithFrame:self.bounds];
     _panoView.delegate = self;
 
+    // Revealed only once tiles have painted — see "Hidden until painted".
+    _panoView.hidden = YES;
+
     // The rider must not be able to walk the panorama off the route.
     // Matches Android's isStreetNamesEnabled/isZoomGestures/isPanningGestures/
     // isUserNavigationEnabled all being false.
@@ -331,6 +401,7 @@ static void EnsureGoogleMapsStarted(void)
 {
     _readyToken++;
     _positionToken++;
+    _renderToken++;
 
     if (_panoView) {
         _panoView.delegate = nil;
@@ -453,6 +524,7 @@ static void EnsureGoogleMapsStarted(void)
     [self cancelTimeouts];
 
     const BOOL hasImagery = (panorama != nil);
+    _hasImagery = hasImagery;
     const double elapsed = _requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1;
 
     if (!_licenseConsumed) {
@@ -467,11 +539,18 @@ static void EnsureGoogleMapsStarted(void)
         }];
 
         [self emitLicenseConsumed];
-        [self emitLoaded];
 
         if (!hasImagery) {
+            // Nothing will ever paint, so there is nothing to wait for. Sending
+            // onLoaded here is what lets the start overlay lift and the service
+            // fall back, rather than sitting on a black screen until a timeout.
+            [self emitLoadedOnce:@"no-imagery"];
             [self emitNoPanorama];
+            return;
         }
+
+        _awaitingFirstRender = YES;
+        [self armFirstRenderTimeout];
         return;
     }
 
@@ -544,9 +623,52 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
 - (void)panoramaViewDidFinishRendering:(GMSPanoramaView *)panoramaView
 {
     [self emitLog:@"didFinishRendering" detail:@{
-        @"loaded": @(_licenseConsumed),
+        @"awaitingFirstRender": @(_awaitingFirstRender),
         @"elapsed": @(_requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1),
     }];
+
+    // Reveal only when there is something to show. A render pass with no
+    // panorama would otherwise put Google's spinner on screen.
+    if (_hasImagery && _panoView.hidden) {
+        _panoView.hidden = NO;
+        [self emitLog:@"panorama revealed" detail:@{}];
+    }
+
+    if (_awaitingFirstRender) {
+        _awaitingFirstRender = NO;
+        _renderToken++;                     // cancel the safety timeout
+        [self emitLoadedOnce:@"rendered"];
+    }
+}
+
+/**
+ * Guarantees onLoaded is sent even if didFinishRendering never arrives. Without
+ * it, a panorama that resolves but never reports painting would leave the start
+ * overlay up for the whole ride.
+ */
+- (void)armFirstRenderTimeout
+{
+    const int64_t token = ++_renderToken;
+
+    __weak __typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kFirstRenderTimeoutMs * NSEC_PER_MSEC)),
+                   dispatch_get_main_queue(), ^{
+        __typeof(self) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf->_renderToken != token || !strongSelf->_awaitingFirstRender) {
+            return;
+        }
+        strongSelf->_awaitingFirstRender = NO;
+        [strongSelf emitLog:@"first render timeout expired" detail:@{
+            @"timeout": @(kFirstRenderTimeoutMs),
+            @"note": @"tiles never reported painting; releasing the overlay and revealing anyway",
+        }];
+        // Revealed despite never having reported a paint: a permanently hidden
+        // view would be a worse outcome than whatever the SDK is showing.
+        if (strongSelf->_hasImagery) {
+            strongSelf->_panoView.hidden = NO;
+        }
+        [strongSelf emitLoadedOnce:@"render-timeout"];
+    });
 }
 
 #pragma mark - Event emission
@@ -561,8 +683,21 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
     }
 }
 
-- (void)emitLoaded
+/**
+ * `reason` records which of the three paths released the overlay — rendered,
+ * no-imagery, or render-timeout. Without it a slow first load and a broken
+ * didFinishRendering look identical in the event log.
+ */
+- (void)emitLoadedOnce:(NSString *)reason
 {
+    if (_loadedEmitted) return;
+    _loadedEmitted = YES;
+
+    [self emitLog:@"loaded" detail:@{
+        @"reason": reason,
+        @"elapsed": @(_requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1),
+    }];
+
     if (!_eventEmitter) return;
     @try {
         [self emitter].onLoaded({});
