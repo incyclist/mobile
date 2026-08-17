@@ -39,4 +39,70 @@ describe('Dialog', () => {
 
         expect(getByText('my content')).toBeTruthy();
     });
+
+    // FIXES_BACKLOG #52. These guard the footer `key` that works around the RN new-architecture
+    // iOS Modal defect (children added to a mounted subtree are never finalized/laid out until a
+    // later commit). Jest renders to a JS tree and cannot exercise the native mounting path, so
+    // this proves only that the footer remounts when the button set changes — not that the
+    // workaround fixes the device symptom. Real-device iOS validation is the actual evidence.
+    describe('footer remount on button-set change (FIXES_BACKLOG #52)', () => {
+        it('renders the updated button set when buttons change while open', () => {
+            const { getByText, queryByText, rerender } = render(
+                <Dialog title="Starting activity ..." buttons={[{ id: 'cancel', label: 'Cancel', onClick: () => {} }]}>
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            expect(queryByText('Start')).toBeNull();
+
+            rerender(
+                <Dialog
+                    title="Starting activity ..."
+                    buttons={[
+                        { id: 'start', label: 'Start', primary: true, onClick: () => {} },
+                        { id: 'cancel', label: 'Cancel', onClick: () => {} },
+                    ]}
+                >
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            expect(getByText('Start')).toBeTruthy();
+            expect(getByText('Cancel')).toBeTruthy();
+        });
+
+        it('remounts the footer subtree when the button ids change', () => {
+            const footerOf = (root: any) =>
+                root.findAllByType(View).find((v: any) => Array.isArray(v.props.children)
+                    ? false
+                    : v.props.children?.props?.buttons !== undefined);
+
+            const { UNSAFE_root, rerender } = render(
+                <Dialog title="Starting activity ..." buttons={[{ id: 'cancel', label: 'Cancel', onClick: () => {} }]}>
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            const before = footerOf(UNSAFE_root);
+            expect(before).toBeTruthy();
+
+            rerender(
+                <Dialog
+                    title="Could not start Sensor(s)"
+                    buttons={[
+                        { id: 'retry', label: 'Retry', onClick: () => {} },
+                        { id: 'ignore', label: 'Ignore', primary: true, onClick: () => {} },
+                        { id: 'cancel', label: 'Cancel', onClick: () => {} },
+                    ]}
+                >
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            // A changed key means React discarded the old footer instance rather than reusing it.
+            const after = footerOf(UNSAFE_root);
+            expect(after).toBeTruthy();
+            expect(after).not.toBe(before);
+        });
+    });
 });
