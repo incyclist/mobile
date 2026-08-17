@@ -133,6 +133,17 @@ export const Dialog = ({
 
     const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight,nested });
 
+    // FIXES_BACKLOG #52 — workaround for a React Native new-architecture defect on iOS: when a
+    // child view is added to an already-mounted subtree inside a <Modal>, Fabric calls
+    // mountChildComponentView without a following finalizeUpdates, so the new view is never laid
+    // out until some *later* commit forces the pass. The visible effect is a footer that paints
+    // one structural change late: the rider's Start button appeared only once the button set
+    // changed again (or a tap forced a commit), leaving them with Cancel as the only option on a
+    // slow ride start. Initial mount is unaffected, so keying the footer on the button set turns
+    // every change into a fresh subtree mount instead of an insertion into a mounted one.
+    // Remove once RN fixes this upstream — facebook/react-native#49717, #47694, #48245, #51424.
+    const buttonSignature = buttons?.map(b => b.id).join('|') ?? '';
+
     const gradientColors = colors.dialogBackground;
 
     const BackgroundContainer = Platform.OS === 'web' ? View : LinearGradient;
@@ -194,7 +205,7 @@ export const Dialog = ({
                                 )}
 
                                 {buttons?.length ? (
-                                    <View style={styles.footer}>
+                                    <View key={buttonSignature} style={styles.footer}>
                                         <ButtonBar buttons={buttons} />
                                     </View>
                                 ) : <></>}
@@ -244,7 +255,7 @@ export const Dialog = ({
                                 )}
 
                                 {buttons?.length ? (
-                                    <View style={styles.footer}>
+                                    <View key={buttonSignature} style={styles.footer}>
                                         <ButtonBar buttons={buttons} />
                                     </View>
                                 ) : <></>}
