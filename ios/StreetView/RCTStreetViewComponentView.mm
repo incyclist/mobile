@@ -30,9 +30,11 @@ using namespace facebook::react;
  *                     onLicenseConsumed immediately; here it is deferred until
  *                     the tiles have painted. See "Deferred onLoaded".
  *
- * onNoPanorama        didMoveToPanorama: with a nil panorama — no imagery at
- *                     the requested position. Fires on the initial load and on
- *                     subsequent updates. Not an error.
+ * onNoPanorama        No imagery at the requested position. On iOS this
+ *                     arrives as error:onMoveNearCoordinate:, NOT as a nil
+ *                     panorama — the reverse of Android. Measured, see that
+ *                     method. Fires on the initial load and on updates. Not an
+ *                     error.
  *
  * onPanoramaChanged   Non-nil didMoveToPanorama: AFTER the first load. Does not
  *                     fire on the initial load, matching Android.
@@ -41,8 +43,9 @@ using namespace facebook::react;
  *                                          callback within readyTimeout, or no
  *                                          usable API key.
  *                     reason='unavailable' no response within positionTimeout
- *                                          of a moveNearCoordinate:, or the SDK
- *                                          reported an error for one.
+ *                                          of a moveNearCoordinate:. Timeouts
+ *                                          only, as on Android — an SDK error
+ *                                          means no imagery, not failure.
  *
  * onLog               Diagnostics. See "Logging".
  *
@@ -583,13 +586,38 @@ static void EnsureGoogleMapsStarted(void)
 }
 
 /**
- * A genuine failure for a moveNearCoordinate: — network, quota, or a rejected
- * API key.
+ * How iOS reports "no Street View imagery at this position".
  *
- * Open question (design §4): whether the iOS SDK also reports plain "no imagery
- * here" through this path rather than a nil panorama. Android does not: null is
- * its no-imagery signal. Everything needed to settle that is logged, and M3
- * decides against the evidence rather than a guess.
+ * Measured on device 2026-08-17, requesting mid-Atlantic (30, -40):
+ *
+ *   domain com.google.maps.GMSPanoramaService, code 0
+ *   "The operation couldn't be completed."
+ *
+ * and no didMoveToPanorama: at all. This is the opposite of Android, where a
+ * null location in the change listener is the no-imagery signal and the design
+ * expected iOS to match. It does not.
+ *
+ * So this is treated as no-imagery, not as a failure — which makes the two
+ * platforms behave identically from StreetView.tsx's point of view:
+ *
+ *   Android   null location   -> onNoPanorama
+ *   iOS       this error      -> onNoPanorama
+ *
+ * onError is left to timeouts alone, exactly as on Android.
+ *
+ * Mapping it to onError instead cost 30 seconds on the first device run: with
+ * no onLoaded, StreetView.tsx kept the load in flight, fired its watchdog at
+ * 2/5/10/20/30s and burned two retries on open ocean, and the component only
+ * declared itself ready when the position happened to move somewhere with
+ * coverage. It had been ready one second in.
+ *
+ * Every error is treated this way, not just code 0. A rejected API key or a
+ * dead network would also arrive here and be reported as "no imagery", which
+ * sounds wrong until you note that Android has exactly the same blind spot —
+ * its listener passes null for those too. The distinguishing evidence is in
+ * the log below and in createView's apiKey/provideAPIKey, not in the event
+ * contract. Diverging here would make iOS behave differently from the platform
+ * this component is specified against.
  */
 - (void)panoramaView:(GMSPanoramaView *)view
                error:(NSError *)error
@@ -597,20 +625,34 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
 {
     [self cancelTimeouts];
 
-    [self emitLog:@"error onMoveNearCoordinate" detail:@{
+    const double elapsed = _requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1;
+
+    [self emitLog:@"no imagery (error channel)" detail:@{
         @"errorWasNil": @(error == nil),
         @"domain": error.domain ?: @"",
         @"code": @(error.code),
         @"description": error.localizedDescription ?: @"",
         @"lat": @(coordinate.latitude),
         @"lng": @(coordinate.longitude),
+        @"elapsed": @(elapsed),
         @"loaded": @(_licenseConsumed),
     }];
 
-    // Deliberately not emitting onLoaded/onLicenseConsumed here. Android's error
-    // path is a timeout, which emits neither, and StreetView.tsx's retry ladder
-    // depends on onLoaded meaning "a panorama settled".
-    [self emitError:@"unavailable"];
+    if (!_licenseConsumed) {
+        // Same shape as a first didMoveToPanorama: with no imagery: the SDK has
+        // answered, so the component is ready to serve — there is simply
+        // nothing to show here.
+        _licenseConsumed = YES;
+        _awaitingFirstRender = NO;
+        _renderToken++;
+
+        [self emitLicenseConsumed];
+        [self emitLoadedOnce:@"no-imagery"];
+        [self emitNoPanorama];
+        return;
+    }
+
+    [self emitNoPanorama];
 }
 
 /** No contract event — Android has no equivalent. Diagnostics only. */
