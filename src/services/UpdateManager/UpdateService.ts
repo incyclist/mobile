@@ -19,7 +19,7 @@ const UPDATES_ROOT = `${DocumentDirectoryPath}/updates`;
 // devices are only excluded by the numeric coincidence that iOS's native version currently sits
 // below every minAppVersion in mobile.json - the first iOS release that crosses one would start
 // downloading and unzipping an Android bundle it can never run. Extend when iOS OTA ships.
-const OTA_PLATFORMS = ['android'];
+const OTA_PLATFORMS = new Set<string>(['android']);
 
 interface IAppBundleResponse {
   appVersion: string;
@@ -76,7 +76,7 @@ export class UpdateService {
 
         // iOS is excluded hard here rather than relying on version-range coincidence on the
         // server - see the OTA_PLATFORMS comment above.
-        if (!OTA_PLATFORMS.includes(Platform.OS)) {
+        if (!OTA_PLATFORMS.has(Platform.OS)) {
             this.logger.logEvent({message:'Skipping update check: OTA not supported on this platform', platform: Platform.OS});
             return;
         }
