@@ -22,9 +22,28 @@ using namespace facebook::react;
  *
  * ── Event contract ────────────────────────────────────────────────────────
  *
- * onLicenseConsumed   Once per view lifetime, on the first
- *                     panoramaView:didMoveToPanorama:. This is the moment
- *                     Google charges a Dynamic Street View SKU event.
+ * onLicenseConsumed   Sent when a GMSPanoramaView is instantiated, because that
+ *                     is exactly what Google charges for. Their SKU docs list
+ *                     the trigger as the "GMSPanoramaView object" on iOS, and
+ *                     state that "a dynamic Street View panorama is charged for
+ *                     each instantiation of a panorama object".
+ *
+ *                     So it tracks billing, and nothing else:
+ *
+ *                       no API key       no view is created, nothing charged,
+ *                                        nothing sent
+ *                       no imagery       irrelevant — the charge already
+ *                                        happened at instantiation
+ *                       moveNearCoordinate  free; position updates are not
+ *                                        separately charged
+ *                       recycled view    a new GMSPanoramaView is a new
+ *                                        instantiation, so it is sent again
+ *
+ *                     This deliberately differs from Android, which sends it on
+ *                     the first change callback. That under-counts: a panorama
+ *                     object whose SDK never answers — rejected key, no network
+ *                     — was still instantiated and still charged, but reports
+ *                     nothing. Android is worth correcting the same way.
  *
  * onLoaded            Once per view lifetime. On Android this follows
  *                     onLicenseConsumed immediately; here it is deferred until
@@ -139,7 +158,7 @@ using namespace facebook::react;
  * Fabric pools component views on iOS: this instance is handed to the NEXT
  * StreetView that mounts. Android has no equivalent. prepareForRecycle
  * therefore tears the panorama down and resets every flag — leaking
- * _licenseConsumed across a recycle would mean the second Street View ride of
+ * _firstResponseSeen across a recycle would mean the second Street View ride of
  * a session emits no onLoaded at all, so the start overlay would never lift,
  * on the second ride only.
  */
@@ -245,8 +264,21 @@ static void EnsureGoogleMapsStarted(void)
     NSMutableArray<NSDictionary *> *_pendingLogs;
     NSString *_pendingErrorReason;
 
-    /** First delegate callback seen — gates onLicenseConsumed. */
-    BOOL _licenseConsumed;
+    /**
+     * onLicenseConsumed raised before the emitter existed. Buffered rather than
+     * dropped because it is raised from updateProps, which Fabric can run
+     * before updateEventEmitter — and silently losing it would under-count a
+     * charge that has already been incurred, which is the exact bug this event
+     * was moved to instantiation to fix.
+     */
+    BOOL _pendingLicense;
+
+    /**
+     * First SDK response of any kind. Gates onLoaded and the render wait —
+     * deliberately no longer tied to licensing, which is now answered at
+     * instantiation instead.
+     */
+    BOOL _firstResponseSeen;
 
     /** onLoaded is sent exactly once per view lifetime. */
     BOOL _loadedEmitted;
@@ -336,12 +368,13 @@ static void EnsureGoogleMapsStarted(void)
     [self resetState];
     [_pendingLogs removeAllObjects];
     _pendingErrorReason = nil;
+    _pendingLicense = NO;
     [super prepareForRecycle];
 }
 
 - (void)resetState
 {
-    _licenseConsumed     = NO;
+    _firstResponseSeen   = NO;
     _loadedEmitted       = NO;
     _awaitingFirstRender = NO;
     _reportedUnusable    = NO;
@@ -402,6 +435,11 @@ static void EnsureGoogleMapsStarted(void)
         @"height": @(self.bounds.size.height),
     }];
 
+    // The billable moment — see onLicenseConsumed in the class docs. Sent here
+    // rather than on the first SDK response so that a panorama object which is
+    // charged but never answers is still counted.
+    [self emitLicenseConsumed];
+
     [self armReadyTimeout];
     return YES;
 }
@@ -452,7 +490,7 @@ static void EnsureGoogleMapsStarted(void)
         }
         [strongSelf emitLog:@"position timeout expired" detail:@{
             @"timeout": @(ms),
-            @"loaded": @(strongSelf->_licenseConsumed),
+            @"loaded": @(strongSelf->_firstResponseSeen),
             @"width": @(strongSelf.bounds.size.width),
             @"height": @(strongSelf.bounds.size.height),
         }];
@@ -535,8 +573,8 @@ static void EnsureGoogleMapsStarted(void)
     const BOOL hasImagery = (panorama != nil);
     const double elapsed = _requestedAt ? [[NSDate date] timeIntervalSinceDate:_requestedAt] * 1000 : -1;
 
-    if (!_licenseConsumed) {
-        _licenseConsumed = YES;
+    if (!_firstResponseSeen) {
+        _firstResponseSeen = YES;
 
         [self emitLog:@"first panorama change" detail:@{
             @"hasImagery": @(hasImagery),
@@ -545,8 +583,6 @@ static void EnsureGoogleMapsStarted(void)
             @"width": @(self.bounds.size.width),
             @"height": @(self.bounds.size.height),
         }];
-
-        [self emitLicenseConsumed];
 
         if (!hasImagery) {
             // Nothing will ever paint, so there is nothing to wait for. Sending
@@ -635,18 +671,17 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
         @"lat": @(coordinate.latitude),
         @"lng": @(coordinate.longitude),
         @"elapsed": @(elapsed),
-        @"loaded": @(_licenseConsumed),
+        @"loaded": @(_firstResponseSeen),
     }];
 
-    if (!_licenseConsumed) {
+    if (!_firstResponseSeen) {
         // Same shape as a first didMoveToPanorama: with no imagery: the SDK has
         // answered, so the component is ready to serve — there is simply
         // nothing to show here.
-        _licenseConsumed = YES;
+        _firstResponseSeen = YES;
         _awaitingFirstRender = NO;
         _renderToken++;
 
-        [self emitLicenseConsumed];
         [self emitLoadedOnce:@"no-imagery"];
         [self emitNoPanorama];
         return;
@@ -710,7 +745,10 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
 
 - (void)emitLicenseConsumed
 {
-    if (!_eventEmitter) return;
+    if (!_eventEmitter) {
+        _pendingLicense = YES;
+        return;
+    }
     @try {
         [self emitter].onLicenseConsumed({});
     } @catch (NSException *e) {
@@ -801,6 +839,11 @@ onMoveNearCoordinate:(CLLocationCoordinate2D)coordinate
         for (NSDictionary *payload in buffered) {
             [self sendLog:payload];
         }
+    }
+
+    if (_pendingLicense) {
+        _pendingLicense = NO;
+        [self emitLicenseConsumed];
     }
 
     if (_pendingErrorReason) {
