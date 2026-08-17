@@ -1,22 +1,17 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Platform, StyleSheet, Text, View, DimensionValue } from 'react-native';
-import MapLibreRN, { 
-    MapView, 
-    Camera, 
-    ShapeSource, 
-    Logger,
-    LineLayer, 
-    PointAnnotation, 
-    setAccessToken 
+import { Platform, StyleSheet, Text, View, DimensionValue, NativeSyntheticEvent } from 'react-native';
+import {
+    Map,
+    Camera,
+    GeoJSONSource,
+    Layer,
+    ViewAnnotation,
+    LogManager,
+    NetworkManager,
+    type ViewAnnotationEvent,
 } from '@maplibre/maplibre-react-native';
 import { FreeMapViewProps } from './types';
 import { fromMapCoord } from './utils';
-
-// MapLibre needs to be initialized
-if (Platform.OS !== 'web') {
-    setAccessToken(null);
-
-}
 
 let cachedMapStyle: any = null;
 
@@ -48,15 +43,15 @@ export const FreeMapView = ({
             return
 
         getMapStyle().then(osStyle => {
-            MapLibreRN.setConnected(true);
-            Logger.setLogCallback(log => {
+            NetworkManager.setConnected(true);
+            LogManager.onLog(log => {
                 if (log.message.includes('Canceled')) return true;
                 return false;
             });
             setMapStyle(osStyle);
         });
 
-        
+
     }, [mapStyle]);
 
     // Reset when bounds change (route extension mid-ride)
@@ -67,9 +62,9 @@ export const FreeMapView = ({
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
 
     const handleDragEnd = useCallback(
-        (e: any) => {
+        (e: NativeSyntheticEvent<ViewAnnotationEvent>) => {
             if (onPositionChanged) {
-                const coords = e.geometry.coordinates;
+                const coords = e.nativeEvent.lngLat;
                 onPositionChanged(fromMapCoord(coords));
             }
         },
@@ -96,56 +91,65 @@ export const FreeMapView = ({
         // Apply bounds only for the initial fit
         effectiveCameraProps = cameraProps;
     } else {
-        // After initial fit, remove bounds property and handle followPosition
+        // After initial fit, remove bounds/padding and handle followPosition
         const rest = Object.fromEntries(
-            Object.entries(cameraProps).filter(([key]) => key !== 'bounds')
-        ) as Omit<typeof cameraProps, 'bounds'>;
+            Object.entries(cameraProps).filter(([key]) => key !== 'bounds' && key !== 'padding')
+        ) as Omit<typeof cameraProps, 'bounds' | 'padding'>;
         if (followPosition && markerCoordinate) {
-            effectiveCameraProps = { ...rest, centerCoordinate: markerCoordinate };
+            effectiveCameraProps = { ...rest, center: markerCoordinate };
         } else {
             effectiveCameraProps = rest;
         }
     }
-    
+
 
     return (
         <View style={[styles.container, dynamicStyle, style]}>
-            <MapView
+            <Map
                 style={styles.map}
                 mapStyle={JSON.stringify(mapStyle)} // Replaced styleJSON with mapStyle
-                scrollEnabled={scrollWheelZoom}
-                logoEnabled={false}
-                attributionEnabled={true}
+                dragPan={scrollWheelZoom}
+                logo={false}
+                attribution={true}
                 onDidFinishRenderingMapFully={() => { refBoundsApplied.current = true; }}
             >
-                <Camera 
+                <Camera
                     {...effectiveCameraProps}
-                    animationDuration={0}
+                    duration={0}
                 />
 
-                <ShapeSource id='routeSource' shape={polylineData}>
-                    <LineLayer
+                <GeoJSONSource id='routeSource' data={polylineData}>
+                    <Layer
                         id='routeLayer'
-                        style={styles.routeLayer}
+                        type='line'
+                        paint={{
+                            'line-color': ['get', 'color'],
+                            'line-width': 5,
+                            'line-opacity': 0.8,
+                        }}
+                        layout={{
+                            'line-cap': 'round',
+                            'line-join': 'round',
+                        }}
                     />
-                </ShapeSource>
+                </GeoJSONSource>
 
                 {markerCoordinate && (
-                    <PointAnnotation
+                    <ViewAnnotation
                         id='marker'
                         key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}`}
-                        coordinate={markerCoordinate}
+                        lngLat={markerCoordinate}
                         draggable={draggable}
                         onDragEnd={handleDragEnd}
                     >
                         <View style={styles.markerTouchTarget}>
                             <View style={styles.marker} />
                         </View>
-                    </PointAnnotation>
+                    </ViewAnnotation>
                 )}
 
                 {children}
-            </MapView>
+            </Map>
         </View>
     );
 };
@@ -183,11 +187,4 @@ const styles = StyleSheet.create({
     webContainer: {
         backgroundColor: '#e0e0e0',
     },
-    routeLayer: {
-        lineColor: ['get', 'color'],
-        lineWidth: 5,
-        lineOpacity: 0.8,
-        lineCap: 'round',
-        lineJoin: 'round',
-    } as any,
 });

@@ -113,14 +113,17 @@ export const FreeMap = (props: TFreeMapProps) => {
         const effectiveBounds = bounds || computeBoundsFromPoints(points, routeOptions);
 
         if (effectiveBounds) {
+            const [swLng, swLat] = toMapCoord(effectiveBounds.southwest);
+            const [neLng, neLat] = toMapCoord(effectiveBounds.northeast);
+
             return {
-                bounds: {
-                    ne: toMapCoord(effectiveBounds.northeast),
-                    sw: toMapCoord(effectiveBounds.southwest),
-                    paddingLeft: 20,
-                    paddingRight: 20,
-                    paddingTop: 20,
-                    paddingBottom: 20,
+                // MapLibre v11 Camera bounds are a flat [west, south, east, north] tuple
+                bounds: [swLng, swLat, neLng, neLat] as [number, number, number, number],
+                padding: {
+                    top: 20,
+                    right: 20,
+                    bottom: 20,
+                    left: 20,
                 },
             };
         }
@@ -130,8 +133,8 @@ export const FreeMap = (props: TFreeMapProps) => {
         const mapZoom = zoom || viewport?.zoom || 10;
 
         return {
-            centerCoordinate: toMapCoord(mapCenter),
-            zoomLevel: mapZoom,
+            center: toMapCoord(mapCenter),
+            zoom: mapZoom,
         };
     }, [bounds, center, viewport, zoom, points, routeOptions]);
 
