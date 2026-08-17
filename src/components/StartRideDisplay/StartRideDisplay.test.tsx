@@ -2,15 +2,21 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { StartRideDisplay } from './StartRideDisplay';
 import { StartRideDisplayProps } from './types';
+import { CurrentRideDeviceInfo } from 'incyclist-services';
 
 const noop = () => {};
 
+const trainer = (status: CurrentRideDeviceInfo['status']): CurrentRideDeviceInfo => ({
+    udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status, capabilities: ['control'],
+});
+
+const hrm = (status: CurrentRideDeviceInfo['status']): CurrentRideDeviceInfo => ({
+    udid: 'hrm-1', name: 'HRM', isControl: false, status, capabilities: ['heartrate'],
+});
+
 const baseProps = {
     mode: 'GPX',
-    devices: [
-        { udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status: 'Starting' },
-        { udid: 'hrm-1', name: 'HRM', isControl: false, status: 'Starting' },
-    ],
+    devices: [trainer('Starting'), hrm('Starting')],
     mapType: 'Street View',
     mapState: 'Loaded',
     onStart: noop,
@@ -46,14 +52,8 @@ describe('StartRideDisplay', () => {
     //   1. trainer Started, HRM Starting,  readyToStart:true
     //   2. trainer Started, HRM Error,     readyToStart:true
     it('re-renders to show the Start button when props update from readyToStart:false to true with a failed non-control device', () => {
-        const devicesHrmStarting = [
-            { udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status: 'Starting' },
-            { udid: 'hrm-1', name: 'HRM', isControl: false, status: 'Starting' },
-        ];
-        const devicesHrmError = [
-            { udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status: 'Started' },
-            { udid: 'hrm-1', name: 'HRM', isControl: false, status: 'Error' },
-        ];
+        const devicesHrmStarting = [trainer('Starting'), hrm('Starting')];
+        const devicesHrmError = [trainer('Started'), hrm('Error')];
 
         const { getByText, queryByText, rerender } = render(
             <StartRideDisplay
@@ -93,10 +93,7 @@ describe('StartRideDisplay', () => {
     });
 
     it('shows the sensor-error dialog (not the starting dialog) once rideState actually becomes Error', () => {
-        const devices = [
-            { udid: 'trainer-1', name: 'Smart Trainer', isControl: true, status: 'Started' },
-            { udid: 'hrm-1', name: 'HRM', isControl: false, status: 'Error' },
-        ];
+        const devices = [trainer('Started'), hrm('Error')];
 
         const { getByText, queryByText } = render(
             <StartRideDisplay {...baseProps} devices={devices} rideState="Error" readyToStart={true} />
