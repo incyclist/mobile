@@ -92,9 +92,17 @@ const M1_VERIFY_STREETVIEW: boolean = true;
  * distinct locations so both a heading-only change and a real move are covered.
  */
 const M1_TEST_POSITIONS: IPosition[] = [
+    // Mid-Atlantic. No Street View coverage, and FIRST deliberately: this is the
+    // "imported GPX route starts off-coverage" case. Expect onLoaded(no-imagery)
+    // plus onNoPanorama, the start overlay lifting, and the view revealed
+    // showing whatever the SDK renders for an empty position.
+    { lat: 30.0,    lng: -40.0,    heading: 0 },
+    // Recovery: coverage reached after starting without it. The fetch happens
+    // with the view already visible, so Google's spinner may briefly show —
+    // accepted, and worth seeing rather than assuming.
     { lat: 40.758,  lng: -73.9855, heading: 0 },    // Times Square, N
-    { lat: 40.758,  lng: -73.9855, heading: 90 },   // Times Square, E — heading only
-    { lat: 40.7589, lng: -73.9851, heading: 0 },    // ~100m up 7th Ave — real move
+    { lat: 40.758,  lng: -73.9855, heading: 90 },   // heading only — no fetch
+    { lat: 40.7589, lng: -73.9851, heading: 0 },    // ~100m — adjacent panorama
     { lat: 51.5055, lng: -0.0754,  heading: 0 },    // Tower Bridge — long jump
 ];
 
