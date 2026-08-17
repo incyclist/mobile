@@ -2,16 +2,24 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Dialog } from '../../components/Dialog';
 import { colors, textSizes } from '../../theme';
-import { useScreenLayout } from '../../hooks';
-import { 
+import { useScreenLayout, useWhyDidYouRender } from '../../hooks';
+import {
     CurrentRideDeviceInfo,
     RideMapState,
     StartRideDisplayProps,
-    VideoStartOverlayProps, 
+    VideoStartOverlayProps,
 } from './types';
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
+
+    // FIXES_BACKLOG #52 — iOS start overlay was reported stuck showing Cancel-only although
+    // services logged readyToStart:true. No re-render/memoization bug was found while tracing the
+    // observer -> page-service -> StartRideDisplay chain (see PR description), but the log that
+    // triggered this investigation had no re-render information for this component at all, only
+    // for StreetView. Log every prop-reference change here so a recurrence can be diagnosed
+    // straight from a user's event log without a reproduction.
+    useWhyDidYouRender('StartRideDisplay', props, true);
 
     const layout = useScreenLayout();
 
