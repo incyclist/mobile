@@ -398,6 +398,50 @@ describe('MessageQueue', () => {
         });
     });
 
+    describe('subscribe before the connection is up', () => {
+        // Reproduces a real startup trace: a subscribe issued ~200ms before the connection
+        // completed was silently discarded, because `this.client` is only assigned once a
+        // connection has succeeded and subscribe() used to bail out on that. The topic was
+        // never subscribed and nothing was logged.
+        test('a subscribe issued while connecting is honoured once connected', async () => {
+            const connecting = mq.connect();
+            const client = mockInstances[0];
+
+            await mq.subscribe('incyclist/features/uuid/+');
+            expect(client.subscribe).not.toHaveBeenCalled();   // nothing to subscribe on yet
+
+            succeed(client);
+            await connecting;
+            await Promise.resolve();
+
+            expect(client.subscribe).toHaveBeenCalledWith(
+                'incyclist/features/uuid/+', { qos: 0 }, expect.any(Function));
+        });
+
+        test('does not block the caller while a connect is failing', async () => {
+            // No broker: connect() resolves false immediately, but the point is that
+            // subscribe() resolves at all without the test having to advance timers.
+            delete mockSecrets.MQ_BROKER;
+            delete mockSecrets.MQ_BROKER_WS;
+
+            await mq.subscribe('topic/a');
+
+            expect((mq as any).pending.has('topic/a')).toBe(true);
+        });
+
+        test('a subscribe with no connection at all is replayed on the next connect', async () => {
+            await mq.subscribe('topic/parked');
+
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+            await Promise.resolve();
+
+            expect(client.subscribe).toHaveBeenCalledWith('topic/parked', { qos: 0 }, expect.any(Function));
+        });
+    });
+
     describe('subscribe retry', () => {
         // A subscription the broker refuses is retried indefinitely. Callers were already
         // told the subscription exists, so giving up silently would leave a topic dead

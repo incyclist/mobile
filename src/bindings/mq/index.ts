@@ -60,14 +60,22 @@ export class MessageQueue extends EventEmitter {
 
     async subscribe(topic: string) {
         try {
-            if (!this.client) return;
-            if (!this.isConnected) {
-                const connected = await this.connect()
-                if (!connected) {
-                    this.pending.add(topic)
-                    this.logger.logEvent({ message: 'mq subscribe deferred', topic, reason: 'not connected' });
-                    return
-                }
+            // Accepted now, established when the connection is up - the same contract
+            // publish() has always had. `this.client` is only set once a connection has
+            // succeeded, so before the first connect completes this is the normal path,
+            // not an edge case: a subscribe at app startup lands here.
+            if (!this.isConnected || !this.client) {
+                this.pending.add(topic);
+                this.logger.logEvent({ message: 'mq subscribe deferred', topic, reason: 'not connected' });
+
+                // Start a connection if none is running. connect() de-duplicates concurrent
+                // callers, so a subscribe during startup joins the attempt already in flight
+                // rather than starting a second one, and subscribePending() picks the topic
+                // up the moment it succeeds. Deliberately not awaited: a failing connect
+                // takes CONNECT_RETRY_CNT * CONNECT_RETRY_INTERVAL to give up and the caller
+                // must not be blocked for that long.
+                this.connect().catch((err) => this.logError(err, 'subscribe'));
+                return;
             }
 
             // Registered up front, on purpose: callers are told the subscription exists and
