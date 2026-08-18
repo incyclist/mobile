@@ -2,6 +2,7 @@ import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
 import { formatDateTime, useActivityList, ActivityDetails, useUserSettings  } from 'incyclist-services';
 import { ActivityListItemProps } from './types';
 import { ActivityListItemView } from './ActivityListItemView';
+import { isFormattedNumber } from '../../utils/formattedNumber';
 
 const detailsCache = new Map<string, ActivityDetails>();
 
@@ -68,8 +69,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
 
     let distanceValue = '';
     let distanceUnit = '';
-    if (typeof distance === 'object' && distance !== null && 'value' in distance && 'unit' in distance
-        && typeof distance.value === 'number' && !Number.isNaN(distance.value)) {
+    if (isFormattedNumber(distance)) {
         distanceValue = distance.value.toFixed(1);
         distanceUnit = distance.unit;
     } else if (typeof distance === 'number') {
@@ -80,8 +80,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const elevation = (summary as any).totalElevation;
     let elevationValue = '';
     let elevationUnit = '';
-    if (typeof elevation === 'object' && elevation !== null && 'value' in elevation && 'unit' in elevation
-        && typeof elevation.value === 'number' && !Number.isNaN(elevation.value)) {
+    if (isFormattedNumber(elevation)) {
         elevationValue = Math.round(elevation.value).toString();
         elevationUnit = elevation.unit;
     } else if (typeof elevation === 'number' && !isNaN(elevation)) {

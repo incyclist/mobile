@@ -14,10 +14,7 @@ import { FilterPanelProps, SearchFilter } from './types';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
 import { Icon } from '../Icon';
-import { FormattedNumber } from 'incyclist-services'; // Added FormattedNumber import
-
-const isFormattedNumber = (v: unknown): v is FormattedNumber =>
-    typeof v === 'object' && v !== null && 'value' in v;
+import { isFormattedNumber } from '../../utils/formattedNumber';
 
 /**
  * Helper to generate descriptive text for active filters

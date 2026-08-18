@@ -1,4 +1,4 @@
-import { ActivityDetailsUI, FormattedNumber, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
+import { ActivityDetailsUI, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
 
 export interface ActivitySummaryDialogProps {
     onClose: () => void;   // dismiss -> back to RideMenu (caller's responsibility)
@@ -34,7 +34,3 @@ export interface ActivitySummaryDialogViewProps {
     onShareFile: (path: string) => void;
     compact?: boolean;
 }
-
-export const isFormattedNumber = (v: unknown): v is FormattedNumber =>
-    typeof v === 'object' && v !== null && 'value' in v
-    && typeof (v as { value: unknown }).value === 'number' && !Number.isNaN((v as { value: number }).value);

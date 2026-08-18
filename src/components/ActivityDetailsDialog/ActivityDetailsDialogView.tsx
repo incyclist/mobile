@@ -10,6 +10,7 @@ import { ActivityDetailsDialogViewProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { isFormattedNumber } from '../../utils/formattedNumber';
 
 const safeNum = (v: any): number | undefined => {
     try {
@@ -21,10 +22,6 @@ const safeNum = (v: any): number | undefined => {
     }
     return undefined;
 };
-
-const isFormattedNumber = (v: unknown): v is { value: number; unit: string } =>
-    typeof v === 'object' && v !== null && 'value' in v
-    && typeof (v as { value: unknown }).value === 'number' && !Number.isNaN((v as { value: number }).value);
 
 export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps) => {
     const {
