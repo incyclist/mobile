@@ -5,12 +5,13 @@ import { ActivitySummaryDialogViewProps } from './types';
 import { ActivityDetailsUI } from 'incyclist-services';
 
 jest.mock('@maplibre/maplibre-react-native', () => ({
-    MapView: 'MapView',
+    Map: 'Map',
     Camera: 'Camera',
-    ShapeSource: 'ShapeSource',
-    LineLayer: 'LineLayer',
-    setAccessToken: jest.fn(),
-    default: { createFragment: jest.fn() },
+    GeoJSONSource: 'GeoJSONSource',
+    Layer: 'Layer',
+    ViewAnnotation: 'ViewAnnotation',
+    LogManager: { onLog: jest.fn() },
+    NetworkManager: { setConnected: jest.fn() },
 }));
 
 jest.mock('incyclist-services', () => ({

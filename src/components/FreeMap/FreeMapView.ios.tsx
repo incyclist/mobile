@@ -54,9 +54,9 @@ export const FreeMapView = ({
     }, [polylineData]);
 
     const initialRegion = useMemo<Region>(() => {
-        if (cameraProps.centerCoordinate && cameraProps.zoomLevel !== undefined) {
-            const { latitude, longitude } = toRNLatLng(cameraProps.centerCoordinate);
-            const delta = getDeltaForZoom(cameraProps.zoomLevel);
+        if (cameraProps.center && cameraProps.zoom !== undefined) {
+            const { latitude, longitude } = toRNLatLng(cameraProps.center);
+            const delta = getDeltaForZoom(cameraProps.zoom);
             return {
                 latitude,
                 longitude,
@@ -71,25 +71,26 @@ export const FreeMapView = ({
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
         };
-    }, [cameraProps.centerCoordinate, cameraProps.zoomLevel]);
+    }, [cameraProps.center, cameraProps.zoom]);
 
     // Effect to handle `fitToCoordinates` when bounds are provided, ensuring it runs once.
     useEffect(() => {
         if (mapRef.current && cameraProps.bounds && !initialRegionSet) {
-            const { ne, sw } = cameraProps.bounds;
-            const coordinatesToFit = [toRNLatLng(ne), toRNLatLng(sw)];
+            // cameraProps.bounds is a flat [west, south, east, north] tuple
+            const [west, south, east, north] = cameraProps.bounds;
+            const coordinatesToFit = [toRNLatLng([east, north]), toRNLatLng([west, south])];
             mapRef.current.fitToCoordinates(coordinatesToFit, {
                 edgePadding: {
-                    top: cameraProps.bounds.paddingTop || 50,
-                    right: cameraProps.bounds.paddingRight || 50,
-                    bottom: cameraProps.bounds.paddingBottom || 50,
-                    left: cameraProps.bounds.paddingLeft || 50,
+                    top: cameraProps.padding?.top || 50,
+                    right: cameraProps.padding?.right || 50,
+                    bottom: cameraProps.padding?.bottom || 50,
+                    left: cameraProps.padding?.left || 50,
                 },
                 animated: false, // Prevents initial jarring animation
             });
             setInitialRegionSet(true); // Mark as set to avoid re-running if bounds are static
         }
-    }, [mapRef, cameraProps.bounds, initialRegionSet]);
+    }, [mapRef, cameraProps.bounds, cameraProps.padding, initialRegionSet]);
 
     // Reset initialRegionSet when bounds change (route extension mid-ride)
     useEffect(() => {
@@ -124,7 +125,7 @@ export const FreeMapView = ({
     const regionProp = cameraProps.bounds ? undefined : initialRegion;
 
     // If no polyline, marker, or center coordinate, return null (matches Android's behavior before style loads)
-    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.centerCoordinate) {
+    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.center) {
         return null;
     }
 

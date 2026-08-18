@@ -72,17 +72,19 @@ export interface TFreeMapProps {
 // Internal type for MapLibre which uses [longitude, latitude]
 export type MapCoord = [number, number];
 
+// Internal type for MapLibre v11's Camera `bounds` prop: [west, south, east, north]
+export type MapBounds = [number, number, number, number];
+
 export interface FreeMapViewProps extends TFreeMapProps {
     cameraProps: {
-        centerCoordinate?: MapCoord;
-        zoomLevel?: number;
-        bounds?: {
-            ne: MapCoord;
-            sw: MapCoord;
-            paddingLeft?: number;
-            paddingRight?: number;
-            paddingTop?: number;
-            paddingBottom?: number;
+        center?: MapCoord;
+        zoom?: number;
+        bounds?: MapBounds;
+        padding?: {
+            top?: number;
+            right?: number;
+            bottom?: number;
+            left?: number;
         };
     };
     polylineData: GeoJSON.FeatureCollection<GeoJSON.LineString>;
