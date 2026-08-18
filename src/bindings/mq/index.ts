@@ -1,26 +1,29 @@
-import * as Mqtt from '@fdfedin/react-native-native-mqtt';
+import mqtt from 'mqtt';
+import type { MqttClient, IClientOptions } from 'mqtt';
 import { EventEmitter } from 'events';
 import { getSecretBinding } from '../secret';
 import { EventLogger } from 'gd-eventlog';
 import { v4 } from 'uuid';
 import { Platform } from 'react-native';
 import { isProdVariant } from '../appInfo';
-import { normaliseMqttUri } from './utils';
+import { toWebsocketUri } from './utils';
 
 const CONNECT_RETRY_INTERVAL = 10000;   // 10 seconds
 const CONNECT_RETRY_CNT = 5;            // number of attempts before taking a pause
-const CONNECT_TIMEOUT = 5000;           // 5 seconds - JS-side fallback timeout, in ms
+const CONNECT_TIMEOUT = 5000;           // 5 seconds
 
-// The native module (Paho under the hood) expects `timeout` in *seconds*, not milliseconds.
-// Sending CONNECT_TIMEOUT (ms) straight through used to make the real native timeout
-// ~83 minutes instead of ~5 seconds, which hugely widened the window in which an
-// abandoned connect attempt could still complete after the JS side had already moved on
-// to a retry - see FIXES_BACKLOG item #15.
-export const CONNECT_TIMEOUT_SECONDS = CONNECT_TIMEOUT / 1000; // 5 seconds
+// MQTT.js expects every timing option in *milliseconds*, so CONNECT_TIMEOUT is passed
+// straight through. The native module this class used to wrap expected `timeout` in
+// seconds, and feeding it milliseconds made the real timeout ~83 minutes instead of ~5
+// seconds - which hugely widened the window in which an abandoned connect attempt could
+// still complete after the JS side had moved on to a retry (FIXES_BACKLOG item #15).
+// That unit mismatch cannot recur here, but the per-attempt isolation it exposed is
+// still deliberately preserved below.
+const KEEPALIVE_SECONDS = 60;           // MQTT.js takes keepalive in seconds
 
 export class MessageQueue extends EventEmitter {
-    private client?: Mqtt.Client;
-    private nativeUri!: string;
+    private client?: MqttClient;
+    private brokerUri!: string;
     private isConnected: boolean = false;
     private connectPromise!: Promise<boolean> | null;
     private logger: EventLogger;
@@ -30,11 +33,11 @@ export class MessageQueue extends EventEmitter {
     private toConnect: NodeJS.Timeout|undefined
 
     // The client instance created by the most recently started connect attempt.
-    // Every retry gets its *own* fresh `Mqtt.Client` (own native id, own native callback
-    // reference) so two attempts can never collide on the native side. This field is
-    // additionally used JS-side to make sure a late event from an abandoned/superseded
-    // attempt can never resurrect connection state after a newer attempt has resolved.
-    private currentAttemptClient?: Mqtt.Client
+    // Every retry gets its *own* fresh MqttClient (own socket, own listeners) so two
+    // attempts can never collide, and this field is the JS-side identity check that makes
+    // sure a late event from an abandoned/superseded attempt can never resurrect
+    // connection state after a newer attempt has already resolved.
+    private currentAttemptClient?: MqttClient
 
     static _instance: MessageQueue | null;
 
@@ -50,7 +53,7 @@ export class MessageQueue extends EventEmitter {
     }
 
     enabled(): boolean {
-        return !!this.getSecret('MQ_BROKER');
+        return !!this.getBrokerSecret();
     }
 
     async subscribe(topic: string) {
@@ -64,7 +67,7 @@ export class MessageQueue extends EventEmitter {
                 }
             }
 
-            this.client.subscribe([topic], [0]);
+            this.client.subscribe(topic, { qos: 0 });
             this.emit('mq-subscribed', topic);
             this.subscriptions.add(topic);
         } catch (err) {
@@ -79,7 +82,7 @@ export class MessageQueue extends EventEmitter {
         try {
             if (!this.client || !this.isConnected) return;
 
-            this.client.unsubscribe([topic]);
+            this.client.unsubscribe(topic);
         } catch (err) {
             this.logError(err, 'subscribe');
         }
@@ -107,7 +110,7 @@ export class MessageQueue extends EventEmitter {
 
     private send(topic: string, message: string) {
         const data = Buffer.from(message, 'utf-8');
-        this.client?.publish(topic, data, 0, false);
+        this.client?.publish(topic, data, { qos: 0, retain: false });
     }
 
     async connect(): Promise<boolean> {
@@ -117,17 +120,11 @@ export class MessageQueue extends EventEmitter {
 
         if (this.isConnected) return true;
 
-
         this.logger.logEvent({ message: 'connecting to message queue ...', platform:Platform.OS, isProdVariant });
 
-        // Temporarily disabled MQTT on iOS in production
-        if (Platform.OS === 'ios' && isProdVariant) {
-            return false;
-        }
+        const brokerSecret = this.getBrokerSecret();
 
-        const uri = this.getSecret('MQ_BROKER');
-
-        if (!this.enabled()) {
+        if (!brokerSecret) {
             this.logger.logEvent({ message: 'mqtt disabled', reason: 'no broker specified' });
             return false;
         }
@@ -135,22 +132,31 @@ export class MessageQueue extends EventEmitter {
         const username = this.getSecret('MQ_USER');
         const password = this.getSecret('MQ_PASSWORD');
 
-        if (!uri || !username || !password) return false;
+        if (!username || !password) return false;
 
-        const { nativeUri, tls } = normaliseMqttUri(uri, Platform.OS as 'ios' | 'android');
-        this.logger.logEvent({ message: 'mqtt broker uri normalised', uri, nativeUri, tls });
-        this.nativeUri = nativeUri;
+        const { uri, tls } = toWebsocketUri(brokerSecret);
+        this.logger.logEvent({ message: 'mqtt broker uri resolved', broker: brokerSecret, uri, tls });
+        this.brokerUri = uri;
 
         this.connectPromise = new Promise<boolean>((done) => {
             const clientId = 'mobile' + v4();
-            const options: Mqtt.ConnectionOptions = {
+            const options: IClientOptions = {
                 username,
                 password,
                 clientId,
-                timeout: CONNECT_TIMEOUT_SECONDS,
-                keepAlive: 60,
-                autoReconnect: true,
-                ...(tls ? { enableSsl: true, allowUntrustedCA:true } : {}),
+                connectTimeout: CONNECT_TIMEOUT,
+                keepalive: KEEPALIVE_SECONDS,
+                clean: true,
+                // This class owns the retry loop below, so MQTT.js's own reconnection is
+                // kept off for the duration of a connect attempt - two competing retry
+                // loops would make the per-attempt isolation below meaningless. It is
+                // switched on again in onConnected(), once an attempt has won, to give
+                // the same auto-reconnect-after-a-real-disconnect behaviour the native
+                // module provided via `autoReconnect: true`.
+                reconnectPeriod: 0,
+                // Subscriptions are re-established by subscribePending() on every
+                // (re)connect, so MQTT.js must not also replay them itself.
+                resubscribe: false,
             };
 
             this.connectRetries(options, CONNECT_RETRY_CNT, CONNECT_RETRY_INTERVAL)
@@ -165,8 +171,13 @@ export class MessageQueue extends EventEmitter {
     disconnect(): void {
         if (!this.isConnected) return;
 
+        // Drop the identity of the live attempt first: end() tears the connection down
+        // asynchronously, and any event it emits on the way out must not be mistaken for
+        // a spontaneous disconnect and trigger reconnect handling.
+        this.currentAttemptClient = undefined;
+
         try {
-            this.client?.disconnect();
+            this.client?.end();
         } catch (err: any) {
             this.logger.logEvent({ message: 'disconnect failed', reason: err.message });
         }
@@ -176,7 +187,7 @@ export class MessageQueue extends EventEmitter {
     }
 
     private async connectRetries(
-        options: Mqtt.ConnectionOptions,
+        options: IClientOptions,
         max: number,
         delay: number,
     ): Promise<boolean> {
@@ -201,42 +212,51 @@ export class MessageQueue extends EventEmitter {
 
     // Best-effort teardown of an abandoned/superseded connect attempt: detach our own
     // listeners (so the closures captured in doConnect() can be garbage collected) and
-    // ask the native side to disconnect. This does not (and cannot, without patching the
-    // native library) remove the NativeEventEmitter subscriptions the client constructor
-    // registers - that part of the leak is native-library behaviour outside this repo.
-    private abandonClient(client: Mqtt.Client) {
+    // force the client to close. A no-op error handler is left attached because MQTT.js
+    // emits 'error' on an EventEmitter - an error arriving after the last listener was
+    // removed would otherwise be thrown as an unhandled 'error' event.
+    private abandonClient(client: MqttClient, handlers: Array<[string, (...args: any[]) => void]>) {
         try {
-            client.off(Mqtt.Event.Connect);
-            client.off(Mqtt.Event.Disconnect);
-            client.off(Mqtt.Event.Message);
-            client.off(Mqtt.Event.Error);
+            handlers.forEach(([event, handler]) => {
+                client.removeListener(event as any, handler);
+            });
+            client.on('error', () => { /* swallow - this attempt is abandoned */ });
         } catch {
             // best effort - failing to detach listeners must never block the retry loop
         }
         try {
-            client.disconnect();
+            client.end(true);
         } catch {
             // best effort - the attempt is already abandoned, nothing else we can do
         }
     }
 
-    private doConnect(options: Mqtt.ConnectionOptions): Promise<boolean> {
-        // Every attempt gets its own fresh native client (own native id, own native
-        // callback reference). This is the core fix for the crash: previously all
-        // retries reused the same Mqtt.Client/native id, so the native library's
-        // single-slot connect callback for that id could be overwritten by a later
-        // retry while an earlier, abandoned attempt was still running (the JS-side
-        // timeout fires long before the real Paho timeout used to elapse). A late
-        // completion of the abandoned attempt could then invoke a callback that had
-        // already been invoked once by the newer attempt, tripping RN's single-shot
-        // native Callback invariant and aborting the app.
-        const client = new Mqtt.Client(this.nativeUri);
+    private doConnect(options: IClientOptions): Promise<boolean> {
+        // Every attempt gets its own fresh MqttClient - its own WebSocket, its own
+        // listeners, its own state machine. Nothing is shared between attempts, so a
+        // slow attempt that the JS-side timeout has already given up on cannot interfere
+        // with the attempt that replaced it. The identity check below is the second half
+        // of that guarantee: it makes a late event from such an attempt a no-op even if
+        // listener removal did not (or could not) take effect in time. The options are
+        // copied for the same reason - onConnected() mutates client.options.reconnectPeriod,
+        // which must not leak into a later attempt.
+        const client = mqtt.connect(this.brokerUri, { ...options });
         this.currentAttemptClient = client;
 
         const isCurrentAttempt = () => this.currentAttemptClient === client;
 
         return new Promise<boolean>((resolve) => {
             let settled = false;
+
+            // Only *our* listeners, recorded so exactly these can be detached again when
+            // the attempt is abandoned. MQTT.js registers internal 'connect' and 'close'
+            // handlers on the client itself, so removeAllListeners() would break its own
+            // teardown path.
+            const handlers: Array<[string, (...args: any[]) => void]> = [];
+            const listen = (event: string, handler: (...args: any[]) => void) => {
+                handlers.push([event, handler]);
+                client.on(event as any, handler);
+            };
 
             const clearConnectTimeout = () => {
                 if (this.toConnect) {
@@ -253,21 +273,40 @@ export class MessageQueue extends EventEmitter {
                 settled = true;
                 clearConnectTimeout();
                 this.logger.logEvent({ message, info });
-                this.abandonClient(client);
+                this.abandonClient(client, handlers);
                 resolve(false);
             };
 
             const onConnected = () => {
-                if (!isCurrentAttempt() || settled) {
+                if (!isCurrentAttempt()) {
                     // Late success from an abandoned attempt - ignore entirely, a newer
                     // attempt has already resolved (or is in flight).
                     return;
                 }
+
+                if (settled) {
+                    // MQTT.js re-established the connection on the client that won this
+                    // attempt. Restore the state onDisconnected() tore down and replay
+                    // everything that was parked while the connection was down - without
+                    // this the class would stay `isConnected: false` forever after the
+                    // first drop, silently queueing publishes against a live socket.
+                    this.isConnected = true;
+                    this.logger.logEvent({ message: 'mqtt reconnected' });
+                    this.subscribePending();
+                    this.flushQueue();
+                    return;
+                }
+
                 settled = true;
                 clearConnectTimeout();
 
                 this.client = client;
                 this.isConnected = true;
+
+                // This attempt won, so hand reconnection back to MQTT.js: from here on a
+                // real disconnect during normal operation is retried by the client itself.
+                client.options.reconnectPeriod = CONNECT_RETRY_INTERVAL;
+
                 this.logger.logEvent({ message: 'mqtt connected' });
 
                 this.subscribePending();
@@ -276,50 +315,48 @@ export class MessageQueue extends EventEmitter {
                 resolve(true);
             };
 
-            const onDisconnected = (reason: string) => {
+            const onDisconnected = () => {
                 if (!isCurrentAttempt()) return;
 
                 if (!settled) {
-                    // Disconnected before ever connecting - this attempt failed.
-                    settleFailure('mqtt connection disconnected', reason);
+                    // Closed before ever connecting - this attempt failed.
+                    settleFailure('mqtt connection disconnected');
                     return;
                 }
 
                 // Already connected once on this (still current/live) client - a real
-                // disconnect during normal operation. autoReconnect is handled natively.
+                // disconnect during normal operation. Reconnection is handled by MQTT.js.
                 this.isConnected = false;
                 clearConnectTimeout();
                 this.prepareSubscriptionsForReconnect();
-                this.logger.logEvent({ message: 'mqtt connection disconnected', reason });
+                this.logger.logEvent({ message: 'mqtt connection disconnected' });
             };
 
-            const onError = (err: string) => {
+            const onError = (err: Error) => {
                 if (!isCurrentAttempt()) return;
 
                 if (!settled) {
-                    settleFailure('mqtt error', err);
+                    settleFailure('mqtt error', err?.message);
                     return;
                 }
 
                 clearConnectTimeout();
-                this.logger.logEvent({ message: 'mqtt error', info: err });
+                this.logger.logEvent({ message: 'mqtt error', info: err?.message });
             };
 
-            client.on(Mqtt.Event.Connect, onConnected);
-            client.on(Mqtt.Event.Disconnect, onDisconnected);
-            client.on(Mqtt.Event.Message, this.onMessage.bind(this));
-            client.on(Mqtt.Event.Error, onError);
+            const onMessage = (topic: string, message: Uint8Array) => this.onMessage(topic, message);
 
+            listen('connect', onConnected);
+            listen('close', onDisconnected);
+            listen('message', onMessage);
+            listen('error', onError);
+
+            // JS-side fallback: MQTT.js applies connectTimeout itself, but a client that
+            // never reports either way must not stall the retry loop forever.
             const onTimeout = () => settleFailure('mqtt timeout');
             this.toConnect = setTimeout(onTimeout, CONNECT_TIMEOUT + 2000)
 
             this.logger.logEvent({ message: 'trying to connect to mqtt' });
-
-            client.connect(options, (error?: Error) => {
-                if (error !== null && error !== undefined) {
-                    settleFailure('mqtt connect callback error', error.message);
-                }
-            });
         });
     }
 
@@ -367,6 +404,16 @@ export class MessageQueue extends EventEmitter {
 
     protected logError(err: any, fn: string) {
         this.logger.logEvent({ message: 'error', fn, error: err.message, stack: err.stack });
+    }
+
+    // The secrets store may hold an explicit WebSocket broker URL (MQ_BROKER_WS). When it
+    // does not, the legacy MQTT-over-TCP URL (MQ_BROKER) is translated to its WebSocket
+    // equivalent - see toWebsocketUri(). Preferring the explicit key means the broker's
+    // WebSocket port/path can be changed from the secrets store alone, without an app
+    // release, while leaving MQ_BROKER untouched for already-released app versions that
+    // still speak MQTT over raw TCP.
+    protected getBrokerSecret(): string | undefined {
+        return this.getSecret('MQ_BROKER_WS') || this.getSecret('MQ_BROKER');
     }
 
     protected getSecret(key: string) {

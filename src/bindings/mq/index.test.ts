@@ -1,85 +1,94 @@
-// Regression tests for FIXES_BACKLOG item #15: a reused native Mqtt.Client across
-// connect retries could let an abandoned attempt's delayed native completion double-invoke
-// a React Native single-shot Callback, tripping a native fatal abort. See src/bindings/mq/index.ts.
+// Behaviour tests for the MQTT.js (WebSocket) message queue binding.
+//
+// The retry/abandon logic these cover originally guarded a native MQTT module: a reused
+// native client across connect retries could let an abandoned attempt's delayed native
+// completion double-invoke a React Native single-shot Callback, tripping a native fatal
+// abort (FIXES_BACKLOG item #15). The native module is gone, but the invariant it forced
+// - an abandoned attempt can never affect state a newer attempt has already settled -
+// still has to hold, and MQTT.js's client model does not provide it for free. See
+// src/bindings/mq/index.ts.
 
-jest.mock('@fdfedin/react-native-native-mqtt', () => {
+const mockSecrets: Record<string, string | undefined> = {};
+const mockPlatform = { OS: 'android' };
+const mockAppInfo = { isProdVariant: false };
+
+jest.mock('mqtt', () => {
     const { EventEmitter: NodeEventEmitter } = require('events');
-
-    const Event = {
-        Connect: 'connect',
-        Disconnect: 'disconnect',
-        Message: 'message',
-        Error: 'error',
-    };
 
     const instances: any[] = [];
 
-    class Client extends NodeEventEmitter {
+    class FakeClient extends NodeEventEmitter {
         url: string;
-        connect: jest.Mock;
+        options: any;
         subscribe: jest.Mock;
         unsubscribe: jest.Mock;
         publish: jest.Mock;
-        disconnect: jest.Mock;
-        close: jest.Mock;
-        off: jest.Mock;
+        end: jest.Mock;
+        removeListener: any;
 
-        constructor(url: string) {
+        constructor(url: string, options: any) {
             super();
             this.url = url;
-            this.connect = jest.fn();
+            this.options = options;
             this.subscribe = jest.fn();
             this.unsubscribe = jest.fn();
             this.publish = jest.fn();
-            this.disconnect = jest.fn();
-            this.close = jest.fn();
+            this.end = jest.fn();
             // Spy only - deliberately does NOT detach the underlying listener the way the
-            // real library's off() would. This lets the tests below prove that it is the
+            // real EventEmitter would. This lets the tests below prove that it is the
             // class's own isCurrentAttempt() guard - not listener removal - that keeps a
             // late event from an abandoned attempt from mutating connection state.
-            this.off = jest.fn();
+            this.removeListener = jest.fn();
             instances.push(this);
         }
     }
 
-    return { Client, Event, __instances: instances };
+    return {
+        __esModule: true,
+        default: {
+            connect: (url: string, options: any) => new FakeClient(url, options),
+        },
+        __instances: instances,
+    };
 });
 
-jest.mock('react-native', () => ({ Platform: { OS: 'android' } }));
-jest.mock('../appInfo', () => ({ isProdVariant: false }));
+// The factory runs while `mockPlatform` is still being initialised (jest hoists
+// jest.mock above the const declarations), so the value has to be read lazily.
+jest.mock('react-native', () => ({
+    get Platform() { return mockPlatform; },
+}));
+jest.mock('../appInfo', () => ({
+    get isProdVariant() { return mockAppInfo.isProdVariant; },
+}));
 jest.mock('../secret', () => ({
     getSecretBinding: () => ({
-        getSecret: (key: string) => {
-            switch (key) {
-                case 'MQ_BROKER': return 'mqtt://broker.example.com:1883';
-                case 'MQ_USER': return 'user';
-                case 'MQ_PASSWORD': return 'pass';
-                default: return undefined;
-            }
-        },
+        getSecret: (key: string) => mockSecrets[key],
     }),
 }));
 
-import * as Mqtt from '@fdfedin/react-native-native-mqtt';
-import { MessageQueue, CONNECT_TIMEOUT_SECONDS } from './index';
+import { MessageQueue } from './index';
 
-const mockInstances = (Mqtt as unknown as { __instances: any[] }).__instances;
+const mockInstances = (jest.requireMock('mqtt') as { __instances: any[] }).__instances;
 
-// Simulates a successful native connection on a given mocked client: the connect()
-// call's own callback fires without error, and (separately, as the real library does)
-// the broker-level 'connect' event is broadcast.
-const succeed = (client: any) => {
-    const callback = client.connect.mock.calls[0][1];
-    callback();
-    client.emit(Mqtt.Event.Connect, false);
-};
+const CONNECT_TIMEOUT = 5000;
+const CONNECT_RETRY_INTERVAL = 10000;
 
-describe('MessageQueue - connect retry / native client lifecycle', () => {
+// Simulates a successful connection on a given mocked client - MQTT.js signals this with
+// a 'connect' event.
+const succeed = (client: any) => client.emit('connect');
+
+describe('MessageQueue', () => {
     let mq: MessageQueue;
 
     beforeEach(() => {
         jest.useFakeTimers();
         mockInstances.length = 0;
+        Object.keys(mockSecrets).forEach((key) => delete mockSecrets[key]);
+        mockSecrets.MQ_BROKER = 'mqtts://broker.example.com:8883';
+        mockSecrets.MQ_USER = 'user';
+        mockSecrets.MQ_PASSWORD = 'pass';
+        mockPlatform.OS = 'android';
+        mockAppInfo.isProdVariant = false;
         MessageQueue._instance = null;
         mq = MessageQueue.getInstance();
     });
@@ -89,105 +98,329 @@ describe('MessageQueue - connect retry / native client lifecycle', () => {
         jest.useRealTimers();
     });
 
-    test('sends the connect timeout to native in seconds, not milliseconds', async () => {
-        const promise = mq.connect();
+    describe('broker address', () => {
+        test('uses MQ_BROKER_WS verbatim when the secrets store provides one', async () => {
+            mockSecrets.MQ_BROKER_WS = 'wss://mq.api.incyclist.com:15675/mqtt';
 
-        expect(mockInstances).toHaveLength(1);
-        const options = mockInstances[0].connect.mock.calls[0][0];
+            const promise = mq.connect();
 
-        expect(options.timeout).toBe(CONNECT_TIMEOUT_SECONDS);
-        expect(options.timeout).toBe(5);
-        expect(options.timeout).not.toBe(5000);
+            expect(mockInstances[0].url).toBe('wss://mq.api.incyclist.com:15675/mqtt');
 
-        succeed(mockInstances[0]);
-        await promise;
+            succeed(mockInstances[0]);
+            await promise;
+        });
+
+        test('falls back to translating the legacy MQ_BROKER TCP url', async () => {
+            const promise = mq.connect();
+
+            expect(mockInstances[0].url).toBe('wss://broker.example.com:443/ws');
+
+            succeed(mockInstances[0]);
+            await promise;
+        });
+
+        test('is disabled when neither broker secret is set', async () => {
+            delete mockSecrets.MQ_BROKER;
+
+            expect(mq.enabled()).toBe(false);
+            expect(await mq.connect()).toBe(false);
+            expect(mockInstances).toHaveLength(0);
+        });
+
+        test('is enabled when only MQ_BROKER_WS is set', () => {
+            delete mockSecrets.MQ_BROKER;
+            mockSecrets.MQ_BROKER_WS = 'wss://mq.api.incyclist.com/ws';
+
+            expect(mq.enabled()).toBe(true);
+        });
     });
 
-    test('a slow/timed-out first attempt is abandoned and retried on a fresh client instance', async () => {
-        const promise = mq.connect();
-        expect(mockInstances).toHaveLength(1);
-        const client1 = mockInstances[0];
+    describe('connect options', () => {
+        test('passes the connect timeout to MQTT.js in milliseconds', async () => {
+            const promise = mq.connect();
 
-        // First attempt never completes client-side (neither its connect() callback nor a
-        // connect/disconnect event fires) -> the JS-side fallback timeout must fire.
-        await jest.advanceTimersByTimeAsync(7000);
+            expect(mockInstances).toHaveLength(1);
+            expect(mockInstances[0].options.connectTimeout).toBe(CONNECT_TIMEOUT);
+            expect(mockInstances[0].options.connectTimeout).toBe(5000);
 
-        // Abandoned attempt: best-effort disconnect, and its listeners detached.
-        expect(client1.disconnect).toHaveBeenCalledTimes(1);
-        expect(client1.off).toHaveBeenCalledWith(Mqtt.Event.Connect);
-        expect(client1.off).toHaveBeenCalledWith(Mqtt.Event.Disconnect);
-        expect(client1.off).toHaveBeenCalledWith(Mqtt.Event.Message);
-        expect(client1.off).toHaveBeenCalledWith(Mqtt.Event.Error);
+            succeed(mockInstances[0]);
+            await promise;
+        });
 
-        // Retry delay elapses.
-        await jest.advanceTimersByTimeAsync(10000);
+        test('disables MQTT.js’s own reconnection while this class owns the retry loop', async () => {
+            const promise = mq.connect();
 
-        expect(mockInstances).toHaveLength(2);
-        const client2 = mockInstances[1];
-        expect(client2).not.toBe(client1);
+            expect(mockInstances[0].options.reconnectPeriod).toBe(0);
 
-        succeed(client2);
+            succeed(mockInstances[0]);
+            await promise;
+        });
 
-        const connected = await promise;
-        expect(connected).toBe(true);
+        test('hands reconnection back to MQTT.js once an attempt has won', async () => {
+            const promise = mq.connect();
+
+            succeed(mockInstances[0]);
+            await promise;
+
+            expect(mockInstances[0].options.reconnectPeriod).toBe(CONNECT_RETRY_INTERVAL);
+        });
+
+        test('does not let a won attempt’s reconnect setting leak into a later attempt', async () => {
+            const first = mq.connect();
+            succeed(mockInstances[0]);
+            await first;
+
+            mq.disconnect();
+
+            const second = mq.connect();
+            expect(mockInstances).toHaveLength(2);
+            expect(mockInstances[1].options.reconnectPeriod).toBe(0);
+
+            succeed(mockInstances[1]);
+            await second;
+        });
+
+        test('connects on iOS in a production build', async () => {
+            mockPlatform.OS = 'ios';
+            mockAppInfo.isProdVariant = true;
+
+            const promise = mq.connect();
+
+            expect(mockInstances).toHaveLength(1);
+
+            succeed(mockInstances[0]);
+            expect(await promise).toBe(true);
+        });
     });
 
-    test('a late event from an abandoned attempt cannot resurrect state after a newer attempt has resolved', async () => {
-        const promise = mq.connect();
-        const client1 = mockInstances[0];
+    describe('connect retry / client lifecycle', () => {
+        test('a slow/timed-out first attempt is abandoned and retried on a fresh client', async () => {
+            const promise = mq.connect();
+            expect(mockInstances).toHaveLength(1);
+            const client1 = mockInstances[0];
 
-        await jest.advanceTimersByTimeAsync(7000);  // attempt 1 abandoned
-        await jest.advanceTimersByTimeAsync(10000); // retry delay
+            // First attempt never completes client-side (no 'connect', 'close' or 'error')
+            // -> the JS-side fallback timeout must fire.
+            await jest.advanceTimersByTimeAsync(7000);
 
-        const client2 = mockInstances[1];
-        succeed(client2);
-        const connected = await promise;
-        expect(connected).toBe(true);
+            // Abandoned attempt: forced close, and its listeners detached.
+            expect(client1.end).toHaveBeenCalledWith(true);
+            const detached = client1.removeListener.mock.calls.map((c: any[]) => c[0]);
+            expect(detached).toEqual(expect.arrayContaining(['connect', 'close', 'message', 'error']));
 
-        // Attempt 1's connect handler is (per this mock) still technically attached -
-        // simulating a native message that slipped through despite best-effort cleanup.
-        // The class's own guard must ignore it regardless of whether off() succeeded.
-        expect(() => client1.emit(Mqtt.Event.Connect, false)).not.toThrow();
+            // Retry delay elapses.
+            await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);
 
-        // Still routes through the live (attempt 2) client, not the abandoned one.
-        mq.publish('topic/x', { a: 1 });
-        expect(client2.publish).toHaveBeenCalled();
-        expect(client1.publish).not.toHaveBeenCalled();
+            expect(mockInstances).toHaveLength(2);
+            const client2 = mockInstances[1];
+            expect(client2).not.toBe(client1);
+
+            succeed(client2);
+
+            expect(await promise).toBe(true);
+        });
+
+        test('a connection that closes before connecting fails the attempt', async () => {
+            const promise = mq.connect();
+            const client1 = mockInstances[0];
+
+            client1.emit('close');
+            expect(client1.end).toHaveBeenCalledWith(true);
+
+            await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);
+
+            expect(mockInstances).toHaveLength(2);
+            succeed(mockInstances[1]);
+            expect(await promise).toBe(true);
+        });
+
+        test('an error before connecting fails the attempt', async () => {
+            const promise = mq.connect();
+            const client1 = mockInstances[0];
+
+            client1.emit('error', new Error('handshake failed'));
+            expect(client1.end).toHaveBeenCalledWith(true);
+
+            await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);
+
+            expect(mockInstances).toHaveLength(2);
+            succeed(mockInstances[1]);
+            expect(await promise).toBe(true);
+        });
+
+        test('gives up after the configured number of attempts', async () => {
+            const promise = mq.connect();
+
+            // 5 attempts, each timing out after ~7s, separated by a 10s retry delay.
+            for (let i = 0; i < 5; i++) {
+                await jest.advanceTimersByTimeAsync(7000);
+                await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);
+            }
+
+            expect(await promise).toBe(false);
+            expect(mockInstances).toHaveLength(5);
+        });
+
+        test('a late event from an abandoned attempt cannot resurrect state after a newer attempt has resolved', async () => {
+            const promise = mq.connect();
+            const client1 = mockInstances[0];
+
+            await jest.advanceTimersByTimeAsync(7000);                     // attempt 1 abandoned
+            await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);   // retry delay
+
+            const client2 = mockInstances[1];
+            succeed(client2);
+            expect(await promise).toBe(true);
+
+            // Attempt 1's handlers are (per this mock) still technically attached -
+            // simulating an event that slipped through despite best-effort cleanup.
+            // The class's own guard must ignore it regardless.
+            expect(() => client1.emit('connect')).not.toThrow();
+            expect(() => client1.emit('close')).not.toThrow();
+
+            // Still routes through the live (attempt 2) client, not the abandoned one.
+            mq.publish('topic/x', { a: 1 });
+            expect(client2.publish).toHaveBeenCalled();
+            expect(client1.publish).not.toHaveBeenCalled();
+        });
+
+        test('a stale attempt’s late error is harmless and does not re-open the connection', async () => {
+            const promise = mq.connect();
+            const client1 = mockInstances[0];
+
+            await jest.advanceTimersByTimeAsync(7000);
+            await jest.advanceTimersByTimeAsync(CONNECT_RETRY_INTERVAL);
+
+            const client2 = mockInstances[1];
+            succeed(client2);
+            await promise;
+
+            expect(() => client1.emit('error', new Error('very late failure'))).not.toThrow();
+
+            // The already-connected state is unaffected, and a further connect() call
+            // short-circuits without spinning up yet another client.
+            expect(await mq.connect()).toBe(true);
+            expect(mockInstances).toHaveLength(2);
+        });
+
+        test('an immediate successful connect only ever creates a single client', async () => {
+            const promise = mq.connect();
+            expect(mockInstances).toHaveLength(1);
+
+            succeed(mockInstances[0]);
+
+            expect(await promise).toBe(true);
+            expect(mockInstances).toHaveLength(1);
+        });
+
+        test('concurrent connect() calls share a single attempt', async () => {
+            const first = mq.connect();
+            const second = mq.connect();
+
+            expect(mockInstances).toHaveLength(1);
+
+            succeed(mockInstances[0]);
+
+            expect(await first).toBe(true);
+            expect(await second).toBe(true);
+        });
     });
 
-    test('no cross-instance callback interference: a stale attempt`s late callback is harmless', async () => {
-        const promise = mq.connect();
-        const client1 = mockInstances[0];
+    describe('publish / subscribe', () => {
+        test('queues messages published before the connection is up and flushes them on connect', async () => {
+            mq.publish('topic/queued', { a: 1 });
 
-        await jest.advanceTimersByTimeAsync(7000);
-        await jest.advanceTimersByTimeAsync(10000);
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            expect(client.publish).not.toHaveBeenCalled();
 
-        const client2 = mockInstances[1];
-        succeed(client2);
-        await promise;
+            succeed(client);
+            await promise;
 
-        // This is the real production crash trigger: an abandoned attempt's native
-        // connect() completing very late and invoking its own (distinct, per-attempt)
-        // callback. Because attempt 1 now owns its own Mqtt.Client/callback, this must
-        // be fully independent of attempt 2 - no throw, no double-resolution artefacts.
-        const staleCallback = client1.connect.mock.calls[0][1];
-        expect(() => staleCallback()).not.toThrow();
+            expect(client.publish).toHaveBeenCalledTimes(1);
+            const [topic, payload] = client.publish.mock.calls[0];
+            expect(topic).toBe('topic/queued');
+            expect(payload.toString()).toBe(JSON.stringify({ a: 1 }));
+        });
 
-        // The already-connected state is unaffected, and a further connect() call
-        // short-circuits without spinning up yet another client.
-        const again = await mq.connect();
-        expect(again).toBe(true);
-        expect(mockInstances).toHaveLength(2);
+        test('subscribes with qos 0 and re-subscribes after a reconnect', async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+
+            await mq.subscribe('topic/a');
+            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 });
+
+            // A real disconnect on the live client: the subscription must be re-armed and
+            // replayed once the client reports itself connected again.
+            client.subscribe.mockClear();
+            client.emit('close');
+            succeed(client);
+            await Promise.resolve();
+
+            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 });
+        });
+
+        test('unsubscribe stops the topic being replayed after a reconnect', async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+
+            await mq.subscribe('topic/a');
+            mq.unsubscribe('topic/a');
+            expect(client.unsubscribe).toHaveBeenCalledWith('topic/a');
+
+            client.subscribe.mockClear();
+            client.emit('close');
+            succeed(client);
+            await Promise.resolve();
+
+            expect(client.subscribe).not.toHaveBeenCalled();
+        });
+
+        test('forwards incoming messages as mq-message events', async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+
+            const received: Array<[string, Uint8Array]> = [];
+            mq.on('mq-message', (topic: string, payload: Uint8Array) => received.push([topic, payload]));
+
+            const payload = Buffer.from('hello', 'utf-8');
+            client.emit('message', 'topic/in', payload);
+
+            expect(received).toHaveLength(1);
+            expect(received[0][0]).toBe('topic/in');
+            expect(received[0][1].toString()).toBe('hello');
+        });
     });
 
-    test('an immediate successful connect only ever creates a single client', async () => {
-        const promise = mq.connect();
-        expect(mockInstances).toHaveLength(1);
+    describe('disconnect', () => {
+        test('ends the client and ignores its subsequent events', async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
 
-        succeed(mockInstances[0]);
+            mq.disconnect();
+            expect(client.end).toHaveBeenCalled();
 
-        const connected = await promise;
-        expect(connected).toBe(true);
-        expect(mockInstances).toHaveLength(1);
+            // A 'close' arriving as part of the teardown must not be treated as a
+            // spontaneous disconnect that needs subscriptions re-armed.
+            expect(() => client.emit('close')).not.toThrow();
+
+            // A publish while disconnected is queued rather than sent.
+            client.publish.mockClear();
+            mq.publish('topic/x', { a: 1 });
+            expect(client.publish).not.toHaveBeenCalled();
+        });
+
+        test('is a no-op when never connected', () => {
+            expect(() => mq.disconnect()).not.toThrow();
+            expect(mockInstances).toHaveLength(0);
+        });
     });
 });
