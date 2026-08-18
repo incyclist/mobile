@@ -68,7 +68,8 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
 
     let distanceValue = '';
     let distanceUnit = '';
-    if (typeof distance === 'object' && distance !== null && 'value' in distance && 'unit' in distance) {
+    if (typeof distance === 'object' && distance !== null && 'value' in distance && 'unit' in distance
+        && typeof distance.value === 'number' && !Number.isNaN(distance.value)) {
         distanceValue = distance.value.toFixed(1);
         distanceUnit = distance.unit;
     } else if (typeof distance === 'number') {
@@ -79,7 +80,8 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     const elevation = (summary as any).totalElevation;
     let elevationValue = '';
     let elevationUnit = '';
-    if (typeof elevation === 'object' && elevation !== null && 'value' in elevation && 'unit' in elevation) {
+    if (typeof elevation === 'object' && elevation !== null && 'value' in elevation && 'unit' in elevation
+        && typeof elevation.value === 'number' && !Number.isNaN(elevation.value)) {
         elevationValue = Math.round(elevation.value).toString();
         elevationUnit = elevation.unit;
     } else if (typeof elevation === 'number' && !isNaN(elevation)) {

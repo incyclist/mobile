@@ -54,6 +54,30 @@ describe('ActivityDetailsDialogView', () => {
         expect(getByTestId).toBeDefined();
     });
 
+    // FIXES_BACKLOG.md item #54: `createUIActivityDetails` used to hand out
+    // { value: undefined, unit } for distance/totalElevation when the underlying telemetry was
+    // missing/NaN - that shape passed `isFormattedNumber`'s old presence-only check and crashed
+    // on `.value.toFixed(1)`. Defense-in-depth: this must not throw even if such a shape reaches
+    // the view.
+    it('does not crash when distance/totalElevation are { value: undefined, unit }', () => {
+        const props: ActivityDetailsDialogViewProps = {
+            ...MOCK_LOADING,
+            loading: false,
+            activity: {
+                title: 'Test Ride',
+                startTime: new Date().toISOString(),
+                distance: { value: undefined, unit: 'km' },
+                time: 3600,
+                totalElevation: { value: undefined, unit: 'm' },
+                logs: [],
+                stats: {
+                    speed: { avg: 25, min: 0, max: 40 },
+                },
+            } as any,
+        };
+        expect(() => render(<ActivityDetailsDialogView {...props} />)).not.toThrow();
+    });
+
     // workout-mobile-hld-phase2.md §4.2 - "Add Workout" button + inline chip, gated on canStart
     // (workout-mobile-session-plan-phase2.md session 3.3 note: a workout-only activity, canStart
     // false, must get neither element).
