@@ -139,6 +139,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
                 title="Could not start Sensor(s)"
                 titleStyle={{ color: colors.warning }}
                 variant="info"
+                debugLayout
                 minWidth={minWidth}
                 buttons={[
                     { id: 'retry', label: 'Retry', primary: false, onClick: onRetry! },
@@ -209,6 +210,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         <Dialog
             title="Starting activity ..."
             variant="info"
+            debugLayout
             minWidth={minWidth}
             buttons={startingButtons}
         >

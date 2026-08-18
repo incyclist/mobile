@@ -1,7 +1,16 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Dialog } from './Dialog';
+
+const getSlotLabels = (root: any) =>
+    root.findAllByType(TouchableOpacity)
+        .map((n: any) => {
+            const hidden = JSON.stringify(n.props.style).includes('"display":"none"');
+            const texts = n.findAllByType(Text).map((t: any) => t.props.children);
+            return hidden ? null : texts[0];
+        })
+        .filter((l: any) => l !== null && l !== '');
 
 describe('Dialog', () => {
     it('wraps children in a ScrollView by default (scrollable=true)', () => {
@@ -40,15 +49,19 @@ describe('Dialog', () => {
         expect(getByText('my content')).toBeTruthy();
     });
 
-    // FIXES_BACKLOG #52. These guard the footer `key` that works around the RN new-architecture
-    // iOS Modal defect (children added to a mounted subtree are never finalized/laid out until a
-    // later commit). Jest renders to a JS tree and cannot exercise the native mounting path, so
-    // this proves only that the footer remounts when the button set changes — not that the
-    // workaround fixes the device symptom. Real-device iOS validation is the actual evidence.
-    describe('footer remount on button-set change (FIXES_BACKLOG #52)', () => {
+    // FIXES_BACKLOG #52. The footer renders a fixed pool of button slots that are all mounted
+    // from the first render, so a changing button set only updates props on views that already
+    // exist. On iOS, React Native's new architecture does not lay out a view mounted into an
+    // already-presented <Modal>, which left a newly added Start button invisible. Jest renders to
+    // a JS tree and cannot exercise native mounting, so these guard the structure only - the
+    // device is the real evidence.
+    describe('button slots (FIXES_BACKLOG #52)', () => {
+        const cancel = { id: 'cancel', label: 'Cancel', onClick: () => {} };
+        const start = { id: 'start', label: 'Start', primary: true, onClick: () => {} };
+
         it('renders the updated button set when buttons change while open', () => {
             const { getByText, queryByText, rerender } = render(
-                <Dialog title="Starting activity ..." buttons={[{ id: 'cancel', label: 'Cancel', onClick: () => {} }]}>
+                <Dialog title="Starting activity ..." buttons={[cancel]}>
                     <Text>content</Text>
                 </Dialog>
             );
@@ -56,13 +69,7 @@ describe('Dialog', () => {
             expect(queryByText('Start')).toBeNull();
 
             rerender(
-                <Dialog
-                    title="Starting activity ..."
-                    buttons={[
-                        { id: 'start', label: 'Start', primary: true, onClick: () => {} },
-                        { id: 'cancel', label: 'Cancel', onClick: () => {} },
-                    ]}
-                >
+                <Dialog title="Starting activity ..." buttons={[start, cancel]}>
                     <Text>content</Text>
                 </Dialog>
             );
@@ -71,20 +78,16 @@ describe('Dialog', () => {
             expect(getByText('Cancel')).toBeTruthy();
         });
 
-        it('remounts the footer subtree when the button ids change', () => {
-            const footerOf = (root: any) =>
-                root.findAllByType(View).find((v: any) => Array.isArray(v.props.children)
-                    ? false
-                    : v.props.children?.props?.buttons !== undefined);
+        it('keeps the same number of mounted slots as the button set grows', () => {
+            const countSlots = (root: any) =>
+                root.findAllByType(TouchableOpacity).length;
 
             const { UNSAFE_root, rerender } = render(
-                <Dialog title="Starting activity ..." buttons={[{ id: 'cancel', label: 'Cancel', onClick: () => {} }]}>
+                <Dialog title="Starting activity ..." buttons={[cancel]}>
                     <Text>content</Text>
                 </Dialog>
             );
-
-            const before = footerOf(UNSAFE_root);
-            expect(before).toBeTruthy();
+            const before = countSlots(UNSAFE_root);
 
             rerender(
                 <Dialog
@@ -92,17 +95,29 @@ describe('Dialog', () => {
                     buttons={[
                         { id: 'retry', label: 'Retry', onClick: () => {} },
                         { id: 'ignore', label: 'Ignore', primary: true, onClick: () => {} },
-                        { id: 'cancel', label: 'Cancel', onClick: () => {} },
+                        cancel,
                     ]}
                 >
                     <Text>content</Text>
                 </Dialog>
             );
 
-            // A changed key means React discarded the old footer instance rather than reusing it.
-            const after = footerOf(UNSAFE_root);
-            expect(after).toBeTruthy();
-            expect(after).not.toBe(before);
+            // No slot was mounted to make room for the extra buttons - the count is unchanged,
+            // which is the property that keeps the iOS defect unreachable.
+            expect(countSlots(UNSAFE_root)).toBe(before);
+            expect(getSlotLabels(UNSAFE_root)).toEqual(['Retry', 'Ignore', 'Cancel']);
+        });
+
+        it('hides unused slots rather than unmounting them', () => {
+            const { UNSAFE_root } = render(
+                <Dialog title="Starting activity ..." buttons={[cancel]}>
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            const hidden = UNSAFE_root.findAllByType(TouchableOpacity)
+                .filter((n: any) => JSON.stringify(n.props.style).includes('"display":"none"'));
+            expect(hidden.length).toBeGreaterThan(0);
         });
     });
 });

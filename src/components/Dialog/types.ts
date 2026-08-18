@@ -13,6 +13,11 @@ export interface DialogProps {
     onOutsideClick?: () => void;
     visible?: boolean;
     buttons?: ButtonProps[];
+    /**
+     * Opt-in button-layout diagnostics (FIXES_BACKLOG #52). Off by default: Dialog is used by
+     * nearly every screen, so unconditional logging would flood the event log.
+     */
+    debugLayout?: boolean;
     style?: StyleProp<ViewStyle>;
     nested?: boolean;
     titleStyle?: StyleProp<TextStyle>;
