@@ -22,7 +22,7 @@
     "storybook:build": "storybook build"
   },
   "dependencies": {
-    "@fdfedin/react-native-native-mqtt": "^0.1.12",
+    "@fdfedin/react-native-native-mqtt": "file:vendor/react-native-native-mqtt",
     "@kesha-antonov/react-native-background-downloader": "^4.5.4",
     "@maplibre/maplibre-react-native": "^11.3.6",
     "@pagopa/io-react-native-integrity": "^0.3.2",

@@ -1,0 +1,29 @@
+{
+  "_comment": "Vendored stopgap, see VENDORING.md - not maintained, do not depend on this from outside the mobile repo.",
+  "name": "@fdfedin/react-native-native-mqtt",
+  "title": "React Native Native Mqtt (vendored)",
+  "version": "0.1.12",
+  "description": "Vendored copy of @fdfedin/react-native-native-mqtt@0.1.12 - an MQTT client for React Native with a simple JavaScript interface. See VENDORING.md for why this lives in-tree.",
+  "main": "./lib/index.js",
+  "types": "./types/index.d.ts",
+  "private": true,
+  "homepage": "https://github.com/davesters/rn-native-mqtt",
+  "keywords": [
+    "react-native",
+    "mqtt",
+    "typescript"
+  ],
+  "author": {
+    "name": "David Corona",
+    "username": "davesters"
+  },
+  "license": "MIT",
+  "licenseFilename": "LICENSE.md",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "buffer": "^5.4.0",
+    "random-id": "^1.0.3",
+    "tiny-emitter": "^2.1.0"
+  },
+  "peerDependencies": {}
+}
