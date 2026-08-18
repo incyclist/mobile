@@ -46,4 +46,22 @@ describe('ActivityListItem', () => {
     it('renders outsideFold placeholder without crashing', () => {
         render(<ActivityListItem {...MOCK_FORMATTED} outsideFold={true} />);
     });
+
+    // FIXES_BACKLOG.md item #54: services used to hand out { value: undefined, unit } for
+    // distance/totalElevation when the underlying activity's telemetry was missing/NaN. That
+    // shape passes a presence-only check ('value' in x) and used to crash on .value.toFixed(1).
+    it('does not crash when distance/totalElevation are { value: undefined, unit }', () => {
+        const props = {
+            ...MOCK_FORMATTED,
+            activityInfo: {
+                ...MOCK_FORMATTED.activityInfo,
+                summary: {
+                    ...MOCK_FORMATTED.activityInfo.summary,
+                    distance: { value: undefined, unit: 'km' },
+                    totalElevation: { value: undefined, unit: 'm' },
+                },
+            },
+        };
+        expect(() => render(<ActivityListItem {...props} />)).not.toThrow();
+    });
 });

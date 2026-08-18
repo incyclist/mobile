@@ -139,6 +139,23 @@ describe('ActivitySummaryDialogView', () => {
         render(<ActivitySummaryDialogView {...MOCK_PROPS} showMap={true} compact={false} />);
     });
 
+    // FIXES_BACKLOG.md item #54: `createUIActivityDetails` used to hand out
+    // { value: undefined, unit } for distance/totalElevation when the underlying telemetry was
+    // missing/NaN - that shape passed `isFormattedNumber`'s old presence-only check and crashed
+    // on `.value.toFixed(1)`. Defense-in-depth: this must not throw even if such a shape reaches
+    // the view.
+    it('does not crash when distance/totalElevation are { value: undefined, unit }', () => {
+        const props: ActivitySummaryDialogViewProps = {
+            ...MOCK_PROPS,
+            activity: {
+                ...MOCK_ACTIVITY,
+                distance: { value: undefined, unit: 'km' },
+                totalElevation: { value: undefined, unit: 'm' },
+            } as unknown as ActivityDetailsUI,
+        };
+        expect(() => render(<ActivitySummaryDialogView {...props} />)).not.toThrow();
+    });
+
     describe('route-less workout summary', () => {
         const MOCK_WORKOUT_GRAPH = {
             plan: { bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 60], y: [0, 220] } },
