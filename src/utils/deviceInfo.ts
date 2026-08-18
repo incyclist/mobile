@@ -5,8 +5,7 @@ export const logDeviceInfo = async (additional?:any): Promise<void> => {
 
     const logger = new EventLogger('Incyclist')
 
-    const [deviceName, manufacturer,isEmulator] = await Promise.all([
-        DeviceInfo.getDeviceName(),
+    const [ manufacturer,isEmulator] = await Promise.all([
         DeviceInfo.getManufacturer(),
         DeviceInfo.isEmulator()
     ]);
@@ -14,7 +13,6 @@ export const logDeviceInfo = async (additional?:any): Promise<void> => {
     const addProps = additional??{}
 
     logger.logEvent( { message:'Mobile device info',
-        deviceName,
         manufacturer,
         isEmulator,
         model:         DeviceInfo.getModel(),
