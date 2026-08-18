@@ -398,6 +398,82 @@ describe('MessageQueue', () => {
         });
     });
 
+    describe('subscribe retry', () => {
+        // A subscription the broker refuses is retried indefinitely. Callers were already
+        // told the subscription exists, so giving up silently would leave a topic dead
+        // with no way for the caller to find out.
+        const connectAndReject = async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+            client.subscribe.mockImplementation((topic: string, _o: any, cb: any) =>
+                cb(null, [{ topic, qos: 128 }]));
+            await mq.subscribe('topic/denied');
+            client.subscribe.mockClear();
+            return client;
+        };
+
+        test('retries a rejected subscribe until the broker grants it', async () => {
+            const client = await connectAndReject();
+
+            await jest.advanceTimersByTimeAsync(10000);
+            expect(client.subscribe).toHaveBeenCalledWith('topic/denied', { qos: 0 }, expect.any(Function));
+
+            await jest.advanceTimersByTimeAsync(10000);
+            expect(client.subscribe).toHaveBeenCalledTimes(2);
+
+            // Broker starts granting it - the loop must then stop.
+            client.subscribe.mockImplementation((topic: string, _o: any, cb: any) =>
+                cb(null, [{ topic, qos: 0 }]));
+            await jest.advanceTimersByTimeAsync(10000);
+            expect(client.subscribe).toHaveBeenCalledTimes(3);
+
+            client.subscribe.mockClear();
+            await jest.advanceTimersByTimeAsync(60000);
+            expect(client.subscribe).not.toHaveBeenCalled();
+        });
+
+        test('stops retrying once the topic is unsubscribed', async () => {
+            const client = await connectAndReject();
+
+            mq.unsubscribe('topic/denied');
+
+            await jest.advanceTimersByTimeAsync(60000);
+            expect(client.subscribe).not.toHaveBeenCalled();
+        });
+
+        test('stops retrying when the connection goes away', async () => {
+            const client = await connectAndReject();
+
+            client.emit('close');
+
+            await jest.advanceTimersByTimeAsync(60000);
+            expect(client.subscribe).not.toHaveBeenCalled();
+        });
+
+        test('stops retrying when the app disconnects', async () => {
+            const client = await connectAndReject();
+
+            mq.disconnect();
+
+            await jest.advanceTimersByTimeAsync(60000);
+            expect(client.subscribe).not.toHaveBeenCalled();
+        });
+
+        test('a reconnect replays the topic, so the retry loop does not duplicate it', async () => {
+            const client = await connectAndReject();
+            client.subscribe.mockImplementation((topic: string, _o: any, cb: any) =>
+                cb(null, [{ topic, qos: 0 }]));
+
+            client.emit('close');
+            succeed(client);
+            await Promise.resolve();
+
+            expect(client.subscribe).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('diagnostic logging', () => {
         // Previously a subscribe logged nothing at all, so a topic the broker had refused
         // looked identical to one that was working but simply had no traffic.

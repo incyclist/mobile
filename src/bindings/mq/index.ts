@@ -20,6 +20,7 @@ const CONNECT_TIMEOUT = 5000;           // 5 seconds
 // That unit mismatch cannot recur here, but the per-attempt isolation it exposed is
 // still deliberately preserved below.
 const KEEPALIVE_SECONDS = 60;           // MQTT.js takes keepalive in seconds
+const SUBSCRIBE_RETRY_INTERVAL = 10000; // 10 seconds - same cadence as the connect retries
 
 export class MessageQueue extends EventEmitter {
     private client?: MqttClient;
@@ -31,6 +32,7 @@ export class MessageQueue extends EventEmitter {
     private subscriptions: Set<string> = new Set();
     private pending: Set<string> = new Set();
     private toConnect: NodeJS.Timeout|undefined
+    private toSubscribeRetry: NodeJS.Timeout|undefined
 
     // The client instance created by the most recently started connect attempt.
     // Every retry gets its *own* fresh MqttClient (own socket, own listeners) so two
@@ -68,6 +70,13 @@ export class MessageQueue extends EventEmitter {
                 }
             }
 
+            // Registered up front, on purpose: callers are told the subscription exists and
+            // the binding then keeps trying until it really does. Doing this before the
+            // call also means the retry path below does not depend on whether the client
+            // happens to invoke its callback synchronously.
+            this.subscriptions.add(topic);
+            this.emit('mq-subscribed', topic);
+
             // The callback carries the broker's answer. Without it a subscribe that the
             // broker rejected - wrong vhost permissions being the usual cause - looks
             // exactly like one that succeeded, and the topic then stays silent forever
@@ -75,6 +84,7 @@ export class MessageQueue extends EventEmitter {
             this.client.subscribe(topic, { qos: 0 }, (err, granted) => {
                 if (err) {
                     this.logger.logEvent({ message: 'mq subscribe failed', topic, error: err.message });
+                    this.retrySubscribe(topic);
                     return;
                 }
 
@@ -82,14 +92,13 @@ export class MessageQueue extends EventEmitter {
                 const qos = granted?.find((g) => g.topic === topic)?.qos ?? granted?.[0]?.qos;
                 if (qos === undefined || qos === 128) {
                     this.logger.logEvent({ message: 'mq subscribe rejected', topic, qos });
+                    this.retrySubscribe(topic);
                     return;
                 }
 
+                this.pending.delete(topic);
                 this.logger.logEvent({ message: 'mq subscribed', topic, qos });
             });
-
-            this.emit('mq-subscribed', topic);
-            this.subscriptions.add(topic);
         } catch (err) {
             this.logError(err, 'subscribe');
         }
@@ -201,6 +210,7 @@ export class MessageQueue extends EventEmitter {
         // asynchronously, and any event it emits on the way out must not be mistaken for
         // a spontaneous disconnect and trigger reconnect handling.
         this.currentAttemptClient = undefined;
+        this.clearSubscribeRetry();
 
         try {
             this.client?.end();
@@ -359,6 +369,7 @@ export class MessageQueue extends EventEmitter {
                 // disconnect during normal operation. Reconnection is handled by MQTT.js.
                 this.isConnected = false;
                 clearConnectTimeout();
+                this.clearSubscribeRetry();
                 this.prepareSubscriptionsForReconnect();
                 this.logger.logEvent({ message: 'mqtt connection disconnected' });
             };
@@ -408,6 +419,35 @@ export class MessageQueue extends EventEmitter {
                 if (Date.now() - element.ts > 3600 * 1000) continue;
                 this.send(element.topic, element.payload);
             }
+        }
+    }
+
+    // A subscription the broker would not grant is retried indefinitely, and deliberately
+    // so: the usual cause is a permission or broker-state problem that resolves itself,
+    // and callers were already told the subscription exists. The loop ends only when the
+    // subscription is established, unsubscribe() is called for the topic, or the
+    // connection goes away - a reconnect replays everything through subscribePending()
+    // anyway, so the timer would only duplicate that work.
+    private retrySubscribe(topic: string) {
+        // unsubscribe() removes the topic from both sets; if it is gone from subscriptions
+        // the caller no longer wants it and this attempt must not resurrect it.
+        if (!this.subscriptions.has(topic)) return;
+
+        this.pending.add(topic);
+
+        if (this.toSubscribeRetry) return;
+
+        this.toSubscribeRetry = setTimeout(() => {
+            this.toSubscribeRetry = undefined;
+            if (!this.isConnected || this.pending.size === 0) return;
+            this.subscribePending();
+        }, SUBSCRIBE_RETRY_INTERVAL);
+    }
+
+    private clearSubscribeRetry() {
+        if (this.toSubscribeRetry) {
+            clearTimeout(this.toSubscribeRetry);
+            this.toSubscribeRetry = undefined;
         }
     }
 
