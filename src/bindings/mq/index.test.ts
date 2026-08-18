@@ -350,7 +350,7 @@ describe('MessageQueue', () => {
             await promise;
 
             await mq.subscribe('topic/a');
-            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 });
+            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 }, expect.any(Function));
 
             // A real disconnect on the live client: the subscription must be re-armed and
             // replayed once the client reports itself connected again.
@@ -359,7 +359,7 @@ describe('MessageQueue', () => {
             succeed(client);
             await Promise.resolve();
 
-            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 });
+            expect(client.subscribe).toHaveBeenCalledWith('topic/a', { qos: 0 }, expect.any(Function));
         });
 
         test('unsubscribe stops the topic being replayed after a reconnect', async () => {
@@ -370,7 +370,7 @@ describe('MessageQueue', () => {
 
             await mq.subscribe('topic/a');
             mq.unsubscribe('topic/a');
-            expect(client.unsubscribe).toHaveBeenCalledWith('topic/a');
+            expect(client.unsubscribe).toHaveBeenCalledWith('topic/a', expect.any(Function));
 
             client.subscribe.mockClear();
             client.emit('close');
@@ -395,6 +395,109 @@ describe('MessageQueue', () => {
             expect(received).toHaveLength(1);
             expect(received[0][0]).toBe('topic/in');
             expect(received[0][1].toString()).toBe('hello');
+        });
+    });
+
+    describe('diagnostic logging', () => {
+        // Previously a subscribe logged nothing at all, so a topic the broker had refused
+        // looked identical to one that was working but simply had no traffic.
+        const logged = () => (mq as any).logger.logEvent.mock.calls.map((c: any[]) => c[0]);
+
+        const connected = async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+            (mq as any).logger.logEvent = jest.fn();
+            return client;
+        };
+
+        test('logs the granted qos when the broker accepts a subscribe', async () => {
+            const client = await connected();
+            client.subscribe.mockImplementation((topic: string, _o: any, cb: any) =>
+                cb(null, [{ topic, qos: 0 }]));
+
+            await mq.subscribe('topic/a');
+
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq subscribed', topic: 'topic/a', qos: 0 }));
+        });
+
+        test('logs a rejection when the broker answers with qos 128', async () => {
+            const client = await connected();
+            client.subscribe.mockImplementation((topic: string, _o: any, cb: any) =>
+                cb(null, [{ topic, qos: 128 }]));
+
+            await mq.subscribe('topic/denied');
+
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq subscribe rejected', topic: 'topic/denied', qos: 128 }));
+        });
+
+        test('logs a failed subscribe with the error', async () => {
+            const client = await connected();
+            client.subscribe.mockImplementation((_t: string, _o: any, cb: any) =>
+                cb(new Error('not authorized')));
+
+            await mq.subscribe('topic/a');
+
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq subscribe failed', error: 'not authorized' }));
+        });
+
+        test('logs unsubscribe, and its failure', async () => {
+            const client = await connected();
+            client.unsubscribe.mockImplementation((_t: string, cb: any) => cb());
+
+            mq.unsubscribe('topic/a');
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq unsubscribed', topic: 'topic/a' }));
+
+            client.unsubscribe.mockImplementation((_t: string, cb: any) => cb(new Error('boom')));
+            (mq as any).subscriptions.add('topic/b');
+            mq.unsubscribe('topic/b');
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq unsubscribe failed', error: 'boom' }));
+        });
+
+        test('logs when a subscribe is deferred because there is no connection', async () => {
+            // No broker secret, so the connect() that subscribe() triggers bails out
+            // immediately rather than running the full retry loop.
+            delete mockSecrets.MQ_BROKER;
+            delete mockSecrets.MQ_BROKER_WS;
+            (mq as any).client = {};   // non-null, so subscribe() does not bail out early
+            (mq as any).logger.logEvent = jest.fn();
+
+            await mq.subscribe('topic/later');
+
+            expect(logged()).toContainEqual(
+                expect.objectContaining({ message: 'mq subscribe deferred', topic: 'topic/later' }));
+        });
+
+        test('records the resolved endpoint on the connect event', async () => {
+            // Replaced before connecting: the log adapter is registered asynchronously at
+            // app startup, so the pre-connect lines are routinely lost and this is often
+            // the only record of which endpoint was used.
+            (mq as any).logger.logEvent = jest.fn();
+
+            const promise = mq.connect();
+            succeed(mockInstances[0]);
+            await promise;
+
+            expect(logged()).toContainEqual(
+                expect.objectContaining({
+                    message: 'mqtt connected', uri: 'wss://broker.example.com:443/ws',
+                }));
+        });
+
+        test('does not log individual incoming messages', async () => {
+            const client = await connected();
+
+            for (let i = 0; i < 20; i++) {
+                client.emit('message', 'ride/updates', Buffer.from('x'));
+            }
+
+            expect(logged()).toEqual([]);
         });
     });
 

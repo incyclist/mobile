@@ -63,11 +63,31 @@ export class MessageQueue extends EventEmitter {
                 const connected = await this.connect()
                 if (!connected) {
                     this.pending.add(topic)
+                    this.logger.logEvent({ message: 'mq subscribe deferred', topic, reason: 'not connected' });
                     return
                 }
             }
 
-            this.client.subscribe(topic, { qos: 0 });
+            // The callback carries the broker's answer. Without it a subscribe that the
+            // broker rejected - wrong vhost permissions being the usual cause - looks
+            // exactly like one that succeeded, and the topic then stays silent forever
+            // with nothing in the log to explain why.
+            this.client.subscribe(topic, { qos: 0 }, (err, granted) => {
+                if (err) {
+                    this.logger.logEvent({ message: 'mq subscribe failed', topic, error: err.message });
+                    return;
+                }
+
+                // Per MQTT 3.1.1 a granted QoS of 128 is a refusal, reported without an error.
+                const qos = granted?.find((g) => g.topic === topic)?.qos ?? granted?.[0]?.qos;
+                if (qos === undefined || qos === 128) {
+                    this.logger.logEvent({ message: 'mq subscribe rejected', topic, qos });
+                    return;
+                }
+
+                this.logger.logEvent({ message: 'mq subscribed', topic, qos });
+            });
+
             this.emit('mq-subscribed', topic);
             this.subscriptions.add(topic);
         } catch (err) {
@@ -82,7 +102,13 @@ export class MessageQueue extends EventEmitter {
         try {
             if (!this.client || !this.isConnected) return;
 
-            this.client.unsubscribe(topic);
+            this.client.unsubscribe(topic, (err?: Error) => {
+                if (err) {
+                    this.logger.logEvent({ message: 'mq unsubscribe failed', topic, error: err.message });
+                    return;
+                }
+                this.logger.logEvent({ message: 'mq unsubscribed', topic });
+            });
         } catch (err) {
             this.logError(err, 'subscribe');
         }
@@ -291,7 +317,7 @@ export class MessageQueue extends EventEmitter {
                     // this the class would stay `isConnected: false` forever after the
                     // first drop, silently queueing publishes against a live socket.
                     this.isConnected = true;
-                    this.logger.logEvent({ message: 'mqtt reconnected' });
+                    this.logger.logEvent({ message: 'mqtt reconnected', uri: this.brokerUri });
                     this.subscribePending();
                     this.flushQueue();
                     return;
@@ -307,7 +333,12 @@ export class MessageQueue extends EventEmitter {
                 // real disconnect during normal operation is retried by the client itself.
                 client.options.reconnectPeriod = CONNECT_RETRY_INTERVAL;
 
-                this.logger.logEvent({ message: 'mqtt connected' });
+                // The uri is repeated here on purpose. It is already logged before the
+                // attempt starts, but the log adapter is registered asynchronously during
+                // app startup, so those earlier lines are routinely lost - this one lands
+                // late enough to survive, and is often the only record of which endpoint
+                // was actually used.
+                this.logger.logEvent({ message: 'mqtt connected', uri: this.brokerUri });
 
                 this.subscribePending();
                 this.flushQueue();
@@ -362,6 +393,11 @@ export class MessageQueue extends EventEmitter {
 
     private flushQueue() {
         if (!this.queue) return;
+
+        const queued = this.queue.length;
+        if (queued > 0) {
+            this.logger.logEvent({ message: 'mq flushing queued messages', count: queued });
+        }
 
         let done = false;
         while (this.queue.length && !done) {
