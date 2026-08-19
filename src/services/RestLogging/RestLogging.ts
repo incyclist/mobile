@@ -107,9 +107,20 @@ export const initRestLogging = async () => {
 
 
 
-        logger.setGlobal({version, appVersion, uuid})
+        // `session` and `app-channel` are also set by incyclist-services once it initialises
+        // its own logging, but that happens later in startup - so without setting them here
+        // every event logged in between (all of app init, including the whole mq connect)
+        // reached the server without a session to correlate it against. Both values are
+        // already available at this point, and services sets the same ones afterwards.
+        const globals = {
+            version, appVersion, uuid,
+            session: appInfo.session,
+            'app-channel': getChannel(),
+        }
 
-        const replayed = restAdapter ? replayBacklog(restAdapter, {version, appVersion, uuid}) : 0
+        logger.setGlobal(globals)
+
+        const replayed = restAdapter ? replayBacklog(restAdapter, globals) : 0
 
         logger.logEvent( {message:'Logging initialiazed', replayed})
     }

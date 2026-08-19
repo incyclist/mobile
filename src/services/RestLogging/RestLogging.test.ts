@@ -15,6 +15,7 @@ jest.mock('../../bindings/appInfo', () => ({
     getAppInfoBinding: async () => ({
         getAppVersion: () => '1.2.3',
         getUIVersion: () => '0.1.1',
+        session: 'test-session',
     }),
     getChannel: () => 'mobile',
 }));
@@ -81,7 +82,23 @@ describe('initRestLogging - early event handover', () => {
             version: '0.1.1',
             appVersion: '1.2.3',
             uuid: 'test-uuid',
+            session: 'test-session',
+            'app-channel': 'mobile',
         });
+    });
+
+    it('sets session and app-channel up front, not only once services initialises', async () => {
+        startupLogging();
+
+        await initRestLogging();
+
+        // A live event logged straight after init - i.e. long before services sets its own
+        // globals - must already be correlatable to a session.
+        mockAdapters[0].log.mockClear();
+        new EventLogger('mq').logEvent({ message: 'mqtt connected' });
+
+        const [, event] = mockAdapters[0].log.mock.calls[0];
+        expect(event).toMatchObject({ session: 'test-session', 'app-channel': 'mobile' });
     });
 
     it('preserves the original timestamp, so late arrival does not reorder the log', async () => {
