@@ -494,7 +494,23 @@ export class MessageQueue extends EventEmitter {
 
     private onMessage(topic: string, message: Uint8Array) {
         try {
-            this.emit('mq-message', topic, message);
+            // Emitted as a standalone array, never as the view MQTT.js hands us.
+            //
+            // mqtt-packet builds the payload by slicing the stream buffer, so what it
+            // delivers is a *view*: `byteOffset` is non-zero and `message.buffer` is the
+            // whole packet - in practice the entire backing store - rather than these bytes.
+            // A consumer reading `.buffer` therefore sees far more than the message.
+            //
+            // Every other binding delivers a standalone array: the native module this
+            // replaced did, and desktop's does because Electron IPC copies on the way
+            // through. Mobile was the only one handing out a view, which silently broke
+            // payload parsing in services - both the feature-toggle and active-rides
+            // handlers do `Buffer.from(message.buffer)` - so it is normalised here rather
+            // than every consumer having to defend against it.
+            //
+            // `new Uint8Array(view)` copies element-wise, giving an array that owns its
+            // buffer at offset 0. Payloads are small JSON documents, so the copy is cheap.
+            this.emit('mq-message', topic, new Uint8Array(message));
         } catch (err: any) {
             this.logger.logEvent({ message: 'error', fn: 'onMessage', error: err.message });
         }
