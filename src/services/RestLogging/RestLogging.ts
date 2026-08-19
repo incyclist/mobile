@@ -4,6 +4,7 @@ import { ApiConfiguration } from "../IncyclistApi";
 import { Platform } from "react-native";
 import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
+import { getLogBacklog } from "../../bindings/logging/Adapters/BacklogAdapter";
 
 
 const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
@@ -27,6 +28,26 @@ const restLogFilter = (context:string, event:any) => {
 }
 
 let restAdapter: RestLogAdapter | undefined
+
+/**
+ * Hands the events that were logged before this adapter existed over to it.
+ *
+ * They carry their original timestamps, so they sort correctly server-side even though
+ * they arrive late, and are otherwise indistinguishable from events that were logged
+ * normally - which is the point: they are ordinary startup events that simply had nowhere
+ * to go yet. The count is reported once on `Logging initialiazed` instead. The globals are
+ * applied here because `setGlobal` only affects events logged after it - a replayed event
+ * would otherwise arrive without the version and uuid that every other line carries.
+ */
+const replayBacklog = (adapter: RestLogAdapter, globals: Record<string, any>): number => {
+    const entries = getLogBacklog().drain().filter(({ context, event }) => restLogFilter(context, event));
+
+    entries.forEach(({ context, event }) => {
+        adapter.log(context, { ...globals, ...event });
+    });
+
+    return entries.length;
+}
 
 /**
  * Best-effort immediate flush of any queued log events, bypassing the normal 10s send interval.
@@ -74,6 +95,8 @@ export const initRestLogging = async () => {
             EventLogger.registerAdapter(restAdapter, restLogFilter)
         }
         else {
+            // Nothing will ever consume the backlog, so stop retaining and release it.
+            getLogBacklog().stop()
             console.log('# Rest logging disabled', {enabled, logUrl,sendInterval})
         }
 
@@ -85,8 +108,22 @@ export const initRestLogging = async () => {
 
 
 
-        logger.setGlobal({version, appVersion, uuid})
-        logger.logEvent( {message:'Logging initialiazed'})
+        // `session` and `app-channel` are also set by incyclist-services once it initialises
+        // its own logging, but that happens later in startup - so without setting them here
+        // every event logged in between (all of app init, including the whole mq connect)
+        // reached the server without a session to correlate it against. Both values are
+        // already available at this point, and services sets the same ones afterwards.
+        const globals = {
+            version, appVersion, uuid,
+            session: appInfo.session,
+            'app-channel': getChannel(),
+        }
+
+        logger.setGlobal(globals)
+
+        const replayed = restAdapter ? replayBacklog(restAdapter, globals) : 0
+
+        logger.logEvent( {message:'Logging initialiazed', replayed})
     }
     catch(err) {
         console.log('Error', err)

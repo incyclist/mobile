@@ -3,6 +3,7 @@ import { App } from './App'; // This is your actual application
 import { ApiConfiguration, initRestLogging  } from './services';
 
 import { EventLogger, LogAdapter } from 'gd-eventlog';
+import { getLogBacklog } from './bindings/logging/Adapters/BacklogAdapter';
 import { RNConsoleAdapter } from './bindings/logging/Adapters/RNConsoleAdapter';
 import Orientation from 'react-native-orientation-locker';
 import { LoadingScreen } from './pages/LoadingScreen/LoadingScreen';
@@ -39,6 +40,12 @@ export const Loader = () =>{
     const refChecking = useRef<Promise<any> | null>(null)
     
     const initLogging =() =>{
+        // Registered first, so nothing logged between here and the REST adapter coming up
+        // is lost. initRestLogging() cannot run any earlier - it needs the settings - and
+        // EventLogger drops each event once the adapters registered at that moment have
+        // seen it, so without this the early startup events never reach the server.
+        EventLogger.registerAdapter(getLogBacklog())
+
         const logAdapter  = new RNConsoleAdapter( {depth:1}) as LogAdapter
         EventLogger.registerAdapter(logAdapter)
 
