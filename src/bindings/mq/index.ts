@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 import { Platform } from 'react-native';
 import { isProdVariant } from '../appInfo';
 import { toWebsocketUri } from './utils';
+import { getUserSettingsBinding } from '../user-settings';
 
 const CONNECT_RETRY_INTERVAL = 10000;   // 10 seconds
 const CONNECT_RETRY_CNT = 5;            // number of attempts before taking a pause
@@ -21,6 +22,18 @@ const CONNECT_TIMEOUT = 5000;           // 5 seconds
 // still deliberately preserved below.
 const KEEPALIVE_SECONDS = 60;           // MQTT.js takes keepalive in seconds
 const SUBSCRIBE_RETRY_INTERVAL = 10000; // 10 seconds - same cadence as the connect retries
+
+// The broker address is not a secret: it is a public endpoint and the same one for every
+// user, so keeping it in the secrets store bought nothing and made every environment
+// change an ops step. It lives here instead, as this platform's default - mobile speaks
+// MQTT over a TLS WebSocket, while desktop/web-ui keep their own transport and their own
+// default - and can be pointed at a test or staging broker from settings.
+//
+// The credentials are still secrets, and still decide whether MQTT runs at all: clearing
+// them server-side disables it for everyone without needing a release, which is the same
+// kill switch removing the broker url used to provide.
+const DEFAULT_BROKER_URL = 'wss://mq.api.incyclist.com/ws';
+const BROKER_SETTING = 'mq.broker';
 
 export class MessageQueue extends EventEmitter {
     private client?: MqttClient;
@@ -55,7 +68,7 @@ export class MessageQueue extends EventEmitter {
     }
 
     enabled(): boolean {
-        return !!this.getBrokerSecret();
+        return !!this.getSecret('MQ_USER') && !!this.getSecret('MQ_PASSWORD');
     }
 
     async subscribe(topic: string) {
@@ -165,20 +178,21 @@ export class MessageQueue extends EventEmitter {
 
         this.logger.logEvent({ message: 'connecting to message queue ...', platform:Platform.OS, isProdVariant });
 
-        const brokerSecret = this.getBrokerSecret();
-
-        if (!brokerSecret) {
-            this.logger.logEvent({ message: 'mqtt disabled', reason: 'no broker specified' });
-            return false;
-        }
-
         const username = this.getSecret('MQ_USER');
         const password = this.getSecret('MQ_PASSWORD');
 
-        if (!username || !password) return false;
+        if (!username || !password) {
+            this.logger.logEvent({ message: 'mqtt disabled', reason: 'no credentials' });
+            return false;
+        }
 
-        const { uri, tls } = toWebsocketUri(brokerSecret);
-        this.logger.logEvent({ message: 'mqtt broker uri resolved', broker: brokerSecret, uri, tls });
+        const broker = this.getBrokerUrl();
+
+        // Still normalised rather than used verbatim, so an override written the way the
+        // broker is usually referred to - mqtts://host - resolves to the WebSocket
+        // endpoint instead of silently failing.
+        const { uri, tls } = toWebsocketUri(broker);
+        this.logger.logEvent({ message: 'mqtt broker uri resolved', broker, uri, tls });
         this.brokerUri = uri;
 
         this.connectPromise = new Promise<boolean>((done) => {
@@ -490,14 +504,9 @@ export class MessageQueue extends EventEmitter {
         this.logger.logEvent({ message: 'error', fn, error: err.message, stack: err.stack });
     }
 
-    // The secrets store may hold an explicit WebSocket broker URL (MQ_BROKER_WS). When it
-    // does not, the legacy MQTT-over-TCP URL (MQ_BROKER) is translated to its WebSocket
-    // equivalent - see toWebsocketUri(). Preferring the explicit key means the broker's
-    // WebSocket port/path can be changed from the secrets store alone, without an app
-    // release, while leaving MQ_BROKER untouched for already-released app versions that
-    // still speak MQTT over raw TCP.
-    protected getBrokerSecret(): string | undefined {
-        return this.getSecret('MQ_BROKER_WS') || this.getSecret('MQ_BROKER');
+    // Settings override first, this platform's default otherwise.
+    protected getBrokerUrl(): string {
+        return getUserSettingsBinding().getValue(BROKER_SETTING, undefined) ?? DEFAULT_BROKER_URL;
     }
 
     protected getSecret(key: string) {

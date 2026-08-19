@@ -9,6 +9,7 @@
 // src/bindings/mq/index.ts.
 
 const mockSecrets: Record<string, string | undefined> = {};
+const mockSettings: Record<string, any> = {};
 const mockPlatform = { OS: 'android' };
 const mockAppInfo = { isProdVariant: false };
 
@@ -65,6 +66,11 @@ jest.mock('../secret', () => ({
         getSecret: (key: string) => mockSecrets[key],
     }),
 }));
+jest.mock('../user-settings', () => ({
+    getUserSettingsBinding: () => ({
+        getValue: (key: string, defValue: any) => mockSettings[key] ?? defValue,
+    }),
+}));
 
 import { MessageQueue } from './index';
 
@@ -84,7 +90,7 @@ describe('MessageQueue', () => {
         jest.useFakeTimers();
         mockInstances.length = 0;
         Object.keys(mockSecrets).forEach((key) => delete mockSecrets[key]);
-        mockSecrets.MQ_BROKER = 'mqtts://broker.example.com:8883';
+        Object.keys(mockSettings).forEach((key) => delete mockSettings[key]);
         mockSecrets.MQ_USER = 'user';
         mockSecrets.MQ_PASSWORD = 'pass';
         mockPlatform.OS = 'android';
@@ -99,38 +105,59 @@ describe('MessageQueue', () => {
     });
 
     describe('broker address', () => {
-        test('uses MQ_BROKER_WS verbatim when the secrets store provides one', async () => {
-            mockSecrets.MQ_BROKER_WS = 'wss://mq.api.incyclist.com:15675/mqtt';
-
+        // The broker is a public endpoint, not a secret. It has a built-in default and is
+        // only overridden for a test or staging broker.
+        test('uses the built-in default when nothing overrides it', async () => {
             const promise = mq.connect();
 
-            expect(mockInstances[0].url).toBe('wss://mq.api.incyclist.com:15675/mqtt');
+            expect(mockInstances[0].url).toBe('wss://mq.api.incyclist.com:443/ws');
 
             succeed(mockInstances[0]);
             await promise;
         });
 
-        test('falls back to translating the legacy MQ_BROKER TCP url', async () => {
+        test('a settings override wins over the default', async () => {
+            mockSettings['mq.broker'] = 'wss://staging.example.com:15675/mqtt';
+
             const promise = mq.connect();
 
-            expect(mockInstances[0].url).toBe('wss://broker.example.com:443/ws');
+            expect(mockInstances[0].url).toBe('wss://staging.example.com:15675/mqtt');
 
             succeed(mockInstances[0]);
             await promise;
         });
 
-        test('is disabled when neither broker secret is set', async () => {
-            delete mockSecrets.MQ_BROKER;
+        test('an override written as mqtts:// is normalised, not used verbatim', async () => {
+            mockSettings['mq.broker'] = 'mqtts://staging.example.com';
+
+            const promise = mq.connect();
+
+            expect(mockInstances[0].url).toBe('wss://staging.example.com:443/ws');
+
+            succeed(mockInstances[0]);
+            await promise;
+        });
+
+        test('the broker is no longer read from the secrets store', async () => {
+            mockSecrets.MQ_BROKER = 'mqtts://should-be-ignored.example.com';
+
+            const promise = mq.connect();
+
+            expect(mockInstances[0].url).toBe('wss://mq.api.incyclist.com:443/ws');
+
+            succeed(mockInstances[0]);
+            await promise;
+        });
+
+        test('credentials decide whether mqtt runs at all', async () => {
+            delete mockSecrets.MQ_PASSWORD;
 
             expect(mq.enabled()).toBe(false);
             expect(await mq.connect()).toBe(false);
             expect(mockInstances).toHaveLength(0);
         });
 
-        test('is enabled when only MQ_BROKER_WS is set', () => {
-            delete mockSecrets.MQ_BROKER;
-            mockSecrets.MQ_BROKER_WS = 'wss://mq.api.incyclist.com/ws';
-
+        test('is enabled when both credentials are present', () => {
             expect(mq.enabled()).toBe(true);
         });
     });
@@ -419,10 +446,9 @@ describe('MessageQueue', () => {
         });
 
         test('does not block the caller while a connect is failing', async () => {
-            // No broker: connect() resolves false immediately, but the point is that
+            // No credentials: connect() resolves false immediately, but the point is that
             // subscribe() resolves at all without the test having to advance timers.
-            delete mockSecrets.MQ_BROKER;
-            delete mockSecrets.MQ_BROKER_WS;
+            delete mockSecrets.MQ_PASSWORD;
 
             await mq.subscribe('topic/a');
 
@@ -581,10 +607,9 @@ describe('MessageQueue', () => {
         });
 
         test('logs when a subscribe is deferred because there is no connection', async () => {
-            // No broker secret, so the connect() that subscribe() triggers bails out
+            // No credentials, so the connect() that subscribe() triggers bails out
             // immediately rather than running the full retry loop.
-            delete mockSecrets.MQ_BROKER;
-            delete mockSecrets.MQ_BROKER_WS;
+            delete mockSecrets.MQ_PASSWORD;
             (mq as any).client = {};   // non-null, so subscribe() does not bail out early
             (mq as any).logger.logEvent = jest.fn();
 
@@ -606,7 +631,7 @@ describe('MessageQueue', () => {
 
             expect(logged()).toContainEqual(
                 expect.objectContaining({
-                    message: 'mqtt connected', uri: 'wss://broker.example.com:443/ws',
+                    message: 'mqtt connected', uri: 'wss://mq.api.incyclist.com:443/ws',
                 }));
         });
 
