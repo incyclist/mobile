@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { AppsDialog } from './AppsDialog';
+import { AppsDialogView } from './AppsDialogView';
 import { Button } from '../ButtonBar/ButtonBar';
 import { OperationsSelector } from '../OperationsSelector';
 import type { OperationConfig } from '../OperationsSelector/types';
@@ -50,9 +50,9 @@ const MockAppContent = ({ appKey, isConnected }: { appKey: string; isConnected: 
     );
 };
 
-const meta: Meta<typeof AppsDialog> = {
+const meta: Meta<typeof AppsDialogView> = {
     title: 'Components/Settings/Apps',
-    component: AppsDialog,
+    component: AppsDialogView,
     args: {
         visible: true,
         onClose: fn(),
@@ -67,7 +67,7 @@ const meta: Meta<typeof AppsDialog> = {
 
 export default meta;
 
-type Story = StoryObj<typeof AppsDialog>;
+type Story = StoryObj<typeof AppsDialogView>;
 
 export const Default: Story = {};
 

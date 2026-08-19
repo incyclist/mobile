@@ -1,63 +1,105 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, act } from '@testing-library/react-native';
 import { AppsDialog } from './AppsDialog';
-import { AppsDialogProps } from './types';
-import { AppDisplayProps } from '../AppsSettings/types';
 
-jest.mock("../Dialog", () => ({
-    Dialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}))
+jest.mock('incyclist-services', () => {
+    const { EventEmitter } = require('events');
 
-jest.mock("../OAuthAppSettings/OAuthAppSettings", () => ({
-    OAuthAppSettings: () => null,
-}))
+    class MockAppsService extends EventEmitter {
+        connected: Record<string, boolean> = { strava: false, intervals: false, komoot: false };
 
-jest.mock("../KomootSettings/KomootSettings", () => ({
-    KomootSettings: () => null,
-}))
+        openSettings = jest.fn(() => ([
+            { name: 'Strava', key: 'strava', iconUrl: 's.svg', isConnected: this.connected.strava },
+            { name: 'Intervals.icu', key: 'intervals', iconUrl: 'i.svg', isConnected: this.connected.intervals },
+            { name: 'Komoot', key: 'komoot', iconUrl: 'k.svg', isConnected: this.connected.komoot },
+        ]));
+    }
 
-const MOCK_APPS: AppDisplayProps[] = [
-    { name: "Strava", key: "strava", iconUrl: "https://example.com/s.svg", isConnected: true },
-    { name: "Intervals.icu", key: "intervals", iconUrl: "https://example.com/i.svg", isConnected: false },
-    { name: "Komoot", key: "komoot", iconUrl: "https://example.com/k.svg", isConnected: false },
-]
+    const mockAppsServiceInstance = new MockAppsService();
 
-const MOCK_PROPS: AppsDialogProps = {
-    visible: true,
-    apps: MOCK_APPS,
-    onClose: jest.fn(),
-}
+    return {
+        useAppsService: () => mockAppsServiceInstance,
+        __mockAppsServiceInstance: mockAppsServiceInstance,
+    };
+});
+
+jest.mock('./AppsDialogView', () => {
+    const { Text } = require('react-native');
+    return {
+        AppsDialogView: ({ apps }: { apps: unknown }) => <Text testID="apps-json">{JSON.stringify(apps)}</Text>,
+    };
+});
+
+const getMockAppsService = () => {
+    const { __mockAppsServiceInstance } = require('incyclist-services');
+    return __mockAppsServiceInstance;
+};
+
+const readApps = (getByTestId: (id: string) => any) =>
+    JSON.parse(String(getByTestId('apps-json').props.children));
 
 describe('AppsDialog', () => {
-    it('renders with visible={true} without crashing', () => {
-        const { getByText } = render(<AppsDialog {...MOCK_PROPS} />);
-        expect(getByText('Strava')).toBeTruthy();
-        expect(getByText('Intervals.icu')).toBeTruthy();
-        expect(getByText('Komoot')).toBeTruthy();
+    beforeEach(() => {
+        const mockService = getMockAppsService();
+        mockService.connected = { strava: false, intervals: false, komoot: false };
+        mockService.openSettings.mockClear();
+        mockService.removeAllListeners();
     });
 
-    it('renders with visible={false} without crashing', () => {
-        // Since Dialog is mocked to just render children, visible={false} logic 
-        // is handled inside Dialog which is not tested here. 
-        // We just ensure the component itself doesn't crash.
-        const { getByText } = render(<AppsDialog {...MOCK_PROPS} visible={false} />);
-        expect(getByText('Strava')).toBeTruthy();
+    it('fetches apps on mount and subscribes to connected/disconnected events', () => {
+        const mockService = getMockAppsService();
+        const onSpy = jest.spyOn(mockService, 'on');
+
+        render(<AppsDialog visible={true} onClose={jest.fn()} />);
+
+        expect(mockService.openSettings).toHaveBeenCalledTimes(1);
+        expect(onSpy).toHaveBeenCalledWith('connected', expect.any(Function));
+        expect(onSpy).toHaveBeenCalledWith('disconnected', expect.any(Function));
+
+        onSpy.mockRestore();
     });
 
-    it('renders with empty apps array without crashing', () => {
-        const { getByText } = render(<AppsDialog {...MOCK_PROPS} apps={[]} />);
-        expect(getByText('Strava')).toBeTruthy();
+    it('updates the apps state (and badge data) when the service emits "connected", without a remount', () => {
+        const mockService = getMockAppsService();
+        const { getByTestId } = render(<AppsDialog visible={true} onClose={jest.fn()} />);
+
+        expect(readApps(getByTestId).find((a: any) => a.key === 'strava').isConnected).toBe(false);
+
+        act(() => {
+            mockService.connected.strava = true;
+            mockService.emit('connected', 'strava', true);
+        });
+
+        expect(readApps(getByTestId).find((a: any) => a.key === 'strava').isConnected).toBe(true);
     });
 
-    it('renders with all sections collapsed without crashing', () => {
-        const { getByText } = render(<AppsDialog {...MOCK_PROPS} />);
-        expect(getByText('Strava')).toBeTruthy();
+    it('updates the apps state (and badge data) when the service emits "disconnected", without a remount', () => {
+        const mockService = getMockAppsService();
+        mockService.connected.intervals = true;
+        const { getByTestId } = render(<AppsDialog visible={true} onClose={jest.fn()} />);
+
+        expect(readApps(getByTestId).find((a: any) => a.key === 'intervals').isConnected).toBe(true);
+
+        act(() => {
+            mockService.connected.intervals = false;
+            mockService.emit('disconnected', 'intervals');
+        });
+
+        expect(readApps(getByTestId).find((a: any) => a.key === 'intervals').isConnected).toBe(false);
     });
 
-    it('renders with Strava section expanded without crashing', () => {
-        const { getByText } = render(<AppsDialog {...MOCK_PROPS} />);
-        fireEvent.press(getByText('Strava'));
-        // If it doesn't crash, the test passes.
-        expect(getByText('Strava')).toBeTruthy();
+    it('unsubscribes from connected/disconnected events on unmount', () => {
+        const mockService = getMockAppsService();
+        const offSpy = jest.spyOn(mockService, 'off');
+
+        const { unmount } = render(<AppsDialog visible={true} onClose={jest.fn()} />);
+        unmount();
+
+        expect(offSpy).toHaveBeenCalledWith('connected', expect.any(Function));
+        expect(offSpy).toHaveBeenCalledWith('disconnected', expect.any(Function));
+        expect(mockService.listenerCount('connected')).toBe(0);
+        expect(mockService.listenerCount('disconnected')).toBe(0);
+
+        offSpy.mockRestore();
     });
 });

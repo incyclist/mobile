@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
-import { useAppsService } from 'incyclist-services';
 import { NavigationBarProps, TNavigationItem } from './types';
 import { NavigationBarView } from './NavigationBarView';
 import { NavigationBarViewCompact } from './NavigationBarViewCompact';
@@ -11,15 +10,12 @@ import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
-import { AppDisplayProps } from '../AppsSettings/types';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
-import { useUnmountEffect } from '../../hooks';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact, disabled } = props;
     const screenLayout = useScreenLayout();
     const { height } = useWindowDimensions();
-    const appsService = useAppsService();
 
     const [showUserSettings, setShowUserSettings] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -28,32 +24,6 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showGear, setShowGear] = useState(false);
     const [showRideSettings, setShowRideSettings] = useState(false);
     const [showAppsDialog, setShowAppsDialog] = useState(false);
-    const [apps, setApps] = useState<AppDisplayProps[]>([]);
-
-    const refInitialized = useRef(false);
-
-    const refreshApps = useCallback(() => {
-        const list = appsService.openSettings();
-        if (list) {
-            setApps(list);
-        }
-    }, [appsService]);
-
-    useEffect(() => {
-        if (refInitialized.current) {
-            return;
-        }
-        refInitialized.current = true;
-        refreshApps();
-        appsService.on('connected', refreshApps);
-        appsService.on('disconnected', refreshApps);
-    }, [appsService, refreshApps]);
-
-    useUnmountEffect(() => {
-        appsService.off('connected', refreshApps);
-        appsService.off('disconnected', refreshApps);
-        refInitialized.current = false;
-    });
 
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;
@@ -154,7 +124,6 @@ export const NavigationBar = (props: NavigationBarProps) => {
             {showGear && <GearSettings onClose={handleGearClose} />}
             <AppsDialog
                 visible={showAppsDialog}
-                apps={apps}
                 onClose={handleSettingsClose}
             />
         </>
