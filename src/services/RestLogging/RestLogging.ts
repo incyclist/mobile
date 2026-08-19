@@ -4,6 +4,7 @@ import { ApiConfiguration } from "../IncyclistApi";
 import { Platform } from "react-native";
 import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
+import { getLogBacklog } from "../../bindings/logging/Adapters/BacklogAdapter";
 
 
 const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
@@ -27,6 +28,25 @@ const restLogFilter = (context:string, event:any) => {
 }
 
 let restAdapter: RestLogAdapter | undefined
+
+/**
+ * Hands the events that were logged before this adapter existed over to it.
+ *
+ * They carry their original timestamps, so they sort correctly server-side even though
+ * they arrive late, and they are tagged `replayed` so that is visible rather than
+ * surprising. The globals are applied here because `setGlobal` only affects events logged
+ * after it - a replayed event would otherwise arrive without the version and uuid that
+ * every other line carries.
+ */
+const replayBacklog = (adapter: RestLogAdapter, globals: Record<string, any>): number => {
+    const entries = getLogBacklog().drain().filter(({ context, event }) => restLogFilter(context, event));
+
+    entries.forEach(({ context, event }) => {
+        adapter.log(context, { ...globals, ...event, replayed: true });
+    });
+
+    return entries.length;
+}
 
 /**
  * Best-effort immediate flush of any queued log events, bypassing the normal 10s send interval.
@@ -74,6 +94,8 @@ export const initRestLogging = async () => {
             EventLogger.registerAdapter(restAdapter, restLogFilter)
         }
         else {
+            // Nothing will ever consume the backlog, so stop retaining and release it.
+            getLogBacklog().stop()
             console.log('# Rest logging disabled', {enabled, logUrl,sendInterval})
         }
 
@@ -86,7 +108,10 @@ export const initRestLogging = async () => {
 
 
         logger.setGlobal({version, appVersion, uuid})
-        logger.logEvent( {message:'Logging initialiazed'})
+
+        const replayed = restAdapter ? replayBacklog(restAdapter, {version, appVersion, uuid}) : 0
+
+        logger.logEvent( {message:'Logging initialiazed', replayed})
     }
     catch(err) {
         console.log('Error', err)
