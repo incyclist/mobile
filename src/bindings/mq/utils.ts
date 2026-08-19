@@ -1,7 +1,7 @@
-// Default ports of the *MQTT-over-TCP* schemes we may receive from the secrets store.
-// A URI carrying one of these ports is a plain-TCP broker address, so the port has to be
-// replaced when translating to WebSocket - see toWebsocketUri() below.
-const MQTT_TCP_PORTS = [1883, 8883];
+// Default ports of the *MQTT-over-TCP* schemes. A URI carrying one of these is a plain-TCP
+// broker address, so the port has to be replaced when translating to WebSocket - a port
+// that cannot serve WebSocket traffic must not be carried over. See toWebsocketUri().
+const MQTT_TCP_PORTS = new Set([1883, 8883]);
 
 const WS_DEFAULT_PORTS: Record<string, number> = {
     'ws:': 80,
@@ -14,7 +14,10 @@ const WS_DEFAULT_PORTS: Record<string, number> = {
 const DEFAULT_WS_PATH = '/ws';
 
 // TCP scheme -> WebSocket scheme. Both the MQTT names and the Paho-style aliases are
-// accepted, because the secrets store has historically held either.
+// accepted, because a broker address has historically been written either way.
+// Not global, so exec() carries no lastIndex state between calls.
+const SCHEME_PATTERN = /^([a-z]+):\/\//;
+
 const WS_SCHEME: Record<string, string> = {
     'mqtt:': 'ws:',
     'tcp:': 'ws:',
@@ -32,11 +35,11 @@ export interface WebsocketMqttUri {
 }
 
 /**
- * Translates a broker URI from the secrets store into an MQTT-over-WebSocket URI.
+ * Translates a broker URI into an MQTT-over-WebSocket URI.
  *
- * The store may hold either an explicit WebSocket URI (`MQ_BROKER_WS`) or the legacy
- * TCP one (`MQ_BROKER`, e.g. `mqtts://mq.api.incyclist.com:8883`). A URI that is already
- * `ws:`/`wss:` is only normalised (port + path filled in); a TCP one is translated:
+ * The input is this platform's default or the `mq.broker` settings override. A URI that is
+ * already `ws:`/`wss:` is only normalised (port + path filled in); one written for the TCP
+ * transport - the way the broker is usually referred to - is translated:
  *
  * | Input                              | Output                                  | tls   |
  * |------------------------------------|-----------------------------------------|-------|
@@ -49,10 +52,10 @@ export interface WebsocketMqttUri {
  *
  * A port is only dropped when it is one of the MQTT-over-TCP defaults (1883/8883), since
  * that port cannot possibly serve WebSocket traffic. Any other explicit port is a
- * deliberate choice by whoever set the secret and is preserved as-is.
+ * deliberate choice by whoever set the override and is preserved as-is.
  *
  * Malformed URIs are returned unchanged with `tls: false`, matching the previous
- * behaviour - a bad secret must never throw on the connect path.
+ * behaviour - a bad value must never throw on the connect path.
  */
 export function toWebsocketUri(uri: string): WebsocketMqttUri {
     /*
@@ -60,7 +63,7 @@ export function toWebsocketUri(uri: string): WebsocketMqttUri {
         new URL('mqtts://...') returns an empty hostname in Hermes because mqtts: is not a
         recognised scheme, so the scheme is swapped for http(s): before parsing.
     */
-    const schemeMatch = uri?.match(/^([a-z]+):\/\//);
+    const schemeMatch = SCHEME_PATTERN.exec(uri ?? '');
     if (!schemeMatch) return { uri, tls: false };
 
     const sourceScheme = schemeMatch[1] + ':';
@@ -80,8 +83,8 @@ export function toWebsocketUri(uri: string): WebsocketMqttUri {
     const host = parsed.hostname;
     if (!host) return { uri, tls: false };
 
-    const sourcePort = parsed.port ? parseInt(parsed.port, 10) : null;
-    const keepPort = sourcePort !== null && !MQTT_TCP_PORTS.includes(sourcePort);
+    const sourcePort = parsed.port ? Number.parseInt(parsed.port, 10) : null;
+    const keepPort = sourcePort !== null && !MQTT_TCP_PORTS.has(sourcePort);
     const port = keepPort ? sourcePort : WS_DEFAULT_PORTS[targetScheme];
 
     const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : DEFAULT_WS_PATH;
