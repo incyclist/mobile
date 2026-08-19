@@ -2282,9 +2282,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-native-mqtt (0.1.12):
-    - React
-    - Starscream (~> 3.0.2)
   - react-native-netinfo (12.0.1):
     - boost
     - DoubleConversion
@@ -3407,7 +3404,6 @@ PODS:
     - SSZipArchive (~> 2.5.5)
   - SocketRocket (0.7.1)
   - SSZipArchive (2.5.5)
-  - Starscream (3.0.6)
   - SwiftCBOR (0.6.0)
   - Yoga (0.0.0)
 
@@ -3471,7 +3467,6 @@ DEPENDENCIES:
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - "react-native-keep-awake (from `../node_modules/@sayem314/react-native-keep-awake`)"
   - react-native-maps (from `../node_modules/react-native-maps`)
-  - "react-native-native-mqtt (from `../node_modules/@fdfedin/react-native-native-mqtt`)"
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -3538,7 +3533,6 @@ SPEC REPOS:
     - React-Codegen
     - SocketRocket
     - SSZipArchive
-    - Starscream
     - SwiftCBOR
 
 EXTERNAL SOURCES:
@@ -3657,8 +3651,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@sayem314/react-native-keep-awake"
   react-native-maps:
     :path: "../node_modules/react-native-maps"
-  react-native-native-mqtt:
-    :path: "../node_modules/@fdfedin/react-native-native-mqtt"
   react-native-netinfo:
     :path: "../node_modules/@react-native-community/netinfo"
   react-native-orientation-locker:
@@ -3833,7 +3825,6 @@ SPEC CHECKSUMS:
   react-native-get-random-values: e2acf4070fe4b7325705a05af047449637a27a21
   react-native-keep-awake: 129cb4bd75d0f304a479b4c4527d2994fe18e43c
   react-native-maps: b5af575a371e57847c6d8490e726c08036f7c80f
-  react-native-native-mqtt: 1d748c1b5ca4d70350b41367811a09a6ab45a09a
   react-native-netinfo: a0be8c77f8420a60ddf07eb87be1a36f02a1bd65
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: befb5404eb8a16fdc07fa2bebab3568ecabcbb8a
@@ -3890,10 +3881,9 @@ SPEC CHECKSUMS:
   RNZipArchive: 4304f5100eab004eeb7349adc51997b3a28deb76
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   SSZipArchive: c69881e8ac5521f0e622291387add5f60f30f3c4
-  Starscream: ef3ece99d765eeccb67de105bfa143f929026cf5
   SwiftCBOR: b873af28a9cc66003852fdc79a41852a7e54009a
   Yoga: d2ed98551adb569fc38be0148666854e1ff60692
 
-PODFILE CHECKSUM: 58c4e7ea6d6f45f6dd71fafedca64303de19ae07
+PODFILE CHECKSUM: eaf64fa3deb87f64aba125ea52f01560ae8f26a1
 
 COCOAPODS: 1.16.2

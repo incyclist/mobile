@@ -1,116 +1,129 @@
-import { normaliseMqttUri } from './utils';
+import { toWebsocketUri } from './utils';
 
-describe('normaliseMqttUri', () => {
-    // ─── mqtt:// ───────────────────────────────────────────────────────────────
+describe('toWebsocketUri', () => {
 
-    describe('mqtt:// scheme', () => {
-        it('android — no port → tcp:// with default port 1883', () => {
-            const result = normaliseMqttUri('mqtt://broker.example.com', 'android');
-            expect(result.nativeUri).toBe('tcp://broker.example.com:1883');
+    // ─── mqtt:// / tcp:// → ws:// ──────────────────────────────────────────────
+
+    describe('plain MQTT schemes', () => {
+        it('mqtt:// — no port → ws:// on the default http port', () => {
+            const result = toWebsocketUri('mqtt://broker.example.com');
+            expect(result.uri).toBe('ws://broker.example.com:80/ws');
             expect(result.tls).toBe(false);
         });
 
-        it('android — explicit port → tcp:// with preserved port', () => {
-            const result = normaliseMqttUri('mqtt://broker.example.com:1884', 'android');
-            expect(result.nativeUri).toBe('tcp://broker.example.com:1884');
+        it('mqtt:// — the default MQTT port is replaced, not carried over', () => {
+            const result = toWebsocketUri('mqtt://broker.example.com:1883');
+            expect(result.uri).toBe('ws://broker.example.com:80/ws');
             expect(result.tls).toBe(false);
         });
 
-        it('ios — no port → mqtt:// with default port 1883', () => {
-            const result = normaliseMqttUri('mqtt://broker.example.com', 'ios');
-            expect(result.nativeUri).toBe('mqtt://broker.example.com:1883');
-            expect(result.tls).toBe(false);
-        });
-
-        it('ios — explicit port → mqtt:// with preserved port', () => {
-            const result = normaliseMqttUri('mqtt://broker.example.com:1884', 'ios');
-            expect(result.nativeUri).toBe('mqtt://broker.example.com:1884');
+        it('tcp:// — treated the same as mqtt://', () => {
+            const result = toWebsocketUri('tcp://broker.example.com:1883');
+            expect(result.uri).toBe('ws://broker.example.com:80/ws');
             expect(result.tls).toBe(false);
         });
     });
 
-    // ─── mqtts:// ──────────────────────────────────────────────────────────────
+    // ─── mqtts:// / ssl:// → wss:// ────────────────────────────────────────────
 
-    describe('mqtts:// scheme', () => {
-        it('android — no port → ssl:// with default port 8883', () => {
-            const result = normaliseMqttUri('mqtts://broker.example.com', 'android');
-            expect(result.nativeUri).toBe('ssl://broker.example.com:8883');
+    describe('TLS MQTT schemes', () => {
+        it('mqtts:// — no port → wss:// on 443', () => {
+            const result = toWebsocketUri('mqtts://broker.example.com');
+            expect(result.uri).toBe('wss://broker.example.com:443/ws');
             expect(result.tls).toBe(true);
         });
 
-        it('android — explicit port → ssl:// with preserved port', () => {
-            const result = normaliseMqttUri('mqtts://broker.example.com:8884', 'android');
-            expect(result.nativeUri).toBe('ssl://broker.example.com:8884');
+        it('mqtts:// — the default MQTTS port is replaced by 443', () => {
+            const result = toWebsocketUri('mqtts://broker.example.com:8883');
+            expect(result.uri).toBe('wss://broker.example.com:443/ws');
             expect(result.tls).toBe(true);
         });
 
-        it('android — mqtts://mq.api.incyclist.com', () => {
-            const result = normaliseMqttUri('mqtts://mq.api.incyclist.com', 'android');
-            expect(result.nativeUri).toBe('ssl://mq.api.incyclist.com:8883');
+        it('ssl:// — treated the same as mqtts://', () => {
+            const result = toWebsocketUri('ssl://broker.example.com:8883');
+            expect(result.uri).toBe('wss://broker.example.com:443/ws');
             expect(result.tls).toBe(true);
         });
 
-
-        
-
-        it('ios — no port → mqtts:// with default port 8883', () => {
-            const result = normaliseMqttUri('mqtts://broker.example.com', 'ios');
-            expect(result.nativeUri).toBe('mqtts://broker.example.com:8883');
+        it('translates the live broker address', () => {
+            const result = toWebsocketUri('mqtts://mq.api.incyclist.com:8883');
+            expect(result.uri).toBe('wss://mq.api.incyclist.com:443/ws');
             expect(result.tls).toBe(true);
         });
 
-        it('ios — explicit port → mqtts:// with preserved port', () => {
-            const result = normaliseMqttUri('mqtts://broker.example.com:8884', 'ios');
-            expect(result.nativeUri).toBe('mqtts://broker.example.com:8884');
+        it('keeps a port that is not an MQTT default — it was chosen deliberately', () => {
+            const result = toWebsocketUri('mqtts://broker.example.com:9001');
+            expect(result.uri).toBe('wss://broker.example.com:9001/ws');
             expect(result.tls).toBe(true);
         });
     });
 
-    // ─── tcp:// passthrough ────────────────────────────────────────────────────
+    // ─── ws:// / wss:// passthrough ────────────────────────────────────────────
 
-    describe('tcp:// passthrough', () => {
-        it('android — no port → tcp:// unchanged with default port', () => {
-            const result = normaliseMqttUri('tcp://broker.example.com', 'android');
-            expect(result.nativeUri).toBe('tcp://broker.example.com:1883');
+    describe('WebSocket schemes', () => {
+        it('wss:// — normalised, not translated', () => {
+            const result = toWebsocketUri('wss://mq.api.incyclist.com/ws');
+            expect(result.uri).toBe('wss://mq.api.incyclist.com:443/ws');
+            expect(result.tls).toBe(true);
+        });
+
+        it('wss:// — a custom port and path are preserved', () => {
+            const result = toWebsocketUri('wss://mq.api.incyclist.com:15675/mqtt');
+            expect(result.uri).toBe('wss://mq.api.incyclist.com:15675/mqtt');
+            expect(result.tls).toBe(true);
+        });
+
+        it('ws:// — no port or path → defaults filled in', () => {
+            const result = toWebsocketUri('ws://broker.example.com');
+            expect(result.uri).toBe('ws://broker.example.com:80/ws');
             expect(result.tls).toBe(false);
         });
+    });
 
-        it('android — explicit port preserved', () => {
-            const result = normaliseMqttUri('tcp://broker.example.com:1884', 'android');
-            expect(result.nativeUri).toBe('tcp://broker.example.com:1884');
-            expect(result.tls).toBe(false);
+    // ─── path handling ─────────────────────────────────────────────────────────
+
+    describe('path handling', () => {
+        it('adds the rabbitmq_web_mqtt default path when the source has none', () => {
+            expect(toWebsocketUri('mqtts://broker.example.com').uri)
+                .toBe('wss://broker.example.com:443/ws');
+        });
+
+        it('treats a bare / as no path', () => {
+            expect(toWebsocketUri('mqtts://broker.example.com/').uri)
+                .toBe('wss://broker.example.com:443/ws');
+        });
+
+        it('keeps an explicit path', () => {
+            expect(toWebsocketUri('mqtts://broker.example.com/mqtt').uri)
+                .toBe('wss://broker.example.com:443/mqtt');
         });
     });
 
-    // ─── ssl:// passthrough ────────────────────────────────────────────────────
-
-    describe('ssl:// passthrough', () => {
-        it('android — no port → ssl:// unchanged with default port', () => {
-            const result = normaliseMqttUri('ssl://broker.example.com', 'android');
-            expect(result.nativeUri).toBe('ssl://broker.example.com:8883');
-            expect(result.tls).toBe(true);
-        });
-
-        it('android — explicit port preserved', () => {
-            const result = normaliseMqttUri('ssl://broker.example.com:8884', 'android');
-            expect(result.nativeUri).toBe('ssl://broker.example.com:8884');
-            expect(result.tls).toBe(true);
-        });
-    });
-
-    // ─── malformed URI ─────────────────────────────────────────────────────────
+    // ─── malformed / unsupported input ─────────────────────────────────────────
 
     describe('malformed URI', () => {
         it('returns uri unchanged with tls false — does not throw', () => {
             const bad = 'not a uri at all';
-            const result = normaliseMqttUri(bad, 'android');
-            expect(result.nativeUri).toBe(bad);
+            const result = toWebsocketUri(bad);
+            expect(result.uri).toBe(bad);
             expect(result.tls).toBe(false);
         });
 
         it('empty string — does not throw', () => {
-            const result = normaliseMqttUri('', 'android');
-            expect(result.nativeUri).toBe('');
+            const result = toWebsocketUri('');
+            expect(result.uri).toBe('');
+            expect(result.tls).toBe(false);
+        });
+
+        it('an unsupported scheme is left alone', () => {
+            const result = toWebsocketUri('http://broker.example.com');
+            expect(result.uri).toBe('http://broker.example.com');
+            expect(result.tls).toBe(false);
+        });
+
+        it('a scheme with no host is left alone', () => {
+            const result = toWebsocketUri('mqtts://');
+            expect(result.uri).toBe('mqtts://');
             expect(result.tls).toBe(false);
         });
     });

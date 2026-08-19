@@ -22,7 +22,6 @@
     "storybook:build": "storybook build"
   },
   "dependencies": {
-    "@fdfedin/react-native-native-mqtt": "file:vendor/react-native-native-mqtt",
     "@kesha-antonov/react-native-background-downloader": "^4.5.4",
     "@maplibre/maplibre-react-native": "^11.3.6",
     "@pagopa/io-react-native-integrity": "^0.3.2",
@@ -39,6 +38,7 @@
     "events": "^3.3.0",
     "gd-eventlog": "^0.1.27",
     "incyclist-services": "^1.7.109",
+    "mqtt": "^5.15.2",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "react": "^19.2.4",

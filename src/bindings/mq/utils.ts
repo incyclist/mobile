@@ -1,93 +1,93 @@
-export interface NormalisedMqttUri {
-    nativeUri: string;
+// Default ports of the *MQTT-over-TCP* schemes. A URI carrying one of these is a plain-TCP
+// broker address, so the port has to be replaced when translating to WebSocket - a port
+// that cannot serve WebSocket traffic must not be carried over. See toWebsocketUri().
+const MQTT_TCP_PORTS = new Set([1883, 8883]);
+
+const WS_DEFAULT_PORTS: Record<string, number> = {
+    'ws:': 80,
+    'wss:': 443,
+};
+
+// RabbitMQ's rabbitmq_web_mqtt plugin serves MQTT-over-WebSocket at /ws, and that is what
+// the Traefik IngressRoute in `infra` routes to. Used only when the source URI carries no
+// path of its own.
+const DEFAULT_WS_PATH = '/ws';
+
+// TCP scheme -> WebSocket scheme. Both the MQTT names and the Paho-style aliases are
+// accepted, because a broker address has historically been written either way.
+// Not global, so exec() carries no lastIndex state between calls.
+const SCHEME_PATTERN = /^([a-z]+):\/\//;
+
+const WS_SCHEME: Record<string, string> = {
+    'mqtt:': 'ws:',
+    'tcp:': 'ws:',
+    'mqtts:': 'wss:',
+    'ssl:': 'wss:',
+    'ws:': 'ws:',
+    'wss:': 'wss:',
+};
+
+export interface WebsocketMqttUri {
+    /** The URI to hand to MQTT.js, e.g. `wss://mq.api.incyclist.com:443/ws` */
+    uri: string;
+    /** True when the connection is TLS-encrypted (`wss:`) */
     tls: boolean;
 }
 
-const DEFAULT_PORTS: Record<string, number> = {
-    'mqtt:': 1883,
-    'mqtts:': 8883,
-    'tcp:': 1883,
-    'ssl:': 8883,
-};
-
 /**
- * Normalises a broker URI from the secrets store into the correct native URI
- * and TLS flag for the given platform.
+ * Translates a broker URI into an MQTT-over-WebSocket URI.
  *
- * | Input scheme | Platform | Output nativeUri    | tls   |
- * |-------------|----------|---------------------|-------|
- * | mqtt://     | android  | tcp://host:port     | false |
- * | mqtt://     | ios      | mqtt://host:port    | false |
- * | mqtts://    | android  | ssl://host:port     | true  |
- * | mqtts://    | ios      | mqtts://host:port   | true  |
- * | tcp://      | android  | unchanged           | false |
- * | ssl://      | android  | unchanged           | true  |
+ * The input is this platform's default or the `mq.broker` settings override. A URI that is
+ * already `ws:`/`wss:` is only normalised (port + path filled in); one written for the TCP
+ * transport - the way the broker is usually referred to - is translated:
  *
- * Malformed URIs are returned unchanged with tls: false.
+ * | Input                              | Output                                  | tls   |
+ * |------------------------------------|-----------------------------------------|-------|
+ * | `mqtt://host`                      | `ws://host:80/ws`                       | false |
+ * | `tcp://host:1883`                  | `ws://host:80/ws`                       | false |
+ * | `mqtts://host`                     | `wss://host:443/ws`                     | true  |
+ * | `ssl://host:8883`                  | `wss://host:443/ws`                     | true  |
+ * | `wss://host/mqtt`                  | `wss://host:443/mqtt`                   | true  |
+ * | `wss://host:15675/ws`              | `wss://host:15675/ws`                   | true  |
+ *
+ * A port is only dropped when it is one of the MQTT-over-TCP defaults (1883/8883), since
+ * that port cannot possibly serve WebSocket traffic. Any other explicit port is a
+ * deliberate choice by whoever set the override and is preserved as-is.
+ *
+ * Malformed URIs are returned unchanged with `tls: false`, matching the previous
+ * behaviour - a bad value must never throw on the connect path.
  */
-export function normaliseMqttUri(uri: string, platform: 'ios' | 'android'): NormalisedMqttUri {
-
+export function toWebsocketUri(uri: string): WebsocketMqttUri {
     /*
-            Hermes handles non-standard URL schemes differently from Node.js. 
-            new URL('mqtts://...') returns an empty hostname in Hermes because mqtts: is not a recognised scheme.    
+        Hermes handles non-standard URL schemes differently from Node.js.
+        new URL('mqtts://...') returns an empty hostname in Hermes because mqtts: is not a
+        recognised scheme, so the scheme is swapped for http(s): before parsing.
     */
-    const schemeMatch = uri.match(/^([a-z]+):\/\//);
-    if (!schemeMatch) return { nativeUri: uri, tls: false };
+    const schemeMatch = SCHEME_PATTERN.exec(uri ?? '');
+    if (!schemeMatch) return { uri, tls: false };
 
-    const originalScheme = schemeMatch[1] + ':'; // e.g. 'mqtt:'
+    const sourceScheme = schemeMatch[1] + ':';
+    const targetScheme = WS_SCHEME[sourceScheme];
+    if (!targetScheme) return { uri, tls: false };
 
-    const parseable = uri
-        .replace(/^mqtt:\/\//, 'http://')
-        .replace(/^mqtts:\/\//, 'https://')
-        .replace(/^tcp:\/\//, 'http://')
-        .replace(/^ssl:\/\//, 'https://');
+    const tls = targetScheme === 'wss:';
+    const parseable = uri.replace(/^[a-z]+:\/\//, tls ? 'https://' : 'http://');
 
     let parsed: URL;
     try {
         parsed = new URL(parseable);
     } catch {
-        return { nativeUri: uri, tls: false };
+        return { uri, tls: false };
     }
 
     const host = parsed.hostname;
-    const explicitPort = parsed.port ? parseInt(parsed.port, 10) : null;
+    if (!host) return { uri, tls: false };
 
-    const resolvePort = (defaultScheme: string): number => {
-        return explicitPort !== null ? explicitPort : DEFAULT_PORTS[defaultScheme] ?? 1883;
-    };
+    const sourcePort = parsed.port ? Number.parseInt(parsed.port, 10) : null;
+    const keepPort = sourcePort !== null && !MQTT_TCP_PORTS.has(sourcePort);
+    const port = keepPort ? sourcePort : WS_DEFAULT_PORTS[targetScheme];
 
-    switch (originalScheme) {
-        case 'mqtt:': {
-            const port = resolvePort('mqtt:');
-            const nativeUri =
-                platform === 'android'
-                    ? `tcp://${host}:${port}`
-                    : `mqtt://${host}:${port}`;
-            return { nativeUri, tls: false };
-        }
+    const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : DEFAULT_WS_PATH;
 
-        case 'mqtts:': {
-            const port = resolvePort('mqtts:');
-            const nativeUri =
-                platform === 'android'
-                    ? `ssl://${host}:${port}`
-                    : `mqtts://${host}:${port}`;
-            return { nativeUri, tls: true };
-        }
-
-        case 'tcp:': {
-            const port = resolvePort('tcp:');
-            const nativeUri = `tcp://${host}:${port}`;
-            return { nativeUri, tls: false };
-        }
-
-        case 'ssl:': {
-            const port = resolvePort('ssl:');
-            const nativeUri = `ssl://${host}:${port}`;
-            return { nativeUri, tls: true };
-        }
-
-        default:
-            return { nativeUri: uri, tls: false };
-    }
+    return { uri: `${targetScheme}//${host}:${port}${path}`, tls };
 }

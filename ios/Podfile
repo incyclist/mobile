@@ -69,13 +69,6 @@ target 'Incyclist' do
     # Add this inside your existing post_install do |installer| block
     installer.pods_project.targets.each do |target|
 
-      if target.name == 'react-native-native-mqtt'
-        target.build_configurations.each do |config|
-          # This tells Xcode to ignore the bundled files that cause duplicates
-          config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = 'GCDAsyncSocket.m GCDAsyncUdpSocket.m'
-        end
-      end
-
       # Force every target to match your Intel Mac architecture
       target.build_configurations.each do |config|
         if cpu_arch == 'x86_64'
