@@ -97,7 +97,11 @@ import java.util.WeakHashMap
  * onAfterUpdateTransaction, which is the first point at which the view is
  * addressable. onLicenseConsumed is buffered the same way — it is raised
  * inside createViewInstance itself, before the tag exists, and emitting it
- * directly there would silently drop the event.
+ * directly there would silently drop the event. onError follows the same
+ * buffer-and-flush pattern for the same reason: createViewInstance's
+ * apiKeyMissing early-return calls emitError from that exact untagged window,
+ * and an unbuffered emitEvent there is a silent no-op (see emitEvent) — this
+ * dropped the very first apiKeyMissing event until the buffering was added.
  *
  * ── Teardown / black screen workaround ───────────────────────────────────
  *
@@ -134,6 +138,22 @@ class StreetViewManager(
         val state = PanoramaState()
         states[view] = state
 
+        // Check API key availability FIRST, before any lifecycle methods or license-consumed event.
+        // If the key is missing or unreadable, fail immediately without triggering a billable
+        // Street View SDK event (onCreate is the billing trigger per Google's docs).
+        val keyState = apiKeyState(context)
+        if (keyState != "present") {
+            emitLog(view, "createViewInstance", mapOf(
+                "apiKey" to keyState,
+                "mapsInit" to mapsInitResult,
+                "mapsInitName" to connectionResultName(mapsInitResult),
+                "renderer" to (activeRenderer ?: "pending"),
+                "playServices" to playServicesVersion(context),
+            ))
+            emitError(view, state, "apiKeyMissing")
+            return view
+        }
+
         view.visibility = View.INVISIBLE // black-screen workaround companion
         view.onCreate(null)
         view.onResume()
@@ -148,7 +168,7 @@ class StreetViewManager(
         // Whether the Maps SDK is healthy on this device is the main open question for the
         // black-screen reports, so every instance reports what it is working with.
         emitLog(view, "createViewInstance", mapOf(
-            "apiKey" to apiKeyState(context),
+            "apiKey" to keyState,
             "mapsInit" to mapsInitResult,
             "mapsInitName" to connectionResultName(mapsInitResult),
             "renderer" to (activeRenderer ?: "pending"),
@@ -158,7 +178,7 @@ class StreetViewManager(
         // Arm the ready timeout. Cancelled when getStreetViewPanoramaAsync fires.
         val readyTimeoutRunnable = Runnable {
             emitLog(view, "ready timeout expired", mapOf("timeout" to state.readyTimeoutMs))
-            emitError(view, "unknown")
+            emitError(view, state, "unknown")
         }
         state.readyTimeoutRunnable = readyTimeoutRunnable
         mainHandler.postDelayed(readyTimeoutRunnable, state.readyTimeoutMs)
@@ -424,6 +444,12 @@ class StreetViewManager(
         // waiting to be flushed from onAfterUpdateTransaction.
         var pendingLicense: Boolean = false
 
+        // onError raised before the view had a React tag, waiting to be flushed from
+        // onAfterUpdateTransaction. Holds the payload (not just a flag, unlike
+        // pendingLicense) because onError carries a reason string that must survive
+        // until flush — see emitError.
+        var pendingError: WritableMap? = null
+
         var requestedAt: Long = 0
 
         fun elapsedSinceRequest(): Long =
@@ -457,7 +483,7 @@ class StreetViewManager(
                     "width" to view.width,
                     "height" to view.height,
                 ))
-                emitError(view, "unavailable")
+                emitError(view, this@PanoramaState, "unavailable")
             }
             positionTimeoutRunnable = timeoutRunnable
             mainHandler.postDelayed(timeoutRunnable, positionTimeoutMs)
@@ -481,9 +507,19 @@ class StreetViewManager(
 
     // ── Event emission helpers ────────────────────────────────────────────
 
-    private fun emitError(view: StreetViewPanoramaView, reason: String) {
+    /**
+     * Buffered while the view has no React tag yet, the same way emitLicenseConsumed and
+     * emitLog are — see "Logging" in the class docs. createViewInstance's apiKeyMissing
+     * early-return calls this from exactly that untagged window, so an unbuffered emitEvent
+     * here is a silent no-op (see emitEvent) that dropped the very first such event.
+     */
+    private fun emitError(view: StreetViewPanoramaView, state: PanoramaState, reason: String) {
         val payload = Arguments.createMap().apply {
             putString("reason", reason)
+        }
+        if (view.id == View.NO_ID) {
+            state.pendingError = payload
+            return
         }
         emitEvent(view, EVENT_ERROR, payload)
     }
@@ -527,9 +563,9 @@ class StreetViewManager(
 
     /**
      * Releases everything buffered before the view had a React tag: pending logs, then the
-     * pending licence-consumed event, in that order. Called from onAfterUpdateTransaction and
-     * from emitLog itself (so a log raised once the view is addressable is preceded by
-     * anything still queued).
+     * pending licence-consumed event, then the pending error, in that order. Called from
+     * onAfterUpdateTransaction and from emitLog itself (so a log raised once the view is
+     * addressable is preceded by anything still queued).
      */
     private fun flushPendingLogs(view: StreetViewPanoramaView) {
         val state = states[view] ?: return
@@ -545,6 +581,11 @@ class StreetViewManager(
         if (state.pendingLicense) {
             state.pendingLicense = false
             emitEvent(view, EVENT_LICENSE_CONSUMED, null)
+        }
+
+        state.pendingError?.let { payload ->
+            state.pendingError = null
+            emitEvent(view, EVENT_ERROR, payload)
         }
     }
 

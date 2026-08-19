@@ -52,7 +52,11 @@ export const StreetViewDemoPage = () => {
     }, []);
 
     const handleError = useCallback((reason: StreetViewErrorReason) => {
-        setStatus(`Error: ${reason}`);
+        if (reason === 'apiKeyMissing') {
+            setStatus(`FATAL: Maps API key is missing or unreadable`);
+        } else {
+            setStatus(`Error: ${reason}`);
+        }
     }, []);
 
     const handleNoPanorama = useCallback(() => {
