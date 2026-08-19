@@ -14,6 +14,11 @@ const APP_SECTIONS = [
     { key: 'komoot', name: 'Komoot' },
 ];
 
+// Stable reference so AppSettingsContext.Provider (rendered inside a .map() below, where
+// useMemo can't be used) doesn't re-trigger consumers on every render — see SonarCloud
+// typescript:S6481 on PR #404.
+const NON_STANDALONE_CONTEXT_VALUE = { standalone: false };
+
 export const AppsDialogView = ({
     visible,
     apps,
@@ -78,7 +83,7 @@ export const AppsDialogView = ({
 
                             {isExpanded && (
                                 <View style={styles.body}>
-                                    <AppSettingsContext.Provider value={{ standalone: false }}>
+                                    <AppSettingsContext.Provider value={NON_STANDALONE_CONTEXT_VALUE}>
                                         {renderApp(section.key, onClose, false)}
                                     </AppSettingsContext.Provider>
                                 </View>
