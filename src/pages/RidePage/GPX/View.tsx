@@ -202,9 +202,20 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         displayEventRef.current?.('status_changed')
     }, []);
 
-    // Deliberately NOT reported as 'Error': the native 'unavailable' reason is only a timeout
-    // and the panorama may still arrive, while a mapStateError puts the start overlay into a
-    // dead end whose only button is Cancel. The component logs the error for telemetry.
+    // Handle Street View errors: hard failures (e.g. missing API key) go to the service as
+    // a true error, while soft timeouts (unavailable) are logged for telemetry only since
+    // the panorama may still arrive on retry. The service will set mapStateError which puts
+    // the start overlay into a dead end, appropriate only for permanent failures.
+    const onSVError = useCallback((reason: string) => {
+        if (reason === 'apiKeyMissing') {
+            // Hard failure — API key is missing or unreadable, never will resolve
+            displayEventRef.current?.('Error', `Maps API key ${reason}`)
+        }
+        // For 'unavailable' and 'unknown' timeouts, don't report to the service — these are
+        // usually transient (slow network, SDK slowness) and retries may succeed. The
+        // StreetView component logs these for telemetry.
+    }, []);
+
     const svPosition = displayPosition as IPosition | undefined;
 
     return (
@@ -228,6 +239,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         onLoaded={onSVLoaded}
                         onPanoramaChanged={onSVPanoramaChanged}
                         onNoPanorama={onSVNoPanorama}
+                        onError={onSVError}
                     />
                 </Dynamic>
             )}

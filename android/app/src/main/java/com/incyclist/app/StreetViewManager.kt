@@ -134,6 +134,22 @@ class StreetViewManager(
         val state = PanoramaState()
         states[view] = state
 
+        // Check API key availability FIRST, before any lifecycle methods or license-consumed event.
+        // If the key is missing or unreadable, fail immediately without triggering a billable
+        // Street View SDK event (onCreate is the billing trigger per Google's docs).
+        val keyState = apiKeyState(context)
+        if (keyState != "present") {
+            emitLog(view, "createViewInstance", mapOf(
+                "apiKey" to keyState,
+                "mapsInit" to mapsInitResult,
+                "mapsInitName" to connectionResultName(mapsInitResult),
+                "renderer" to (activeRenderer ?: "pending"),
+                "playServices" to playServicesVersion(context),
+            ))
+            emitError(view, "apiKeyMissing")
+            return view
+        }
+
         view.visibility = View.INVISIBLE // black-screen workaround companion
         view.onCreate(null)
         view.onResume()
@@ -148,7 +164,7 @@ class StreetViewManager(
         // Whether the Maps SDK is healthy on this device is the main open question for the
         // black-screen reports, so every instance reports what it is working with.
         emitLog(view, "createViewInstance", mapOf(
-            "apiKey" to apiKeyState(context),
+            "apiKey" to keyState,
             "mapsInit" to mapsInitResult,
             "mapsInitName" to connectionResultName(mapsInitResult),
             "renderer" to (activeRenderer ?: "pending"),

@@ -6,7 +6,7 @@ export interface IPosition {
     heading: number;
 }
 
-export type StreetViewErrorReason = 'unavailable' | 'unknown';
+export type StreetViewErrorReason = 'unavailable' | 'unknown' | 'apiKeyMissing';
 
 export interface StreetViewProps {
     position?: IPosition;
