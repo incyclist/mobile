@@ -70,7 +70,7 @@ describe('initRestLogging - early event handover', () => {
         }));
     });
 
-    it('tags replayed events, and gives them the globals every other line carries', async () => {
+    it('gives replayed events the globals every other line carries', async () => {
         startupLogging();
         new EventLogger('mq').logEvent({ message: 'mqtt connected' });
 
@@ -78,13 +78,22 @@ describe('initRestLogging - early event handover', () => {
 
         const entry = replayed().find((e: any) => e.event.message === 'mqtt connected');
         expect(entry.event).toMatchObject({
-            replayed: true,
             version: '0.1.1',
             appVersion: '1.2.3',
             uuid: 'test-uuid',
             session: 'test-session',
             'app-channel': 'mobile',
         });
+    });
+
+    it('does not mark replayed events - they are ordinary startup events, not a special kind', async () => {
+        startupLogging();
+        new EventLogger('mq').logEvent({ message: 'mqtt connected' });
+
+        await initRestLogging();
+
+        const entry = replayed().find((e: any) => e.event.message === 'mqtt connected');
+        expect(entry.event.replayed).toBeUndefined();
     });
 
     it('sets session and app-channel up front, not only once services initialises', async () => {

@@ -33,16 +33,17 @@ let restAdapter: RestLogAdapter | undefined
  * Hands the events that were logged before this adapter existed over to it.
  *
  * They carry their original timestamps, so they sort correctly server-side even though
- * they arrive late, and they are tagged `replayed` so that is visible rather than
- * surprising. The globals are applied here because `setGlobal` only affects events logged
- * after it - a replayed event would otherwise arrive without the version and uuid that
- * every other line carries.
+ * they arrive late, and are otherwise indistinguishable from events that were logged
+ * normally - which is the point: they are ordinary startup events that simply had nowhere
+ * to go yet. The count is reported once on `Logging initialiazed` instead. The globals are
+ * applied here because `setGlobal` only affects events logged after it - a replayed event
+ * would otherwise arrive without the version and uuid that every other line carries.
  */
 const replayBacklog = (adapter: RestLogAdapter, globals: Record<string, any>): number => {
     const entries = getLogBacklog().drain().filter(({ context, event }) => restLogFilter(context, event));
 
     entries.forEach(({ context, event }) => {
-        adapter.log(context, { ...globals, ...event, replayed: true });
+        adapter.log(context, { ...globals, ...event });
     });
 
     return entries.length;
