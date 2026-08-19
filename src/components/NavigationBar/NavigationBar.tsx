@@ -13,6 +13,7 @@ import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
 import { AppDisplayProps } from '../AppsSettings/types';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
+import { useUnmountEffect } from '../../hooks';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact, disabled } = props;
@@ -31,16 +32,28 @@ export const NavigationBar = (props: NavigationBarProps) => {
 
     const refInitialized = useRef(false);
 
+    const refreshApps = useCallback(() => {
+        const list = appsService.openSettings();
+        if (list) {
+            setApps(list);
+        }
+    }, [appsService]);
+
     useEffect(() => {
         if (refInitialized.current) {
             return;
         }
-        const list = appsService.openSettings();
-        if (list) {
-            setApps(list);
-            refInitialized.current = true;
-        }
-    }, [appsService]);
+        refInitialized.current = true;
+        refreshApps();
+        appsService.on('connected', refreshApps);
+        appsService.on('disconnected', refreshApps);
+    }, [appsService, refreshApps]);
+
+    useUnmountEffect(() => {
+        appsService.off('connected', refreshApps);
+        appsService.off('disconnected', refreshApps);
+        refInitialized.current = false;
+    });
 
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;

@@ -4,14 +4,3 @@ export interface AppDisplayProps {
     iconUrl: string;
     isConnected: boolean;
 }
-
-export interface AppsSettingsViewProps {
-    apps?: AppDisplayProps[];
-    onSelect?: (key: string) => void;
-    compact?: boolean;
-    onBack?: () => void;
-}
-
-export interface AppsSettingsProps {
-    onBack?: () => void;
-}
