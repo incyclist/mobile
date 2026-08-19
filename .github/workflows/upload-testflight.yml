@@ -81,6 +81,17 @@ jobs:
       - name: Install CocoaPods
         run: gem install cocoapods --no-document
 
+      # No restore-keys on purpose. `ios/Pods` is resolved output, valid only for the exact
+      # Podfile.lock that produced it - unlike a package download, where a partial cache hit
+      # is a useful head start. A `pods-` prefix fallback restores a Pods/ built from a
+      # different dependency set, and `pod install` then fails comparing the current
+      # podspecs against the stale Pods/Local Podspecs. That is what broke this workflow on
+      # 2026-08-19: the lock changed (a pod was removed), the exact key missed, and the
+      # fallback restored a Pods/ from two days earlier, producing a misleading
+      # "could not find compatible versions for pod hermes-engine" error.
+      #
+      # The lock hash alone is a sufficient key: a Podfile change alters PODFILE CHECKSUM
+      # inside the lock, and an npm dependency change alters the resolved pod versions in it.
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -88,7 +99,6 @@ jobs:
             ios/Pods
             ~/.cocoapods
           key: pods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: pods-
 
       - name: Install pods
         run: pod install
