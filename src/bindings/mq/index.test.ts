@@ -407,6 +407,32 @@ describe('MessageQueue', () => {
             expect(client.subscribe).not.toHaveBeenCalled();
         });
 
+        // Regression guard: mqtt-packet slices the stream buffer, so the payload MQTT.js
+        // delivers is a view whose `.buffer` is the whole packet. Services reads it via
+        // `Buffer.from(message.buffer)`, which then yields the entire backing store instead
+        // of the message - seen in production as a feature toggle rejected as a "malformed
+        // payload" when its bytes were in fact perfectly valid.
+        test('emits a payload that owns its buffer, not a view into the packet', async () => {
+            const promise = mq.connect();
+            const client = mockInstances[0];
+            succeed(client);
+            await promise;
+
+            const received: Uint8Array[] = [];
+            mq.on('mq-message', (_topic: string, payload: Uint8Array) => received.push(payload));
+
+            // How a real payload arrives: the JSON sitting at an offset inside a larger packet.
+            const packet = Buffer.from('....HEADER....{"value":true}', 'utf-8');
+            client.emit('message', 'topic/in', packet.subarray(14));
+
+            const payload = received[0];
+            expect(payload.byteOffset).toBe(0);
+            expect(payload.byteLength).toBe(payload.buffer.byteLength);
+
+            // The exact pattern the services-side handlers use must now yield the message.
+            expect(Buffer.from(payload.buffer).toString()).toBe('{"value":true}');
+        });
+
         test('forwards incoming messages as mq-message events', async () => {
             const promise = mq.connect();
             const client = mockInstances[0];
@@ -421,7 +447,10 @@ describe('MessageQueue', () => {
 
             expect(received).toHaveLength(1);
             expect(received[0][0]).toBe('topic/in');
-            expect(received[0][1].toString()).toBe('hello');
+            // Decoded the way consumers do it. The payload is a Uint8Array, which is all the
+            // binding interface promises - asserting Buffer's own toString() here would pin a
+            // detail of whichever client library happens to be underneath.
+            expect(Buffer.from(received[0][1].buffer).toString()).toBe('hello');
         });
     });
 
