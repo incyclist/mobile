@@ -58,13 +58,18 @@ using namespace facebook::react;
  * onPanoramaChanged   Non-nil didMoveToPanorama: AFTER the first load. Does not
  *                     fire on the initial load, matching Android.
  *
- * onError             reason='unknown'     the SDK never engaged: no delegate
- *                                          callback within readyTimeout, or no
- *                                          usable API key.
- *                     reason='unavailable' no response within positionTimeout
- *                                          of a moveNearCoordinate:. Timeouts
- *                                          only, as on Android — an SDK error
- *                                          means no imagery, not failure.
+ * onError             reason='unknown'       the SDK never engaged: no delegate
+ *                                            callback within readyTimeout, or
+ *                                            provideAPIKey: returned false/threw.
+ *                     reason='apiKeyMissing' the API key resource is absent —
+ *                                            confirmed permanent, never resolves
+ *                                            on retry. Sent immediately from
+ *                                            ensurePanorama, not after a timeout.
+ *                                            Matches Android's StreetViewManager.kt.
+ *                     reason='unavailable'   no response within positionTimeout
+ *                                            of a moveNearCoordinate:. Timeouts
+ *                                            only, as on Android — an SDK error
+ *                                            means no imagery, not failure.
  *
  * onLog               Diagnostics. See "Logging".
  *
@@ -411,7 +416,12 @@ static void EnsureGoogleMapsStarted(void)
                 @"provideAPIKey": gProvideResult,
                 @"note": @"panorama not created; a GMSPanoramaView without a key raises",
             }];
-            [self emitError:@"unknown"];
+            // Distinguish a confirmed-missing key — a permanent failure that will never
+            // resolve on retry — from every other "SDK never engaged" cause (provideAPIKey:
+            // returning false or throwing), which stays "unknown". Matches Android's
+            // StreetViewManager.kt apiKeyState() == "missing" -> onError("apiKeyMissing").
+            NSString *reason = [gApiKeyState isEqualToString:@"missing"] ? @"apiKeyMissing" : @"unknown";
+            [self emitError:reason];
         }
         return NO;
     }
