@@ -12,11 +12,23 @@ jest.mock('incyclist-services', () => ({
 }));
 
 // Mock components to isolate the view
-jest.mock('../../components', () => ({
-    MainBackground: ({ children }: any) => children,
-    NavigationBar: () => null,
-    ActivitiesTable: () => null,
-}));
+jest.mock('../../components', () => {
+    const { View, Text } = require('react-native');
+    return {
+        MainBackground: ({ children }: any) => children,
+        NavigationBar: () => null,
+        ActivitiesTable: () => null,
+        ListPageShell: ({ title, headerLeft, headerRight, belowHeader, children }: any) => (
+            <View>
+                <Text>{title}</Text>
+                {headerLeft}
+                {headerRight}
+                {belowHeader}
+                {children}
+            </View>
+        ),
+    };
+});
 
 describe('ActivitiesPageView', () => {
     it('renders loading state correctly', () => {

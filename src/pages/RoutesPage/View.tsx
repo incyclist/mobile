@@ -8,8 +8,7 @@ import {
 } from 'react-native';
 import { RoutePageDisplayProps, SearchFilter, IObserver } from 'incyclist-services';
 import {
-    MainBackground,
-    NavigationBar,
+    ListPageShell,
     RoutesTable,
     FilterPanel,
     TNavigationItem,
@@ -74,146 +73,91 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
     }, [logEvent, onImportClicked]);
 
     return (
-        <MainBackground>
-            <View style={[styles.container, compact && styles.containerCompact]}>
-                <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
-                    <NavigationBar
+        <ListPageShell
+            compact={compact}
+            navSelected="routes"
+            onNavigate={onNavigate}
+            title="ROUTES"
+            headerLeft={synchronizing && (
+                <ActivityIndicator
+                    size="small"
+                    color={colors.text}
+                    style={styles.syncSpinner}
+                />
+            )}
+            headerRight={
+                <>
+                    {downloadObserver && (
+                        <>
+                            <Dynamic
+                                observer={downloadObserver}
+                                event="download-update"
+                                prop="activeDownloadCount"
+                                transform={(data: any) => data.count}
+                            >
+                                <DownloadPill
+                                    activeDownloadCount={0}
+                                    onPress={handleDownloadPillPress}
+                                />
+                            </Dynamic>
+
+                            <Dynamic
+                                observer={downloadObserver}
+                                event="download-update"
+                                prop="rows"
+                                transform={(data: any) => data.rows}
+                            >
+                                <DownloadModalView
+                                    rows={[]}
+                                    visible={showDownloadModal}
+                                    onStop={onDownloadStop}
+                                    onRetry={onDownloadRetry}
+                                    onDelete={onDownloadDelete}
+                                    onClose={onDownloadModalClose}
+                                    nested={false}
+                                />
+                            </Dynamic>
+                        </>
+                    )}
+                    {!loading && (
+                        <TouchableOpacity
+                            style={styles.importButton}
+                            onPress={handleImportPress}
+                            activeOpacity={0.7}
+                        >
+                            <Icon name="import-route" size={20} color={colors.buttonPrimary} />
+                            <Text style={styles.importButtonText}>Import Routes</Text>
+                        </TouchableOpacity>
+                    )}
+                </>
+            }
+            belowHeader={
+                <View style={styles.filterArea}>
+                    <FilterPanel
+                        filters={filters}
+                        options={filterOptions!}
+                        visible={filterVisible}
                         compact={compact}
-                        selected="routes"
-                        onClick={onNavigate}
+                        onFilterChanged={onFilterChanged}
+                        onToggle={onFilterToggle}
                     />
                 </View>
-
-                <View style={styles.contentColumn}>
-                    <View style={styles.header}>
-                        <View style={styles.headerSide}>
-                            {synchronizing && (
-                                <ActivityIndicator
-                                    size="small"
-                                    color={colors.text}
-                                    style={styles.syncSpinner}
-                                />
-                            )}
-                        </View>
-                        <Text style={styles.headerTitle}>ROUTES</Text>
-                        <View style={styles.headerSide}>
-                            {downloadObserver && (
-                                <>
-                                    <Dynamic
-                                        observer={downloadObserver}
-                                        event="download-update"
-                                        prop="activeDownloadCount"
-                                        transform={(data: any) => data.count}
-                                    >
-                                        <DownloadPill
-                                            activeDownloadCount={0}
-                                            onPress={handleDownloadPillPress}
-                                        />
-                                    </Dynamic>
-
-                                    <Dynamic
-                                        observer={downloadObserver}
-                                        event="download-update"
-                                        prop="rows"
-                                        transform={(data: any) => data.rows}
-                                    >
-                                        <DownloadModalView
-                                            rows={[]}
-                                            visible={showDownloadModal}
-                                            onStop={onDownloadStop}
-                                            onRetry={onDownloadRetry}
-                                            onDelete={onDownloadDelete}
-                                            onClose={onDownloadModalClose}
-                                            nested={false}
-                                        />
-                                    </Dynamic>
-                                </>
-                            )}
-                            {!loading && (
-                                <TouchableOpacity
-                                    style={styles.importButton}
-                                    onPress={handleImportPress}
-                                    activeOpacity={0.7}
-                                >
-                                    <Icon name="import-route" size={20} color={colors.buttonPrimary} />
-                                    <Text style={styles.importButtonText}>Import Routes</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-
-                    <View style={styles.filterArea}>
-                        <FilterPanel
-                            filters={filters}
-                            options={filterOptions!}
-                            visible={filterVisible}
-                            compact={compact}
-                            onFilterChanged={onFilterChanged}
-                            onToggle={onFilterToggle}
-                        />
-                    </View>
-
-                    <View style={styles.listArea}>
-                        {loading && routes?.length === 0 ? (
-                            <View style={styles.center}>
-                                <ActivityIndicator size="large" color={colors.tileActive} />
-                            </View>
-                        ) : (
-                            <RoutesTable
-                                routes={routes!}
-                            />
-                        )}
-                    </View>
+            }
+        >
+            {loading && routes?.length === 0 ? (
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={colors.tileActive} />
                 </View>
-            </View>
-
-        </MainBackground>
+            ) : (
+                <RoutesTable
+                    routes={routes!}
+                />
+            )}
+        </ListPageShell>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        flexDirection: 'row',
-    },
-    containerCompact: {
-        flexDirection: 'column',
-    },
-    navColumn: {
-        flexDirection: 'column',
-        alignSelf: 'stretch',
-    },
-    navColumnNormal: {
-        width: 150,
-    },
-    navColumnCompact: {
-        height: 56,
-        width: '100%',
-    },
-    contentColumn: {
-        flex: 1,
-        flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: textSizes.pageTitle,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    headerSide: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
     syncSpinner: { marginRight: 10 },
 
     importButton: {
@@ -232,9 +176,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     filterArea: {
-    },
-    listArea: {
-        flex: 1,
     },
     center: {
         flex: 1,

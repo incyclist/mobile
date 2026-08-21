@@ -3,16 +3,28 @@ import { render } from '@testing-library/react-native';
 import { RoutesPageView } from './View';
 import { IObserver } from 'incyclist-services';
 
-jest.mock('../../components', () => ({
-    NavigationBar: () => null,
-    MainBackground: ({ children }: any) => children,
-    RoutesTable: () => null,
-    FilterPanel: () => null,
-    Icon: () => null,
-    DownloadModalView: () => null,
-    DownloadPill: () => null,
-    Dynamic: ({ children }: any) => children,
-}));
+jest.mock('../../components', () => {
+    const { View, Text } = require('react-native');
+    return {
+        NavigationBar: () => null,
+        MainBackground: ({ children }: any) => children,
+        RoutesTable: () => null,
+        FilterPanel: () => null,
+        Icon: () => null,
+        DownloadModalView: () => null,
+        DownloadPill: () => null,
+        Dynamic: ({ children }: any) => children,
+        ListPageShell: ({ title, headerLeft, headerRight, belowHeader, children }: any) => (
+            <View>
+                <Text>{title}</Text>
+                {headerLeft}
+                {headerRight}
+                {belowHeader}
+                {children}
+            </View>
+        ),
+    };
+});
 
 const BASE_PROPS: any = {
     loading: false,

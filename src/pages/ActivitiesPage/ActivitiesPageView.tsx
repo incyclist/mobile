@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { ActivitiesPageDisplayProps } from 'incyclist-services';
-import { MainBackground, NavigationBar, ActivitiesTable, TNavigationItem } from '../../components';
+import { ListPageShell, ActivitiesTable, TNavigationItem } from '../../components';
 import { colors, textSizes } from '../../theme';
 
 export interface ActivitiesPageViewProps {
@@ -17,92 +17,30 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: Acti
     const isLoading = props?.loading ?? false;
 
     return (
-        <MainBackground>
-            <View style={[styles.container, compact && styles.containerCompact]}>
-                <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
-                    <NavigationBar
-                        compact={compact}
-                        selected="activities"
-                        onClick={onNavigate}
-                    />
+        <ListPageShell
+            compact={compact}
+            navSelected="activities"
+            onNavigate={onNavigate}
+            title="ACTIVITIES"
+        >
+            { isLoading && activities.length === 0 &&
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={colors.tileActive} />
                 </View>
-
-                <View style={styles.contentColumn}>
-                    <View style={styles.header}>
-                        <View style={styles.headerSide} />
-                        <Text style={styles.headerTitle}>ACTIVITIES</Text>
-                        <View style={styles.headerSide} />
-                    </View>
-
-                    <View style={styles.listArea}>
-                        { isLoading && activities.length === 0 &&  
-                            <View style={styles.center}>
-                                <ActivityIndicator size="large" color={colors.tileActive} />
-                            </View>
-                        }
-                        { !isLoading && activities.length === 0 &&
-                            <View style={styles.center}>
-                                <Text style={styles.emptyText}>No activities found</Text>
-                            </View>
-                        }
-                        { !isLoading && activities.length >0 && 
-                            <ActivitiesTable activities={activities} onSelect={onSelectActivity} />                        
-                        }
-
-
-                    </View>
+            }
+            { !isLoading && activities.length === 0 &&
+                <View style={styles.center}>
+                    <Text style={styles.emptyText}>No activities found</Text>
                 </View>
-            </View>
-        </MainBackground>
+            }
+            { !isLoading && activities.length >0 &&
+                <ActivitiesTable activities={activities} onSelect={onSelectActivity} />
+            }
+        </ListPageShell>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        flexDirection: 'row',
-    },
-    containerCompact: {
-        flexDirection: 'column',
-    },
-    navColumn: {
-        flexDirection: 'column',
-        alignSelf: 'stretch',
-    },
-    navColumnNormal: {
-        width: 150,
-    },
-    navColumnCompact: {
-        height: 56,
-        width: '100%',
-    },
-    contentColumn: {
-        flex: 1,
-        flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: textSizes.pageTitle,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    headerSide: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    listArea: {
-        flex: 1,
-    },
     center: {
         flex: 1,
         justifyContent: 'center',
