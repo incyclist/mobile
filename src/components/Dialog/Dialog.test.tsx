@@ -2,6 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ScrollView, Text, View } from 'react-native';
 import { Dialog } from './Dialog';
+import { ButtonBar } from '../ButtonBar';
 
 describe('Dialog', () => {
     it('wraps children in a ScrollView by default (scrollable=true)', () => {
@@ -72,10 +73,14 @@ describe('Dialog', () => {
         });
 
         it('remounts the footer subtree when the button ids change', () => {
+            // Matches specifically the View wrapping <ButtonBar> (Dialog's `key={buttonSignature}`
+            // footer) - not just "a View whose child has a `buttons` prop", which also matches
+            // Dialog's own internal <DialogContent buttons={...}> element one level further out
+            // (FIXES_BACKLOG.md item #63's Dialog duplication extraction introduced that prop).
             const footerOf = (root: any) =>
                 root.findAllByType(View).find((v: any) => Array.isArray(v.props.children)
                     ? false
-                    : v.props.children?.props?.buttons !== undefined);
+                    : v.props.children?.type === ButtonBar);
 
             const { UNSAFE_root, rerender } = render(
                 <Dialog title="Starting activity ..." buttons={[{ id: 'cancel', label: 'Cancel', onClick: () => {} }]}>

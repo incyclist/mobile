@@ -22,6 +22,7 @@ export const RouteImportDialogView = ({
     title,
     buttons,
     onOutsideClick,
+    showVideoRouteOption,
     onAddGpx,
     onAddVideoRoute,
     onSelectFolder,
@@ -53,6 +54,7 @@ export const RouteImportDialogView = ({
                         onAddGpx={onAddGpx}
                         onAddVideoRoute={onAddVideoRoute}
                         onSelectFolder={onSelectFolder}
+                        showVideoRouteOption={showVideoRouteOption}
                     />
                 );
 

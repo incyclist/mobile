@@ -32,13 +32,25 @@ jest.mock('incyclist-services', () => ({
     }),
 }));
 
-jest.mock('../../components', () => ({
-    MainBackground: ({ children }: any) => children,
-    NavigationBar: () => null,
-    ActivitiesTable: () => null,
-    ErrorBoundary: ({ children }: any) => children,
-    ScheduledWorkoutPromptModal: () => null,
-}));
+jest.mock('../../components', () => {
+    const { View, Text } = require('react-native');
+    return {
+        MainBackground: ({ children }: any) => children,
+        NavigationBar: () => null,
+        ActivitiesTable: () => null,
+        ErrorBoundary: ({ children }: any) => children,
+        ScheduledWorkoutPromptModal: () => null,
+        ListPageShell: ({ title, headerLeft, headerRight, belowHeader, children }: any) => (
+            <View>
+                <Text>{title}</Text>
+                {headerLeft}
+                {headerRight}
+                {belowHeader}
+                {children}
+            </View>
+        ),
+    };
+});
 
 describe('ActivitiesPage', () => {
     it('renders without crashing when observer is null', () => {

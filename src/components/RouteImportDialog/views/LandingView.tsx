@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { IconName } from '../../Icon/types';
@@ -10,6 +10,9 @@ interface LandingViewProps {
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;
+    /** Whether the "Add Video Route" option tile should be shown - driven by the
+     * VIDEO_ROUTE feature toggle (and platform support) in the parent smart component. */
+    showVideoRouteOption: boolean;
 }
 
 const OptionTile = ({ 
@@ -41,11 +44,12 @@ const OptionTile = ({
     );
 };
 
-export const LandingView = ({ 
-    compact, 
-    onAddGpx, 
-    onAddVideoRoute, 
-    onSelectFolder, 
+export const LandingView = ({
+    compact,
+    onAddGpx,
+    onAddVideoRoute,
+    onSelectFolder,
+    showVideoRouteOption,
 }: LandingViewProps) => {
     const { logEvent } = useLogging('LandingView');
 
@@ -74,13 +78,13 @@ export const LandingView = ({
                     onPress={handleAddGpx} 
                     compact={compact} 
                 />
-                {Platform.OS === 'ios' && false && (
-                    <OptionTile 
-                        icon='plus' 
-                        title='Add Video Route' 
-                        subtitle='EPM, RLV or XML file' 
-                        onPress={handleAddVideoRoute} 
-                        compact={compact} 
+                {showVideoRouteOption && (
+                    <OptionTile
+                        icon='plus'
+                        title='Add Video Route'
+                        subtitle='EPM, RLV or XML file'
+                        onPress={handleAddVideoRoute}
+                        compact={compact}
                     />
                 )}
                 <OptionTile 

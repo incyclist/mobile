@@ -10,6 +10,7 @@ const meta: Meta<typeof LandingView> = {
         onAddGpx: fn(),
         onAddVideoRoute: fn(),
         onSelectFolder: fn(),
+        showVideoRouteOption: false,
     },
 };
 
@@ -26,5 +27,12 @@ export const Default: Story = {
 export const Compact: Story = {
     args: {
         compact: true,
+    },
+};
+
+export const VideoRouteEnabled: Story = {
+    args: {
+        compact: false,
+        showVideoRouteOption: true,
     },
 };

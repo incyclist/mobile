@@ -1,5 +1,6 @@
-import React, { PropsWithChildren, useEffect, useRef, useState } from 'react';
+import React, { PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import { DialogProps, DialogVariant } from './types';
+import { ButtonProps } from '../ButtonBar/types';
 import LinearGradient from 'react-native-linear-gradient';
 import {
     View,
@@ -10,6 +11,8 @@ import {
     Platform,
     ScrollView,
     DimensionValue,
+    TextStyle,
+    StyleProp,
     TouchableOpacity,
     Animated,
     useWindowDimensions,
@@ -34,6 +37,55 @@ try {
 } catch {
     GestureHandlerRootView = View;
 }
+
+interface DialogContentProps {
+    title: string;
+    titleStyle?: StyleProp<TextStyle>;
+    scrollable: boolean;
+    children: ReactNode;
+    buttons?: ButtonProps[];
+    /** Keys the footer's View so a change in the button set mounts a fresh subtree rather than
+     *  inserting into a mounted one - see the FIXES_BACKLOG #52 comment on `buttonSignature`
+     *  below for the RN Fabric defect this works around. */
+    buttonSignature: string;
+    styles: ReturnType<typeof getStyles>;
+}
+
+/**
+ * Header + scrollable body + footer, shared by both the `'full'` variant's Modal and the
+ * info/details variants' Modal - extracted from a byte-identical copy in both (FIXES_BACKLOG.md
+ * item #63 - SonarCloud duplication; also resolves the paired cognitive-complexity smell on
+ * `Dialog`, typescript:S3776, since the two branches no longer duplicate this much logic inline).
+ */
+const DialogContent = ({ title, titleStyle, scrollable, children, buttons, buttonSignature, styles }: DialogContentProps) => (
+    <>
+        <View style={styles.header}>
+            <Text style={[styles.title, titleStyle]}>{title}</Text>
+        </View>
+
+        {scrollable ? (
+            <ScrollView
+                style={styles.scrollArea}
+                contentContainerStyle={styles.content}
+                bounces={false}
+            >
+                {children}
+            </ScrollView>
+        ) : (
+            <View style={styles.scrollArea}>
+                <View style={styles.content}>
+                    {children}
+                </View>
+            </View>
+        )}
+
+        {buttons?.length ? (
+            <View key={buttonSignature} style={styles.footer}>
+                <ButtonBar buttons={buttons} />
+            </View>
+        ) : <></>}
+    </>
+);
 
 export const Dialog = ({
     title,
@@ -184,31 +236,16 @@ export const Dialog = ({
                                 colors={gradientColors}
                                 style={[backgroundStyle, styles.fullContentArea, style]}
                             >
-                                <View style={styles.header}>
-                                    <Text style={[styles.title, titleStyle]}>{title}</Text>
-                                </View>
-
-                                {scrollable ? (
-                                    <ScrollView
-                                        style={styles.scrollArea}
-                                        contentContainerStyle={styles.content}
-                                        bounces={false}
-                                    >
-                                        {children}
-                                    </ScrollView>
-                                ) : (
-                                    <View style={styles.scrollArea}>
-                                        <View style={styles.content}>
-                                            {children}
-                                        </View>
-                                    </View>
-                                )}
-
-                                {buttons?.length ? (
-                                    <View key={buttonSignature} style={styles.footer}>
-                                        <ButtonBar buttons={buttons} />
-                                    </View>
-                                ) : <></>}
+                                <DialogContent
+                                    title={title}
+                                    titleStyle={titleStyle}
+                                    scrollable={scrollable}
+                                    buttons={buttons}
+                                    buttonSignature={buttonSignature}
+                                    styles={styles}
+                                >
+                                    {children}
+                                </DialogContent>
                             </BackgroundContainer>
                         </View>
                     </Animated.View>
@@ -234,32 +271,16 @@ export const Dialog = ({
                                 colors={gradientColors}
                                 style={[backgroundStyle, style]}
                             >
-                                <View style={styles.header}>
-                                    <Text style={[styles.title, titleStyle]}>{title}</Text>
-                                </View>
-
-                                {scrollable ? (
-                                    <ScrollView
-                                        style={styles.scrollArea}
-                                        contentContainerStyle={styles.content}
-                                        bounces={false}
-                                    >
-                                        {children}
-                                    </ScrollView>
-                                ) : (
-                                    <View style={styles.scrollArea}>
-                                        <View style={styles.content}>
-                                            {children}
-                                        </View>
-                                    </View>
-                                )}
-
-                                {buttons?.length ? (
-                                    <View key={buttonSignature} style={styles.footer}>
-                                        <ButtonBar buttons={buttons} />
-                                    </View>
-                                ) : <></>}
-
+                                <DialogContent
+                                    title={title}
+                                    titleStyle={titleStyle}
+                                    scrollable={scrollable}
+                                    buttons={buttons}
+                                    buttonSignature={buttonSignature}
+                                    styles={styles}
+                                >
+                                    {children}
+                                </DialogContent>
                             </BackgroundContainer>
                         </TouchableWithoutFeedback>
                     </View>

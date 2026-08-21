@@ -20,6 +20,7 @@ import {
 } from '../../../components';
 import { colors } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
+import { createSharedRideViewStyles } from './sharedRideViewStyles';
 
 interface VideoRidePageViewProps {
     displayProps: VideoRidePageDisplayProps;
@@ -152,8 +153,8 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
                 {/* Mock Dashboard */}
                 <View style={[
-                    styles.dashboardContainer,
-                    isCompact ? styles.dashboardCompact : styles.dashboardTablet,
+                    shared.dashboardContainer,
+                    isCompact ? shared.dashboardCompact : shared.dashboardTablet,
                     dashboardDynamicStyle,
                 ]}>
                     <View onLayout={updateDashboardDimensions}>
@@ -178,7 +179,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                         showXAxis={!isCompact}
                         showYAxis={!isCompact}
                         style={[
-                            isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
+                            isCompact ? shared.elevationPreviewCompact : shared.elevationPreviewTablet,
                             elevationPreviewDynamicStyle,
                         ]}
                     />
@@ -210,7 +211,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
 
                 <View style={bottomBarStyle}>
                     {/* Menu Button */}
-                    <View style={[styles.menuButtonContainer]}>
+                    <View style={[shared.menuButtonContainer]}>
                         <MenuButton onPress={onMenuOpen} />
                     </View>
 
@@ -223,7 +224,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                         showColors={true}
                         showXAxis={false}
                         showYAxis={false}
-                        style={[styles.elevationFull, elevationFullDynamicStyle]}
+                        style={[shared.elevationFull, elevationFullDynamicStyle]}
                     />
 
                 </View>
@@ -259,6 +260,10 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
     );
 };
 
+// Style entries shared with Video/View.tsx (FIXES_BACKLOG.md item #63) live in
+// sharedRideViewStyles; only what's actually specific to this test view is declared below.
+const shared = createSharedRideViewStyles('rgba(255, 255, 255, 0.05)');
+
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
@@ -269,42 +274,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         overflow: 'hidden',
     },
-    dashboardContainer: {
-        position: 'absolute',
-        top: 0,
-        zIndex: 10,
-    },
-    dashboardCompact: {
-        left: 0,
-        right: 0,
-    },
-    dashboardTablet: {
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-    },
-    elevationPreviewTablet: {
-        position: 'absolute',
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    elevationPreviewCompact: {
-        position: 'absolute',
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    elevationFull: {
-        flex: 1,
-        height: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    menuButtonContainer: {
-        paddingHorizontal: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     invisible: {
         opacity: 0
     },
-
 });

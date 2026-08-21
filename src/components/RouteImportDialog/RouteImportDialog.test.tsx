@@ -28,8 +28,11 @@ const mockPageService = {
     importSelected: jest.fn(),
 };
 
+const mockAppState = { hasFeature: jest.fn(() => false) };
+
 jest.mock('incyclist-services', () => ({
     getRoutesPageService: () => mockPageService,
+    useAppState: () => mockAppState,
 }));
 
 jest.mock('../../bindings/ui', () => ({}));
@@ -50,9 +53,10 @@ jest.mock('../../hooks/files/useFilePicker', () => ({
 }));
 
 // Stub out the pure view: RouteImportDialogView passes onAddGpx/onAddVideoRoute straight
-// through as props regardless of phase, but the real LandingView currently hides the "Add
-// Video Route" tile behind a disabled feature flag, making it unreachable via the rendered
-// UI. Exposing both handlers as plain testable buttons here lets the test drive
+// through as props regardless of phase, but the real LandingView only renders the "Add
+// Video Route" tile when the VIDEO_ROUTE feature toggle is on (defaults to off - see
+// FIXES_BACKLOG.md item #63), making it unreachable via the rendered UI in this test's
+// default setup. Exposing both handlers as plain testable buttons here lets the test drive
 // RouteImportDialog's actual onAddGpx/onAddVideoRoute callbacks - the code under test -
 // without depending on that unrelated UI-visibility detail.
 jest.mock('./RouteImportDialogView', () => ({
@@ -66,6 +70,7 @@ jest.mock('./RouteImportDialogView', () => ({
                 <RNTouchableOpacity testID="add-video-route" onPress={props.onAddVideoRoute}>
                     <RNText>Add Video Route</RNText>
                 </RNTouchableOpacity>
+                <RNText testID="show-video-route-option">{String(props.showVideoRouteOption)}</RNText>
             </RNView>
         );
     },
@@ -137,5 +142,47 @@ describe('RouteImportDialog - picker resolves after unmount (FIXES_BACKLOG item 
 
         resolvePickFile(fileInfo);
         await waitFor(() => expect(mockImportSingleRoute).toHaveBeenCalledWith(fileInfo));
+    });
+});
+
+// FIXES_BACKLOG.md item #63 - "Add Video Route" was gated behind a hardcoded `&& false`
+// (SonarCloud typescript:S6638/S1125). It is now gated behind the real VIDEO_ROUTE feature
+// toggle, still restricted to iOS. These tests assert RouteImportDialog computes and
+// forwards that combined condition correctly instead of leaving the toggle dead.
+describe('RouteImportDialog - VIDEO_ROUTE feature toggle (FIXES_BACKLOG item #63)', () => {
+    const { Platform } = require('react-native');
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockPageService.getImportDisplayProps.mockReturnValue({ phase: 'landing', routes: [] });
+        mockAppState.hasFeature.mockReturnValue(false);
+    });
+
+    it('hides the option on iOS when the toggle is off (default)', () => {
+        Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
+        mockAppState.hasFeature.mockReturnValue(false);
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+
+        expect(getByTestId('show-video-route-option').props.children).toBe('false');
+    });
+
+    it('shows the option on iOS when the toggle is on', () => {
+        Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
+        mockAppState.hasFeature.mockReturnValue(true);
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+
+        expect(mockAppState.hasFeature).toHaveBeenCalledWith('VIDEO_ROUTE');
+        expect(getByTestId('show-video-route-option').props.children).toBe('true');
+    });
+
+    it('hides the option on Android even when the toggle is on', () => {
+        Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+        mockAppState.hasFeature.mockReturnValue(true);
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+
+        expect(getByTestId('show-video-route-option').props.children).toBe('false');
     });
 });

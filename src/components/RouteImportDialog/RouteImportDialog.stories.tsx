@@ -16,6 +16,7 @@ const meta: Meta<typeof RouteImportDialogView> = {
         title: 'Import Routes',
         buttons: [],
         onOutsideClick: fn(),
+        showVideoRouteOption: false,
         onAddGpx: fn(),
         onAddVideoRoute: fn(),
         onSelectFolder: fn(),

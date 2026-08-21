@@ -17,6 +17,7 @@ export interface RouteImportDialogViewProps {
     title: string;
     buttons: ButtonProps[];
     onOutsideClick?: () => void;
+    showVideoRouteOption: boolean;
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;

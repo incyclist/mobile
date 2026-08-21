@@ -1,17 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, AppState } from 'react-native';
-import {
-    getRidePageService,
-    IObserver,
-    IRidePageService,
-    RideType,
-    WorkoutGraphActuals,
-    WorkoutRidePageDisplayProps,
-} from 'incyclist-services';
-import { useUnmountEffect, useWorkoutRideGestures } from '../../../hooks';
+import React, { useCallback } from 'react';
+import { View } from 'react-native';
+import { RideType, WorkoutRidePageDisplayProps } from 'incyclist-services';
+import { useWorkoutRideGestures } from '../../../hooks';
 import { colors } from '../../../theme';
 import { WorkoutRidePageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
+import { useRidePageLifecycle } from '../hooks/useRidePageLifecycle';
+import { useRidePageBackgroundPause } from '../hooks/useRidePageBackgroundPause';
 
 interface WorkoutRidePageProps {
     simulate?: boolean;
@@ -19,8 +14,6 @@ interface WorkoutRidePageProps {
     onCancelStart: () => void;
     onClose: () => void;
 }
-
-const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position: 0 };
 
 /**
  * Smart page for a workout-only ride (workout-mobile-hld.md §3.2/§5, session 5.6). Owns the
@@ -34,84 +27,24 @@ const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position:
  * the RideMenu already renders the Activity Summary overlay off that, same as Video/GPX.
  */
 export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: WorkoutRidePageProps) => {
-    const [displayProps, setDisplayProps] = useState<WorkoutRidePageDisplayProps | null>(null);
-
-    const refService = useRef<IRidePageService | null>(null);
-    const refObserver = useRef<IObserver | null>(null);
-    const refRideObserver = useRef<IObserver | null>(null);
-    const refInitialized = useRef(false);
-
     const { gesture, feedback, loadIncrement } = useWorkoutRideGestures();
 
-    const onUpdate = useCallback(() => {
-        const service = refService.current;
-        if (service) {
-            // This page only ever mounts for a Workout ride (RidePage.tsx's rideType dispatch) -
-            // getPageDisplayProps() is typed AnyRidePageDisplayProps at the IRidePageService level
-            // since the same call also serves Video/GPX, but it is always the Workout-shaped
-            // WorkoutRidePageDisplayProps here.
-            const update = service.getPageDisplayProps() as WorkoutRidePageDisplayProps;
-            setDisplayProps(update);
-        }
-    }, []);
+    const {
+        displayProps,
+        refService,
+        refRideObserver,
+        onMenuOpen,
+        onMenuClose,
+        onRetryStart,
+        onIgnoreStart,
+        getGraphActuals,
+    } = useRidePageLifecycle<WorkoutRidePageDisplayProps>({ simulate, onRideTypeChange });
 
-    useEffect(() => {
-        if (refInitialized.current) return;
-        refInitialized.current = true;
+    useRidePageBackgroundPause(refService);
 
-        const service = getRidePageService();
-        refService.current = service;
-
-        // openPage returns the page observer
-        refObserver.current = service.openPage(simulate);
-        // ride observer is available after page is open
-        refRideObserver.current = service.getRideObserver();
-
-        if (refObserver.current) {
-            refObserver.current.on('page-update', onUpdate);
-            refObserver.current.on('ride-type-update', onRideTypeChange);
-        }
-
-        onUpdate();
-    }, [simulate, onUpdate, onRideTypeChange]);
-
-    useEffect(() => {
-        const subscription = AppState.addEventListener('change', (nextAppState) => {
-            const service = refService.current;
-            if (!service) return;
-
-            if (nextAppState === 'background' || nextAppState === 'inactive') {
-                service.pausePage();
-            } else if (nextAppState === 'active') {
-                service.resumePage();
-            }
-        });
-
-        return () => {
-            subscription.remove();
-        };
-    }, []);
-
-    useUnmountEffect(() => {
-        if (refObserver.current) {
-            refObserver.current.off('page-update', onUpdate);
-            refObserver.current.off('ride-type-update', onRideTypeChange);
-        }
-        refService.current?.closePage();
-        refInitialized.current = false;
-    });
-
-    const onMenuOpen = useCallback(() => refService.current?.onMenuOpen(), []);
-    const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
-    const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
-    const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
     const onGestureHintDismissed = useCallback(
         (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
-        []
-    );
-    const getGraphActuals = useCallback(
-        () => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS,
-        []
+        [refService]
     );
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };

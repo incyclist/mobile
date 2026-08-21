@@ -3,11 +3,23 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { WorkoutListView } from './WorkoutListView';
 import { WorkoutListContentProps } from 'incyclist-services';
 
-jest.mock('../../components', () => ({
-    MainBackground: ({ children }: any) => children,
-    NavigationBar: () => null,
-    WorkoutsTable: () => null,
-}));
+jest.mock('../../components', () => {
+    const { View, Text } = require('react-native');
+    return {
+        MainBackground: ({ children }: any) => children,
+        NavigationBar: () => null,
+        WorkoutsTable: () => null,
+        ListPageShell: ({ title, headerLeft, headerRight, belowHeader, children }: any) => (
+            <View>
+                <Text>{title}</Text>
+                {headerLeft}
+                {headerRight}
+                {belowHeader}
+                {children}
+            </View>
+        ),
+    };
+});
 
 jest.mock('../../components/Icon', () => ({
     Icon: () => null,
