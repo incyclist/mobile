@@ -13,6 +13,7 @@ const defaultProps: RouteImportDialogViewProps = {
     isSingleImporting: false,
     title: 'Import Routes',
     buttons: [],
+    showVideoRouteOption: false,
     onAddGpx: jest.fn(),
     onAddVideoRoute: jest.fn(),
     onSelectFolder: jest.fn(),
@@ -149,5 +150,15 @@ describe('RouteImportDialogView', () => {
 
     it('renders correctly in compact mode', () => {
         render(<RouteImportDialogView {...defaultProps} compact={true} />);
+    });
+
+    it('hides the "Add Video Route" tile in landing phase when showVideoRouteOption is false', () => {
+        const { queryByText } = render(<RouteImportDialogView {...defaultProps} showVideoRouteOption={false} />);
+        expect(queryByText('Add Video Route')).toBeNull();
+    });
+
+    it('shows the "Add Video Route" tile in landing phase when showVideoRouteOption is true', () => {
+        const { getByText } = render(<RouteImportDialogView {...defaultProps} showVideoRouteOption={true} />);
+        expect(getByText('Add Video Route')).toBeTruthy();
     });
 });

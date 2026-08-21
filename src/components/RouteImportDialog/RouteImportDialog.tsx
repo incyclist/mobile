@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { Platform } from 'react-native';
 import {
     getRoutesPageService,
+    useAppState,
     ParsedRoute,
     ScannedRoute,
     IObserver,
@@ -21,6 +23,11 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const isCompact = layout === 'compact';
     const { logError, logEvent } = useLogging('RouteImportDialog');
     const { pickFile } = useFilePicker();
+    // "Add Video Route" (EPM/RLV/XML import) is fully implemented but still an interim
+    // release - gated behind the VIDEO_ROUTE toggle per the workspace's staged-release
+    // pattern (see FIXES_BACKLOG.md item #63). Defaults to false.
+    const appState = useAppState();
+    const showVideoRouteOption = Platform.OS === 'ios' && appState.hasFeature('VIDEO_ROUTE');
 
     const [displayProps, setDisplayProps] = useState<ExtendedImportDisplayProps>(() =>
         getRoutesPageService().getImportDisplayProps() as ExtendedImportDisplayProps
@@ -387,6 +394,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
                 buttons={buttons}
                 isSingleImporting={isSingleImporting}
                 onOutsideClick={onOutsideClick}
+                showVideoRouteOption={showVideoRouteOption}
                 displayProps={displayProps}
                 selectedIds={selectedIds}
                 onAddGpx={onAddGpx}
