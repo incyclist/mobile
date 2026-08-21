@@ -1,12 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { colors, textSizes } from '../../theme';
 import { useIncyclist } from 'incyclist-services';
-import { NavigationBar, MainBackground, ScheduledWorkoutPromptModal, TNavigationItem } from '../../components';
+import { TransitionShell, ScheduledWorkoutPromptModal, TNavigationItem } from '../../components';
 import { getUIBinding } from '../../bindings/ui';
 import { navigate } from '../../services';
-import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 
 interface NotImplementedViewProps {
@@ -14,52 +13,13 @@ interface NotImplementedViewProps {
     selected: TNavigationItem;
 }
 
-export const NotImplementedView = ({ onClick, selected }: NotImplementedViewProps) => {
-    const layout = useScreenLayout();
-    const isCompact = layout === 'compact';
-    
-    return (
-        <MainBackground>
-            <View style={[styles.layout, isCompact && styles.layoutCompact]}>
-                <View style={[styles.navColumn, isCompact && styles.navColumnCompact]}>
-                    <NavigationBar selected={selected} onClick={onClick} compact={isCompact} />
-                </View>
-                
-                <View style={styles.content}>
-                    <Text style={styles.message}>Not yet implemented</Text>
-                </View>
-
-            </View>
-        </MainBackground>
-
-    );
-};
-
+export const NotImplementedView = ({ onClick, selected }: NotImplementedViewProps) => (
+    <TransitionShell selected={selected} onClick={onClick}>
+        <Text style={styles.message}>Not yet implemented</Text>
+    </TransitionShell>
+);
 
 const styles = StyleSheet.create({
-    layout: {
-        flex: 1,
-        flexDirection: 'row',
-    },  
-    layoutCompact: {
-        flexDirection: 'column',
-    },
-    navColumn: {
-        width: 150,
-    },
-    navColumnCompact: {
-        width: '100%',
-        height: 56,
-    },
-    container: {
-        flex: 1,
-    },
-    content: {
-        ...StyleSheet.absoluteFill,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 24,
-    },
     message: {
         color: colors.text,
         fontSize: textSizes.noDataText,

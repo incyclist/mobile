@@ -1,13 +1,25 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { NotImplementedView } from './NotImplementedPage';
-import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 
-jest.mock('../../hooks/render/useScreenLayout');
-jest.mock('../../components', () => ({
-    NavigationBar: () => null,
-    MainBackground: ({ children }: any) => children,
-}));
+// TransitionShell (nav sidebar + centered content, including the compact/normal layout switch)
+// is now shared with PageTransitionView (FIXES_BACKLOG.md item #63 - SonarCloud duplication) and
+// has its own dedicated tests (src/components/TransitionShell/TransitionShell.test.tsx). Mocking
+// the whole '../../components' barrel here (rather than just NavigationBar/MainBackground) avoids
+// pulling in the barrel's full transitive component tree, which drags in native-module-backed
+// code (e.g. react-native-fs via SecureImage/RouteItem/RoutesTable) that Jest can't parse. This
+// test only needs to confirm NotImplementedView wires TransitionShell with the right props and
+// renders the right message.
+const mockTransitionShell = jest.fn();
+jest.mock('../../components', () => {
+    const { View } = require('react-native');
+    return {
+        TransitionShell: (props: any) => {
+            mockTransitionShell(props);
+            return <View>{props.children}</View>;
+        },
+    };
+});
 jest.mock('incyclist-services', () => ({
     useIncyclist: () => ({
         onAppExit: jest.fn().mockResolvedValue(undefined),
@@ -29,15 +41,18 @@ describe('NotImplementedView', () => {
         selected: 'routes',
     };
 
-    it('renders correctly in normal layout', () => {
-        (useScreenLayout as jest.Mock).mockReturnValue('normal');
-        const { toJSON } = render(<NotImplementedView {...mockProps} />);
-        expect(toJSON()).toMatchSnapshot();
+    beforeEach(() => jest.clearAllMocks());
+
+    it('renders the "Not yet implemented" message', () => {
+        const { getByText } = render(<NotImplementedView {...mockProps} />);
+        expect(getByText('Not yet implemented')).toBeTruthy();
     });
 
-    it('renders correctly in compact layout', () => {
-        (useScreenLayout as jest.Mock).mockReturnValue('compact');
-        const { toJSON } = render(<NotImplementedView {...mockProps} />);
-        expect(toJSON()).toMatchSnapshot();
+    it('forwards selected and onClick to TransitionShell', () => {
+        const onClick = jest.fn();
+        render(<NotImplementedView {...mockProps} onClick={onClick} />);
+        expect(mockTransitionShell).toHaveBeenCalledWith(
+            expect.objectContaining({ selected: 'routes', onClick })
+        );
     });
 });
