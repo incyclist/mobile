@@ -405,7 +405,7 @@ export class MessageQueue extends EventEmitter {
                 }
 
                 clearConnectTimeout();
-                this.logger.logEvent({ message: 'mqtt error', info: err?.message });
+                this.logger.logEvent({ message: 'mqtt error', reason: err?.message });
             };
 
             const onMessage = (topic: string, message: Uint8Array) => this.onMessage(topic, message);
