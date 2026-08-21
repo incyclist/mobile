@@ -1,17 +1,13 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, useWindowDimensions  } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { View, StyleSheet } from 'react-native';
 import {
-    IObserver,
     RoutePoint,
     GPXRidePageDisplayProps,
-    WorkoutGraphActuals,
 } from 'incyclist-services';
 import {
     RideDashboard,
     ElevationGraph,
     StartRideDisplay,
-    RideMenu,
-    Button,
     MainBackground,
     FreeMap,
     Dynamic,
@@ -22,37 +18,13 @@ import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 import { StreetView } from '../../../components/StreetView';
 import { IPosition } from '../../../components/StreetView/types';
-import {
-    getRideDashboardWidth,
-    fitsSideBySide,
-    buildSideRects,
-    RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD,
-    DEFAULT_ROUTE_RIDE_TILE_COUNT,
-} from '../../../hooks/render/useRideOverlayLayout';
+import { RideViewActionProps } from '../types';
+import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
+import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 
-export interface GPXTourPageViewProps {
+export interface GPXTourPageViewProps extends RideViewActionProps {
     displayProps: GPXRidePageDisplayProps;
-    rideObserver: IObserver | null;
-    onMenuOpen: () => void;
-    onMenuClose: () => void;
-    onCloseRidePage: ()=>void;
-
-    onRetryStart: () => void;
-    onIgnoreStart: () => void;
-    onCancelStart: () => void;
-    /** Only actually called when a workout is attached (workout-mobile-hld-phase2.md §5) —
-     *  unused, harmless, otherwise. */
-    getGraphActuals: () => WorkoutGraphActuals;
-    onToggleCornerWidget: () => void;
-    /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — see
-     *  `Video/View.tsx`'s identical prop for the full rationale. */
-    onStopWorkout: () => void;
 }
-
-const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
-    <Button id='menu' label='Menu' primary={true} onClick={onPress} />
-));
-
 
 const SV = React.memo(StreetView
 //    ,(prev,next)=>prev.position?.lat!==next.position?.lat || prev.position?.lng!==next.position?.lng || prev.position?.heading!==next.position?.heading
@@ -87,80 +59,26 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // `rideView === 'sv' || rideView === 'sat'` once SatelliteView is a real, distinct view.
     const mainViewIsNotAMap = rideView === 'sv';
 
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
     // Additive branch, workout-mobile-hld-phase2.md §5 — see Video/View.tsx's identical comment.
     const comboActive = !!workoutAttached;
 
-    const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
-    const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
-    const DASHBOARD_HEIGHT = screenHeight * 0.10;
-
-    // Width is no longer measured (post-Wave-6 fix, see Video/View.tsx's identical comment).
-    const [dashboardHeight, setDashboardHeight] = useState(DASHBOARD_HEIGHT);
-    const updateDashboardDimensions = useCallback((e: any) => {
-        setDashboardHeight(e.nativeEvent.layout.height);
-    }, []);
-
-    // RideDashboard's own reported tile count — tracked unconditionally now, see Video/View.tsx's
-    // identical comment.
-    const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
-    const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
-
     // Same visibility condition the existing corner map below already uses (unchanged, §1.3.1).
     const mapVisible = !isCompact && mainViewIsNotAMap && !!hasGpx && !!routeData?.points?.length;
 
-    // Route-only corner-widget placement — see Video/View.tsx's identical comment for the full
-    // rationale (ports the combo overlay's analytic fit-check/sizing instead of the old
-    // measured-width heuristic).
-    const dashboardLayoutMode = (dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT) > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD
-        ? 'icon-top' : 'icon-left';
-    const rideDashboardWidthEffective = Math.min(
-        getRideDashboardWidth({
-            itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
-            layout: dashboardLayoutMode,
-            compact: isCompact,
-            screenWidth,
-        }),
-        screenWidth,
-    );
-    const sideBySideFits = !isCompact && fitsSideBySide(screenWidth, screenHeight, rideDashboardWidthEffective);
-    const sideRects = sideBySideFits
-        ? buildSideRects(screenWidth, screenHeight, rideDashboardWidthEffective, 0, mapVisible)
-        : null;
-
-    // Stacked-below fallback — compact, or the side widgets don't fit beside the dashboard.
-    // Unchanged from before the fix.
-    const reservedRight = screenWidth * (isCompact ? 0.20 : 0.15);
-    const cornerTopOffset = dashboardHeight + 2;
-    const elevationPreviewDynamicStyle = sideRects
-        ? { top: sideRects.elevation.top, right: sideRects.elevation.right, width: sideRects.elevation.width, height: sideRects.elevation.height }
-        : {
-            height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-            top: isCompact ? dashboardHeight : cornerTopOffset,
-            width: reservedRight,
-        };
-    const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
-
-    const mapOverlayDynamicStyle = sideRects?.map
-        ? { top: sideRects.map.top, left: sideRects.map.left, width: sideRects.map.width, height: sideRects.map.height }
-        : {
-            width: screenWidth * 0.15,
-            height: ELEVATION_PREVIEW_HEIGHT,
-            top: cornerTopOffset,
-        };
-
-    const bottomBarStyle = {
-        position: 'absolute' as const,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: ELEVATION_FULL_HEIGHT,
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-    };
+    // Route-only corner-widget placement — shared with Video/View.tsx (FIXES_BACKLOG.md item #63).
+    const {
+        dashboardHeight,
+        dashboardItemCount,
+        updateDashboardDimensions,
+        onDashboardMetrics,
+        dashboardDynamicStyle,
+        elevationPreviewDynamicStyle,
+        mapOverlayDynamicStyle,
+        bottomBarStyle,
+    } = useRouteOnlyRideGeometry({ isCompact, mapVisible });
 
     const transformPosition = useCallback((val: any): LatLng|RoutePoint | undefined|IPosition => {
         if (!val) return undefined;
@@ -341,34 +259,19 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         />
                     )}
 
-                    {/* Bottom bar: Menu button + Full route elevation */}
-                    <View style={bottomBarStyle}>
-                        <View style={styles.menuButtonContainer}>
-                            <MenuButton onPress={onMenuOpen} />
-                        </View>
-                        <ElevationGraph
-                            routeData={routeData}
-                            observer={rideObserver ?? undefined}
-                            lapMode={lapMode}
-                            showLine={true}
-                            showColors={true}
-                            showXAxis={false}
-                            showYAxis={false}
-                            style={styles.elevationFull}
-                        />
-                    </View>
-
-                {/* Ride Menu */}
-                {menuProps && (
-                    <RideMenu
-                        visible={true}
-                        finished={menuProps.finished}
-                        onClose={onMenuClose}
+                    {/* Bottom bar: Menu button + Full route elevation, plus the Ride Menu it opens */}
+                    <RideBottomBarAndMenu
+                        bottomBarStyle={bottomBarStyle}
+                        menuButtonContainerStyle={styles.menuButtonContainer}
+                        elevationFullStyle={styles.elevationFull}
+                        routeData={routeData}
+                        rideObserver={rideObserver}
+                        lapMode={lapMode}
+                        onMenuOpen={onMenuOpen}
+                        menuProps={menuProps}
+                        onMenuClose={onMenuClose}
                         onCloseRidePage={onCloseRidePage}
                     />
-                )}
-
-
                 </View>
             )}
 

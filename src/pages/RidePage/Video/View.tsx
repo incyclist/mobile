@@ -1,14 +1,12 @@
-import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { IObserver, VideoRidePageDisplayProps, WorkoutGraphActuals } from 'incyclist-services';
+import React, { useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { VideoRidePageDisplayProps } from 'incyclist-services';
 import {
     Video,
     RideDashboard,
     ElevationGraph,
     InfoText,
     StartRideDisplay,
-    RideMenu,
-    Button,
     MainBackground,
     FreeMap,
     Dynamic,
@@ -17,37 +15,14 @@ import {
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
-import {
-    getRideDashboardWidth,
-    fitsSideBySide,
-    buildSideRects,
-    RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD,
-    DEFAULT_ROUTE_RIDE_TILE_COUNT,
-} from '../../../hooks/render/useRideOverlayLayout';
+import { RideViewActionProps } from '../types';
+import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
+import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
+import { createSharedRideViewStyles } from './sharedRideViewStyles';
 
-interface VideoRidePageViewProps {
+interface VideoRidePageViewProps extends RideViewActionProps {
     displayProps: VideoRidePageDisplayProps;
-    rideObserver: IObserver | null;
-    onMenuOpen: () => void;
-    onMenuClose: () => void;
-    onCloseRidePage: ()=>void;
-    onRetryStart: () => void;
-    onIgnoreStart: () => void;
-    onCancelStart: () => void;
-    /** Only actually called when a workout is attached (workout-mobile-hld-phase2.md §5) —
-     *  unused, harmless, otherwise. */
-    getGraphActuals: () => WorkoutGraphActuals;
-    onToggleCornerWidget: () => void;
-    /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3) — forwarded
-     *  as-is to `WorkoutRideOverlay`, which owns the undo-window/deferred-commit behaviour. Only
-     *  reachable through that overlay, so — like `getGraphActuals`/`onToggleCornerWidget` — this is
-     *  harmless when `comboActive` is false. */
-    onStopWorkout: () => void;
 }
-
-const MenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
-    <Button id='menu' label='Menu' primary={true} onClick={onPress} />
-));
 
 export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const {
@@ -72,7 +47,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const currentVideo = video ?? videos?.find(v => !v.hidden);
     const infoText = currentVideo?.info;
 
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
 
@@ -81,84 +55,24 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // gate (workout-combo-service-design.md §4.2).
     const comboActive = !!workoutAttached;
 
-    const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
-    const ELEVATION_PREVIEW_HEIGHT = screenHeight * 0.20;
-    const DASHBOARD_HEIGHT = screenHeight * 0.10;
-
-    // Width is no longer measured (post-Wave-6 fix: the corner-widget placement below now uses
-    // RideDashboard's analytic width, same as the combo overlay does and for the same reason —
-    // ride-overlay-layout-design.md §1.1 found onLayout-measured values unreliable). Height still
-    // is; nothing analytic replaces it and the stacked-below fallback still needs it.
-    const [dashboardHeight, setDashboardHeight] = useState(DASHBOARD_HEIGHT );
-    const updateDashboardDimensions = useCallback((e: any) => {
-        setDashboardHeight(e.nativeEvent.layout.height);
-    }, []);
-
-    // RideDashboard's own reported tile count (session 5.1 — ride-overlay-layout-design.md §3.2).
-    // Tracked unconditionally now (post-Wave-6 fix): the route-only corner-widget placement below
-    // needs it just as much as the combo overlay does, to compute RideDashboard's real analytic
-    // width rather than guess at the default 7-tile one.
-    const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
-    const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
-
     // Same visibility condition the existing Map Overlay below already uses (unchanged) — reused
     // as the combo layout hook's `mapVisible` input (ride-overlay-layout-design.md §3.1).
     const mapVisible = !isCompact && !!route?.description?.hasGpx && !!routeData?.points?.length;
 
-    // Route-only corner-widget placement (map + 2km elevation preview), fixed post-Wave-6: this
-    // used to be a crude heuristic based on the *measured* dashboard width (onLayout), which is
-    // exactly the value ride-overlay-layout-design.md §1.1 found unreliable and replaced with an
-    // analytic formula for the combo screen — ported here rather than reinvented, via the same
-    // `getRideDashboardWidth()`/`fitsSideBySide()`/`buildSideRects()` the combo overlay uses, so a
-    // route-only ride gets the identical fit-check and widget sizing quality. Real-device Wave 6
-    // finding: the old heuristic kept stacking the widgets below the dashboard even when there was
-    // genuinely room beside it.
-    const dashboardLayoutMode = (dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT) > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD
-        ? 'icon-top' : 'icon-left';
-    const rideDashboardWidthEffective = Math.min(
-        getRideDashboardWidth({
-            itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
-            layout: dashboardLayoutMode,
-            compact: isCompact,
-            screenWidth,
-        }),
-        screenWidth,
-    );
-    const sideBySideFits = !isCompact && fitsSideBySide(screenWidth, screenHeight, rideDashboardWidthEffective);
-    const sideRects = sideBySideFits
-        ? buildSideRects(screenWidth, screenHeight, rideDashboardWidthEffective, 0, mapVisible)
-        : null;
-
-    // Stacked-below fallback — compact, or the side widgets don't fit beside the dashboard.
-    // Unchanged from before the fix (not reported as wrong; only the "should have fit beside but
-    // didn't" case was).
-    const cornerTopOffset = dashboardHeight + 2;
-    const elevationPreviewDynamicStyle = sideRects
-        ? { top: sideRects.elevation.top, right: sideRects.elevation.right, width: sideRects.elevation.width, height: sideRects.elevation.height }
-        : {
-            height: isCompact ? ELEVATION_FULL_HEIGHT : ELEVATION_PREVIEW_HEIGHT,
-            top: isCompact ? dashboardHeight : cornerTopOffset,
-            width: isCompact ? screenWidth * 0.20 : screenWidth * 0.15,
-        };
-    const dashboardDynamicStyle = { height: DASHBOARD_HEIGHT };
-
-    const mapOverlayDynamicStyle = sideRects?.map
-        ? { top: sideRects.map.top, left: sideRects.map.left, width: sideRects.map.width, height: sideRects.map.height }
-        : {
-            width: screenWidth * 0.15,
-            height: ELEVATION_PREVIEW_HEIGHT,
-            top: cornerTopOffset,
-        };
-
-    const bottomBarStyle = {
-        position: 'absolute' as const,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: ELEVATION_FULL_HEIGHT,
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-    };
+    // Route-only corner-widget placement (map + 2km elevation preview) — shared with
+    // GPX/View.tsx (FIXES_BACKLOG.md item #63). Ports the combo overlay's analytic
+    // fit-check/sizing instead of the old measured-width heuristic; see that hook for the full
+    // rationale.
+    const {
+        dashboardHeight,
+        dashboardItemCount,
+        updateDashboardDimensions,
+        onDashboardMetrics,
+        dashboardDynamicStyle,
+        elevationPreviewDynamicStyle,
+        mapOverlayDynamicStyle,
+        bottomBarStyle,
+    } = useRouteOnlyRideGeometry({ isCompact, mapVisible });
 
     const transformPosition = useCallback((val: any): LatLng | undefined => {
         if (!val) return undefined;
@@ -176,8 +90,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
 
             { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
                 <View style={[
-                    styles.dashboardContainer,
-                    isCompact ? styles.dashboardCompact : styles.dashboardTablet,
+                    shared.dashboardContainer,
+                    isCompact ? shared.dashboardCompact : shared.dashboardTablet,
                     dashboardDynamicStyle
                 ]}>
                     <View onLayout={updateDashboardDimensions}>
@@ -219,7 +133,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         showXAxis={!isCompact}
                         showYAxis={!isCompact}
                         style={[
-                            isCompact ? styles.elevationPreviewCompact : styles.elevationPreviewTablet,
+                            isCompact ? shared.elevationPreviewCompact : shared.elevationPreviewTablet,
                             elevationPreviewDynamicStyle,
                         ]}
                     />
@@ -271,32 +185,19 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
 
                 {infoText && <InfoText {...infoText} />}
 
-                {/* Bottom bar: Menu button + Full route elevation */}
-                <View style={bottomBarStyle}>
-                    <View style={styles.menuButtonContainer}>
-                        <MenuButton onPress={onMenuOpen} />
-                    </View>
-                    <ElevationGraph
-                        routeData={routeData}
-                        observer={rideObserver ?? undefined}
-                        lapMode={lapMode}
-                        showLine={true}
-                        showColors={true}
-                        showXAxis={false}
-                        showYAxis={false}
-                        style={styles.elevationFull}
-                    />
-                </View>
-
-                {/* Ride Menu */}
-                {menuProps && (
-                    <RideMenu
-                        visible={true}
-                        finished={menuProps.finished}
-                        onClose={onMenuClose}
-                        onCloseRidePage={onCloseRidePage}
-                    />
-                )}
+                {/* Bottom bar: Menu button + Full route elevation, plus the Ride Menu it opens */}
+                <RideBottomBarAndMenu
+                    bottomBarStyle={bottomBarStyle}
+                    menuButtonContainerStyle={shared.menuButtonContainer}
+                    elevationFullStyle={shared.elevationFull}
+                    routeData={routeData}
+                    rideObserver={rideObserver}
+                    lapMode={lapMode}
+                    onMenuOpen={onMenuOpen}
+                    menuProps={menuProps}
+                    onMenuClose={onMenuClose}
+                    onCloseRidePage={onCloseRidePage}
+                />
             </View>
 
 
@@ -317,6 +218,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     );
 };
 
+// Style entries shared with Video/TestView.tsx (FIXES_BACKLOG.md item #63) live in
+// sharedRideViewStyles; only what's actually specific to this view is declared below.
+const shared = createSharedRideViewStyles('rgba(0,0,0,0.0)');
+
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
@@ -329,40 +234,6 @@ const styles = StyleSheet.create({
     },
     invisible: {
         opacity: 0,
-    },
-    dashboardContainer: {
-        position: 'absolute',
-        top: 0,
-        zIndex: 10,
-    },
-    dashboardCompact: {
-        left: 0,
-        right: 0,
-    },
-    dashboardTablet: {
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-    },
-    elevationPreviewTablet: {
-        position: 'absolute',
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    elevationPreviewCompact: {
-        position: 'absolute',
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    elevationFull: {
-        flex: 1,
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.0)',
-    },
-    menuButtonContainer: {
-        paddingHorizontal: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     mapOverlay: {
         position: 'absolute',
