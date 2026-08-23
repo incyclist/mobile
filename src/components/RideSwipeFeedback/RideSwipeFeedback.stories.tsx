@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { WorkoutSwipeFeedback } from './WorkoutSwipeFeedback';
+import { RideSwipeFeedback } from './RideSwipeFeedback';
 import { colors } from '../../theme/colors';
 
-const meta: Meta<typeof WorkoutSwipeFeedback> = {
-    title: 'Components/WorkoutSwipeFeedback',
-    component: WorkoutSwipeFeedback,
+const meta: Meta<typeof RideSwipeFeedback> = {
+    title: 'Components/RideSwipeFeedback',
+    component: RideSwipeFeedback,
     decorators: [
         (Story) => (
             <View style={styles.decorator}>
@@ -18,7 +18,7 @@ const meta: Meta<typeof WorkoutSwipeFeedback> = {
 
 export default meta;
 
-type Story = StoryObj<typeof WorkoutSwipeFeedback>;
+type Story = StoryObj<typeof RideSwipeFeedback>;
 
 export const StepBack: Story = {
     args: { visible: true, message: '◀ Step Back' },

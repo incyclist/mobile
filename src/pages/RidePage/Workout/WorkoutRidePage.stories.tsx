@@ -227,7 +227,7 @@ export const SwipeFeedback: Story = {
 
 /**
  * Session 5.9 — StartRideDisplay has cleared and no pedaling has happened yet, so
- * WorkoutGestureHintOverlay is showing. `iphone15Pro`/`ipadPro12` are the two custom viewports
+ * RideGestureHintOverlay is showing. `iphone15Pro`/`ipadPro12` are the two custom viewports
  * already registered in `.storybook/preview.ts`; their heights (393 / 1024) sit on either side
  * of `useScreenLayout()`'s compact threshold (<420), so these two stories exercise the overlay's
  * real compact/normal font-size branch (not just the standalone component story's `compact`

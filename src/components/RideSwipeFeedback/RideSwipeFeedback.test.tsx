@@ -1,16 +1,16 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { WorkoutSwipeFeedback } from './WorkoutSwipeFeedback';
+import { RideSwipeFeedback } from './RideSwipeFeedback';
 
-describe('WorkoutSwipeFeedback', () => {
+describe('RideSwipeFeedback', () => {
     it('renders nothing when not visible', () => {
-        const { queryByText, toJSON } = render(<WorkoutSwipeFeedback visible={false} message="+1%" />);
+        const { queryByText, toJSON } = render(<RideSwipeFeedback visible={false} message="+1%" />);
         expect(queryByText('+1%')).toBeNull();
         expect(toJSON()).toBeNull();
     });
 
     it('renders the message when visible', () => {
-        const { getByText } = render(<WorkoutSwipeFeedback visible={true} message="Step Forward ▶" />);
+        const { getByText } = render(<RideSwipeFeedback visible={true} message="Step Forward ▶" />);
         expect(getByText('Step Forward ▶')).toBeTruthy();
     });
 });

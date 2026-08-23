@@ -92,29 +92,32 @@ export const formatSwipeFeedback = (sign: '+' | '-', increment: number, result: 
     return `${sign}${increment}%${formatPowerAdjustment(result)}`;
 };
 
-export interface WorkoutRideGestureFeedback {
+export interface RideGestureFeedback {
     visible: boolean;
     message: string;
 }
 
-export interface UseWorkoutRideGesturesResult {
+export interface UseRideGesturesResult {
     /** Pass to <GestureDetector gesture={gesture}>; undefined on web/Storybook, where GestureDetector must not be rendered. */
     gesture: any;
-    feedback: WorkoutRideGestureFeedback;
+    feedback: RideGestureFeedback;
     /** Current `preferences.workouts.loadIncrement` setting (%) — read live, never hardcoded.
      * Exposed so callers (e.g. the StartRideDisplay gesture legend) can show the real value
      * without duplicating the useUserSettings() lookup this hook already does for swipe-up/down. */
     loadIncrement: number;
 }
 
-export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
-    const { logEvent, logError } = useLogging('WorkoutRideGestures');
+// Single factory (FIXES_BACKLOG #24) - getRidePageService() is a single ride-type-agnostic
+// RidePageService for Workout/GPX/Video rides alike (no per-ride-type subclass), so this hook
+// works unchanged wherever it's wired: the dedicated Workout ride, or a plain/combo GPX or Video
+// ride - adjustLoad()/onStepBack()/onStepForward() already branch internally on workout/cycling-mode
+// state (see RidePageService.adjustLoad(), §4.4.5) rather than relying on which screen called them.
+export const useRideGestures = (): UseRideGesturesResult => {
+    const { logEvent, logError } = useLogging('RideGestures');
     const userSettings = useUserSettings();
-    // Single factory (FIXES_BACKLOG #24) - this hook is only ever used on a workout ride
-    // (WorkoutRidePageView), so getRidePageService() always resolves to WorkoutRidePageService here.
     const service = getRidePageService();
 
-    const [feedback, setFeedback] = useState<WorkoutRideGestureFeedback>({ visible: false, message: '' });
+    const [feedback, setFeedback] = useState<RideGestureFeedback>({ visible: false, message: '' });
     const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const showFeedback = useCallback((message: string) => {

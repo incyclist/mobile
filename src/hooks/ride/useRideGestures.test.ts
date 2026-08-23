@@ -1,13 +1,13 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { Platform, Vibration } from 'react-native';
 import {
-    useWorkoutRideGestures,
+    useRideGestures,
     classifySwipe,
     formatPowerAdjustment,
     formatSwipeFeedback,
     DEFAULT_WORKOUT_LOAD_INCREMENT,
     WORKOUT_LOAD_INCREMENT_SETTING_KEY,
-} from './useWorkoutRideGestures';
+} from './useRideGestures';
 
 const mockOnStepBack = jest.fn();
 const mockOnStepForward = jest.fn();
@@ -20,7 +20,7 @@ jest.mock('react-native-device-info', () => ({
     getVersion: () => mockGetVersion(),
 }));
 
-// Single factory (FIXES_BACKLOG #24) - useWorkoutRideGestures now calls getRidePageService(),
+// Single factory (FIXES_BACKLOG #24) - useRideGestures now calls getRidePageService(),
 // same as every other ride page consumer; it always resolves to the workout-shaped service here.
 jest.mock('incyclist-services', () => ({
     getRidePageService: () => ({
@@ -116,7 +116,7 @@ describe('classifySwipe', () => {
     });
 });
 
-describe('useWorkoutRideGestures', () => {
+describe('useRideGestures', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockGetValue.mockImplementation((_key: string, def: any) => def);
@@ -133,26 +133,26 @@ describe('useWorkoutRideGestures', () => {
     });
 
     it('wires a Pan gesture with onEnd registered', () => {
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         expect(result.current.gesture).toBe(mockPanBuilder);
         expect(capturedOnEnd).toBeInstanceOf(Function);
     });
 
     it('exposes the live loadIncrement setting, never a hardcoded value', () => {
         mockGetValue.mockImplementation(() => 7);
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         expect(result.current.loadIncrement).toBe(7);
         expect(mockGetValue).toHaveBeenCalledWith(WORKOUT_LOAD_INCREMENT_SETTING_KEY, DEFAULT_WORKOUT_LOAD_INCREMENT);
     });
 
     it('falls back to the default loadIncrement when no setting is stored', () => {
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         expect(result.current.loadIncrement).toBe(DEFAULT_WORKOUT_LOAD_INCREMENT);
     });
 
     it('steps back on a left swipe, vibrates, and shows feedback', () => {
         const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
 
         act(() => {
             capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
@@ -170,7 +170,7 @@ describe('useWorkoutRideGestures', () => {
         jest.spyOn(Vibration, 'vibrate').mockImplementation(() => {
             throw new Error('vibrate: Neither user 10465 nor current process has android.permission.VIBRATE.');
         });
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
 
         expect(() => {
             act(() => {
@@ -189,7 +189,7 @@ describe('useWorkoutRideGestures', () => {
         Platform.OS = 'android';
         mockGetVersion.mockReturnValue('1.0.18');
         const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
 
         act(() => {
             capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
@@ -204,7 +204,7 @@ describe('useWorkoutRideGestures', () => {
         Platform.OS = 'android';
         mockGetVersion.mockReturnValue('1.0.19');
         const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
 
         act(() => {
             capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
@@ -217,7 +217,7 @@ describe('useWorkoutRideGestures', () => {
     it('always vibrates on iOS regardless of version, since only Android requires the manifest permission', () => {
         Platform.OS = 'ios';
         const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-        renderHook(() => useWorkoutRideGestures());
+        renderHook(() => useRideGestures());
 
         act(() => {
             capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
@@ -227,7 +227,7 @@ describe('useWorkoutRideGestures', () => {
     });
 
     it('steps forward on a right swipe', () => {
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 100, translationY: 0, velocityX: 0, velocityY: 0 });
         });
@@ -238,7 +238,7 @@ describe('useWorkoutRideGestures', () => {
     it('increases load by the configured increment on an upward swipe and shows the adjusted Workout FTP, labelled', () => {
         mockGetValue.mockImplementation(() => 5);
         mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 220 });
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
@@ -250,7 +250,7 @@ describe('useWorkoutRideGestures', () => {
     it('decreases load by the configured increment on a downward swipe and shows the adjusted Workout FTP, labelled', () => {
         mockGetValue.mockImplementation(() => 1);
         mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 91 });
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
         });
@@ -264,7 +264,7 @@ describe('useWorkoutRideGestures', () => {
     it('shows a range-step target power adjustment as a bare watt value, no FTP label', () => {
         mockGetValue.mockImplementation(() => 1);
         mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: 155 });
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
@@ -275,7 +275,7 @@ describe('useWorkoutRideGestures', () => {
     it('shows a fractional adjusted value rounded to a whole number', () => {
         mockGetValue.mockImplementation(() => 1);
         mockAdjustLoad.mockReturnValue({ type: 'ftp', value: 154.6 });
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
@@ -285,7 +285,7 @@ describe('useWorkoutRideGestures', () => {
     it('falls back to a bare percentage when adjustLoad cannot report an adjustment (e.g. no FTP configured)', () => {
         mockGetValue.mockImplementation(() => 5);
         mockAdjustLoad.mockReturnValue(undefined);
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
         });
@@ -293,7 +293,7 @@ describe('useWorkoutRideGestures', () => {
     });
 
     it('does not call any service method or show feedback below both thresholds', () => {
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: 5, translationY: 5, velocityX: 10, velocityY: 10 });
         });
@@ -304,7 +304,7 @@ describe('useWorkoutRideGestures', () => {
     });
 
     it('auto-dismisses the feedback flash after its duration', () => {
-        const { result } = renderHook(() => useWorkoutRideGestures());
+        const { result } = renderHook(() => useRideGestures());
         act(() => {
             capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
         });
@@ -327,7 +327,7 @@ describe('useWorkoutRideGestures', () => {
         it('still calls adjustLoad on an upward swipe (routing to gear shift happens in the service layer)', () => {
             mockGetValue.mockImplementation(() => 1);
             mockAdjustLoad.mockReturnValue({ type: 'gear', value: 1 });
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
@@ -340,7 +340,7 @@ describe('useWorkoutRideGestures', () => {
         it('shows "-N gear" feedback on a downward swipe', () => {
             mockGetValue.mockImplementation(() => 5);
             mockAdjustLoad.mockReturnValue({ type: 'gear', value: -5 });
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
@@ -352,7 +352,7 @@ describe('useWorkoutRideGestures', () => {
 
         it('still vibrates and steps back/forward normally - only the load-adjust feedback text changes', () => {
             const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
@@ -374,7 +374,7 @@ describe('useWorkoutRideGestures', () => {
 
         it('ignores an upward swipe entirely: no adjustLoad call, no vibration, no feedback', () => {
             const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
@@ -386,7 +386,7 @@ describe('useWorkoutRideGestures', () => {
         });
 
         it('ignores a downward swipe entirely', () => {
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: 0, translationY: 100, velocityX: 0, velocityY: 0 });
@@ -397,7 +397,7 @@ describe('useWorkoutRideGestures', () => {
         });
 
         it('leaves step back/forward (left/right swipes) unaffected', () => {
-            const { result } = renderHook(() => useWorkoutRideGestures());
+            const { result } = renderHook(() => useRideGestures());
 
             act(() => {
                 capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });

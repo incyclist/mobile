@@ -1,4 +1,4 @@
-export interface WorkoutGestureHintLegendItem {
+export interface RideGestureHintLegendItem {
     symbol: string   // e.g. '◀ ▶' or '▲ ▼'
     label: string    // terse form, used in compact layout — e.g. 'Step back / forward' or 'Load ±1%'
     /**
@@ -10,11 +10,12 @@ export interface WorkoutGestureHintLegendItem {
     description?: string
 }
 
-export interface WorkoutGestureHintOverlayProps {
+export interface RideGestureHintOverlayProps {
     /**
      * Primary message (e.g. "Start pedalling to start the workout"). Passed in rather than
-     * hardcoded so a future ride type (GPX/Video) can reuse this component with its own copy
-     * (workout-mobile-hld.md §3.2 "design for reuse").
+     * hardcoded (workout-mobile-hld.md §3.2 "design for reuse") so each ride screen/mode can
+     * supply its own copy - a Workout ride's message differs from a plain GPX/Video ride's, and
+     * within GPX/Video the message differs again by cycling mode (ERG/SIM+shifting/hidden).
      */
     message: string
     /**
@@ -24,7 +25,7 @@ export interface WorkoutGestureHintOverlayProps {
      */
     legendIntro?: string
     /** Gesture legend rows (step back/forward, load up/down) — content, not hardcoded. */
-    legend: WorkoutGestureHintLegendItem[]
+    legend: RideGestureHintLegendItem[]
     /**
      * Computed once by the page (via the shared `useScreenLayout()` hook) and passed down as a
      * plain boolean — mirrors `WorkoutStepsList`'s existing `compact` prop convention, rather
@@ -35,7 +36,7 @@ export interface WorkoutGestureHintOverlayProps {
     closeLabel?: string           // default "Got it"
     /**
      * Always hides the overlay for the rest of this ride. Only persists the "never show again"
-     * flag when dontShowAgain is true — the decision itself is owned by WorkoutRidePageService,
+     * flag when dontShowAgain is true — the decision itself is owned by RidePageService,
      * this component just reports the user's choice.
      */
     onDismiss: (props: { dontShowAgain: boolean }) => void

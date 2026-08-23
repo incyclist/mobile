@@ -7,7 +7,7 @@ import type {
     WorkoutGraphActuals,
     WorkoutRidePageDisplayProps,
 } from 'incyclist-services';
-import { Button, WorkoutStepsList, WorkoutSwipeFeedback } from '../../../components';
+import { Button, WorkoutStepsList, RideSwipeFeedback } from '../../../components';
 import { RideDashboardView } from '../../../components/RideDashboard/RideDashboardView';
 import { WorkoutGraphView } from '../../../components/WorkoutGraph/WorkoutGraphView';
 import {
@@ -149,7 +149,7 @@ interface WorkoutRidePrototypeProps {
     /** Matches useScreenLayout()==='compact' (height < 420) — the real page derives this itself. */
     compact: boolean;
     /**
-     * When set, renders the (already-existing, session 5.4) WorkoutSwipeFeedback
+     * When set, renders the (already-existing, session 5.4) RideSwipeFeedback
      * toast with this message on top of the layout — a frozen frame of the
      * moment right after a swipe fired, to judge its visibility in situ.
      */
@@ -222,7 +222,7 @@ const WorkoutRidePrototypeView = (props: WorkoutRidePrototypeProps) => {
                 style={styles.graph}
             />
 
-            <WorkoutSwipeFeedback visible={!!swipeFeedback} message={swipeFeedback ?? ''} />
+            <RideSwipeFeedback visible={!!swipeFeedback} message={swipeFeedback ?? ''} />
         </View>
     );
 };
@@ -303,7 +303,7 @@ export const PhoneAfterSkipBack: Story = {
 
 /**
  * Frozen frame of the moment right after a swipe-up fired: the session-5.4
- * WorkoutSwipeFeedback toast ("+1%") over the full layout — exists to judge
+ * RideSwipeFeedback toast ("+1%") over the full layout — exists to judge
  * whether the rider can actually see/distinguish the confirmation mid-ride.
  */
 export const Tablet10SwipeFeedback: Story = {

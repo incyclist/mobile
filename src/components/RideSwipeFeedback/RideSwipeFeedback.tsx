@@ -1,23 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { WorkoutSwipeFeedbackProps } from './types';
+import { RideSwipeFeedbackProps } from './types';
 import { colors } from '../../theme';
 
 /**
- * Flash confirming a swipe gesture fired - paired with useWorkoutRideGestures.
+ * Flash confirming a swipe gesture fired - paired with useRideGestures.
  *
- * One design deliberately made to read on ANY background rather than two
- * per-mode flavours (review round 3, 2026-07-19): the workout-only ride screen
- * is near-black (where a borderless dark pill disappears), while Phase 2's
- * workout+route mode will put it over video/streetview/map (where a light pill
- * would wash out). A dark pill with a visible border + large type works on
- * both, and spares callers a variant prop they could set wrongly.
+ * One design deliberately made to read on ANY background rather than per-mode flavours (review
+ * round 3, 2026-07-19): the workout-only ride screen is near-black (where a borderless dark pill
+ * disappears), while a GPX/Video ride puts it over the map/video/streetview (where a light pill
+ * would wash out). A dark pill with a visible border + large type works on both, and spares
+ * callers a variant prop they could set wrongly.
  *
  * Sits in the upper third of the screen, not dead center: on the workout ride
  * screen the center belongs to the graph (bars, power/HR lines, position
  * marker) - the band below the dashboard is the one reliably empty region.
  */
-export const WorkoutSwipeFeedback = ({ visible, message }: WorkoutSwipeFeedbackProps) => {
+export const RideSwipeFeedback = ({ visible, message }: RideSwipeFeedbackProps) => {
     if (!visible) {
         return null;
     }
