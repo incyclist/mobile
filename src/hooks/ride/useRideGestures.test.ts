@@ -13,6 +13,9 @@ const mockOnStepBack = jest.fn();
 const mockOnStepForward = jest.fn();
 const mockAdjustLoad = jest.fn();
 const mockGetLoadButtonMode = jest.fn(() => 'power');
+// Defaults true - this hook was originally only wired to the Workout ride screen (always
+// workout-attached); tests below that exercise a plain GPX/Video ride override it to false.
+const mockIsWorkoutAttached = jest.fn(() => true);
 const mockGetValue = jest.fn((_key: string, def: any) => def);
 const mockGetVersion = jest.fn(() => '1.0.19');
 
@@ -28,6 +31,7 @@ jest.mock('incyclist-services', () => ({
         onStepForward: mockOnStepForward,
         adjustLoad: mockAdjustLoad,
         getLoadButtonMode: mockGetLoadButtonMode,
+        isWorkoutAttached: mockIsWorkoutAttached,
     }),
     useUserSettings: () => ({ getValue: mockGetValue }),
 }));
@@ -88,6 +92,22 @@ describe('formatSwipeFeedback', () => {
     it('falls back to the existing "%"-based message when there is no result at all', () => {
         expect(formatSwipeFeedback('+', 5, undefined)).toBe('+5%');
     });
+
+    // Regression: a plain (no-workout) ERG-mode ride's swipe reports {type:'targetPower', value:NaN}
+    // (RideDisplayService.adjustDevicePower() can't know the resulting absolute Watts, only the
+    // delta it sent) - the toast previously fell through to the "%" branch and showed e.g. "+1%"
+    // even though the actual change was "+5W", since there is no FTP/range for "%" to mean anything.
+    it('shows the nominal 5W step for a plain ERG-mode adjustment (magnitude 1), not "+1%"', () => {
+        expect(formatSwipeFeedback('+', 1, { type: 'targetPower', value: NaN })).toBe('+5W');
+    });
+
+    it('shows the nominal 50W step for a plain ERG-mode adjustment at any other magnitude', () => {
+        expect(formatSwipeFeedback('-', 5, { type: 'targetPower', value: NaN })).toBe('-50W');
+    });
+
+    it('still uses the "%"-based message for a workout in-range nudge (targetPower with a real value)', () => {
+        expect(formatSwipeFeedback('+', 1, { type: 'targetPower', value: 155 })).toBe('+1% (155W)');
+    });
 });
 
 describe('classifySwipe', () => {
@@ -122,6 +142,7 @@ describe('useRideGestures', () => {
         mockGetValue.mockImplementation((_key: string, def: any) => def);
         mockAdjustLoad.mockReturnValue(undefined);
         mockGetLoadButtonMode.mockReturnValue('power');
+        mockIsWorkoutAttached.mockReturnValue(true);
         mockGetVersion.mockReturnValue('1.0.19');
         Platform.OS = 'ios';
         jest.useFakeTimers();
@@ -409,6 +430,54 @@ describe('useRideGestures', () => {
                 capturedOnEnd!({ translationX: 100, translationY: 0, velocityX: 0, velocityY: 0 });
             });
             expect(mockOnStepForward).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // Regression: a plain GPX/Video ride with no workout attached has nothing for left/right to
+    // step through - RidePageService.onStepBack()/onStepForward() already no-op safely, but the
+    // hook still showed a "Step Back"/"Step Forward" toast regardless, which is misleading when
+    // nothing actually happened. Mirrors the loadButtonMode==='hidden' pattern above, but for
+    // left/right instead of up/down.
+    describe('no workout attached (plain GPX/Video ride)', () => {
+        beforeEach(() => {
+            mockIsWorkoutAttached.mockReturnValue(false);
+        });
+
+        it('ignores a left swipe entirely: no onStepBack call, no vibration, no feedback', () => {
+            const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockOnStepBack).not.toHaveBeenCalled();
+            expect(vibrateSpy).not.toHaveBeenCalled();
+            expect(result.current.feedback).toEqual({ visible: false, message: '' });
+        });
+
+        it('ignores a right swipe entirely: no onStepForward call, no feedback', () => {
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockOnStepForward).not.toHaveBeenCalled();
+            expect(result.current.feedback.visible).toBe(false);
+        });
+
+        it('leaves up/down (load-adjust swipes) unaffected', () => {
+            mockGetValue.mockImplementation(() => 1);
+            mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: NaN });
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).toHaveBeenCalledWith(1);
+            expect(result.current.feedback.message).toBe('+5W');
         });
     });
 });

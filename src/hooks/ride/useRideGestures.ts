@@ -80,14 +80,29 @@ export const formatPowerAdjustment = (result: PowerAdjustmentResult | undefined)
     return result.type === 'ftp' ? ` (FTP: ${watts}W)` : ` (${watts}W)`;
 };
 
+// The nominal Watt step a plain (no-workout) ERG-mode swipe actually applies
+// (RidePageService.adjustLoad() -> RideDisplayService.adjustDevicePower()) - mirrors
+// WorkoutRideService.getPowerRangeDeltaVal()'s convention, kept in sync manually since it isn't
+// exported. Also used by gestureHintContent.ts (src/pages/RidePage/) for the hint overlay's legend.
+const nominalErgWatts = (increment: number) => (increment === 1 ? 5 : 50);
+
 // FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting enabled, adjustLoad() performs a
 // gear shift instead of a power/FTP nudge (WorkoutRideService.powerUp()/powerDown(), gear mode) -
 // the swipe feedback must say so, not claim a "%" power adjustment that didn't happen. `increment`
 // is always the raw magnitude actually applied (== the gearDelta WorkoutRideService.gearChange()
 // was called with), so it doubles as the gear-step count here.
+//
+// A plain (no-workout) ERG-mode adjustment also reports `{type:'targetPower'}` - same as a
+// workout's in-range nudge - but with `value: NaN` (RideDisplayService.adjustDevicePower() can't
+// know the resulting absolute Watts, only the delta it sent). That NaN is the signal to label it
+// with the nominal Watt step actually applied instead of `increment` as "%", which is meaningless
+// outside a workout (there is no FTP/range for it to be a percentage of).
 export const formatSwipeFeedback = (sign: '+' | '-', increment: number, result: PowerAdjustmentResult | undefined): string => {
     if (result?.type === 'gear') {
         return `${sign}${increment} gear`;
+    }
+    if (result?.type === 'targetPower' && Number.isNaN(result.value)) {
+        return `${sign}${nominalErgWatts(increment)}W`;
     }
     return `${sign}${increment}%${formatPowerAdjustment(result)}`;
 };
@@ -144,6 +159,15 @@ export const useRideGestures = (): UseRideGesturesResult => {
         // every swipe, since the rider can toggle ERG/SIM mid-ride.
         if ((direction === 'up' || direction === 'down') && service.getLoadButtonMode() === 'hidden') {
             logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'loadButtonMode=hidden', eventSource: 'user' });
+            return;
+        }
+
+        // Step back/forward has nothing to step through without a workout attached -
+        // RidePageService.onStepBack()/onStepForward() already no-op safely in that case, but
+        // showing a "Step Back"/"Step Forward" toast anyway would be misleading on a plain
+        // GPX/Video ride, same reasoning as the loadButtonMode==='hidden' check above.
+        if ((direction === 'left' || direction === 'right') && !service.isWorkoutAttached()) {
+            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'no workout attached', eventSource: 'user' });
             return;
         }
 
