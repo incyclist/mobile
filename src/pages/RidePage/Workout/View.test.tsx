@@ -20,13 +20,13 @@ jest.mock('../../../components', () => ({
         mockStartRideDisplay(props);
         return null;
     },
-    WorkoutGestureHintOverlay: () => null,
+    RideGestureHintOverlay: () => null,
     WorkoutGraph: (props: any) => {
         mockWorkoutGraph(props);
         return null;
     },
     WorkoutStepsList: () => null,
-    WorkoutSwipeFeedback: () => null,
+    RideSwipeFeedback: () => null,
 }));
 
 jest.mock('../../../hooks', () => ({

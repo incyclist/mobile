@@ -29,6 +29,8 @@ jest.mock('../../../components', () => {
         MainBackground: () => null,
         RideDashboard: () => null,
         RideMenu: () => null,
+        RideGestureHintOverlay: () => null,
+        RideSwipeFeedback: () => null,
         WorkoutRideOverlay: () => null,
     };
 });
@@ -53,6 +55,9 @@ const baseProps: GPXTourPageViewProps = {
         displayObserver: undefined,
     } as any,
     rideObserver: null,
+    gesture: undefined,
+    feedback: { visible: false, message: '' },
+    loadIncrementPct: 1,
     onMenuOpen: () => {},
     onMenuClose: () => {},
     onCloseRidePage: () => {},
@@ -62,6 +67,7 @@ const baseProps: GPXTourPageViewProps = {
     getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
+    onGestureHintDismissed: () => {},
 };
 
 // The exact evidence captured in FIXES_BACKLOG #52 (iOS, HRM deliberately off):

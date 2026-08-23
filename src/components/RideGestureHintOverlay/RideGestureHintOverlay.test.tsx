@@ -1,22 +1,22 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { WorkoutGestureHintOverlay } from './WorkoutGestureHintOverlay';
-import { WorkoutGestureHintLegendItem } from './types';
+import { RideGestureHintOverlay } from './RideGestureHintOverlay';
+import { RideGestureHintLegendItem } from './types';
 
-const LEGEND: WorkoutGestureHintLegendItem[] = [
+const LEGEND: RideGestureHintLegendItem[] = [
     { symbol: '◀ ▶', label: 'Step back / forward' },
     { symbol: '▲ ▼', label: 'Load ±1%' },
 ];
 
-const LEGEND_WITH_DESCRIPTIONS: WorkoutGestureHintLegendItem[] = [
+const LEGEND_WITH_DESCRIPTIONS: RideGestureHintLegendItem[] = [
     { symbol: '◀ ▶', label: 'Step back / forward', description: 'Swipe left or right to step back or forward' },
     { symbol: '▲ ▼', label: 'Load ±1%', description: 'Swipe up or down to change your target load' },
 ];
 
-describe('WorkoutGestureHintOverlay', () => {
+describe('RideGestureHintOverlay', () => {
     it('renders the message, the swipe intro, and terse legend labels when no description is given', () => {
         const { getByText } = render(
-            <WorkoutGestureHintOverlay
+            <RideGestureHintOverlay
                 message="Start pedalling to start the workout"
                 legend={LEGEND}
                 compact={false}
@@ -31,7 +31,7 @@ describe('WorkoutGestureHintOverlay', () => {
 
     it('prefers each legend item\'s fuller description over its terse label in normal (non-compact) layout', () => {
         const { getByText, queryByText } = render(
-            <WorkoutGestureHintOverlay
+            <RideGestureHintOverlay
                 message="Start pedalling to start the workout"
                 legend={LEGEND_WITH_DESCRIPTIONS}
                 compact={false}
@@ -45,7 +45,7 @@ describe('WorkoutGestureHintOverlay', () => {
 
     it('always uses the terse label in compact layout, even when a description is given', () => {
         const { getByText, queryByText } = render(
-            <WorkoutGestureHintOverlay
+            <RideGestureHintOverlay
                 message="Start pedalling to start the workout"
                 legend={LEGEND_WITH_DESCRIPTIONS}
                 compact={true}
@@ -58,7 +58,7 @@ describe('WorkoutGestureHintOverlay', () => {
 
     it('renders without crashing in compact mode', () => {
         const { toJSON } = render(
-            <WorkoutGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={true} onDismiss={jest.fn()} />
+            <RideGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={true} onDismiss={jest.fn()} />
         );
         expect(toJSON()).toBeDefined();
     });
@@ -66,7 +66,7 @@ describe('WorkoutGestureHintOverlay', () => {
     it('dismisses without dontShowAgain by default', () => {
         const onDismiss = jest.fn();
         const { getByText } = render(
-            <WorkoutGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={false} onDismiss={onDismiss} />
+            <RideGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={false} onDismiss={onDismiss} />
         );
 
         fireEvent.press(getByText('Got it'));
@@ -77,7 +77,7 @@ describe('WorkoutGestureHintOverlay', () => {
     it('dismisses with dontShowAgain once the toggle is switched on', () => {
         const onDismiss = jest.fn();
         const { getByText } = render(
-            <WorkoutGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={false} onDismiss={onDismiss} />
+            <RideGestureHintOverlay message="Start pedalling to start the workout" legend={LEGEND} compact={false} onDismiss={onDismiss} />
         );
 
         fireEvent.press(getByText('Yes'));

@@ -9,21 +9,14 @@ import {
     RideDashboard,
     RideMenu,
     StartRideDisplay,
-    WorkoutGestureHintOverlay,
+    RideGestureHintOverlay,
     WorkoutGraph,
     WorkoutStepsList,
-    WorkoutSwipeFeedback,
+    RideSwipeFeedback,
 } from '../../../components';
-import { WorkoutGestureHintLegendItem } from '../../../components/WorkoutGestureHintOverlay/types';
 import { colors } from '../../../theme';
-import { useScreenLayout, WorkoutRideGestureFeedback } from '../../../hooks';
-
-// Copy for the first-ride gesture education overlay (workout-mobile-hld.md §3.2
-// "WorkoutGestureHintOverlay", session 5.9) — page-specific text, not business logic, so it's
-// fine as a local constant here (the component itself takes it as a prop, not hardcoded, so a
-// future ride type can supply its own copy). Same gesture content 5.6's now-removed
-// StartRideDisplay legend had.
-const GESTURE_HINT_MESSAGE = 'Start pedalling to start the workout';
+import { useScreenLayout, RideGestureFeedback } from '../../../hooks';
+import { getGestureHintContent } from '../gestureHintContent';
 
 // WorkoutGraphView's default axisFontSize (10, phone-tuned) reads as illegibly small on a
 // tablet's much larger physical screen — confirmed unreadable via real tablet ride testing
@@ -33,9 +26,9 @@ const GESTURE_HINT_MESSAGE = 'Start pedalling to start the workout';
 // WorkoutGraphView's own default still applies exactly as before.
 const TABLET_GRAPH_AXIS_FONT_SIZE = 15;
 
-// Conditional import — same pattern as WorkoutItemView / useWorkoutRideGestures (session 5.4):
+// Conditional import — same pattern as WorkoutItemView / useRideGestures (session 5.4):
 // keeps Storybook (Vite/web) and any environment without the native module from crashing.
-// `gesture` (from useWorkoutRideGestures) is already undefined on web/Storybook, so
+// `gesture` (from useRideGestures) is already undefined on web/Storybook, so
 // GestureDetector is simply never rendered there even when this fallback resolves to `View`.
 let GestureDetector: any = View;
 try {
@@ -49,9 +42,9 @@ try {
 export interface WorkoutRidePageViewProps {
     displayProps: WorkoutRidePageDisplayProps;
     rideObserver: IObserver | null;
-    /** From useWorkoutRideGestures() — undefined on web/Storybook, where GestureDetector must not be used. */
+    /** From useRideGestures() — undefined on web/Storybook, where GestureDetector must not be used. */
     gesture: any;
-    feedback: WorkoutRideGestureFeedback;
+    feedback: RideGestureFeedback;
     /** Live `preferences.workouts.loadIncrement` setting (%) — shown in the gesture-hint overlay's legend. */
     loadIncrementPct: number;
     /** Pulls a fresh WorkoutGraphActuals snapshot — wired to the ride observer's `data-update`
@@ -108,21 +101,13 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
     // apply exactly as it does today; only tablets get an explicit override.
     const graphAxisFontSize = DeviceInfo.isTablet() ? TABLET_GRAPH_AXIS_FONT_SIZE : undefined;
 
-    // Same gesture content 5.6's now-removed StartRideDisplay legend had — reads the live
-    // preferences.workouts.loadIncrement setting (never hardcoded), just relocated here since
-    // the legend now lives in this overlay instead of the start-overlay dialog.
-    const gestureHintLegend = useMemo<WorkoutGestureHintLegendItem[]>(() => [
-        {
-            symbol: '◀ ▶',
-            label: 'Step back / forward',
-            description: 'Swipe left or right to step back or forward through the workout',
-        },
-        {
-            symbol: '▲ ▼',
-            label: `Load ±${loadIncrementPct}%`,
-            description: `Swipe up or down to raise or lower your target load by ${loadIncrementPct}%`,
-        },
-    ], [loadIncrementPct]);
+    // Shared with GPX/Video (getGestureHintContent()) so the three ride screens' gesture-hint
+    // copy can't drift apart for what is, per mode, the exact same swipe behaviour. A Workout ride
+    // always has a workout attached, so this always resolves to the "workoutAttached" content.
+    const gestureHintContent = useMemo(
+        () => getGestureHintContent({ workoutAttached: true, loadIncrementPct }),
+        [loadIncrementPct]
+    );
 
     // Measured, not analytically budgeted — unlike the 4.2 Storybook prototype (whose fixed-dp
     // frames couldn't rely on onLayout resolving under the Vite renderer), this is the real app,
@@ -179,7 +164,7 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                 </Dynamic>
             </View>
 
-            <WorkoutSwipeFeedback visible={feedback.visible} message={feedback.message} />
+            <RideSwipeFeedback visible={feedback.visible} message={feedback.message} />
 
             {menuProps && (
                 <RideMenu
@@ -205,11 +190,12 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
 
             {/* Sequenced strictly after StartRideDisplay clears, never alongside it (session 5.9
                 — replaces 5.6's StartRideDisplay-embedded legend). Visibility is entirely owned
-                by WorkoutRidePageService's gestureHint prop; this just renders what it's told. */}
-            {!startOverlayProps && gestureHint?.visible && (
-                <WorkoutGestureHintOverlay
-                    message={GESTURE_HINT_MESSAGE}
-                    legend={gestureHintLegend}
+                by RidePageService's gestureHint prop; this just renders what it's told. */}
+            {!startOverlayProps && gestureHint?.visible && gestureHintContent && (
+                <RideGestureHintOverlay
+                    message={gestureHintContent.message}
+                    legendIntro={gestureHintContent.legendIntro}
+                    legend={gestureHintContent.legend}
                     compact={isCompact}
                     onDismiss={onGestureHintDismissed}
                 />

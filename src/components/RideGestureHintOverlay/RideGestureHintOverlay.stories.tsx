@@ -2,10 +2,10 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
-import { WorkoutGestureHintOverlay } from './WorkoutGestureHintOverlay';
-import { WorkoutGestureHintLegendItem } from './types';
+import { RideGestureHintOverlay } from './RideGestureHintOverlay';
+import { RideGestureHintLegendItem } from './types';
 
-const LEGEND: WorkoutGestureHintLegendItem[] = [
+const LEGEND: RideGestureHintLegendItem[] = [
     {
         symbol: '◀ ▶',
         label: 'Step back / forward',
@@ -41,9 +41,9 @@ const backdropStyles = StyleSheet.create({
     },
 });
 
-const meta: Meta<typeof WorkoutGestureHintOverlay> = {
-    title: 'Components/WorkoutGestureHintOverlay',
-    component: WorkoutGestureHintOverlay,
+const meta: Meta<typeof RideGestureHintOverlay> = {
+    title: 'Components/RideGestureHintOverlay',
+    component: RideGestureHintOverlay,
     args: {
         message: 'Start pedalling to start the workout',
         legend: LEGEND,
@@ -54,7 +54,7 @@ const meta: Meta<typeof WorkoutGestureHintOverlay> = {
 
 export default meta;
 
-type Story = StoryObj<typeof WorkoutGestureHintOverlay>;
+type Story = StoryObj<typeof RideGestureHintOverlay>;
 
 export const Normal: Story = {
     args: { compact: false },

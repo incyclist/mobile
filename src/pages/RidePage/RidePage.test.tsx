@@ -142,7 +142,7 @@ jest.mock('../../hooks', () => ({
         const ReactActual = require('react');
         ReactActual.useEffect(() => () => effect(), []);
     },
-    useWorkoutRideGestures: () => ({
+    useRideGestures: () => ({
         gesture: undefined,
         feedback: { visible: false, message: '' },
         loadIncrement: 1,

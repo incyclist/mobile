@@ -1,1 +1,1 @@
-export * from './useWorkoutRideGestures';
+export * from './useRideGestures';

@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { Platform, View, StyleSheet } from 'react-native';
 import {
     RoutePoint,
     GPXRidePageDisplayProps,
@@ -12,6 +12,8 @@ import {
     FreeMap,
     Dynamic,
     WorkoutRideOverlay,
+    RideGestureHintOverlay,
+    RideSwipeFeedback,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors, textSizes } from '../../../theme';
@@ -21,6 +23,7 @@ import { IPosition } from '../../../components/StreetView/types';
 import { RideViewActionProps } from '../types';
 import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
+import { getGestureHintContent } from '../gestureHintContent';
 
 export interface GPXTourPageViewProps extends RideViewActionProps {
     displayProps: GPXRidePageDisplayProps;
@@ -30,10 +33,26 @@ const SV = React.memo(StreetView
 //    ,(prev,next)=>prev.position?.lat!==next.position?.lat || prev.position?.lng!==next.position?.lng || prev.position?.heading!==next.position?.heading
 )
 
+// Conditional import — same pattern as Workout/View.tsx / useRideGestures (session 5.4): keeps
+// Storybook (Vite/web) and any environment without the native module from crashing. `gesture`
+// (from useRideGestures) is already undefined on web/Storybook, so GestureDetector is simply
+// never rendered there even when this fallback resolves to `View`.
+let GestureDetector: any = View;
+try {
+    if (Platform.OS !== 'web') {
+        ({ GestureDetector } = require('react-native-gesture-handler'));
+    }
+} catch {
+    GestureDetector = View;
+}
+
 export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const {
         displayProps,
         rideObserver,
+        gesture,
+        feedback,
+        loadIncrementPct,
         onMenuOpen,
         onMenuClose,
         onCloseRidePage,
@@ -43,9 +62,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         getGraphActuals,
         onToggleCornerWidget,
         onStopWorkout,
+        onGestureHintDismissed,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,workoutAttached,graph,steps,dashboard,cornerWidget} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -64,6 +84,13 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
     // Additive branch, workout-mobile-hld-phase2.md §5 — see Video/View.tsx's identical comment.
     const comboActive = !!workoutAttached;
+
+    // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
+    // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
+    const gestureHintContent = useMemo(
+        () => getGestureHintContent({ workoutAttached, loadButtonMode, loadIncrementPct }),
+        [workoutAttached, loadButtonMode, loadIncrementPct]
+    );
 
     // Same visibility condition the existing corner map below already uses (unchanged, §1.3.1).
     const mapVisible = !isCompact && mainViewIsNotAMap && !!hasGpx && !!routeData?.points?.length;
@@ -136,34 +163,9 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
     const svPosition = displayPosition as IPosition | undefined;
 
-    return (
-        <View style={styles.container} testID='gpx-tour-page-view'>
-
-            {/* Street View lives outside the start-overlay gate on purpose: the panorama can
-                only start loading once the native view is mounted, so gating it on the overlay
-                being gone guaranteed the rider saw an empty screen for the whole load. It now
-                loads behind the overlay (which covers it via MainBackground) and the service
-                closes the overlay when 'Loaded' arrives. */}
-            { (rideView === 'sv') && (
-                <Dynamic
-                    observer={displayObserver}
-                    event='position-update'
-                    prop='position'
-                    transform={transformSVPosition}
-                >
-                    <SV
-                        position={svPosition}
-                        style={styles.fullScreenMap}
-                        onLoaded={onSVLoaded}
-                        onPanoramaChanged={onSVPanoramaChanged}
-                        onNoPanorama={onSVNoPanorama}
-                        onError={onSVError}
-                    />
-                </Dynamic>
-            )}
-
-            {/* Main content layer, conditionally hidden by start overlay */}
-            {!startOverlayProps && (
+    // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
+    // duplicating this whole subtree - same reasoning as Workout/View.tsx's identical `content`.
+    const mainContent = (
                 <View style={StyleSheet.absoluteFill}>
                     {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
                     { (rideView === 'map' || rideView === 'sat') && (
@@ -273,6 +275,56 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         onCloseRidePage={onCloseRidePage}
                     />
                 </View>
+    );
+
+    return (
+        <View style={styles.container} testID='gpx-tour-page-view'>
+
+            {/* Street View lives outside the start-overlay gate on purpose: the panorama can
+                only start loading once the native view is mounted, so gating it on the overlay
+                being gone guaranteed the rider saw an empty screen for the whole load. It now
+                loads behind the overlay (which covers it via MainBackground) and the service
+                closes the overlay when 'Loaded' arrives. */}
+            { (rideView === 'sv') && (
+                <Dynamic
+                    observer={displayObserver}
+                    event='position-update'
+                    prop='position'
+                    transform={transformSVPosition}
+                >
+                    <SV
+                        position={svPosition}
+                        style={styles.fullScreenMap}
+                        onLoaded={onSVLoaded}
+                        onPanoramaChanged={onSVPanoramaChanged}
+                        onNoPanorama={onSVNoPanorama}
+                        onError={onSVError}
+                    />
+                </Dynamic>
+            )}
+
+            {/* Main content layer, conditionally hidden by start overlay */}
+            {!startOverlayProps && (
+                gesture ? (
+                    <GestureDetector gesture={gesture}>
+                        {mainContent}
+                    </GestureDetector>
+                ) : mainContent
+            )}
+
+            {!startOverlayProps && <RideSwipeFeedback visible={feedback.visible} message={feedback.message} />}
+
+            {/* Sequenced strictly after StartRideDisplay clears, never alongside it - matches
+                Workout/View.tsx. Visibility is entirely owned by RidePageService's gestureHint
+                prop; this just renders what it's told (and gestureHintContent's mode gate). */}
+            {!startOverlayProps && gestureHint?.visible && gestureHintContent && (
+                <RideGestureHintOverlay
+                    message={gestureHintContent.message}
+                    legendIntro={gestureHintContent.legendIntro}
+                    legend={gestureHintContent.legend}
+                    compact={isCompact}
+                    onDismiss={onGestureHintDismissed}
+                />
             )}
 
             {/* Background shown during start overlay */}

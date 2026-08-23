@@ -6,6 +6,7 @@ import { VideoRidePageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
 import { useRidePageLifecycle } from '../hooks/useRidePageLifecycle';
 import { useRidePageBackgroundPause } from '../hooks/useRidePageBackgroundPause';
+import { useRideGestures } from '../../../hooks';
 
 interface VideoRidePageProps {
     simulate?: boolean;
@@ -15,6 +16,8 @@ interface VideoRidePageProps {
 }
 
 export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: VideoRidePageProps) => {
+    const { gesture, feedback, loadIncrement } = useRideGestures();
+
     const {
         displayProps,
         refService,
@@ -33,6 +36,10 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
     // RidePageService.onStopWorkout() (incyclist-services #519) — depends on that PR being merged
     // and released; do not build/release this PR before then.
     const onStopWorkout = useCallback(() => refService.current?.onStopWorkout(), [refService]);
+    const onGestureHintDismissed = useCallback(
+        (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
+        [refService]
+    );
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -48,6 +55,9 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
             <VideoRidePageView
                 displayProps={displayProps}
                 rideObserver={refRideObserver.current}
+                gesture={gesture}
+                feedback={feedback}
+                loadIncrementPct={loadIncrement}
                 onMenuOpen={onMenuOpen}
                 onMenuClose={onMenuClose}
                 onCloseRidePage={onClose}
@@ -57,6 +67,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
                 onStopWorkout={onStopWorkout}
+                onGestureHintDismissed={onGestureHintDismissed}
             />
         </ErrorBoundary>
     );

@@ -1,4 +1,4 @@
-export interface WorkoutSwipeFeedbackProps {
+export interface RideSwipeFeedbackProps {
     visible: boolean;
     message: string;
 }

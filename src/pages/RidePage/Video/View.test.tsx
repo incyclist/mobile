@@ -8,6 +8,8 @@ jest.mock('react-native-device-info', () => ({
 
 const mockStartRideDisplay = jest.fn();
 const mockWorkoutRideOverlay = jest.fn();
+const mockRideGestureHintOverlay = jest.fn();
+const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
     Video: () => null,
     Button: () => null,
@@ -18,6 +20,15 @@ jest.mock('../../../components', () => ({
     MainBackground: () => null,
     RideDashboard: () => null,
     RideMenu: () => null,
+    RideGestureHintOverlay: (props: any) => {
+        mockRideGestureHintOverlay(props);
+        const { Text } = require('react-native');
+        return <Text>gesture-hint-overlay</Text>;
+    },
+    RideSwipeFeedback: (props: any) => {
+        mockRideSwipeFeedback(props);
+        return null;
+    },
     StartRideDisplay: (props: any) => {
         mockStartRideDisplay(props);
         return null;
@@ -50,6 +61,9 @@ const baseProps: any = {
         route: undefined,
     },
     rideObserver: null,
+    gesture: undefined,
+    feedback: { visible: false, message: '' },
+    loadIncrementPct: 1,
     onMenuOpen: () => {},
     onMenuClose: () => {},
     onCloseRidePage: () => {},
@@ -59,6 +73,7 @@ const baseProps: any = {
     getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
+    onGestureHintDismissed: () => {},
 };
 
 describe('VideoRidePageView — start overlay "Start" button wiring', () => {
@@ -141,5 +156,102 @@ describe('VideoRidePageView — workout overlay branch', () => {
         );
         const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
         expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
+    });
+});
+
+// Regression: gesture wiring (useRideGestures, GestureDetector, RideGestureHintOverlay,
+// RideSwipeFeedback) was only ever attached to WorkoutRidePageView - VideoRidePageView had none
+// of it, even though RidePageService's adjustLoad()/onStepBack()/onStepForward() already worked
+// correctly for a plain Video ride. Mirrors GPX/View.test.tsx's identical suite.
+describe('VideoRidePageView — swipe-gesture surface', () => {
+    beforeEach(() => {
+        mockRideGestureHintOverlay.mockClear();
+        mockRideSwipeFeedback.mockClear();
+    });
+
+    it('forwards feedback.visible/message to RideSwipeFeedback',()=>{
+        render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={comboDisplayProps}
+                feedback={{ visible: true, message: '+1% (155W)' }}
+            />
+        );
+        expect(mockRideSwipeFeedback).toHaveBeenCalledWith(
+            expect.objectContaining({ visible: true, message: '+1% (155W)' })
+        );
+    });
+
+    it('does not render the gesture hint overlay while gestureHint is null',()=>{
+        const { queryByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={{ ...comboDisplayProps, gestureHint: null }} />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+
+    it('renders the gesture hint overlay with workout-attached content when a workout is attached',()=>{
+        const { getByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                loadIncrementPct={5}
+                displayProps={{ ...comboDisplayProps, gestureHint: { visible: true } }}
+            />
+        );
+        expect(getByText('gesture-hint-overlay')).toBeTruthy();
+        expect(mockRideGestureHintOverlay).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Start pedalling to start the workout' })
+        );
+        expect(mockRideGestureHintOverlay.mock.calls[0][0].legend).toEqual([
+            expect.objectContaining({ label: 'Step back / forward' }),
+            expect.objectContaining({ label: 'Load ±5%' }),
+        ]);
+    });
+
+    it('renders the gesture hint overlay with plain-gear content when no workout is attached',()=>{
+        const { getByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                loadIncrementPct={1}
+                displayProps={{
+                    ...comboDisplayProps,
+                    workoutAttached: false,
+                    loadButtonMode: 'gear',
+                    gestureHint: { visible: true },
+                }}
+            />
+        );
+        expect(getByText('gesture-hint-overlay')).toBeTruthy();
+        expect(mockRideGestureHintOverlay.mock.calls[0][0]).toEqual(
+            expect.objectContaining({ message: 'Start pedalling to start your ride', legendIntro: 'Swipe the screen to adjust your resistance:' })
+        );
+        expect(mockRideGestureHintOverlay.mock.calls[0][0].legend).toEqual([
+            expect.objectContaining({ label: 'Gear ±1' }),
+            expect.objectContaining({ label: 'Gear ±5' }),
+        ]);
+    });
+
+    it('does not render the gesture hint overlay when there is nothing useful to teach (hidden mode, no workout)',()=>{
+        const { queryByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{
+                    ...comboDisplayProps,
+                    workoutAttached: false,
+                    loadButtonMode: 'hidden',
+                    gestureHint: { visible: true },
+                }}
+            />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+
+    it('never renders the gesture hint overlay during the start overlay, even if gestureHint.visible is true',()=>{
+        const { queryByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{ ...baseProps.displayProps, workoutAttached: true, gestureHint: { visible: true } }}
+            />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
     });
 });

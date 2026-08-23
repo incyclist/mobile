@@ -3,11 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Button } from '../ButtonBar';
 import { BinarySelect } from '../BinarySelect';
 import { colors, textSizes } from '../../theme';
-import { WorkoutGestureHintOverlayProps } from './types';
+import { RideGestureHintOverlayProps } from './types';
 
 /**
  * First-ride education overlay teaching the ride screen's swipe gestures
- * (workout-mobile-hld.md §3.2 "WorkoutGestureHintOverlay", session 5.9).
+ * (workout-mobile-hld.md §3.2 "RideGestureHintOverlay", session 5.9).
  *
  * Deliberately NOT a Dialog — no modal chrome, no opaque backing. Renders as an
  * absolutely-positioned, full-bleed, transparent layer stacked on top of the live ride content
@@ -16,12 +16,13 @@ import { WorkoutGestureHintOverlayProps } from './types';
  * text legible without meaningfully dimming the rest of the screen. Touches outside the scrim
  * pass through to whatever's underneath (`pointerEvents="box-none"` on the full-bleed wrapper).
  *
- * Visibility is entirely owned by `WorkoutRidePageService` (`gestureHint` display prop) — this
+ * Visibility is entirely owned by `RidePageService` (`gestureHint` display prop) — this
  * component only renders what it's told (the caller gates rendering on `gestureHint !== null`)
  * and never inspects ride/activity state itself. Message/legend content arrive as props, not
- * hardcoded, so a future ride type (GPX/Video) can reuse this component with its own copy.
+ * hardcoded, so every ride screen that renders this (Workout, GPX, Video) supplies its own copy
+ * matched to what its swipe gestures actually do in the rider's current mode.
  */
-export const WorkoutGestureHintOverlay = (props: WorkoutGestureHintOverlayProps) => {
+export const RideGestureHintOverlay = (props: RideGestureHintOverlayProps) => {
     const {
         message,
         legendIntro = 'Swipe the screen to control your workout:',
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     },
     scrim: {
         // Reduced from an earlier 0.72 (2026-07-25 visual review against a simulated ride photo
-        // background, WorkoutGestureHintOverlay.stories.tsx's *OverRide stories) — 0.72 read as
+        // background, RideGestureHintOverlay.stories.tsx's *OverRide stories) — 0.72 read as
         // nearly opaque, hiding far more of the live ride screen behind it than the "stays
         // visible underneath" design intent called for. 0.5 keeps the text legible while letting
         // the dashboard/graph/photo behind it still read through clearly.

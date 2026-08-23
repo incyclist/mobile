@@ -19,6 +19,13 @@ try {
 export const WORKOUT_LOAD_INCREMENT_SETTING_KEY = 'preferences.workouts.loadIncrement';
 export const DEFAULT_WORKOUT_LOAD_INCREMENT = 1;
 
+// Left/right's "big adjustment" on a plain (no-workout) ride - matches web-ui's inc5/dec5 button
+// magnitude exactly (component.jsx: onClick={()=>onInc(5)}), a flat constant independent of the
+// user's own (small, up/down) loadIncrement setting. Any magnitude !== 1 already resolves to the
+// "large" step in RidePageService.adjustLoad() (ERG: nominal 50W) and WorkoutRideService.gearChange()
+// (gear: the raw magnitude itself, so 5 -> +-5 gears) - no services-layer change needed for this.
+export const LARGE_LOAD_INCREMENT = 5;
+
 // A swipe must clear a minimum distance OR speed to count - either is enough, so a slow-but-long
 // drag and a fast-but-short flick both register (full-screen target, sweaty/shaky hands under load).
 const SWIPE_DISTANCE_THRESHOLD = 60;
@@ -80,41 +87,59 @@ export const formatPowerAdjustment = (result: PowerAdjustmentResult | undefined)
     return result.type === 'ftp' ? ` (FTP: ${watts}W)` : ` (${watts}W)`;
 };
 
+// The nominal Watt step a plain (no-workout) ERG-mode swipe actually applies
+// (RidePageService.adjustLoad() -> RideDisplayService.adjustDevicePower()) - mirrors
+// WorkoutRideService.getPowerRangeDeltaVal()'s convention, kept in sync manually since it isn't
+// exported. Also used by gestureHintContent.ts (src/pages/RidePage/) for the hint overlay's legend.
+const nominalErgWatts = (increment: number) => (increment === 1 ? 5 : 50);
+
 // FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting enabled, adjustLoad() performs a
 // gear shift instead of a power/FTP nudge (WorkoutRideService.powerUp()/powerDown(), gear mode) -
 // the swipe feedback must say so, not claim a "%" power adjustment that didn't happen. `increment`
 // is always the raw magnitude actually applied (== the gearDelta WorkoutRideService.gearChange()
 // was called with), so it doubles as the gear-step count here.
+//
+// A plain (no-workout) ERG-mode adjustment also reports `{type:'targetPower'}` - same as a
+// workout's in-range nudge - but with `value: NaN` (RideDisplayService.adjustDevicePower() can't
+// know the resulting absolute Watts, only the delta it sent). That NaN is the signal to label it
+// with the nominal Watt step actually applied instead of `increment` as "%", which is meaningless
+// outside a workout (there is no FTP/range for it to be a percentage of).
 export const formatSwipeFeedback = (sign: '+' | '-', increment: number, result: PowerAdjustmentResult | undefined): string => {
     if (result?.type === 'gear') {
         return `${sign}${increment} gear`;
     }
+    if (result?.type === 'targetPower' && Number.isNaN(result.value)) {
+        return `${sign}${nominalErgWatts(increment)}W`;
+    }
     return `${sign}${increment}%${formatPowerAdjustment(result)}`;
 };
 
-export interface WorkoutRideGestureFeedback {
+export interface RideGestureFeedback {
     visible: boolean;
     message: string;
 }
 
-export interface UseWorkoutRideGesturesResult {
+export interface UseRideGesturesResult {
     /** Pass to <GestureDetector gesture={gesture}>; undefined on web/Storybook, where GestureDetector must not be rendered. */
     gesture: any;
-    feedback: WorkoutRideGestureFeedback;
+    feedback: RideGestureFeedback;
     /** Current `preferences.workouts.loadIncrement` setting (%) — read live, never hardcoded.
      * Exposed so callers (e.g. the StartRideDisplay gesture legend) can show the real value
      * without duplicating the useUserSettings() lookup this hook already does for swipe-up/down. */
     loadIncrement: number;
 }
 
-export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
-    const { logEvent, logError } = useLogging('WorkoutRideGestures');
+// Single factory (FIXES_BACKLOG #24) - getRidePageService() is a single ride-type-agnostic
+// RidePageService for Workout/GPX/Video rides alike (no per-ride-type subclass), so this hook
+// works unchanged wherever it's wired: the dedicated Workout ride, or a plain/combo GPX or Video
+// ride - adjustLoad()/onStepBack()/onStepForward() already branch internally on workout/cycling-mode
+// state (see RidePageService.adjustLoad(), §4.4.5) rather than relying on which screen called them.
+export const useRideGestures = (): UseRideGesturesResult => {
+    const { logEvent, logError } = useLogging('RideGestures');
     const userSettings = useUserSettings();
-    // Single factory (FIXES_BACKLOG #24) - this hook is only ever used on a workout ride
-    // (WorkoutRidePageView), so getRidePageService() always resolves to WorkoutRidePageService here.
     const service = getRidePageService();
 
-    const [feedback, setFeedback] = useState<WorkoutRideGestureFeedback>({ visible: false, message: '' });
+    const [feedback, setFeedback] = useState<RideGestureFeedback>({ visible: false, message: '' });
     const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const showFeedback = useCallback((message: string) => {
@@ -132,6 +157,60 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
         return Number(userSettings.getValue(WORKOUT_LOAD_INCREMENT_SETTING_KEY, DEFAULT_WORKOUT_LOAD_INCREMENT));
     }, [userSettings]);
 
+    // Vibration.vibrate() can throw natively (missing permission, no vibrator motor on this
+    // device) - that must never take down an in-progress ride over haptic feedback.
+    const vibrateIfPossible = useCallback(() => {
+        if (!canVibrate()) {
+            return;
+        }
+        try {
+            Vibration.vibrate(VIBRATION_DURATION_MS);
+        }
+        catch (err) {
+            logError(err as Error, 'handleSwipe - vibrate');
+        }
+    }, [logError]);
+
+    // Workout attached: left/right steps back/forward through it, unchanged since this hook was
+    // Workout-only.
+    const performStepSwipe = useCallback((direction: 'left' | 'right') => {
+        if (direction === 'left') {
+            logEvent({ message: 'gesture triggered', gesture: 'swipe-left', action: 'step-back', eventSource: 'user' });
+            service.onStepBack();
+            showFeedback('◀ Step Back');
+        }
+        else {
+            logEvent({ message: 'gesture triggered', gesture: 'swipe-right', action: 'step-forward', eventSource: 'user' });
+            service.onStepForward();
+            showFeedback('Step Forward ▶');
+        }
+    }, [logEvent, service, showFeedback]);
+
+    // No workout attached: left/right is the "big" load adjustment instead - up/down stays the
+    // fine one (the user's own loadIncrement setting), left/right is always the flat
+    // LARGE_LOAD_INCREMENT (matches web-ui's inc5/dec5 buttons), giving a bigger-jump option
+    // without adding a whole separate large-swipe gesture.
+    const performBigLoadSwipe = useCallback((direction: 'left' | 'right') => {
+        const increase = direction === 'right';
+        const sign = increase ? '+' : '-';
+        logEvent({
+            message: 'gesture triggered', gesture: `swipe-${direction}`,
+            action: increase ? 'increase-load-large' : 'decrease-load-large',
+            increment: LARGE_LOAD_INCREMENT, eventSource: 'user'
+        });
+        const result = service.adjustLoad(increase ? LARGE_LOAD_INCREMENT : -LARGE_LOAD_INCREMENT);
+        showFeedback(formatSwipeFeedback(sign, LARGE_LOAD_INCREMENT, result));
+    }, [logEvent, service, showFeedback]);
+
+    const performLoadSwipe = useCallback((direction: 'up' | 'down') => {
+        const increase = direction === 'up';
+        const sign = increase ? '+' : '-';
+        const increment = getLoadIncrement();
+        logEvent({ message: 'gesture triggered', gesture: `swipe-${direction}`, action: increase ? 'increase-load' : 'decrease-load', increment, eventSource: 'user' });
+        const result = service.adjustLoad(increase ? increment : -increment);
+        showFeedback(formatSwipeFeedback(sign, increment, result));
+    }, [logEvent, service, getLoadIncrement, showFeedback]);
+
     const handleSwipe = useCallback((direction: SwipeDirection) => {
         // FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting disabled there is no
         // gear concept and no power target to nudge, so a load-adjust swipe would be a silent
@@ -144,44 +223,32 @@ export const useWorkoutRideGestures = (): UseWorkoutRideGesturesResult => {
             return;
         }
 
-        // Vibration.vibrate() can throw natively (missing permission, no vibrator motor on this
-        // device) - that must never take down an in-progress ride over haptic feedback.
-        if (canVibrate()) {
-            try {
-                Vibration.vibrate(VIBRATION_DURATION_MS);
-            }
-            catch (err) {
-                logError(err as Error, 'handleSwipe - vibrate');
-            }
+        // Without a workout attached, left/right instead performs a "big" load adjustment - same as
+        // up/down, that has nothing to do in loadButtonMode==='hidden' (no gear concept, no power
+        // target), so it's disabled outright rather than showing a misleading toast.
+        if ((direction === 'left' || direction === 'right') && !service.isWorkoutAttached() && service.getLoadButtonMode() === 'hidden') {
+            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'no workout attached, loadButtonMode=hidden', eventSource: 'user' });
+            return;
         }
+
+        vibrateIfPossible();
 
         switch (direction) {
             case 'left':
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-left', action: 'step-back', eventSource: 'user' });
-                service.onStepBack();
-                showFeedback('◀ Step Back');
-                break;
             case 'right':
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-right', action: 'step-forward', eventSource: 'user' });
-                service.onStepForward();
-                showFeedback('Step Forward ▶');
+                if (service.isWorkoutAttached()) {
+                    performStepSwipe(direction);
+                }
+                else {
+                    performBigLoadSwipe(direction);
+                }
                 break;
-            case 'up': {
-                const increment = getLoadIncrement();
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });
-                const result = service.adjustLoad(increment);
-                showFeedback(formatSwipeFeedback('+', increment, result));
+            case 'up':
+            case 'down':
+                performLoadSwipe(direction);
                 break;
-            }
-            case 'down': {
-                const increment = getLoadIncrement();
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-down', action: 'decrease-load', increment, eventSource: 'user' });
-                const result = service.adjustLoad(-increment);
-                showFeedback(formatSwipeFeedback('-', increment, result));
-                break;
-            }
         }
-    }, [logEvent, logError, service, getLoadIncrement, showFeedback]);
+    }, [logEvent, service, vibrateIfPossible, performStepSwipe, performBigLoadSwipe, performLoadSwipe]);
 
     const gesture = useMemo(() => {
         if (!Gesture) {
