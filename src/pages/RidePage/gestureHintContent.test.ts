@@ -1,11 +1,13 @@
 import { getGestureHintContent } from './gestureHintContent';
+import { LARGE_LOAD_INCREMENT } from '../../hooks/ride/useRideGestures';
 
 describe('getGestureHintContent', () => {
 
-    test('workoutAttached: workout message + step-back/forward and load-% legend rows',()=>{
+    test('workoutAttached: workout message/legendIntro + step-back/forward and load-% legend rows',()=>{
         const content = getGestureHintContent({ workoutAttached: true, loadButtonMode: 'power', loadIncrementPct: 1 });
 
         expect(content?.message).toBe('Start pedalling to start the workout');
+        expect(content?.legendIntro).toBe('Swipe the screen to control your workout:');
         expect(content?.legend).toEqual([
             expect.objectContaining({ symbol: '◀ ▶', label: 'Step back / forward' }),
             expect.objectContaining({ symbol: '▲ ▼', label: 'Load ±1%' }),
@@ -18,27 +20,34 @@ describe('getGestureHintContent', () => {
         expect(content?.legend[1].label).toBe('Load ±5%');
     });
 
-    test('no workout, ERG mode: power legend with the nominal 5W step for loadIncrement=1',()=>{
+    // Regression: legendIntro/message previously defaulted to the component's workout-flavoured
+    // copy ("Swipe the screen to control your workout") for every mode, including a plain
+    // (no-workout) ride, which made no sense there - there is no workout to control.
+    test('no workout, ERG mode: resistance message/legendIntro, small (up/down) and big (left/right) legend rows',()=>{
         const content = getGestureHintContent({ workoutAttached: false, loadButtonMode: 'power', loadIncrementPct: 1 });
 
-        expect(content?.message).toBe('Start pedalling to begin your ride');
+        expect(content?.message).toBe('Start pedalling to start your ride');
+        expect(content?.legendIntro).toBe('Swipe the screen to adjust your resistance:');
         expect(content?.legend).toEqual([
             expect.objectContaining({ symbol: '▲ ▼', label: 'Power ±5W' }),
+            expect.objectContaining({ symbol: '◀ ▶', label: `Power ±50W` }),
         ]);
     });
 
-    test('no workout, ERG mode: nominal 50W step for any loadIncrement other than 1',()=>{
+    test('no workout, ERG mode: nominal 50W step for any loadIncrement other than 1 (up/down row only)',()=>{
         const content = getGestureHintContent({ workoutAttached: false, loadButtonMode: 'power', loadIncrementPct: 5 });
 
         expect(content?.legend[0].label).toBe('Power ±50W');
     });
 
-    test('no workout, gear mode: gear legend using the raw loadIncrement value directly (not the nominal Watt step)',()=>{
+    test('no workout, gear mode: gear legend using the raw loadIncrement for up/down, LARGE_LOAD_INCREMENT for left/right',()=>{
         const content = getGestureHintContent({ workoutAttached: false, loadButtonMode: 'gear', loadIncrementPct: 5 });
 
-        expect(content?.message).toBe('Start pedalling to begin your ride');
+        expect(content?.message).toBe('Start pedalling to start your ride');
+        expect(content?.legendIntro).toBe('Swipe the screen to adjust your resistance:');
         expect(content?.legend).toEqual([
             expect.objectContaining({ symbol: '▲ ▼', label: 'Gear ±5' }),
+            expect.objectContaining({ symbol: '◀ ▶', label: `Gear ±${LARGE_LOAD_INCREMENT}` }),
         ]);
     });
 

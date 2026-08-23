@@ -248,6 +248,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             {!startOverlayProps && gestureHint?.visible && gestureHintContent && (
                 <RideGestureHintOverlay
                     message={gestureHintContent.message}
+                    legendIntro={gestureHintContent.legendIntro}
                     legend={gestureHintContent.legend}
                     compact={isCompact}
                     onDismiss={onGestureHintDismissed}

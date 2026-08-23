@@ -19,6 +19,13 @@ try {
 export const WORKOUT_LOAD_INCREMENT_SETTING_KEY = 'preferences.workouts.loadIncrement';
 export const DEFAULT_WORKOUT_LOAD_INCREMENT = 1;
 
+// Left/right's "big adjustment" on a plain (no-workout) ride - matches web-ui's inc5/dec5 button
+// magnitude exactly (component.jsx: onClick={()=>onInc(5)}), a flat constant independent of the
+// user's own (small, up/down) loadIncrement setting. Any magnitude !== 1 already resolves to the
+// "large" step in RidePageService.adjustLoad() (ERG: nominal 50W) and WorkoutRideService.gearChange()
+// (gear: the raw magnitude itself, so 5 -> +-5 gears) - no services-layer change needed for this.
+export const LARGE_LOAD_INCREMENT = 5;
+
 // A swipe must clear a minimum distance OR speed to count - either is enough, so a slow-but-long
 // drag and a fast-but-short flick both register (full-screen target, sweaty/shaky hands under load).
 const SWIPE_DISTANCE_THRESHOLD = 60;
@@ -162,12 +169,11 @@ export const useRideGestures = (): UseRideGesturesResult => {
             return;
         }
 
-        // Step back/forward has nothing to step through without a workout attached -
-        // RidePageService.onStepBack()/onStepForward() already no-op safely in that case, but
-        // showing a "Step Back"/"Step Forward" toast anyway would be misleading on a plain
-        // GPX/Video ride, same reasoning as the loadButtonMode==='hidden' check above.
-        if ((direction === 'left' || direction === 'right') && !service.isWorkoutAttached()) {
-            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'no workout attached', eventSource: 'user' });
+        // Without a workout attached, left/right instead performs a "big" load adjustment (below) -
+        // same as up/down, that has nothing to do in loadButtonMode==='hidden' (no gear concept, no
+        // power target), so it's disabled outright rather than showing a misleading toast.
+        if ((direction === 'left' || direction === 'right') && !service.isWorkoutAttached() && service.getLoadButtonMode() === 'hidden') {
+            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'no workout attached, loadButtonMode=hidden', eventSource: 'user' });
             return;
         }
 
@@ -184,15 +190,35 @@ export const useRideGestures = (): UseRideGesturesResult => {
 
         switch (direction) {
             case 'left':
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-left', action: 'step-back', eventSource: 'user' });
-                service.onStepBack();
-                showFeedback('◀ Step Back');
+            case 'right': {
+                if (service.isWorkoutAttached()) {
+                    if (direction === 'left') {
+                        logEvent({ message: 'gesture triggered', gesture: 'swipe-left', action: 'step-back', eventSource: 'user' });
+                        service.onStepBack();
+                        showFeedback('◀ Step Back');
+                    }
+                    else {
+                        logEvent({ message: 'gesture triggered', gesture: 'swipe-right', action: 'step-forward', eventSource: 'user' });
+                        service.onStepForward();
+                        showFeedback('Step Forward ▶');
+                    }
+                }
+                else {
+                    // No workout attached: left/right is the "big" load adjustment instead - up/down
+                    // stays the fine one (the user's own loadIncrement setting), left/right is always
+                    // the flat LARGE_LOAD_INCREMENT (matches web-ui's inc5/dec5 buttons), giving a
+                    // bigger-jump option without adding a whole separate large-swipe gesture.
+                    const increase = direction === 'right';
+                    logEvent({
+                        message: 'gesture triggered', gesture: `swipe-${direction}`,
+                        action: increase ? 'increase-load-large' : 'decrease-load-large',
+                        increment: LARGE_LOAD_INCREMENT, eventSource: 'user'
+                    });
+                    const result = service.adjustLoad(increase ? LARGE_LOAD_INCREMENT : -LARGE_LOAD_INCREMENT);
+                    showFeedback(formatSwipeFeedback(increase ? '+' : '-', LARGE_LOAD_INCREMENT, result));
+                }
                 break;
-            case 'right':
-                logEvent({ message: 'gesture triggered', gesture: 'swipe-right', action: 'step-forward', eventSource: 'user' });
-                service.onStepForward();
-                showFeedback('Step Forward ▶');
-                break;
+            }
             case 'up': {
                 const increment = getLoadIncrement();
                 logEvent({ message: 'gesture triggered', gesture: 'swipe-up', action: 'increase-load', increment, eventSource: 'user' });

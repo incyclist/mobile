@@ -211,7 +211,7 @@ describe('VideoRidePageView — swipe-gesture surface', () => {
         const { getByText } = render(
             <VideoRidePageView
                 {...baseProps}
-                loadIncrementPct={5}
+                loadIncrementPct={1}
                 displayProps={{
                     ...comboDisplayProps,
                     workoutAttached: false,
@@ -222,9 +222,10 @@ describe('VideoRidePageView — swipe-gesture surface', () => {
         );
         expect(getByText('gesture-hint-overlay')).toBeTruthy();
         expect(mockRideGestureHintOverlay.mock.calls[0][0]).toEqual(
-            expect.objectContaining({ message: 'Start pedalling to begin your ride' })
+            expect.objectContaining({ message: 'Start pedalling to start your ride', legendIntro: 'Swipe the screen to adjust your resistance:' })
         );
         expect(mockRideGestureHintOverlay.mock.calls[0][0].legend).toEqual([
+            expect.objectContaining({ label: 'Gear ±1' }),
             expect.objectContaining({ label: 'Gear ±5' }),
         ]);
     });

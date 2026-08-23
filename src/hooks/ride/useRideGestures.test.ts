@@ -7,6 +7,7 @@ import {
     formatSwipeFeedback,
     DEFAULT_WORKOUT_LOAD_INCREMENT,
     WORKOUT_LOAD_INCREMENT_SETTING_KEY,
+    LARGE_LOAD_INCREMENT,
 } from './useRideGestures';
 
 const mockOnStepBack = jest.fn();
@@ -435,28 +436,22 @@ describe('useRideGestures', () => {
 
     // Regression: a plain GPX/Video ride with no workout attached has nothing for left/right to
     // step through - RidePageService.onStepBack()/onStepForward() already no-op safely, but the
-    // hook still showed a "Step Back"/"Step Forward" toast regardless, which is misleading when
-    // nothing actually happened. Mirrors the loadButtonMode==='hidden' pattern above, but for
-    // left/right instead of up/down.
+    // hook used to show a "Step Back"/"Step Forward" toast regardless, which was misleading when
+    // nothing actually happened.
+    //
+    // Superseded by the "big adjustment" feature below: left/right on a plain ride now performs a
+    // LARGE_LOAD_INCREMENT (5) load adjustment instead - up/down stays the fine one (the user's own
+    // loadIncrement setting). Only loadButtonMode==='hidden' (no gear concept, no power target)
+    // still leaves left/right fully suppressed, mirroring up/down's existing hidden-mode handling.
     describe('no workout attached (plain GPX/Video ride)', () => {
         beforeEach(() => {
             mockIsWorkoutAttached.mockReturnValue(false);
         });
 
-        it('ignores a left swipe entirely: no onStepBack call, no vibration, no feedback', () => {
+        it('performs a big (LARGE_LOAD_INCREMENT) ERG-mode adjustment on a right swipe, not step-forward', () => {
             const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
-            const { result } = renderHook(() => useRideGestures());
-
-            act(() => {
-                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
-            });
-
-            expect(mockOnStepBack).not.toHaveBeenCalled();
-            expect(vibrateSpy).not.toHaveBeenCalled();
-            expect(result.current.feedback).toEqual({ visible: false, message: '' });
-        });
-
-        it('ignores a right swipe entirely: no onStepForward call, no feedback', () => {
+            mockGetLoadButtonMode.mockReturnValue('power');
+            mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: NaN });
             const { result } = renderHook(() => useRideGestures());
 
             act(() => {
@@ -464,10 +459,54 @@ describe('useRideGestures', () => {
             });
 
             expect(mockOnStepForward).not.toHaveBeenCalled();
-            expect(result.current.feedback.visible).toBe(false);
+            expect(mockAdjustLoad).toHaveBeenCalledWith(LARGE_LOAD_INCREMENT);
+            expect(vibrateSpy).toHaveBeenCalled();
+            expect(result.current.feedback.message).toBe('+50W');
         });
 
-        it('leaves up/down (load-adjust swipes) unaffected', () => {
+        it('performs a big (negative) ERG-mode adjustment on a left swipe, not step-back',()=>{
+            mockGetLoadButtonMode.mockReturnValue('power');
+            mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: NaN });
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockOnStepBack).not.toHaveBeenCalled();
+            expect(mockAdjustLoad).toHaveBeenCalledWith(-LARGE_LOAD_INCREMENT);
+            expect(result.current.feedback.message).toBe('-50W');
+        });
+
+        it('performs a big (+/-5) gear adjustment on left/right when loadButtonMode is "gear"',()=>{
+            mockGetLoadButtonMode.mockReturnValue('gear');
+            mockAdjustLoad.mockReturnValue({ type: 'gear', value: 5 });
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: 100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).toHaveBeenCalledWith(LARGE_LOAD_INCREMENT);
+            expect(result.current.feedback.message).toBe('+5 gear');
+        });
+
+        it('leaves left/right fully suppressed when loadButtonMode is "hidden" - no adjustLoad call, no vibration, no feedback', () => {
+            mockGetLoadButtonMode.mockReturnValue('hidden');
+            const vibrateSpy = jest.spyOn(Vibration, 'vibrate');
+            const { result } = renderHook(() => useRideGestures());
+
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+
+            expect(mockAdjustLoad).not.toHaveBeenCalled();
+            expect(mockOnStepBack).not.toHaveBeenCalled();
+            expect(vibrateSpy).not.toHaveBeenCalled();
+            expect(result.current.feedback).toEqual({ visible: false, message: '' });
+        });
+
+        it('leaves up/down (the fine load-adjust swipe) unaffected', () => {
             mockGetValue.mockImplementation(() => 1);
             mockAdjustLoad.mockReturnValue({ type: 'targetPower', value: NaN });
             const { result } = renderHook(() => useRideGestures());
