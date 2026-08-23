@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Platform, View, StyleSheet } from 'react-native';
 import { VideoRidePageDisplayProps } from 'incyclist-services';
 import {
     Video,
@@ -10,7 +10,9 @@ import {
     MainBackground,
     FreeMap,
     Dynamic,
-    WorkoutRideOverlay
+    WorkoutRideOverlay,
+    RideGestureHintOverlay,
+    RideSwipeFeedback,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
@@ -19,15 +21,32 @@ import { RideViewActionProps } from '../types';
 import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { createSharedRideViewStyles } from './sharedRideViewStyles';
+import { getGestureHintContent } from '../gestureHintContent';
 
 interface VideoRidePageViewProps extends RideViewActionProps {
     displayProps: VideoRidePageDisplayProps;
+}
+
+// Conditional import — same pattern as Workout/View.tsx / useRideGestures (session 5.4): keeps
+// Storybook (Vite/web) and any environment without the native module from crashing. `gesture`
+// (from useRideGestures) is already undefined on web/Storybook, so GestureDetector is simply
+// never rendered there even when this fallback resolves to `View`.
+let GestureDetector: any = View;
+try {
+    if (Platform.OS !== 'web') {
+        ({ GestureDetector } = require('react-native-gesture-handler'));
+    }
+} catch {
+    GestureDetector = View;
 }
 
 export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const {
         displayProps,
         rideObserver,
+        gesture,
+        feedback,
+        loadIncrementPct,
         onMenuOpen,
         onMenuClose,
         onCloseRidePage,
@@ -37,9 +56,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         getGraphActuals,
         onToggleCornerWidget,
         onStopWorkout,
+        onGestureHintDismissed,
     } = props;
 
-    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget } = displayProps;
+    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint } = displayProps;
 
     // Derived properties
     const routeData = route?.details;
@@ -54,6 +74,13 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // untouched path below, exactly as today. `workoutAttached` is the service-side attachment
     // gate (workout-combo-service-design.md §4.2).
     const comboActive = !!workoutAttached;
+
+    // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
+    // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
+    const gestureHintContent = useMemo(
+        () => getGestureHintContent({ workoutAttached, loadButtonMode, loadIncrementPct }),
+        [workoutAttached, loadButtonMode, loadIncrementPct]
+    );
 
     // Same visibility condition the existing Map Overlay below already uses (unchanged) — reused
     // as the combo layout hook's `mapVisible` input (ride-overlay-layout-design.md §3.1).
@@ -83,23 +110,12 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
             : undefined;
     }, []);
 
-    return (
-        <View style={styles.container}>
-            {/* Everything below is rendered but made invisible during start overlay */}
-
-
-            { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
-                <View style={[
-                    shared.dashboardContainer,
-                    isCompact ? shared.dashboardCompact : shared.dashboardTablet,
-                    dashboardDynamicStyle
-                ]}>
-                    <View onLayout={updateDashboardDimensions}>
-                        <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
-                    </View>
-                </View>
-            </View>}
-
+    // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
+    // duplicating this whole subtree - same reasoning as Workout/View.tsx's identical `content`.
+    // Stays mounted (just invisible-styled) during the start overlay, unlike GPX/Workout's
+    // equivalent block, so gesture-wrapping must itself stay gated on !startOverlayProps below -
+    // otherwise a swipe could register while the start overlay is still showing.
+    const mainContent = (
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
                 {video && (
@@ -199,7 +215,44 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     onCloseRidePage={onCloseRidePage}
                 />
             </View>
+    );
 
+    return (
+        <View style={styles.container}>
+            {/* Everything below is rendered but made invisible during start overlay */}
+
+
+            { !startOverlayProps && <View style={[StyleSheet.absoluteFill]}>
+                <View style={[
+                    shared.dashboardContainer,
+                    isCompact ? shared.dashboardCompact : shared.dashboardTablet,
+                    dashboardDynamicStyle
+                ]}>
+                    <View onLayout={updateDashboardDimensions}>
+                        <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
+                    </View>
+                </View>
+            </View>}
+
+            {(!startOverlayProps && gesture) ? (
+                <GestureDetector gesture={gesture}>
+                    {mainContent}
+                </GestureDetector>
+            ) : mainContent}
+
+            {!startOverlayProps && <RideSwipeFeedback visible={feedback.visible} message={feedback.message} />}
+
+            {/* Sequenced strictly after StartRideDisplay clears, never alongside it - matches
+                Workout/View.tsx. Visibility is entirely owned by RidePageService's gestureHint
+                prop; this just renders what it's told (and gestureHintContent's mode gate). */}
+            {!startOverlayProps && gestureHint?.visible && gestureHintContent && (
+                <RideGestureHintOverlay
+                    message={gestureHintContent.message}
+                    legend={gestureHintContent.legend}
+                    compact={isCompact}
+                    onDismiss={onGestureHintDismissed}
+                />
+            )}
 
             {/* Background shown during start overlay */}
             {startOverlayProps && <MainBackground />}

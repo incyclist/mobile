@@ -82,7 +82,14 @@ jest.mock('incyclist-services', () => ({
         getGraphActuals: jest.fn(() => ({ power: [], heartrate: [], position: 0 })),
         onToggleCornerWidget: jest.fn(),
         onStopWorkout: jest.fn(),
+        onGestureHintDismissed: jest.fn(),
+        getLoadButtonMode: jest.fn(() => 'power'),
+        adjustLoad: jest.fn(),
+        onStepBack: jest.fn(),
+        onStepForward: jest.fn(),
     }),
+    // useRideGestures() (called by GPXTourPage itself, see #24) needs this too.
+    useUserSettings: () => ({ getValue: jest.fn(() => 1) }),
 }));
 
 const mockView = jest.fn();

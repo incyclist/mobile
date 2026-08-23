@@ -1,4 +1,5 @@
 import { IObserver, WorkoutGraphActuals } from 'incyclist-services';
+import type { RideGestureFeedback } from '../../hooks';
 
 /**
  * Action/handler props shared by the ride-page view components (`GPX/View.tsx`,
@@ -20,4 +21,10 @@ export interface RideViewActionProps {
     onToggleCornerWidget: () => void;
     /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3). */
     onStopWorkout: () => void;
+    /** From useRideGestures() — undefined on web/Storybook, where GestureDetector must not be used. */
+    gesture: any;
+    feedback: RideGestureFeedback;
+    /** Live `preferences.workouts.loadIncrement` setting — shown in the gesture-hint overlay's legend. */
+    loadIncrementPct: number;
+    onGestureHintDismissed: (props: { dontShowAgain: boolean }) => void;
 }

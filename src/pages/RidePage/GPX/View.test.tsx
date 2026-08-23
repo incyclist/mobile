@@ -8,6 +8,8 @@ jest.mock('react-native-device-info', () => ({
 
 const mockStartRideDisplay = jest.fn();
 const mockWorkoutRideOverlay = jest.fn();
+const mockRideGestureHintOverlay = jest.fn();
+const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
@@ -16,6 +18,15 @@ jest.mock('../../../components', () => ({
     MainBackground: () => null,
     RideDashboard: () => null,
     RideMenu: () => null,
+    RideGestureHintOverlay: (props: any) => {
+        mockRideGestureHintOverlay(props);
+        const { Text } = require('react-native');
+        return <Text>gesture-hint-overlay</Text>;
+    },
+    RideSwipeFeedback: (props: any) => {
+        mockRideSwipeFeedback(props);
+        return null;
+    },
     StartRideDisplay: (props: any) => {
         mockStartRideDisplay(props);
         return null;
@@ -50,6 +61,9 @@ const baseProps: GPXTourPageViewProps = {
         displayObserver: undefined,
     } as any,
     rideObserver: null,
+    gesture: undefined,
+    feedback: { visible: false, message: '' },
+    loadIncrementPct: 1,
     onMenuOpen: () => {},
     onMenuClose: () => {},
     onCloseRidePage: () => {},
@@ -59,6 +73,7 @@ const baseProps: GPXTourPageViewProps = {
     getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
+    onGestureHintDismissed: () => {},
 };
 
 const activeRouteProps = {
@@ -186,5 +201,108 @@ describe('GPXTourPageView — workout overlay branch', () => {
         );
         const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
         expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
+    });
+});
+
+// Regression: gesture wiring (useRideGestures, GestureDetector, RideGestureHintOverlay,
+// RideSwipeFeedback) was only ever attached to WorkoutRidePageView - GPXTourPageView had none of
+// it, even though RidePageService's adjustLoad()/onStepBack()/onStepForward() already worked
+// correctly for a plain GPX ride.
+describe('GPXTourPageView — swipe-gesture surface', () => {
+    beforeEach(() => {
+        mockRideGestureHintOverlay.mockClear();
+        mockRideSwipeFeedback.mockClear();
+    });
+
+    it('forwards feedback.visible/message to RideSwipeFeedback',()=>{
+        render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                feedback={{ visible: true, message: '+1% (155W)' }}
+            />
+        );
+        expect(mockRideSwipeFeedback).toHaveBeenCalledWith(
+            expect.objectContaining({ visible: true, message: '+1% (155W)' })
+        );
+    });
+
+    it('does not render the gesture hint overlay while gestureHint is null',()=>{
+        const { queryByText } = render(
+            <GPXTourPageView {...activeProps('map')} displayProps={{ ...activeProps('map').displayProps, gestureHint: null } as any} />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+
+    it('renders the gesture hint overlay with workout-attached content when a workout is attached',()=>{
+        const { getByText } = render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                loadIncrementPct={5}
+                displayProps={{
+                    ...activeProps('map').displayProps,
+                    gestureHint: { visible: true },
+                    workoutAttached: true,
+                } as any}
+            />
+        );
+        expect(getByText('gesture-hint-overlay')).toBeTruthy();
+        expect(mockRideGestureHintOverlay).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Start pedalling to start the workout' })
+        );
+        expect(mockRideGestureHintOverlay.mock.calls[0][0].legend).toEqual([
+            expect.objectContaining({ label: 'Step back / forward' }),
+            expect.objectContaining({ label: 'Load ±5%' }),
+        ]);
+    });
+
+    it('renders the gesture hint overlay with plain-ERG content when no workout is attached',()=>{
+        const { getByText } = render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                loadIncrementPct={1}
+                displayProps={{
+                    ...activeProps('map').displayProps,
+                    gestureHint: { visible: true },
+                    workoutAttached: false,
+                    loadButtonMode: 'power',
+                } as any}
+            />
+        );
+        expect(getByText('gesture-hint-overlay')).toBeTruthy();
+        expect(mockRideGestureHintOverlay.mock.calls[0][0]).toEqual(
+            expect.objectContaining({ message: 'Start pedalling to begin your ride' })
+        );
+        expect(mockRideGestureHintOverlay.mock.calls[0][0].legend).toEqual([
+            expect.objectContaining({ label: 'Power ±5W' }),
+        ]);
+    });
+
+    it('does not render the gesture hint overlay when there is nothing useful to teach (hidden mode, no workout)',()=>{
+        const { queryByText } = render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                displayProps={{
+                    ...activeProps('map').displayProps,
+                    gestureHint: { visible: true },
+                    workoutAttached: false,
+                    loadButtonMode: 'hidden',
+                } as any}
+            />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+
+    it('never renders the gesture hint overlay during the start overlay, even if gestureHint.visible is true',()=>{
+        const { queryByText } = render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{
+                    ...baseProps.displayProps,
+                    gestureHint: { visible: true },
+                    workoutAttached: true,
+                } as any}
+            />
+        );
+        expect(queryByText('gesture-hint-overlay')).toBeNull();
     });
 });

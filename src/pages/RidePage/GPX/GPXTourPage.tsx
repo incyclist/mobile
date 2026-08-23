@@ -5,6 +5,7 @@ import { colors } from '../../../theme';
 import { GPXTourPageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
 import { useRidePageLifecycle } from '../hooks/useRidePageLifecycle';
+import { useRideGestures } from '../../../hooks';
 
 interface GPXTourPageProps {
     simulate?: boolean;
@@ -14,6 +15,8 @@ interface GPXTourPageProps {
 }
 
 export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: GPXTourPageProps) => {
+    const { gesture, feedback, loadIncrement } = useRideGestures();
+
     const {
         displayProps,
         refService,
@@ -28,6 +31,10 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
     const onToggleCornerWidget = useCallback(() => refService.current?.onToggleCornerWidget(), [refService]);
     // "Stop Workout, keep riding" — see VideoRidePage.tsx's identical comment for the full rationale.
     const onStopWorkout = useCallback(() => refService.current?.onStopWorkout(), [refService]);
+    const onGestureHintDismissed = useCallback(
+        (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
+        [refService]
+    );
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -43,6 +50,9 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
             <GPXTourPageView
                 displayProps={displayProps}
                 rideObserver={refRideObserver.current}
+                gesture={gesture}
+                feedback={feedback}
+                loadIncrementPct={loadIncrement}
                 onMenuOpen={onMenuOpen}
                 onMenuClose={onMenuClose}
                 onCloseRidePage={onClose}
@@ -52,6 +62,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
                 onStopWorkout={onStopWorkout}
+                onGestureHintDismissed={onGestureHintDismissed}
             />
         </ErrorBoundary>
     );
