@@ -3,6 +3,7 @@ import { View, StyleSheet, Image } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { WorkoutRideOverlay } from './WorkoutRideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from './WorkoutDashboard.mock';
+import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
 import { colors } from '../../theme';
 
 /**
@@ -70,6 +71,19 @@ export const NoCornerMap: Story = {
  *  tablet viewport `cornerWidget` has no visible effect (only 'fallback' is a toggle). */
 export const FallbackWorkoutSlot: Story = {
     args: { cornerWidget: 'workout' },
+};
+
+/** A plain route ride, no workout attached — no `WorkoutDashboard`, just the ear occupants (map,
+ *  elevation preview, previous-rides ear). Resize the viewport the same way as `Default` to see
+ *  the one-member-column arrangement decide where the ears land. */
+export const NoWorkout: Story = {
+    args: {
+        graph: undefined,
+        steps: undefined,
+        dashboard: undefined,
+        cornerWidget: undefined,
+        prevRides: MOCK_ROWS,
+    },
 };
 
 const styles = StyleSheet.create({

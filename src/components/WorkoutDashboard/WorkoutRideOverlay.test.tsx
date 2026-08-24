@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { WorkoutRideOverlay, WorkoutRideOverlayProps } from './WorkoutRideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from './WorkoutDashboard.mock';
+import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
 
 // Same pattern useRideOverlayLayout.test.ts (session 3.2) uses — the hook reads the real browser
 // window via useWindowDimensions(), so tests drive it by mocking that module directly rather than
@@ -121,6 +122,85 @@ describe('WorkoutRideOverlay', () => {
         expect(() =>
             render(<WorkoutRideOverlay {...baseProps} itemCount={8} measuredRideDashboardHeight={93} />)
         ).not.toThrow();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// No workout attached — a plain route ride mounting this component for its ear occupants only.
+// graph/steps/dashboard are all absent together (never partially populated).
+// ---------------------------------------------------------------------------
+
+describe('WorkoutRideOverlay — no workout attached', () => {
+    const routeOnlyProps: WorkoutRideOverlayProps = {
+        mapVisible: true,
+        prevRides: MOCK_ROWS,
+        dashboardHeight: 80,
+        compact: false,
+        rideObserver: null,
+        getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
+        onToggleCornerWidget: () => {},
+        mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
+        transformPosition: () => undefined,
+        onStopWorkout: () => {},
+    };
+
+    it('block-side: renders the ear occupants (map, elevation, previous rides), no WorkoutDashboard', () => {
+        setDimensions(1400, 900); // block-side per ride-overlay-layout-design.md §8.1's table
+        const { getByTestId, queryByTestId, getAllByTestId } = render(<WorkoutRideOverlay {...routeOnlyProps} />);
+
+        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
+        expect(getByTestId('workout-ride-overlay-map')).toBeTruthy();
+        expect(getByTestId('workout-ride-overlay-elevation')).toBeTruthy();
+        expect(getByTestId('workout-ride-overlay-prev-rides')).toBeTruthy();
+        expect(getAllByTestId('prev-rides-row')).toHaveLength(MOCK_ROWS.length);
+    });
+
+    it('renders only the previous-rides ear when that is the only occupant populated (no map points, no workout)', () => {
+        setDimensions(1400, 900);
+        const { getByTestId, queryByTestId } = render(
+            <WorkoutRideOverlay {...routeOnlyProps} mapVisible={false} mapPoints={undefined} />
+        );
+
+        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-map')).toBeNull();
+        expect(getByTestId('workout-ride-overlay-elevation')).toBeTruthy();
+        expect(getByTestId('workout-ride-overlay-prev-rides')).toBeTruthy();
+    });
+
+    it('does not render the previous-rides ear when no rows are given', () => {
+        setDimensions(1400, 900);
+        const { queryByTestId } = render(<WorkoutRideOverlay {...routeOnlyProps} prevRides={undefined} />);
+
+        expect(queryByTestId('workout-ride-overlay-prev-rides')).toBeNull();
+    });
+
+    it('column-only: drops the ears entirely (no WorkoutDashboard, no crash on the now-optional props)', () => {
+        setDimensions(860, 480);
+        expect(() => render(<WorkoutRideOverlay {...routeOnlyProps} />)).not.toThrow();
+
+        const { queryByTestId } = render(<WorkoutRideOverlay {...routeOnlyProps} />);
+        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-map')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-elevation')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-prev-rides')).toBeNull();
+    });
+
+    it('fallback (compact): no WorkoutDashboard, no shoutout line, no Stop-Workout slot, no crash', () => {
+        setDimensions(844, 390); // height < 420 => compact => fallback
+        expect(() =>
+            render(<WorkoutRideOverlay {...routeOnlyProps} compact cornerWidget="elevation" />)
+        ).not.toThrow();
+
+        const { queryByTestId, getByTestId } = render(
+            <WorkoutRideOverlay {...routeOnlyProps} compact cornerWidget="elevation" />
+        );
+        expect(queryByTestId('workout-ride-overlay-dashboard')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-shoutout')).toBeNull();
+        expect(queryByTestId('workout-ride-overlay-stop-slot')).toBeNull();
+        // the corner slot itself still renders (elevation, in this case) — cycling between
+        // 'elevation' and 'prevRides' states on a plain ride is a later session's wiring, not this
+        // component's concern; it only guarantees no crash on the toggle path when graph is absent.
+        expect(getByTestId('workout-ride-overlay-elevation')).toBeTruthy();
     });
 });
 
