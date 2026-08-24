@@ -35,3 +35,16 @@ export interface PrevRidesRowComponentProps extends PrevRidesRowProps {
      *  rows computes it once and every row stays a plain, easily-tested pure component. */
     layout: ScreenLayout;
 }
+
+/**
+ * The phone corner slot's own geometry (top/left-or-right/width/height) — mirrors
+ * `useRideOverlayLayout()`'s `Rect` shape without importing it, since this component tree only
+ * ever needs a plain rect, not the hook's full layout-decision machinery.
+ */
+export interface PrevRidesSlotRect {
+    top: number;
+    left?: number;
+    right?: number;
+    width: number;
+    height: number;
+}
