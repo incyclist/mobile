@@ -157,7 +157,7 @@ export const FreeMapView = ({
                         draggable={draggable}
                         onDragEnd={handleDragEnd}
                     >
-                        <View style={styles.markerTouchTarget}>
+                        <View style={markerAvatar ? styles.prevRiderTouchTarget : styles.markerTouchTarget}>
                             {markerAvatar ? (
                                 <RiderAvatarMarker avatar={markerAvatar} />
                             ) : (

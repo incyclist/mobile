@@ -169,8 +169,11 @@ export const FreeMapView = ({
                         draggable={draggable}
                         onDragEnd={handleMarkerDragEnd}
                     >
-                        {/* Custom marker view with enlarged touch target */}
-                        <View style={styles.markerTouchTarget}>
+                        {/* Custom marker view - enlarged touch target only for the plain-circle
+                            fallback; the avatar wrapper must not declare a size that doesn't match
+                            RiderAvatarMarker's actual rendered content (a mismatch there is exactly
+                            what native code uses to compute the marker's true anchor frame). */}
+                        <View style={markerAvatar ? styles.prevRiderTouchTarget : styles.markerTouchTarget}>
                             {markerAvatar ? (
                                 <RiderAvatarMarker avatar={markerAvatar} />
                             ) : (
