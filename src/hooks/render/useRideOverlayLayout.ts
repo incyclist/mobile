@@ -8,9 +8,12 @@ import { useScreenLayout, ScreenLayout } from './useScreenLayout'
 // by session 3.2 - this file). Layered on top of `useScreenLayout()` (height-based compact/normal,
 // ~20 unrelated consumers app-wide) rather than replacing it - see design doc §5.2/§9 and HLD §5.2.
 //
-// Scope (design doc §2): this hook is only ever used for a route ride with a workout attached and
-// the combo toggle on. Route-only rides never call it - they keep today's rendering untouched, by
-// construction rather than by proving numeric equivalence with it.
+// Originally this hook was only ever used for a route ride with a workout attached and the combo
+// toggle on. It now also supports a `workoutAttached: false` path - a
+// one-member column (`RideDashboard` alone, no `WorkoutDashboard` width negotiation) so a plain
+// route ride can also arrange ears (e.g. for a previous-riders overlay). Wiring an actual route-only
+// call site up to this hook is a separate, later piece of work - this file only adds the hook's own
+// support for the case.
 
 // -----------------------------------------------------------------------------------------------
 // §7 - threshold constants.
@@ -286,6 +289,10 @@ export interface ComputeRideOverlayLayoutInput {
     measuredRideDashboardHeight?: number
     /** The arrangement currently in effect, for §8's hysteresis. `null`/`undefined` on first render. */
     previousArrangement?: RideOverlayArrangement | null
+    /** `false` collapses the column to `RideDashboard` alone: no `WorkoutDashboard`, no width
+     *  negotiation between two boxes. Defaults to `true` (today's only caller, the combo screen), so
+     *  every existing call site is unaffected. */
+    workoutAttached?: boolean
 }
 
 const buildFallback = (
@@ -337,6 +344,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         mapVisible,
         measuredRideDashboardHeight,
         previousArrangement = null,
+        workoutAttached = true,
     } = input
     const itemCount = input.itemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT
 
@@ -392,6 +400,12 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
     // -------------------------------------------------------------------------------------------
 
     // 1/2. side arrangements
+    //
+    // The block-side test itself does not depend on `workoutAttached` at all: block-side always sets
+    // W_wd = W_rd_eff (no negotiation), so the column width being tested beside the ears is the same
+    // whether or not a WorkoutDashboard actually occupies that width - block-side is reachable at
+    // any screen where the ears fit beside RideDashboard's own width, and this existing fits() check
+    // already generalizes to the one-member column without changes.
     const blockEarFloor = earFloorFor('block-side', previousArrangement)
     const blockEar = earWidthOf(screenWidth, rideDashboardWidthEffective)
     const blockFits = blockEar >= blockEarFloor && availableHeight(0, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT
@@ -401,11 +415,30 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         return {
             arrangement: 'block-side',
             rideDashboard: { width: rideDashboardWidth },
-            workoutDashboard: buildWorkoutDashboardRect(screenWidth, rideDashboardWidthEffective, hRd, hWd),
+            workoutDashboard: workoutAttached ? buildWorkoutDashboardRect(screenWidth, rideDashboardWidthEffective, hRd, hWd) : null,
             map,
             elevation,
             cornerSlotIsToggle: false,
-            inputs: { ...baseInputs, earWidth: blockEar, workoutDashboardWidth: rideDashboardWidthEffective },
+            inputs: workoutAttached
+                ? { ...baseInputs, earWidth: blockEar, workoutDashboardWidth: rideDashboardWidthEffective }
+                : { ...baseInputs, earWidth: blockEar },
+        }
+    }
+
+    // A one-member column has no WorkoutDashboard to narrow, so there is nothing analogous to
+    // the T-side rescue below - it needs a second box to trade width with the ears, which doesn't
+    // exist here. When the ears don't fit beside RideDashboard's own (unnegotiable) width, the only
+    // place left to land is `column-only` - dropping the ears rather than relocating them, exactly as
+    // the combo screen's own column-only does.
+    if (!workoutAttached) {
+        return {
+            arrangement: 'column-only',
+            rideDashboard: { width: rideDashboardWidth },
+            workoutDashboard: null,
+            map: null,
+            elevation: null,
+            cornerSlotIsToggle: false,
+            inputs: baseInputs,
         }
     }
 
@@ -447,11 +480,9 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
 export interface UseRideOverlayLayoutInput {
     /** From `RideDashboard`'s `onMetrics` report; defaults to `DEFAULT_ROUTE_RIDE_TILE_COUNT` (§3.2). */
     itemCount?: number
-    /** Reserved per the design doc's §9 signature. Per §2, this hook is only ever invoked when a
-     *  workout is attached (route-only rides bypass it entirely, by construction) - so it does not
-     *  participate in the arrangement decision (§4 invariant 1 lists only screenWidth, screenHeight,
-     *  screenLayout, itemCount and mapVisible as decision inputs). Kept here for interface parity
-     *  with the design doc and as a documented assumption a caller can rely on. */
+    /** `false` collapses the column to `RideDashboard` alone - no `WorkoutDashboard`, no width
+     *  negotiation between two boxes. One of the inputs the arrangement decision is a pure
+     *  function of, alongside screen size, dashboard width, and item count. */
     workoutAttached: boolean
     mapVisible: boolean
     measuredRideDashboardHeight?: number
@@ -502,6 +533,7 @@ export const useRideOverlayLayout = (input: UseRideOverlayLayoutInput): RideOver
         mapVisible: input.mapVisible,
         measuredRideDashboardHeight: input.measuredRideDashboardHeight,
         previousArrangement: previousArrangementRef.current,
+        workoutAttached: input.workoutAttached,
     })
 
     useEffect(() => {
