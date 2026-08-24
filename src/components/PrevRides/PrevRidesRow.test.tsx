@@ -2,11 +2,11 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { PrevRidesRow } from './PrevRidesRow';
 import { PrevRiderAvatar } from './PrevRiderAvatar';
-import { MOCK_ROW_LEADER, MOCK_ROW_CURRENT, MOCK_ROW_LAST, MOCK_ROW_MINIMAL } from './PrevRidesRow.mock';
+import { MOCK_ROW_LEADER, MOCK_ROW_CHASER, MOCK_ROW_CURRENT, MOCK_ROW_LAST, MOCK_ROW_MINIMAL } from './PrevRidesRow.mock';
 
 describe('PrevRidesRow', () => {
     describe('normal (tablet) tier', () => {
-        it('renders position, label, speed, power, heartrate, time gap and distance gap', () => {
+        it('renders position, label, speed, power, heartrate and time gap', () => {
             const { getByText } = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" />);
 
             expect(getByText('1')).toBeTruthy();
@@ -15,7 +15,13 @@ describe('PrevRidesRow', () => {
             expect(getByText('245 W')).toBeTruthy();
             expect(getByText('158 bpm')).toBeTruthy();
             expect(getByText('-1:24')).toBeTruthy();
-            expect(getByText('-420 m')).toBeTruthy();
+        });
+
+        it('shows distanceGap instead of timeGap when both are present (max 4 stats, never both)', () => {
+            const { getByText, queryByText } = render(<PrevRidesRow {...MOCK_ROW_CHASER} layout="normal" />);
+
+            expect(getByText('-95 m')).toBeTruthy();
+            expect(queryByText('-0:31')).toBeNull();
         });
 
         it('renders the avatar when present', () => {
@@ -107,7 +113,6 @@ describe('PrevRidesRow', () => {
             const { getByText } = render(<PrevRidesRow {...MOCK_ROW_LAST} layout="normal" />);
             expect(getByText('6')).toBeTruthy();
             expect(getByText('+4:12')).toBeTruthy();
-            expect(getByText('+1.8 km')).toBeTruthy();
         });
     });
 });

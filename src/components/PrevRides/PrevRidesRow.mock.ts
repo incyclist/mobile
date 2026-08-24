@@ -5,7 +5,6 @@ export const MOCK_ROW_LEADER: PrevRidesRowProps = {
     position: 1,
     label: '12.05.2026',
     timeGap: '-1:24',
-    distanceGap: '-420 m',
     isCurrent: false,
     avatar: { helmet: 'red', shirt: 'blue' },
     speed: 32.4,
@@ -13,6 +12,7 @@ export const MOCK_ROW_LEADER: PrevRidesRowProps = {
     heartrate: 158,
 };
 
+/** A row gapped by distance rather than time — the two are never both populated for a real row. */
 export const MOCK_ROW_CHASER: PrevRidesRowProps = {
     position: 2,
     label: '03.02.2026',
@@ -28,7 +28,6 @@ export const MOCK_ROW_CURRENT: PrevRidesRowProps = {
     position: 3,
     label: 'You',
     timeGap: '+0:00',
-    distanceGap: '+0 m',
     isCurrent: true,
     avatar: { helmet: 'orange', shirt: 'skyblue' },
     speed: 29.6,
@@ -40,7 +39,6 @@ export const MOCK_ROW_LAST: PrevRidesRowProps = {
     position: 6,
     label: '28.11.2025',
     timeGap: '+4:12',
-    distanceGap: '+1.8 km',
     isCurrent: false,
     avatar: { helmet: 'grey', shirt: 'brown' },
     speed: 24.3,

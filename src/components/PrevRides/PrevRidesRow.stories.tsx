@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { PrevRidesRow } from './PrevRidesRow';
 import { MOCK_ROW_LEADER, MOCK_ROW_CURRENT, MOCK_ROW_LAST, MOCK_ROW_MINIMAL } from './PrevRidesRow.mock';
@@ -8,10 +8,15 @@ import { colors } from '../../theme';
 /**
  * Tier-aware previous-rides row. `'normal'` (tablet ear) renders full desktop parity; `'compact'`
  * (phone corner-slot/expanded panel) renders position/label/time-gap only, regardless of what
- * else the row data carries. Frames below are fixed, landscape-oriented, and sized close to the
- * narrow columns this row actually renders inside on device — a ~220dp-wide side column for the
- * tablet tier, a ~170dp-wide corner slot for the phone tier — so truncation/overflow show up here
- * the same way they would on a real ride screen.
+ * else the row data carries. Frames below are fixed and landscape-oriented, with a translucent
+ * ride-screen backdrop (matching `WorkoutRideOverlay`'s story convention) since this row always
+ * renders on top of the live Video/GPX view, never on an opaque background.
+ *
+ * The tablet frame's 320dp width is an illustrative preview size, not a spec'd value — the real
+ * tablet ear width is computed by `useRideOverlayLayout()` from screen size and dashboard width,
+ * not owned by this component, and no minimum width is currently reserved for PrevRides in that
+ * algorithm. The phone frame's ~170dp corner slot is the one width this component actually has a
+ * documented floor for (design doc §6.3).
  */
 const meta: Meta<typeof PrevRidesRow> = {
     title: 'Components/PrevRides/PrevRidesRow',
@@ -25,6 +30,7 @@ type Story = StoryObj<typeof PrevRidesRow>;
 const tabletDecorator = [
     (Story: React.ComponentType) => (
         <View style={styles.tabletFrame}>
+            <Image source={{ uri: '/screenshot.jpg' }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             <Story />
         </View>
     ),
@@ -33,6 +39,7 @@ const tabletDecorator = [
 const phoneDecorator = [
     (Story: React.ComponentType) => (
         <View style={styles.phoneFrame}>
+            <Image source={{ uri: '/screenshot.jpg' }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             <Story />
         </View>
     ),
@@ -109,15 +116,20 @@ export const PhoneRepresentativeSet: Story = {
 };
 
 const styles = StyleSheet.create({
+    // 280dp is illustrative, not a spec'd value — the real tablet ear width is computed by
+    // useRideOverlayLayout() from screen size/dashboard width, not owned by this component. See
+    // this story's file-level comment.
     tabletFrame: {
-        width: 220,
+        width: 320,
         minHeight: 44,
         paddingVertical: 4,
         backgroundColor: colors.background,
+        overflow: 'hidden',
     },
     phoneFrame: {
         width: 169,
         minHeight: 24,
         backgroundColor: colors.background,
+        overflow: 'hidden',
     },
 });

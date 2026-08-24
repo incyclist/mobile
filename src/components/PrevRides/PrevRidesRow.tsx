@@ -8,7 +8,8 @@ import { PrevRidesRowComponentProps } from './types';
  * One row of the previous-rides comparison list, rendering the same underlying data differently
  * per screen tier:
  * - `'normal'` (tablet ear): full desktop parity — position, avatar, label, speed/power/heartrate,
- *   time gap, distance gap.
+ *   and a single gap value (time or distance — a row is never gapped by both, so the stats row
+ *   tops out at 4 items: speed, power, heartrate, gap).
  * - `'compact'` (phone corner-slot/expanded panel): position, label, time gap only. Avatar/speed/
  *   power/heartrate/distanceGap are never rendered here even when present on the prop object —
  *   enforcing the tier's field set is this component's job, not a reflection of what happens to be
@@ -19,6 +20,9 @@ import { PrevRidesRowComponentProps } from './types';
  */
 export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
     const { layout, position, label, timeGap, distanceGap, isCurrent, avatar, speed, power, heartrate } = props;
+    // A row is gapped by time OR distance, never both — if a caller ever sets both (it shouldn't),
+    // distanceGap wins so the stats row never exceeds its 4-item budget (speed/power/heartrate/gap).
+    const gap = distanceGap || timeGap;
 
     if (layout === 'compact') {
         return (
@@ -38,28 +42,30 @@ export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
         <View style={[styles.row, isCurrent && styles.rowCurrent]} testID="prev-rides-row">
             <Text style={[styles.position, isCurrent && styles.textCurrent]}>{position}</Text>
 
-            <View style={styles.avatarSlot}>{avatar ? <PrevRiderAvatar avatar={avatar} size={28} /> : null}</View>
-
-            <View style={styles.middle}>
-                <Text style={[styles.label, isCurrent && styles.textCurrent]} numberOfLines={1}>
-                    {label}
-                </Text>
-                <View style={styles.statsRow}>
-                    {speed !== undefined && <Text style={styles.stat}>{speed.toFixed(1)} km/h</Text>}
-                    {power !== undefined && <Text style={styles.stat}>{power.toFixed(0)} W</Text>}
-                    {heartrate !== undefined && <Text style={styles.stat}>{heartrate} bpm</Text>}
-                </View>
-            </View>
-
-            <View style={styles.gaps}>
-                <Text style={[styles.timeGap, isCurrent && styles.textCurrent]} numberOfLines={1}>
-                    {timeGap}
-                </Text>
-                {!!distanceGap && (
-                    <Text style={styles.distanceGap} numberOfLines={1}>
-                        {distanceGap}
+            <View style={styles.content}>
+                <View style={styles.topRow}>
+                    <View style={styles.avatarSlot}>
+                        {avatar ? <PrevRiderAvatar avatar={avatar} size={32} /> : null}
+                    </View>
+                    <Text style={[styles.label, isCurrent && styles.textCurrent]} numberOfLines={1}>
+                        {label}
                     </Text>
-                )}
+                </View>
+
+                <View style={styles.statsRow}>
+                    {speed !== undefined && (
+                        <Text style={styles.stat} numberOfLines={1}>{speed.toFixed(1)} km/h</Text>
+                    )}
+                    {power !== undefined && (
+                        <Text style={styles.stat} numberOfLines={1}>{power.toFixed(0)} W</Text>
+                    )}
+                    {heartrate !== undefined && (
+                        <Text style={styles.stat} numberOfLines={1}>{heartrate} bpm</Text>
+                    )}
+                    <Text style={[styles.timeGap, isCurrent && styles.textCurrent]} numberOfLines={1}>
+                        {gap}
+                    </Text>
+                </View>
             </View>
         </View>
     );
@@ -70,59 +76,61 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 4,
-        paddingHorizontal: 6,
-        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        gap: 12,
         borderLeftWidth: 3,
         borderLeftColor: 'transparent',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 8,
+        marginBottom: 3,
     },
     rowCurrent: {
         borderLeftColor: colors.buttonPrimary,
     },
     position: {
-        width: 18,
+        width: 30,
         textAlign: 'center',
         color: colors.text,
-        fontSize: textSizes.smallText,
+        fontSize: textSizes.listEntry,
         fontWeight: '700',
     },
+    content: {
+        flex: 1,
+        overflow: 'hidden',
+        gap: 4,
+    },
+    topRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     avatarSlot: {
-        width: 24,
+        width: 32,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    middle: {
-        flex: 1,
-        overflow: 'hidden',
-    },
     label: {
+        flex: 1,
         color: colors.text,
-        fontSize: textSizes.smallText,
+        fontSize: textSizes.listEntry,
         fontWeight: '600',
     },
     statsRow: {
         flexDirection: 'row',
-        gap: 8,
-        marginTop: 1,
+        gap: 10,
     },
     stat: {
         color: colors.text,
-        fontSize: textSizes.tinyText,
-        opacity: 0.85,
-    },
-    gaps: {
-        alignItems: 'flex-end',
-        minWidth: 52,
+        fontSize: textSizes.subtitle,
+        opacity: 0.75,
+        flexShrink: 0,
     },
     timeGap: {
         color: colors.text,
-        fontSize: textSizes.smallText,
+        fontSize: textSizes.subtitle,
         fontWeight: '700',
-    },
-    distanceGap: {
-        color: colors.text,
-        fontSize: textSizes.tinyText,
-        opacity: 0.85,
+        flexShrink: 0,
     },
     textCurrent: {
         color: colors.buttonPrimary,
@@ -137,6 +145,9 @@ const styles = StyleSheet.create({
         gap: 6,
         borderLeftWidth: 2,
         borderLeftColor: 'transparent',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 4,
+        marginBottom: 3,
     },
     rowCompactCurrent: {
         borderLeftColor: colors.buttonPrimary,
