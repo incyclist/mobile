@@ -10,6 +10,7 @@ module.exports = {
     '^react-native-device-info$': '<rootDir>/node_modules/react-native-device-info/jest/react-native-device-info-mock.js',
     '^react-native-linear-gradient$': '<rootDir>/__mocks__/react-native-linear-gradient.tsx',
     'react-native-maps': '<rootDir>/__mocks__/react-native-maps.tsx',
+    '^@maplibre/maplibre-react-native$': '<rootDir>/__mocks__/maplibre-react-native.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
     'react-native-safe-area-context': '<rootDir>/__mocks__/react-native-safe-area-context.ts',
     'react-native-inappbrowser-reborn': '<rootDir>/__mocks__/react-native-inappbrowser-reborn.ts',
