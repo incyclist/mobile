@@ -16,7 +16,7 @@ import { colors } from '../../theme';
  * tablet ear width is computed by `useRideOverlayLayout()` from screen size and dashboard width,
  * not owned by this component, and no minimum width is currently reserved for PrevRides in that
  * algorithm. The phone frame's ~170dp corner slot is the one width this component actually has a
- * documented floor for (design doc §6.3).
+ * documented floor for.
  */
 const meta: Meta<typeof PrevRidesRow> = {
     title: 'Components/PrevRides/PrevRidesRow',
