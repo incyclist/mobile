@@ -38,7 +38,7 @@ export const FreeMapView = ({
     prevRiderMarkers,
     markerAvatar,
 }: FreeMapViewProps) => {
-    const [mapStyle, setMapStyle] = useState(null);
+    const [mapStyle, setMapStyle] = useState<any>(null);
     const refBoundsApplied = useRef(false);
 
     useEffect(() => {
@@ -63,6 +63,15 @@ export const FreeMapView = ({
     }, [cameraProps.bounds]);
 
     const dynamicStyle = { width: width as DimensionValue, height: height as DimensionValue };
+
+    // MapLibre appends a newly-added layer to the very top of the style's layer stack by
+    // default - there's no built-in guarantee that annotations (markers) end up above data
+    // layers we add ourselves. Pinning the route layer directly above the base style's own
+    // topmost layer keeps it above the base map (roads/terrain/etc.) while leaving the true top
+    // of the stack free for annotations to land above, regardless of add-order timing. Computed
+    // from the already-fetched style rather than a hardcoded layer id, so it isn't tied to the
+    // specific tile provider's current layer naming.
+    const topBaseLayerId: string | undefined = mapStyle?.layers?.[mapStyle.layers.length - 1]?.id;
 
     const handleDragEnd = useCallback(
         (e: NativeSyntheticEvent<ViewAnnotationEvent>) => {
@@ -125,6 +134,7 @@ export const FreeMapView = ({
                     <Layer
                         id='routeLayer'
                         type='line'
+                        afterId={topBaseLayerId}
                         paint={{
                             'line-color': ['get', 'color'],
                             'line-width': 5,
