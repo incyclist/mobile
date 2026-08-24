@@ -164,26 +164,13 @@ export const FreeMapView = ({
 
                 {markerCoordinate && (
                     <Marker
-                        // Remounting once the initial fitToCoordinates camera animation has
-                        // settled is a cheap guard against the marker's screen position ever
-                        // being established mid-animation (observed on RouteDetailsDialog's map,
-                        // which fits the whole route on load - ride-screen maps don't do this and
-                        // weren't affected).
-                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}-${initialRegionSet}`}
+                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}`}
                         coordinate={toRNLatLng(markerCoordinate)}
                         draggable={draggable}
                         onDragEnd={handleMarkerDragEnd}
                     >
-                        {/* Custom marker view - enlarged touch target only for the plain-circle
-                            fallback; the avatar wrapper must not declare a size that doesn't match
-                            RiderAvatarMarker's actual rendered content (a mismatch there is exactly
-                            what native code uses to compute the marker's true anchor frame). */}
-                        <View style={markerAvatar ? styles.prevRiderTouchTarget : styles.markerTouchTarget}>
-                            {markerAvatar ? (
-                                <RiderAvatarMarker avatar={markerAvatar} />
-                            ) : (
-                                <View style={styles.marker} />
-                            )}
+                        <View style={styles.prevRiderTouchTarget}>
+                            <RiderAvatarMarker avatar={markerAvatar} />
                         </View>
                     </Marker>
                 )}
@@ -200,24 +187,9 @@ const styles = StyleSheet.create({
     map: {
         flex: 1,
     },
-    markerTouchTarget: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'transparent',
-    },
     prevRiderTouchTarget: {
         alignItems: 'center',
         justifyContent: 'flex-end',
         backgroundColor: 'transparent',
-    },
-    marker: {
-        height: 20,
-        width: 20,
-        backgroundColor: 'red',
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: 'white',
     },
 });

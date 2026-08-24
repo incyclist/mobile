@@ -41,7 +41,8 @@ describe('FreeMap prevRiders', () => {
         expect(coords).toContainEqual({ latitude: 52.521, longitude: 13.41 });
         expect(coords).toContainEqual({ latitude: 52.522, longitude: 13.42 });
 
-        expect(UNSAFE_root.findAllByType(RiderAvatarMarker)).toHaveLength(2);
+        // The current-rider marker also renders as an avatar now — one per previous rider, plus one.
+        expect(UNSAFE_root.findAllByType(RiderAvatarMarker)).toHaveLength(3);
     });
 
     it('accepts RoutePoint-shaped positions for previous riders (same as the current position prop)', () => {

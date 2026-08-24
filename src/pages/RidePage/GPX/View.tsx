@@ -183,11 +183,6 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                 zoomControl={false}
                                 scrollWheelZoom={false}
                                 style={styles.fullScreenMap}
-                                // TEMPORARY: on-device spike to verify avatar SVG markers render
-                                // correctly for the own-rider marker on both platforms, ahead of
-                                // wiring real per-user avatar data. Remove/replace with the real
-                                // value once verified.
-                                markerAvatar={{}}
                             />
                         </Dynamic>
                     )}
@@ -208,8 +203,6 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                     followPosition={true}
                                     colorActive='blue'
                                     colorInactive='rgba(255,255,255,0.4)'
-                                    // TEMPORARY: see main-map instance above.
-                                    markerAvatar={{}}
                                 />
                             </Dynamic>
                         </View>

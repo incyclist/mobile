@@ -102,8 +102,8 @@ export interface TFreeMapProps {
     // Previous riders' live positions (Race Against Yourself). Rendered alongside — never instead
     // of — the current rider's own marker, which is unaffected by this prop.
     prevRiders?: Array<PrevRiderMarker>;
-    // When set, the current rider's own position marker renders as an avatar SVG (same figure as
-    // `prevRiders`) instead of the plain red circle. Undefined preserves the original circle.
+    // Color customization for the current rider's own position marker, always rendered as an
+    // avatar SVG (same figure as `prevRiders`). Omit for default colors.
     markerAvatar?: AvatarConfig;
 }
 

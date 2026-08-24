@@ -45,8 +45,8 @@ describe('FreeMapView.ios', () => {
         expect(coords).toContainEqual({ latitude: 52.522, longitude: 13.42 });
         expect(coords).toContainEqual({ latitude: 52.52, longitude: 13.405 }); // current, unchanged
 
-        // Only the two previous riders get an avatar; the current marker keeps its plain red circle.
-        expect(UNSAFE_root.findAllByType(RiderAvatarMarker)).toHaveLength(2);
+        // The current-rider marker also renders as an avatar now — one per previous rider, plus one.
+        expect(UNSAFE_root.findAllByType(RiderAvatarMarker)).toHaveLength(3);
     });
 
     it('updates previous-rider marker positions when props change (re-render, not a stale tree)', () => {

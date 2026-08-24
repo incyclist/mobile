@@ -167,12 +167,8 @@ export const FreeMapView = ({
                         draggable={draggable}
                         onDragEnd={handleDragEnd}
                     >
-                        <View style={markerAvatar ? styles.prevRiderTouchTarget : styles.markerTouchTarget}>
-                            {markerAvatar ? (
-                                <RiderAvatarMarker avatar={markerAvatar} />
-                            ) : (
-                                <View style={styles.marker} />
-                            )}
+                        <View style={styles.prevRiderTouchTarget}>
+                            <RiderAvatarMarker avatar={markerAvatar} />
                         </View>
                     </ViewAnnotation>
                 )}
@@ -189,21 +185,6 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1,
-    },
-    marker: {
-        height: 20,
-        width: 20,
-        backgroundColor: 'red',
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: 'white',
-    },
-    markerTouchTarget: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'transparent',
     },
     prevRiderTouchTarget: {
         alignItems: 'center',

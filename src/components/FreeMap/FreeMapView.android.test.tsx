@@ -62,9 +62,9 @@ describe('FreeMapView.android', () => {
         expect(rider2?.props.lngLat).toEqual([13.42, 52.522]);
         expect(current?.props.lngLat).toEqual([13.405, 52.52]);
 
-        // Current-rider marker still renders the plain red-circle View — no avatar.
-        const currentAvatars = current ? UNSAFE_root.findAllByType(RiderAvatarMarker).length : 0;
-        expect(currentAvatars).toBe(2); // one per previous rider, none for current
+        // Current-rider marker also renders as an avatar now — one per previous rider, plus one.
+        expect(current).toBeDefined();
+        expect(UNSAFE_root.findAllByType(RiderAvatarMarker)).toHaveLength(3);
     });
 
     it('updates previous-rider marker positions when props change (re-render, not a stale tree)', async () => {

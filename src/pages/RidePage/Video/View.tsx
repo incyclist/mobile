@@ -170,11 +170,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                                 followPosition={true}
                                 colorActive='blue'
                                 colorInactive='rgba(255,255,255,0.4)'
-                                // TEMPORARY: on-device spike to verify avatar SVG markers render
-                                // correctly for the own-rider marker on both platforms, ahead of
-                                // wiring real per-user avatar data. Remove/replace with the real
-                                // value once verified.
-                                markerAvatar={{}}
                             />
                         </Dynamic>
                     </View>
