@@ -409,6 +409,88 @@ describe('RideOverlayArrangement', () => {
     })
 })
 
+// Session 2.1 (Race Against Yourself): a one-member column - RideDashboard alone, no
+// WorkoutDashboard - for a plain route ride that still needs ear arrangement (e.g. a previous-riders
+// overlay). `workoutAttached: false` reuses the exact same block-side fit-check as the combo screen
+// (it was never combo-specific), but there is no second widget to narrow when that check fails, so
+// there is no t-side equivalent for a one-member column - the cascade goes straight from block-side
+// to column-only. Each case below reuses one of the combo screen sizes from the arrangements suite
+// above, at the same itemCount, so the comparison is apples-to-apples.
+describe('computeRideOverlayLayout - workoutAttached: false (one-member column)', () => {
+    it('1400x900, N=7: block-side, same as the combo case - the block-side test does not depend on WorkoutDashboard', () => {
+        const combo = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
+        const routeOnly = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
+
+        expect(combo.arrangement).toBe('block-side')
+        expect(routeOnly.arrangement).toBe('block-side') // at least as permissive: identical, not worse
+        expect(routeOnly.workoutDashboard).toBeNull()
+        expect(routeOnly.inputs.earWidth).toBe(combo.inputs.earWidth) // the ear test itself is unchanged
+        expect(routeOnly.map).not.toBeNull()
+        expect(routeOnly.elevation).not.toBeNull()
+        expect(routeOnly.cornerSlotIsToggle).toBe(false)
+    })
+
+    // At 1280x800/N=7 the combo screen only reaches ears at all by narrowing WorkoutDashboard down to
+    // buy the ears their floor (t-side, §12 of the layout doc). A one-member column has no
+    // WorkoutDashboard to narrow - RideDashboard's own (unnegotiable) width leaves the ears below
+    // their floor here (184.2 < 200, the same number the block-side test already documents above), so
+    // this lands on column-only rather than reproducing t-side. This is not "harder to reach" in the
+    // sense the design doc means: `block-side` - the one arrangement that IS in both cascades - has an
+    // identical, unworsened threshold (previous test); column-only is what a one-member column falls
+    // to instead of needing a rescue mechanism it structurally cannot have.
+    it('1280x800, N=7: falls to column-only - there is no WorkoutDashboard to narrow for a t-side rescue', () => {
+        const combo = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
+        const routeOnly = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
+
+        expect(combo.arrangement).toBe('t-side')
+        expect(routeOnly.arrangement).toBe('column-only')
+        expect(routeOnly.workoutDashboard).toBeNull()
+        expect(routeOnly.map).toBeNull()
+        expect(routeOnly.elevation).toBeNull()
+        // RideDashboard itself is never compromised either way - unlike combo's t-side, which narrows
+        // WorkoutDashboard, a one-member column always renders RideDashboard at its own full width.
+        expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
+    })
+
+    it('640x430, N=7: column-only, same as the combo case - neither cascade has a side arrangement that fits here', () => {
+        const combo = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
+        const routeOnly = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
+
+        expect(combo.arrangement).toBe('column-only')
+        expect(routeOnly.arrangement).toBe('column-only') // at least as permissive: identical, not worse
+        expect(routeOnly.workoutDashboard).toBeNull()
+        expect(routeOnly.map).toBeNull()
+        expect(routeOnly.elevation).toBeNull()
+        expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
+    })
+
+    it('844x390 (phone landscape), any N: fallback, same as the combo case - compact is unaffected by workoutAttached', () => {
+        const combo = computeRideOverlayLayout({ screenWidth: 844, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true, workoutAttached: true })
+        const routeOnly = computeRideOverlayLayout({ screenWidth: 844, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true, workoutAttached: false })
+
+        expect(combo.arrangement).toBe('fallback')
+        expect(routeOnly.arrangement).toBe('fallback') // at least as permissive: identical, not worse
+        expect(routeOnly.workoutDashboard).toBeNull()
+        expect(routeOnly.map).toBeNull()
+        expect(routeOnly.cornerSlotIsToggle).toBe(true)
+        expect(routeOnly.elevation).toEqual(combo.elevation) // the fallback corner slot is unaffected
+    })
+
+    it('defaults workoutAttached to true when omitted - every pre-existing call site is unaffected', () => {
+        const withDefault = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const explicitTrue = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
+        expect(withDefault).toEqual(explicitTrue)
+    })
+
+    it('the hook itself forwards workoutAttached: false through to a one-member column', () => {
+        setDimensions(1400, 900)
+        const { result } = renderHook(() => useRideOverlayLayout({ itemCount: 7, workoutAttached: false, mapVisible: true }))
+        expect(result.current.arrangement).toBe('block-side')
+        expect(result.current.workoutDashboard).toBeNull()
+        expect(result.current.map).not.toBeNull()
+    })
+})
+
 // Documents SIDE_WIDGET_MIN_WIDTH's role as "the single most consequential number" (design doc §7.2)
 // without hardcoding a duplicate of the production value.
 describe('constants', () => {
