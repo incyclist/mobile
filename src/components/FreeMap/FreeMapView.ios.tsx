@@ -164,7 +164,12 @@ export const FreeMapView = ({
 
                 {markerCoordinate && (
                     <Marker
-                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}`}
+                        // Remounting once the initial fitToCoordinates camera animation has
+                        // settled is a cheap guard against the marker's screen position ever
+                        // being established mid-animation (observed on RouteDetailsDialog's map,
+                        // which fits the whole route on load - ride-screen maps don't do this and
+                        // weren't affected).
+                        key={`marker-${markerCoordinate[0].toFixed(5)}-${markerCoordinate[1].toFixed(5)}-${initialRegionSet}`}
                         coordinate={toRNLatLng(markerCoordinate)}
                         draggable={draggable}
                         onDragEnd={handleMarkerDragEnd}
