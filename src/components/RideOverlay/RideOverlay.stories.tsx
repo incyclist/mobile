@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { WorkoutRideOverlay } from './WorkoutRideOverlay';
-import { MOCK_DASHBOARD_MID_INTERVAL } from './WorkoutDashboard.mock';
+import { RideOverlay } from './RideOverlay';
+import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
+import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
 import { colors } from '../../theme';
 
 /**
@@ -20,9 +21,9 @@ import { colors } from '../../theme';
  * — that story remains the regression reference for "does this look right"; this one exists to
  * confirm the real, wired-up component renders the same shapes from the same hook.
  */
-const meta: Meta<typeof WorkoutRideOverlay> = {
-    title: 'Components/WorkoutDashboard/WorkoutRideOverlay',
-    component: WorkoutRideOverlay,
+const meta: Meta<typeof RideOverlay> = {
+    title: 'Components/RideOverlay',
+    component: RideOverlay,
     args: {
         mapVisible: true,
         graph: MOCK_DASHBOARD_MID_INTERVAL.graph,
@@ -54,7 +55,7 @@ const meta: Meta<typeof WorkoutRideOverlay> = {
 
 export default meta;
 
-type Story = StoryObj<typeof WorkoutRideOverlay>;
+type Story = StoryObj<typeof RideOverlay>;
 
 /** Resize the Storybook viewport (toolbar) to see block-side / t-side / column-only / fallback. */
 export const Default: Story = {};
@@ -70,6 +71,19 @@ export const NoCornerMap: Story = {
  *  tablet viewport `cornerWidget` has no visible effect (only 'fallback' is a toggle). */
 export const FallbackWorkoutSlot: Story = {
     args: { cornerWidget: 'workout' },
+};
+
+/** A plain route ride, no workout attached — no `WorkoutDashboard`, just the ear occupants (map,
+ *  elevation preview, previous-rides ear). Resize the viewport the same way as `Default` to see
+ *  the one-member-column arrangement decide where the ears land. */
+export const NoWorkout: Story = {
+    args: {
+        graph: undefined,
+        steps: undefined,
+        dashboard: undefined,
+        cornerWidget: undefined,
+        prevRides: MOCK_ROWS,
+    },
 };
 
 const styles = StyleSheet.create({

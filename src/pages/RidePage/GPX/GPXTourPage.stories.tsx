@@ -101,10 +101,10 @@ export const MapNoCornerMap: Story = {
 };
 
 // ---------------------------------------------------------------------------
-// Workout overlay (session 5.1 — workout-mobile-hld-phase2.md §5). Real `WorkoutRideOverlay`
+// Workout overlay (session 5.1 — workout-mobile-hld-phase2.md §5). Real `RideOverlay`
 // via `useRideOverlayLayout()`, so the arrangement (block-side/t-side/column-only/fallback) tracks
 // whichever Storybook viewport is active — resize the toolbar viewport picker to see it re-decide,
-// same as `Components/WorkoutDashboard/WorkoutRideOverlay` does directly.
+// same as `Components/RideOverlay` does directly.
 // ---------------------------------------------------------------------------
 
 const comboDisplayProps = {

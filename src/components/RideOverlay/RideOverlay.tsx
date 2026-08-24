@@ -1,33 +1,33 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { IObserver, RouteApiDetail, RoutePoint, WorkoutGraphActuals } from 'incyclist-services';
-import { WorkoutDashboard } from './WorkoutDashboard';
-import { StopWorkoutButton } from './StopWorkoutButton';
+import { WorkoutDashboard } from '../WorkoutDashboard/WorkoutDashboard';
+import { StopWorkoutButton } from '../WorkoutDashboard/StopWorkoutButton';
 import { Dynamic } from '../Dynamic';
 import { ElevationGraph } from '../ElevationGraph';
 import { FreeMap } from '../FreeMap';
 import { WorkoutGraph } from '../WorkoutGraph';
-import { useRideOverlayLayout, type Rect } from '../../hooks/render/useRideOverlayLayout';
+import { PrevRidesRow, type PrevRidesRowProps } from '../PrevRides';
+import { useRideOverlayLayout, BOTTOM_BAR_RATIO, SLOT_GAP, type Rect } from '../../hooks/render/useRideOverlayLayout';
 import { colors, textSizes } from '../../theme';
-import type { WorkoutDashboardLine, WorkoutGraphPlan, WorkoutUpcomingSteps } from './types';
+import type { WorkoutDashboardLine, WorkoutGraphPlan, WorkoutUpcomingSteps } from '../WorkoutDashboard/types';
 
 /**
- * The combined route+workout ride screen's floating overlay — `WorkoutDashboard` plus the
- * side-region occupants (corner map / 2 km elevation preview, or the fallback's 2-way toggle
- * slot), all positioned per `useRideOverlayLayout()`'s resolved arrangement
- * (`ride-overlay-layout-design.md` §5, `workout-mobile-hld-phase2.md` §5/§8). Shared between
- * `VideoRidePageView` and `GPXTourPageView` (session 5.1) — the two pages' combo assembly is
- * otherwise identical (same widget set, same rects), only their full-screen main view (Video vs.
- * Map/StreetView) differs, and that stays entirely outside this component.
+ * The route ride screen's floating overlay — the side-region occupants (corner map / 2 km
+ * elevation preview / previous-rides ear, or the phone fallback's toggle slot), plus
+ * `WorkoutDashboard` whenever a workout is attached, all positioned per
+ * `useRideOverlayLayout()`'s resolved arrangement. Shared between `VideoRidePageView` and
+ * `GPXTourPageView` — the two pages' overlay assembly is otherwise identical (same widget set,
+ * same rects), only their full-screen main view (Video vs. Map/StreetView) differs, and that
+ * stays entirely outside this component.
  *
- * Everything about *whether* to show a workout overlay at all (`workoutAttached`) is decided by
- * the caller, which renders this component only in that case — so `useRideOverlayLayout()`
- * (called INSIDE this component, not passed in as a prop) is never invoked for a route-only ride,
- * satisfying design doc §2 ("route-only rides never call it — by construction") structurally
- * rather than by discipline at the call site: the hook simply isn't reachable unless this
- * component is mounted.
+ * `graph`/`steps`/`dashboard` are populated together, only when a workout is attached to the
+ * ride; when they're absent this renders a plain route ride's ear occupants (map, elevation
+ * preview, previous-rides list) with no `WorkoutDashboard` and no workout-specific controls. The
+ * position math and corner-widget cycling below are not workout-specific, so a route-only ride
+ * mounting this component reuses all of it unchanged.
  */
-export interface WorkoutRideOverlayProps {
+export interface RideOverlayProps {
     /** From `RideDashboard`'s `onMetrics` report; defaults to 7 inside the hook until the first report lands. */
     itemCount?: number;
     mapVisible: boolean;
@@ -35,13 +35,20 @@ export interface WorkoutRideOverlayProps {
      *  already measure this via `onLayout` for their own dashboard-band positioning; pass that
      *  same value here rather than letting the hook fall back to its screen-fraction estimate. */
     measuredRideDashboardHeight?: number;
-    /** The workout half of `RidePageDisplayProps` — all three are populated together whenever
-     *  `workoutAttached` is true (`workout-combo-service-design.md` §4.4.2's `buildWorkoutOverlayProps`). */
-    graph: WorkoutGraphPlan;
-    steps: WorkoutUpcomingSteps;
-    dashboard: WorkoutDashboardLine;
-    /** `undefined` unless a workout is attached AND the combo toggle is on (already gated
-     *  service-side by `RidePageService.getCornerWidget()`); only meaningful in `'fallback'`. */
+    /** The workout half of `RidePageDisplayProps` — all three are populated together whenever a
+     *  workout is attached to the ride; all three absent renders a plain route ride instead (no
+     *  `WorkoutDashboard`, no workout-specific controls — just the ear occupants below). */
+    graph?: WorkoutGraphPlan;
+    steps?: WorkoutUpcomingSteps;
+    dashboard?: WorkoutDashboardLine;
+    /** Previous-riders comparison rows for the right ear, stacked below the elevation preview
+     *  when ear space is available (non-compact, non-fallback arrangements). Row count/eligibility
+     *  is decided by the caller — this component lays out whatever it's given. */
+    prevRides?: PrevRidesRowProps[];
+    /** `undefined` unless the fallback corner-slot toggle is on (already gated service-side by
+     *  `RidePageService.getCornerWidget()`); only meaningful in `'fallback'`. This component
+     *  doesn't decide which states are available — it renders whichever value it's given and
+     *  calls `onToggleCornerWidget` on tap. */
     cornerWidget?: 'elevation' | 'workout';
     /** Measured, not estimated — same value as `measuredRideDashboardHeight` (§5.4a's fallback
      *  shoutout sits directly below `RideDashboard`, exactly like the corner slot), falling back
@@ -75,7 +82,7 @@ const rectStyle = (rect: Rect) => ({
     height: rect.height,
 });
 
-export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
+export const RideOverlay = (props: RideOverlayProps) => {
     const {
         itemCount,
         mapVisible,
@@ -83,6 +90,7 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
         graph,
         steps,
         dashboard,
+        prevRides,
         cornerWidget,
         dashboardHeight,
         compact,
@@ -96,19 +104,22 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
         onStopWorkout,
     } = props;
 
-    const { workoutDashboard, map, elevation, cornerSlotIsToggle, arrangement } = useRideOverlayLayout({
+    // graph/steps/dashboard are populated together — see the class doc above.
+    const workoutAttached = Boolean(graph && steps && dashboard);
+
+    const { workoutDashboard, map, elevation, cornerSlotIsToggle, arrangement, inputs } = useRideOverlayLayout({
         itemCount,
-        workoutAttached: true, // this component only ever mounts when it is (see the class doc above)
+        workoutAttached,
         mapVisible,
         measuredRideDashboardHeight,
     });
 
     return (
         <>
-            {/* --- WorkoutDashboard — null only in 'fallback' (§5.8) --------------------------- */}
-            {workoutDashboard && (
+            {/* --- WorkoutDashboard — null in 'fallback' (§5.8), and whenever no workout is attached */}
+            {workoutDashboard && graph && steps && dashboard && (
                 <View
-                    testID="workout-ride-overlay-dashboard"
+                    testID="ride-overlay-dashboard"
                     style={[
                         styles.absolute,
                         {
@@ -133,7 +144,7 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
 
             {/* --- Corner orientation map — null when !mapVisible or 'fallback' ----------- */}
             {map && mapPoints && mapPoints.length > 0 && (
-                <View testID="workout-ride-overlay-map" style={[styles.cornerWidget, rectStyle(map)]}>
+                <View testID="ride-overlay-map" style={[styles.cornerWidget, rectStyle(map)]}>
                     <Dynamic observer={rideObserver ?? undefined} event="position-update" prop="position" transform={transformPosition}>
                         <FreeMap
                             points={mapPoints}
@@ -150,16 +161,16 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
                     toggle slot (ride-overlay-layout-design.md §6.2(b)). Absent in 'column-only',
                     where both corner widgets are dropped so the main view keeps the screen. ---- */}
             {elevation && (
-                <View testID="workout-ride-overlay-elevation" style={[styles.cornerWidget, rectStyle(elevation)]}>
+                <View testID="ride-overlay-elevation" style={[styles.cornerWidget, rectStyle(elevation)]}>
                     {cornerSlotIsToggle ? (
                         <Pressable
-                            testID="workout-ride-overlay-corner-toggle"
+                            testID="ride-overlay-corner-toggle"
                             style={styles.flexFill}
                             onPress={onToggleCornerWidget}
                             accessibilityRole="button"
                             accessibilityLabel={cornerWidget === 'workout' ? 'Show elevation' : 'Show workout'}
                         >
-                            {cornerWidget === 'workout' ? (
+                            {cornerWidget === 'workout' && graph ? (
                                 <Dynamic observer={rideObserver ?? undefined} event="data-update" prop="actuals" transform={getGraphActuals}>
                                     <WorkoutGraph
                                         mode="live"
@@ -198,9 +209,32 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
                 </View>
             )}
 
-            {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback' --- */}
-            {arrangement === 'fallback' && (
-                <View testID="workout-ride-overlay-shoutout" style={[styles.absolute, styles.fallbackShoutout, { top: dashboardHeight }]}>
+            {/* --- Previous-rides ear: stacked below the elevation preview, right side. Only where
+                    an ear actually exists (block-side/t-side) — the fallback corner slot has no
+                    room for a second occupant, and column-only has no ear at all. --------------- */}
+            {elevation && !cornerSlotIsToggle && prevRides && prevRides.length > 0 && (
+                <View
+                    testID="ride-overlay-prev-rides"
+                    style={[
+                        styles.cornerWidget,
+                        {
+                            top: elevation.top + elevation.height + SLOT_GAP,
+                            right: elevation.right,
+                            width: elevation.width,
+                            bottom: BOTTOM_BAR_RATIO * inputs.screenHeight,
+                        },
+                    ]}
+                >
+                    {prevRides.map((row, index) => (
+                        <PrevRidesRow key={`${row.position}-${index}`} layout="normal" {...row} />
+                    ))}
+                </View>
+            )}
+
+            {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback',
+                    workout attached only ------------------------------------------------------ */}
+            {arrangement === 'fallback' && dashboard && (
+                <View testID="ride-overlay-shoutout" style={[styles.absolute, styles.fallbackShoutout, { top: dashboardHeight }]}>
                     <Text style={styles.fallbackShoutoutText} numberOfLines={1}>
                         {dashboard.text}
                     </Text>
@@ -209,10 +243,11 @@ export const WorkoutRideOverlay = (props: WorkoutRideOverlayProps) => {
 
             {/* --- Stop-Workout button, fallback arrangement only: there is no WorkoutDashboard
                     to host the reserved controls column (§6.2), so it gets its own slot mirroring
-                    the corner widget's position on the right (§8.3). ------------------------- */}
-            {arrangement === 'fallback' && (
+                    the corner widget's position on the right (§8.3). Workout attached only — a
+                    plain route ride has no workout to stop. ------------------------------------ */}
+            {arrangement === 'fallback' && workoutAttached && (
                 <View
-                    testID="workout-ride-overlay-stop-slot"
+                    testID="ride-overlay-stop-slot"
                     style={[styles.absolute, styles.fallbackStopSlot, { top: dashboardHeight + 26 }]}
                 >
                     <StopWorkoutButton onPress={onStopWorkout} compact={compact} />

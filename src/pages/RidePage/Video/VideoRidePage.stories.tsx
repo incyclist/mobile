@@ -176,7 +176,7 @@ export const WithStartGate: Story = {
 };
 
 // ---------------------------------------------------------------------------
-// Workout overlay (session 5.1 — workout-mobile-hld-phase2.md §5/§9.1). Same `WorkoutRideOverlay`
+// Workout overlay (session 5.1 — workout-mobile-hld-phase2.md §5/§9.1). Same `RideOverlay`
 // component GPXTourPage's combo stories use, mounted through this file's shared mock background/
 // dashboard rather than the real service-backed `RideDashboard` (which renders nothing at all in
 // Storybook — no live `useActivityRide()` observer to attach to — the exact problem this test

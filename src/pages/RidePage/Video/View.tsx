@@ -10,7 +10,7 @@ import {
     MainBackground,
     FreeMap,
     Dynamic,
-    WorkoutRideOverlay,
+    RideOverlay,
     RideGestureHintOverlay,
     RideSwipeFeedback,
 } from '../../../components';
@@ -137,7 +137,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 )})}
 
                 {/* 2km Elevation Preview — route-only rendering, untouched. Replaced by
-                    WorkoutRideOverlay's own corner-widget rects when a workout is attached. */}
+                    RideOverlay's own corner-widget rects when a workout is attached. */}
                 {!comboActive && (
                     <ElevationGraph
                         routeData={routeData}
@@ -178,7 +178,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 {/* Workout overlay (WorkoutDashboard + resolved arrangement) — additive, prop-driven
                     branch. workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5. */}
                 {comboActive && graph && steps && dashboard && (
-                    <WorkoutRideOverlay
+                    <RideOverlay
                         itemCount={dashboardItemCount}
                         mapVisible={mapVisible}
                         measuredRideDashboardHeight={dashboardHeight}

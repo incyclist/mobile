@@ -31,7 +31,7 @@ jest.mock('../../../components', () => {
         RideMenu: () => null,
         RideGestureHintOverlay: () => null,
         RideSwipeFeedback: () => null,
-        WorkoutRideOverlay: () => null,
+        RideOverlay: () => null,
     };
 });
 

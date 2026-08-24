@@ -11,7 +11,7 @@ import {
     MainBackground,
     FreeMap,
     Dynamic,
-    WorkoutRideOverlay,
+    RideOverlay,
     RideGestureHintOverlay,
     RideSwipeFeedback,
 } from '../../../components';
@@ -187,7 +187,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         </Dynamic>
                     )}
                     {/* Corner orientation map — shown only when the main view above isn't itself a map.
-                        Route-only rendering, untouched (HLD §9.1). Replaced by WorkoutRideOverlay's
+                        Route-only rendering, untouched (HLD §9.1). Replaced by RideOverlay's
                         own corner-widget rects when a workout is attached and the combo toggle is on. */}
                     {!comboActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
                         <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
@@ -240,7 +240,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     {/* Workout overlay (WorkoutDashboard + resolved arrangement) — additive,
                         prop-driven branch. workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5. */}
                     {comboActive && graph && steps && dashboard && (
-                        <WorkoutRideOverlay
+                        <RideOverlay
                             itemCount={dashboardItemCount}
                             mapVisible={mapVisible}
                             measuredRideDashboardHeight={dashboardHeight}

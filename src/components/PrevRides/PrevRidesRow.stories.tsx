@@ -9,7 +9,7 @@ import { colors } from '../../theme';
  * Tier-aware previous-rides row. `'normal'` (tablet ear) renders full desktop parity; `'compact'`
  * (phone corner-slot/expanded panel) renders position/label/time-gap only, regardless of what
  * else the row data carries. Frames below are fixed and landscape-oriented, with a translucent
- * ride-screen backdrop (matching `WorkoutRideOverlay`'s story convention) since this row always
+ * ride-screen backdrop (matching `RideOverlay`'s story convention) since this row always
  * renders on top of the live Video/GPX view, never on an opaque background.
  *
  * The tablet frame's 320dp width is an illustrative preview size, not a spec'd value — the real
