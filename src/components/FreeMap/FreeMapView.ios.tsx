@@ -3,6 +3,7 @@ import { StyleSheet, View, DimensionValue } from 'react-native';
 import MapView, { Marker, Polyline, LatLng as RNLatLng, Region } from 'react-native-maps';
 import { FreeMapViewProps, LatLng, MapCoord } from './types';
 import { colors } from '../../theme/colors';
+import { RiderAvatarMarker } from './RiderAvatarMarker';
 
 // Helper to convert GeoJSON [longitude, latitude] to react-native-maps { latitude, longitude }
 const toRNLatLng = (coord: MapCoord): RNLatLng => ({
@@ -38,6 +39,7 @@ export const FreeMapView = ({
     onPositionChanged,
     children,
     followPosition,
+    prevRiderMarkers,
 }: FreeMapViewProps) => {
     const mapRef = useRef<MapView | null>(null);
     const [initialRegionSet, setInitialRegionSet] = useState(false);
@@ -124,8 +126,8 @@ export const FreeMapView = ({
     // If bounds are provided, `initialRegion` should be `undefined` as `fitToCoordinates` will handle the camera.
     const regionProp = cameraProps.bounds ? undefined : initialRegion;
 
-    // If no polyline, marker, or center coordinate, return null (matches Android's behavior before style loads)
-    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.center) {
+    // If no polyline, marker, prev-rider markers, or center coordinate, return null (matches Android's behavior before style loads)
+    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.center && !prevRiderMarkers?.length) {
         return null;
     }
 
@@ -147,6 +149,17 @@ export const FreeMapView = ({
                         lineJoin="round"
                     />
                 )}
+
+                {prevRiderMarkers?.map((rider) => (
+                    <Marker
+                        key={`prev-rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
+                        coordinate={toRNLatLng(rider.coordinate)}
+                    >
+                        <View style={styles.prevRiderTouchTarget}>
+                            <RiderAvatarMarker avatar={rider.avatar} />
+                        </View>
+                    </Marker>
+                ))}
 
                 {markerCoordinate && (
                     <Marker
@@ -179,6 +192,11 @@ const styles = StyleSheet.create({
         height: 44,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'transparent',
+    },
+    prevRiderTouchTarget: {
+        alignItems: 'center',
+        justifyContent: 'flex-end',
         backgroundColor: 'transparent',
     },
     marker: {

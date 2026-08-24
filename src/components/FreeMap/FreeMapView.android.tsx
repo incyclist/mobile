@@ -12,6 +12,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import { FreeMapViewProps } from './types';
 import { fromMapCoord } from './utils';
+import { RiderAvatarMarker } from './RiderAvatarMarker';
 
 let cachedMapStyle: any = null;
 
@@ -34,6 +35,7 @@ export const FreeMapView = ({
     scrollWheelZoom = true,
     children,
     followPosition,
+    prevRiderMarkers,
 }: FreeMapViewProps) => {
     const [mapStyle, setMapStyle] = useState(null);
     const refBoundsApplied = useRef(false);
@@ -134,6 +136,18 @@ export const FreeMapView = ({
                     />
                 </GeoJSONSource>
 
+                {prevRiderMarkers?.map((rider) => (
+                    <ViewAnnotation
+                        id={`prev-rider-${rider.key}`}
+                        key={`prev-rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
+                        lngLat={rider.coordinate}
+                    >
+                        <View style={styles.prevRiderTouchTarget}>
+                            <RiderAvatarMarker avatar={rider.avatar} />
+                        </View>
+                    </ViewAnnotation>
+                ))}
+
                 {markerCoordinate && (
                     <ViewAnnotation
                         id='marker'
@@ -174,6 +188,11 @@ const styles = StyleSheet.create({
         height: 44,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'transparent',
+    },
+    prevRiderTouchTarget: {
+        alignItems: 'center',
+        justifyContent: 'flex-end',
         backgroundColor: 'transparent',
     },
     webPlaceholder: {
