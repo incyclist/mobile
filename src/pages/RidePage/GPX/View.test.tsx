@@ -7,7 +7,7 @@ jest.mock('react-native-device-info', () => ({
 }));
 
 const mockStartRideDisplay = jest.fn();
-const mockWorkoutRideOverlay = jest.fn();
+const mockRideOverlay = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
@@ -31,10 +31,10 @@ jest.mock('../../../components', () => ({
         mockStartRideDisplay(props);
         return null;
     },
-    WorkoutRideOverlay: (props: any) => {
-        mockWorkoutRideOverlay(props);
+    RideOverlay: (props: any) => {
+        mockRideOverlay(props);
         const { Text } = require('react-native');
-        return <Text>workout-ride-overlay</Text>;
+        return <Text>ride-overlay</Text>;
     },
 }));
 
@@ -166,26 +166,26 @@ const comboDisplayProps = () => ({
 
 describe('GPXTourPageView — workout overlay branch', () => {
     beforeEach(() => {
-        mockWorkoutRideOverlay.mockClear();
+        mockRideOverlay.mockClear();
         mockUseScreenLayout.mockReturnValue('normal');
     });
 
     it('does not render the overlay for a route-only ride', () => {
         const { queryByText } = render(<GPXTourPageView {...activeProps('sv')} />);
-        expect(queryByText('workout-ride-overlay')).toBeNull();
-        expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
+        expect(queryByText('ride-overlay')).toBeNull();
+        expect(mockRideOverlay).not.toHaveBeenCalled();
     });
 
     it('renders the overlay when a workout is attached, and suppresses the route-only corner map', () => {
         const { getByText, queryByTestId } = render(
             <GPXTourPageView {...baseProps} displayProps={comboDisplayProps() as any} />
         );
-        expect(getByText('workout-ride-overlay')).toBeTruthy();
-        // The old corner-map element is suppressed — WorkoutRideOverlay owns corner-widget
+        expect(getByText('ride-overlay')).toBeTruthy();
+        // The old corner-map element is suppressed — RideOverlay owns corner-widget
         // placement once combo is active (not a double-render of the same widget).
         expect(queryByTestId('gpx-corner-map')).toBeNull();
 
-        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        const overlayProps = mockRideOverlay.mock.calls[0][0];
         expect(overlayProps.graph).toEqual({ bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 0], y: [0, 0] } });
         expect(overlayProps.mapVisible).toBe(true); // StreetView main view + GPX route data present
     });
@@ -199,7 +199,7 @@ describe('GPXTourPageView — workout overlay branch', () => {
                 onStopWorkout={onStopWorkout}
             />
         );
-        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        const overlayProps = mockRideOverlay.mock.calls[0][0];
         expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
     });
 });

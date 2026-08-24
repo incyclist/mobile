@@ -7,7 +7,7 @@ jest.mock('react-native-device-info', () => ({
 }));
 
 const mockStartRideDisplay = jest.fn();
-const mockWorkoutRideOverlay = jest.fn();
+const mockRideOverlay = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
@@ -33,10 +33,10 @@ jest.mock('../../../components', () => ({
         mockStartRideDisplay(props);
         return null;
     },
-    WorkoutRideOverlay: (props: any) => {
-        mockWorkoutRideOverlay(props);
+    RideOverlay: (props: any) => {
+        mockRideOverlay(props);
         const { Text } = require('react-native');
-        return <Text>workout-ride-overlay</Text>;
+        return <Text>ride-overlay</Text>;
     },
 }));
 
@@ -109,7 +109,7 @@ const comboDisplayProps = {
 
 describe('VideoRidePageView — workout overlay branch', () => {
     beforeEach(() => {
-        mockWorkoutRideOverlay.mockClear();
+        mockRideOverlay.mockClear();
     });
 
     it('does not render the overlay for a route-only ride (workoutAttached false)', () => {
@@ -119,17 +119,17 @@ describe('VideoRidePageView — workout overlay branch', () => {
                 displayProps={{ ...baseProps.displayProps, startOverlayProps: null }}
             />
         );
-        expect(queryByText('workout-ride-overlay')).toBeNull();
-        expect(mockWorkoutRideOverlay).not.toHaveBeenCalled();
+        expect(queryByText('ride-overlay')).toBeNull();
+        expect(mockRideOverlay).not.toHaveBeenCalled();
     });
 
     it('renders the overlay when a workout is attached', () => {
         const { getByText } = render(
             <VideoRidePageView {...baseProps} displayProps={comboDisplayProps} />
         );
-        expect(getByText('workout-ride-overlay')).toBeTruthy();
-        expect(mockWorkoutRideOverlay).toHaveBeenCalledTimes(1);
-        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        expect(getByText('ride-overlay')).toBeTruthy();
+        expect(mockRideOverlay).toHaveBeenCalledTimes(1);
+        const overlayProps = mockRideOverlay.mock.calls[0][0];
         expect(overlayProps.graph).toBe(comboDisplayProps.graph);
         expect(overlayProps.steps).toBe(comboDisplayProps.steps);
         expect(overlayProps.dashboard).toBe(comboDisplayProps.dashboard);
@@ -137,7 +137,7 @@ describe('VideoRidePageView — workout overlay branch', () => {
 
     it('passes the measured RideDashboard height through as measuredRideDashboardHeight (not the ratio estimate)', () => {
         render(<VideoRidePageView {...baseProps} displayProps={comboDisplayProps} />);
-        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        const overlayProps = mockRideOverlay.mock.calls[0][0];
         // Before onLayout ever fires, the page's own dashboardHeight state seeds from the same
         // screen-fraction estimate the hook itself would fall back to — the point under test is
         // that the page's *measured* value (whatever it is) is the one forwarded, not that any
@@ -154,7 +154,7 @@ describe('VideoRidePageView — workout overlay branch', () => {
                 onStopWorkout={onStopWorkout}
             />
         );
-        const overlayProps = mockWorkoutRideOverlay.mock.calls[0][0];
+        const overlayProps = mockRideOverlay.mock.calls[0][0];
         expect(overlayProps.onStopWorkout).toBe(onStopWorkout);
     });
 });

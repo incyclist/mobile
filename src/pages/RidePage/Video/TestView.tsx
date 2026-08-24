@@ -16,7 +16,7 @@ import {
     RideMenu,
     Button,
     MainBackground,
-    WorkoutRideOverlay,
+    RideOverlay,
 } from '../../../components';
 import { colors } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
@@ -36,7 +36,7 @@ interface VideoRidePageViewProps {
      *  8th Gear tile (`ride-overlay-layout-design.md` §1.2's virtual-shifting-adds-a-tile case). */
     dashboardItems?: ActivityDashboardItem[];
     /** Workout overlay (session 5.1), mock-driven the same way the rest of this test view is —
-     *  the real `WorkoutRideOverlay` component, real `useRideOverlayLayout()` hook, but fed a
+     *  the real `RideOverlay` component, real `useRideOverlayLayout()` hook, but fed a
      *  static dashboard-item count instead of a live `useActivityRide()` observer, since Storybook
      *  has no running ride service for the real `RideDashboard` (which this test view intentionally
      *  never uses) to attach to either. Omit all three to render the plain, no-workout baseline. */
@@ -186,7 +186,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                 )}
 
                 {comboActive && (
-                    <WorkoutRideOverlay
+                    <RideOverlay
                         itemCount={dashboardItems.length}
                         mapVisible={mapVisible}
                         measuredRideDashboardHeight={dashboardHeight}
