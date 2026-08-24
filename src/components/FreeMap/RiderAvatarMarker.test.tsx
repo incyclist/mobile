@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { RiderAvatarMarker } from './RiderAvatarMarker';
 import { MALE_AVATAR_PATHS, AVATAR_DEFAULT_COLORS } from '../../assets/avatars/male-paths';
 
@@ -48,8 +48,20 @@ describe('RiderAvatarMarker', () => {
     it('derives marker width from the avatar viewBox aspect ratio for a given size', () => {
         const { UNSAFE_root } = render(<RiderAvatarMarker size={40} />);
         const svg = UNSAFE_root.findAllByType(Svg)[0];
-        expect(svg.props.height).toBe(40);
         expect(svg.props.width).toBeGreaterThan(0);
-        expect(svg.props.viewBox).toBe('0 0 2400 3394.29');
+    });
+
+    it('renders a canvas twice the avatar height, with an anchor dot at its exact center', () => {
+        const { UNSAFE_root } = render(<RiderAvatarMarker size={40} />);
+        const svg = UNSAFE_root.findAllByType(Svg)[0];
+        const dot = UNSAFE_root.findAllByType(Circle)[0];
+
+        // Canvas is 2x the avatar's own height so the true position (the dot) sits at the exact
+        // center the native marker APIs anchor on, not somewhere on the avatar's own silhouette.
+        expect(svg.props.height).toBe(80);
+        expect(dot.props.cx).toBe(svg.props.width / 2);
+        expect(dot.props.cy).toBe(40); // canvas's vertical center == the avatar's own height
+        expect(dot.props.fill).toBe('#ffdd33');
+        expect(dot.props.stroke).toBe('#d32f2f');
     });
 });
