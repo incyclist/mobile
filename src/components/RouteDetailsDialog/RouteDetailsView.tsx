@@ -156,11 +156,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     draggable={true}
                     position={markerPosition}
                     onRoutePositionChanged={handleRoutePositionChanged}
-                    // TEMPORARY diagnostic: force the known-good avatar marker path (already
-                    // verified correctly positioned on iOS) instead of the plain-circle fallback,
-                    // to isolate whether the reported iOS offset lives in the plain-circle branch
-                    // specifically or is caused by something else (e.g. draggable). Remove once
-                    // the root cause is confirmed.
+                    // Avatar marker rather than the plain circle - repo owner preference, and it
+                    // sidesteps a confirmed but unresolved iOS-only positioning bug specific to
+                    // the plain-circle branch (the avatar path was independently verified
+                    // correctly positioned on iOS; the plain circle was not).
                     markerAvatar={{}}
                 />
             );
