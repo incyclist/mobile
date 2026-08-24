@@ -409,7 +409,7 @@ describe('RideOverlayArrangement', () => {
     })
 })
 
-// Session 2.1 (Race Against Yourself): a one-member column - RideDashboard alone, no
+// A one-member column - RideDashboard alone, no
 // WorkoutDashboard - for a plain route ride that still needs ear arrangement (e.g. a previous-riders
 // overlay). `workoutAttached: false` reuses the exact same block-side fit-check as the combo screen
 // (it was never combo-specific), but there is no second widget to narrow when that check fails, so
@@ -431,11 +431,11 @@ describe('computeRideOverlayLayout - workoutAttached: false (one-member column)'
     })
 
     // At 1280x800/N=7 the combo screen only reaches ears at all by narrowing WorkoutDashboard down to
-    // buy the ears their floor (t-side, §12 of the layout doc). A one-member column has no
+    // buy the ears their floor (t-side). A one-member column has no
     // WorkoutDashboard to narrow - RideDashboard's own (unnegotiable) width leaves the ears below
     // their floor here (184.2 < 200, the same number the block-side test already documents above), so
-    // this lands on column-only rather than reproducing t-side. This is not "harder to reach" in the
-    // sense the design doc means: `block-side` - the one arrangement that IS in both cascades - has an
+    // this lands on column-only rather than reproducing t-side. This is not "harder to reach" in any
+    // meaningful sense: `block-side` - the one arrangement that IS in both cascades - has an
     // identical, unworsened threshold (previous test); column-only is what a one-member column falls
     // to instead of needing a rescue mechanism it structurally cannot have.
     it('1280x800, N=7: falls to column-only - there is no WorkoutDashboard to narrow for a t-side rescue', () => {

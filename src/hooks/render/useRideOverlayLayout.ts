@@ -8,8 +8,8 @@ import { useScreenLayout, ScreenLayout } from './useScreenLayout'
 // by session 3.2 - this file). Layered on top of `useScreenLayout()` (height-based compact/normal,
 // ~20 unrelated consumers app-wide) rather than replacing it - see design doc §5.2/§9 and HLD §5.2.
 //
-// Scope (design doc §2): originally this hook was only ever used for a route ride with a workout
-// attached and the combo toggle on. It now also supports a `workoutAttached: false` path - a
+// Originally this hook was only ever used for a route ride with a workout attached and the combo
+// toggle on. It now also supports a `workoutAttached: false` path - a
 // one-member column (`RideDashboard` alone, no `WorkoutDashboard` width negotiation) so a plain
 // route ride can also arrange ears (e.g. for a previous-riders overlay). Wiring an actual route-only
 // call site up to this hook is a separate, later piece of work - this file only adds the hook's own
@@ -425,7 +425,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         }
     }
 
-    // §6.1's one-member column has no WorkoutDashboard to narrow, so there is nothing analogous to
+    // A one-member column has no WorkoutDashboard to narrow, so there is nothing analogous to
     // the T-side rescue below - it needs a second box to trade width with the ears, which doesn't
     // exist here. When the ears don't fit beside RideDashboard's own (unnegotiable) width, the only
     // place left to land is `column-only` - dropping the ears rather than relocating them, exactly as
@@ -481,9 +481,8 @@ export interface UseRideOverlayLayoutInput {
     /** From `RideDashboard`'s `onMetrics` report; defaults to `DEFAULT_ROUTE_RIDE_TILE_COUNT` (§3.2). */
     itemCount?: number
     /** `false` collapses the column to `RideDashboard` alone - no `WorkoutDashboard`, no width
-     *  negotiation between two boxes. Originally this was documented as reserved/non-participating
-     *  per the design doc's §2 combo-only scope; it now is part of the arrangement decision (§4
-     *  invariant 1's input list gains this one). */
+     *  negotiation between two boxes. One of the inputs the arrangement decision is a pure
+     *  function of, alongside screen size, dashboard width, and item count. */
     workoutAttached: boolean
     mapVisible: boolean
     measuredRideDashboardHeight?: number
