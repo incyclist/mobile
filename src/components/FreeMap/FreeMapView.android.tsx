@@ -36,6 +36,7 @@ export const FreeMapView = ({
     children,
     followPosition,
     prevRiderMarkers,
+    markerAvatar,
 }: FreeMapViewProps) => {
     const [mapStyle, setMapStyle] = useState(null);
     const refBoundsApplied = useRef(false);
@@ -157,7 +158,11 @@ export const FreeMapView = ({
                         onDragEnd={handleDragEnd}
                     >
                         <View style={styles.markerTouchTarget}>
-                            <View style={styles.marker} />
+                            {markerAvatar ? (
+                                <RiderAvatarMarker avatar={markerAvatar} />
+                            ) : (
+                                <View style={styles.marker} />
+                            )}
                         </View>
                     </ViewAnnotation>
                 )}

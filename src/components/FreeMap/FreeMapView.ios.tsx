@@ -40,6 +40,7 @@ export const FreeMapView = ({
     children,
     followPosition,
     prevRiderMarkers,
+    markerAvatar,
 }: FreeMapViewProps) => {
     const mapRef = useRef<MapView | null>(null);
     const [initialRegionSet, setInitialRegionSet] = useState(false);
@@ -170,7 +171,11 @@ export const FreeMapView = ({
                     >
                         {/* Custom marker view with enlarged touch target */}
                         <View style={styles.markerTouchTarget}>
-                            <View style={styles.marker} />
+                            {markerAvatar ? (
+                                <RiderAvatarMarker avatar={markerAvatar} />
+                            ) : (
+                                <View style={styles.marker} />
+                            )}
                         </View>
                     </Marker>
                 )}

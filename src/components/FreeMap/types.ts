@@ -102,6 +102,9 @@ export interface TFreeMapProps {
     // Previous riders' live positions (Race Against Yourself). Rendered alongside — never instead
     // of — the current rider's own marker, which is unaffected by this prop.
     prevRiders?: Array<PrevRiderMarker>;
+    // When set, the current rider's own position marker renders as an avatar SVG (same figure as
+    // `prevRiders`) instead of the plain red circle. Undefined preserves the original circle.
+    markerAvatar?: AvatarConfig;
 }
 
 // Internal type for MapLibre which uses [longitude, latitude]
