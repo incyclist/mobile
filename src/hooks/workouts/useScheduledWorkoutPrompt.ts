@@ -86,22 +86,19 @@ export const useScheduledWorkoutPrompt = (enabled: boolean = true): UseScheduled
     }, [enabled, calendar, checkAndShow]);
 
     const onYes = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'Yes', eventSource: 'user' });
         setPrompt(null);
         const workoutId = refWorkoutId.current;
         navigate('workouts', workoutId ? { autoOpenDetailsId: workoutId } : undefined);
-    }, [logEvent]);
+    }, []);
 
     const onNo = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'No', eventSource: 'user' });
         setPrompt(null);
-    }, [logEvent]);
+    }, []);
 
     const onCheckWorkouts = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'Check workouts', eventSource: 'user' });
         setPrompt(null);
         navigate('workouts');
-    }, [logEvent]);
+    }, []);
 
     return { prompt, onYes, onNo, onCheckWorkouts };
 };

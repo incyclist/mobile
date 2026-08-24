@@ -11,6 +11,7 @@ import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
+import { useLogging } from '../../hooks';
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact, disabled } = props;
@@ -29,8 +30,12 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const verticalNavWidth = compact ? 70 : 150;
     const verticalIconSize = compact ? 32 : Math.min(height / 16, 64);
     const showExitIcon = Platform.OS === 'android';
+    const { logEvent } = useLogging('NavigationBar');
 
     const handleOnClick = useCallback((item: TNavigationItem) => {
+        logEvent({message:'item selected',item , eventSource:'user' })
+
+
         if (item === 'user') {
             setShowUserSettings(true);
         } else if (item === 'settings') {
@@ -43,7 +48,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
         } else {
             onClick(item);
         }
-    }, [onClick]);
+    }, [logEvent, onClick]);
 
     const handleSectionPress = useCallback((label: string) => {
         switch (label) {

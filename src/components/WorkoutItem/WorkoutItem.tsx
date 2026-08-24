@@ -8,18 +8,22 @@ export const WorkoutItem = (props: WorkoutItemDisplayProps) => {
     const { date, isToday, ...rest } = props;
 
     const page = getWorkoutListPageService();
-    const { logError } = useLogging('WorkoutItem');
+    const { logError,logEvent } = useLogging('WorkoutItem');
 
-    const onOpenDetails = useCallback(
-        (workoutId: string) => page.onOpenDetails(workoutId),
-        [page]
+    const title = props?.title
+    const id = props?.id
+    const onOpenDetails = useCallback( (workoutId: string) => { 
+            logEvent({message:'item selected', id, title, eventSource:'user' })                
+            page.onOpenDetails(workoutId) 
+        },
+        [id, logEvent, page, title]
     );
 
-    const onDelete = useCallback(
-        (workoutId: string) => {
+    const onDelete = useCallback( (workoutId: string) => {
+            logEvent({message:'item deleted', id, title, eventSource:'user' })        
             page.onDelete(workoutId).catch(err => logError(err, 'onDelete'));
         },
-        [page, logError]
+        [logEvent, id, title, page, logError]
     );
 
     // "Today" when isToday, otherwise a plain date — computed here, not in

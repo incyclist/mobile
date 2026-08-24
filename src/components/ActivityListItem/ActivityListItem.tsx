@@ -3,6 +3,7 @@ import { formatDateTime, useActivityList, ActivityDetails, useUserSettings  } fr
 import { ActivityListItemProps } from './types';
 import { ActivityListItemView } from './ActivityListItemView';
 import { isFormattedNumber } from '../../utils/formattedNumber';
+import { useLogging } from '../../hooks';
 
 const detailsCache = new Map<string, ActivityDetails>();
 
@@ -17,6 +18,8 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
 
     const [details, setDetails] = useState<ActivityDetails | undefined>(undefined);
     const refInitialized = useRef(false);
+    const { logEvent } = useLogging('ActivityItem');
+    
 
     // Sync from cache on ID change (FlashList recycling)
     useEffect(() => {
@@ -50,15 +53,17 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     }, [id, service, outsideFold]);
 
 
-    const handlePress = useCallback(() => {
-        onPress(id);
-    }, [id, onPress]);
 
     // Data processing
     const displayTitle =
         summary.title === 'Incyclist Ride'
             ? details?.route?.title ?? details?.route?.name ?? 'Incyclist Ride'
             : summary.title;
+
+    const handlePress = useCallback(() => {
+        logEvent({message:'item selected', id, title:displayTitle, eventSource:'user' })
+        onPress(id);
+    }, [logEvent, id, displayTitle, onPress]);
 
     const dateStr = formatDateTime(new Date(startTime), '%d.%m.%Y');
     const timeStr = formatDateTime(new Date(startTime), '%H:%M');

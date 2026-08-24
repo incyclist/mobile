@@ -18,7 +18,7 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     
     const service = useRouteList();
     const page = getRoutesPageService()
-    const { logError } = useLogging('RouteItem');
+    const { logError,logEvent } = useLogging('RouteItem');
 
     // Re-sync from cache when id changes (FlashList recycling)
     useEffect(() => {
@@ -54,12 +54,18 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
             });
     }, [id, loaded, service, logError, isLoading, details, outsideFold]);
 
+    const title = props?.title
+    const onSelect = useCallback( (routeId:string) => { 
+        logEvent({message:'item selected', id, title, eventSource:'user' })        
+        page.onSelect(routeId)
+    } ,[logEvent, id,title, page])
 
-    const onSelect = useCallback( (routeId:string) => { page.onSelect(routeId)} ,[page])
+
     const onDelete = useCallback( (routeId:string) => { 
+        logEvent({message:'item deleted', id, title, eventSource:'user' })        
         page.onDelete(routeId)
         setDeleted(true)
-    } ,[page])
+    } ,[logEvent, id, title, page])
 
     const points = details?.points ?? props.points;
     const previewUrl = details?.previewUrl ?? props.previewUrl;
