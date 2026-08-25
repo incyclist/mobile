@@ -4,8 +4,8 @@ import { PrevRidesExpandChevron } from './PrevRidesExpandChevron';
 import { PrevRidesExpandedPanel } from './PrevRidesExpandedPanel';
 import { PrevRidesRowProps, PrevRidesSlotRect } from './types';
 
-/** design doc §6.3 — the condensed line is composed from exactly 2 fetched rows (current +
- *  nearest rival), not requested at `visibleRows == 1`. */
+/** The condensed line is composed from exactly 2 fetched rows (current + nearest rival), not
+ *  requested at `visibleRows == 1`. */
 const CONDENSED_VISIBLE_ROWS = 2;
 
 export interface PrevRidesCornerPanelProps {
@@ -87,11 +87,11 @@ export const PrevRidesCornerPanel = (props: PrevRidesCornerPanelProps) => {
     }, [active, expanded, collapse]);
 
     // While condensed, this component (not the expanded panel below) owns visibleRows reporting —
-    // the fixed 2-row fetch the condensed line composes its "current + nearest rival" text from
-    // (§6.3's corrected rule). Once expanded, PrevRidesExpandedPanel's own geometry-driven effect
-    // reports the real value instead — kept here, in the one place that already tracks `expanded`,
-    // rather than split across a parent-level default and this component's override (which would
-    // otherwise race on which effect commits last).
+    // the fixed 2-row fetch the condensed line composes its "current + nearest rival" text from.
+    // Once expanded, PrevRidesExpandedPanel's own geometry-driven effect reports the real value
+    // instead — kept here, in the one place that already tracks `expanded`, rather than split
+    // across a parent-level default and this component's override (which would otherwise race on
+    // which effect commits last).
     useEffect(() => {
         if (active && !expanded) {
             onVisibleRowsChange?.(CONDENSED_VISIBLE_ROWS);

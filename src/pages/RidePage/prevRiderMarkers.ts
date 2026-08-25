@@ -4,9 +4,8 @@ import { avatarToConfig } from '../../components/PrevRides';
 
 /**
  * Maps the previous-rides display rows (services → mobile contract) onto `FreeMap`'s marker
- * shape (race-against-yourself-mobile-design.md §7). Shared between `GPX/View.tsx` and
- * `Video/View.tsx` — the mapping itself doesn't differ between the two ride types, only which map
- * instance(s) the result gets passed to.
+ * shape. Shared between `GPX/View.tsx` and `Video/View.tsx` — the mapping itself doesn't differ
+ * between the two ride types, only which map instance(s) the result gets passed to.
  *
  * - The current rider is excluded — `FreeMap` already renders their own (unchanged) position
  *   marker separately.

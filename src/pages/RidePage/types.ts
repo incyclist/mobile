@@ -22,11 +22,11 @@ export interface RideViewActionProps {
     /** "Stop Workout, keep riding" (workout-mobile-hld-phase2.md §6.3/§8.3, session 5.3). */
     onStopWorkout: () => void;
     /** Phone corner-slot chevron: expand the condensed previous-rides row into the full list
-     *  panel, and collapse it back (race-against-yourself-mobile-design.md §6.3). */
+     *  panel, and collapse it back. */
     onExpandPrevRides: () => void;
     onCollapsePrevRides: () => void;
     /** How many `prevRides` rows actually fit — reported whenever the relevant geometry changes
-     *  (ear resize, rotation, panel open/close). §5/§6.2/§6.3. */
+     *  (ear resize, rotation, panel open/close). */
     onSetPrevRidesVisibleRows: (n: number) => void;
     /** Tablet-vs-phone / expanded-vs-not tier default — set once per compact/normal transition. */
     onSetPrevRidesMode: (mode: 'condensed' | 'list') => void;

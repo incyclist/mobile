@@ -11,10 +11,9 @@ export interface PrevRidesCondensedLineProps {
 }
 
 /**
- * The phone corner slot's condensed content (race-against-yourself-mobile-design.md §6.3):
- * "current position + gap to nearest rival" as one line, composed from the two rows fetched at
- * `visibleRows == 2` — this component composes the line itself rather than expecting the service
- * to hand back pre-composed text.
+ * The phone corner slot's condensed content: "current position + gap to nearest rival" as one
+ * line, composed from the two rows fetched at `visibleRows == 2` — this component composes the
+ * line itself rather than expecting the service to hand back pre-composed text.
  */
 export const PrevRidesCondensedLine = ({ rows }: PrevRidesCondensedLineProps) => {
     const current = rows.find((row) => row.isCurrent);

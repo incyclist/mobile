@@ -317,7 +317,7 @@ describe('GPXTourPageView — swipe-gesture surface', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Previous-rides overlay wiring (race-against-yourself-mobile-design.md §6.1/§7, session 3.1).
+// Previous-rides overlay wiring.
 // Route-only rendering (the corner-map/workout-overlay tests above) must be unaffected whenever
 // overlayActive is false — this is the regression the whole design depends on being impossible by
 // construction.

@@ -80,22 +80,22 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // gate (workout-combo-service-design.md §4.2).
     const comboActive = !!workoutAttached;
 
-    // race-against-yourself-mobile-design.md §6.1 — overlayActive generalizes comboActive's gate:
-    // the overlay now also renders for a plain route ride with eligible previous rides. When
-    // overlayActive is false (no workout, no eligible previous rides — most rides, most of the
-    // time), every branch below renders byte-for-byte as it did before this feature existed.
+    // overlayActive generalizes comboActive's gate: the overlay now also renders for a plain
+    // route ride with eligible previous rides. When overlayActive is false (no workout, no
+    // eligible previous rides — most rides, most of the time), every branch below renders
+    // byte-for-byte as it did before this feature existed.
     const prevRidesEligible = !!prevRides && prevRides.mode !== 'hidden';
     const overlayActive = comboActive || prevRidesEligible;
 
-    // §6.2/§6.3 — tablet always shows the full list ear; phone defaults to the condensed corner
-    // slot. Only (re)applies the tier default on a compact/normal transition, so it never fights
-    // with the phone chevron's own onExpandPrevRides()/onCollapsePrevRides() calls.
+    // Tablet always shows the full list ear; phone defaults to the condensed corner slot. Only
+    // (re)applies the tier default on a compact/normal transition, so it never fights with the
+    // phone chevron's own onExpandPrevRides()/onCollapsePrevRides() calls.
     useEffect(() => {
         onSetPrevRidesMode(isCompact ? 'condensed' : 'list');
     }, [isCompact, onSetPrevRidesMode]);
 
-    // §7 — previous riders' live positions for the corner map (Video has no main map). The
-    // current rider's own marker is unaffected — see buildPrevRiderMarkers().
+    // Previous riders' live positions for the corner map (Video has no main map). The current
+    // rider's own marker is unaffected — see buildPrevRiderMarkers().
     const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
@@ -161,7 +161,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
 
                 {/* 2km Elevation Preview — route-only rendering, untouched. Replaced by
                     RideOverlay's own corner-widget rects whenever overlayActive (a workout is
-                    attached, or eligible previous rides exist — §6.1). */}
+                    attached, or eligible previous rides exist). */}
                 {!overlayActive && (
                     <ElevationGraph
                         routeData={routeData}
@@ -200,12 +200,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 )}
 
                 {/* Overlay (WorkoutDashboard when a workout is attached, previous-rides ear/corner
-                    slot when eligible, or both) — additive, prop-driven branch.
-                    workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5,
-                    race-against-yourself-mobile-design.md §6.1. The `!comboActive || (graph &&
-                    steps && dashboard)` half preserves the existing "don't mount the combo overlay
-                    before workout data is ready" defensiveness — a route-only overlayActive ride
-                    never expects that data at all. */}
+                    slot when eligible, or both) — additive, prop-driven branch. The
+                    `!comboActive || (graph && steps && dashboard)` half preserves the existing
+                    "don't mount the combo overlay before workout data is ready" defensiveness — a
+                    route-only overlayActive ride never expects that data at all. */}
                 {overlayActive && (!comboActive || (graph && steps && dashboard)) && (
                     <RideOverlay
                         itemCount={dashboardItemCount}

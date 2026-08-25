@@ -18,9 +18,9 @@ import {
 import { colors, textSizes } from '../../theme';
 import type { WorkoutDashboardLine, WorkoutGraphPlan, WorkoutUpcomingSteps } from '../WorkoutDashboard/types';
 
-// design doc §6.2's earFreeBand/visibleRows formula, mirrored from PrevRidesExpandedPanel.tsx
-// (not exported from useRideOverlayLayout.ts — pinned at the identical values here, same as that
-// file already does, rather than introducing a shared export for two call sites).
+// The tablet ear's row/header height budget — mirrored from PrevRidesExpandedPanel.tsx (not
+// exported from useRideOverlayLayout.ts — pinned at the identical values here, same as that file
+// already does, rather than introducing a shared export for two call sites).
 const PHASE3_ROW_HEIGHT = 24;
 const PHASE3_HEADER_HEIGHT = 22;
 const EAR_MIN_VISIBLE_ROWS = 1;
@@ -65,18 +65,18 @@ export interface RideOverlayProps {
      *  doesn't decide which states are available — it renders whichever value it's given and
      *  calls `onToggleCornerWidget` on tap. */
     cornerWidget?: 'elevation' | 'workout' | 'prevRides';
-    /** Phone-only — chevron/expand-panel wiring for the `'prevRides'` fallback state (design doc
-     *  §6.3). Ignored outside `'fallback'`. */
+    /** Phone-only — chevron/expand-panel wiring for the `'prevRides'` fallback state. Ignored
+     *  outside `'fallback'`. */
     onExpandPrevRides?: () => void;
     onCollapsePrevRides?: () => void;
-    /** How many `prevRides` rows actually fit — reported for the tablet ear (§6.2's
-     *  `earFreeBand` formula, computed here off the resolved `elevation` rect) and forwarded
-     *  as-is to the phone corner slot (`PrevRidesCornerPanel` decides condensed-vs-expanded
-     *  reporting internally). Stands in for `RidePageService.setPrevRidesVisibleRows()` — the
-     *  caller wires this to the real call. */
+    /** How many `prevRides` rows actually fit — reported for the tablet ear (computed here off
+     *  the resolved `elevation` rect's free vertical band) and forwarded as-is to the phone
+     *  corner slot (`PrevRidesCornerPanel` decides condensed-vs-expanded reporting internally).
+     *  Stands in for `RidePageService.setPrevRidesVisibleRows()` — the caller wires this to the
+     *  real call. */
     onVisibleRowsChange?: (visibleRows: number) => void;
-    /** Previous riders' live positions for the corner map (design doc §7) — forwarded as-is to
-     *  `FreeMap`'s own `prevRiders` prop. */
+    /** Previous riders' live positions for the corner map — forwarded as-is to `FreeMap`'s own
+     *  `prevRiders` prop. */
     mapPrevRiders?: PrevRiderMarker[];
     /** Measured, not estimated — same value as `measuredRideDashboardHeight` (§5.4a's fallback
      *  shoutout sits directly below `RideDashboard`, exactly like the corner slot), falling back
@@ -146,8 +146,8 @@ export const RideOverlay = (props: RideOverlayProps) => {
         measuredRideDashboardHeight,
     });
 
-    // §6.2 — the tablet ear's own visibleRows report. Only meaningful where an actual ear exists
-    // (not the fallback toggle slot, which has its own condensed/expanded reporting via
+    // The tablet ear's own visibleRows report. Only meaningful where an actual ear exists (not
+    // the fallback toggle slot, which has its own condensed/expanded reporting via
     // PrevRidesCornerPanel below). Keyed on the derived number, not the `elevation` rect object, so
     // this only fires on a real geometry change.
     const earVisibleRows = elevation && !cornerSlotIsToggle
@@ -207,10 +207,10 @@ export const RideOverlay = (props: RideOverlayProps) => {
                 </View>
             )}
 
-            {/* --- Fallback corner slot showing 'prevRides': condensed line + expand chevron/panel
-                    (design doc §6.3). A separate branch from the elevation/workout toggle below —
-                    PrevRidesCornerPanel owns its own slot rendering (chrome, chevron, backdrop,
-                    expanded panel), so it mounts in place of (not inside) the plain toggle View. -- */}
+            {/* --- Fallback corner slot showing 'prevRides': condensed line + expand chevron/panel.
+                    A separate branch from the elevation/workout toggle below — PrevRidesCornerPanel
+                    owns its own slot rendering (chrome, chevron, backdrop, expanded panel), so it
+                    mounts in place of (not inside) the plain toggle View. ----------------------- */}
             {elevation && cornerSlotIsToggle && cornerWidget === 'prevRides' && (
                 <PrevRidesCornerPanel
                     active
