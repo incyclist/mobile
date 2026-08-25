@@ -23,6 +23,7 @@ import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { createSharedRideViewStyles } from './sharedRideViewStyles';
 import { getGestureHintContent } from '../gestureHintContent';
 import { buildPrevRiderMarkers } from '../prevRiderMarkers';
+import { avatarToConfig } from '../../../components/PrevRides';
 
 interface VideoRidePageViewProps extends RideViewActionProps {
     displayProps: VideoRidePageDisplayProps;
@@ -97,6 +98,14 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // Previous riders' live positions for the corner map (Video has no main map). The current
     // rider's own marker is unaffected — see buildPrevRiderMarkers().
     const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
+
+    // The current rider's own avatar — matches the current-position marker (corner map, elevation
+    // strips) to the "You" row shown in the prevRides list, rather than rendering with default
+    // colors. undefined whenever there's no prevRides list to be inconsistent with.
+    const currentAvatar = useMemo(() => {
+        const avatar = prevRides?.rows.find((row) => row.isCurrent)?.avatar;
+        return avatar ? avatarToConfig(avatar) : undefined;
+    }, [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -228,6 +237,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         onCollapsePrevRides={onCollapsePrevRides}
                         onVisibleRowsChange={onSetPrevRidesVisibleRows}
                         mapPrevRiders={prevRiderMarkers}
+                        currentAvatar={currentAvatar}
                     />
                 )}
 
@@ -245,6 +255,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     menuProps={menuProps}
                     onMenuClose={onMenuClose}
                     onCloseRidePage={onCloseRidePage}
+                    currentAvatar={currentAvatar}
                 />
             </View>
     );

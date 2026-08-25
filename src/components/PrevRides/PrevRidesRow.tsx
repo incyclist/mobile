@@ -19,7 +19,7 @@ import { PrevRidesRowComponentProps } from './types';
  * not a selection state" treatment `WorkoutItemView` already uses for its `isToday` row.
  */
 export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
-    const { layout, position, label, timeGap, distanceGap, isCurrent, avatar, speed, power, heartrate } = props;
+    const { layout, position, label, timeGap, distanceGap, isCurrent, avatar, speed, power, heartrate, showSpeed = true } = props;
     // A row is gapped by time OR distance, never both — if a caller ever sets both (it shouldn't),
     // distanceGap wins so the stats row never exceeds its 4-item budget (speed/power/heartrate/gap).
     const gap = distanceGap || timeGap;
@@ -53,7 +53,7 @@ export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
                 </View>
 
                 <View style={styles.statsRow}>
-                    {speed !== undefined && (
+                    {showSpeed && speed !== undefined && (
                         <Text style={styles.stat} numberOfLines={1}>{speed.toFixed(1)} km/h</Text>
                     )}
                     {power !== undefined && (

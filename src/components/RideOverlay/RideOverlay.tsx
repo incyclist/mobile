@@ -5,6 +5,7 @@ import { WorkoutDashboard } from '../WorkoutDashboard/WorkoutDashboard';
 import { StopWorkoutButton } from '../WorkoutDashboard/StopWorkoutButton';
 import { Dynamic } from '../Dynamic';
 import { ElevationGraph } from '../ElevationGraph';
+import type { AvatarConfig } from '../ElevationGraph/types';
 import { FreeMap } from '../FreeMap';
 import type { PrevRiderMarker } from '../FreeMap/types';
 import { WorkoutGraph } from '../WorkoutGraph';
@@ -78,6 +79,11 @@ export interface RideOverlayProps {
     /** Previous riders' live positions for the corner map — forwarded as-is to `FreeMap`'s own
      *  `prevRiders` prop. */
     mapPrevRiders?: PrevRiderMarker[];
+    /** The current rider's own avatar (already color-resolved) — forwarded to the corner map's
+     *  `markerAvatar` and to the elevation preview's `currentAvatar`, so the current-position
+     *  marker matches the same rider's "You" row in the `prevRides` list rather than rendering
+     *  with default colors. `undefined` renders the existing default (unchanged behavior). */
+    currentAvatar?: AvatarConfig;
     /** Measured, not estimated — same value as `measuredRideDashboardHeight` (§5.4a's fallback
      *  shoutout sits directly below `RideDashboard`, exactly like the corner slot), falling back
      *  to the screen-fraction estimate on the very first frame before it is measured. */
@@ -134,6 +140,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
         onCollapsePrevRides,
         onVisibleRowsChange,
         mapPrevRiders,
+        currentAvatar,
     } = props;
 
     // graph/steps/dashboard are populated together — see the class doc above.
@@ -146,15 +153,17 @@ export const RideOverlay = (props: RideOverlayProps) => {
         measuredRideDashboardHeight,
     });
 
-    // The tablet ear's own visibleRows report. Only meaningful where an actual ear exists (not
-    // the fallback toggle slot, which has its own condensed/expanded reporting via
-    // PrevRidesCornerPanel below). Keyed on the derived number, not the `elevation` rect object, so
+    // The tablet ear's own free vertical band (below the elevation preview, above the bottom bar).
+    // Only meaningful where an actual ear exists (not the fallback toggle slot, which has its own
+    // condensed/expanded reporting via PrevRidesCornerPanel below).
+    const earFreeBand = elevation && !cornerSlotIsToggle
+        ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - (elevation.top + elevation.height) - 2 * SLOT_GAP
+        : undefined;
+
+    // visibleRows report, keyed on the derived number rather than the `elevation` rect object, so
     // this only fires on a real geometry change.
-    const earVisibleRows = elevation && !cornerSlotIsToggle
-        ? clampVisibleRows(Math.floor(
-            (inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - (elevation.top + elevation.height) - 2 * SLOT_GAP - PHASE3_HEADER_HEIGHT)
-            / PHASE3_ROW_HEIGHT
-        ))
+    const earVisibleRows = earFreeBand !== undefined
+        ? clampVisibleRows(Math.floor((earFreeBand - PHASE3_HEADER_HEIGHT) / PHASE3_ROW_HEIGHT))
         : undefined;
 
     useEffect(() => {
@@ -202,6 +211,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
                             colorActive="blue"
                             colorInactive="rgba(255,255,255,0.4)"
                             prevRiders={mapPrevRiders}
+                            markerAvatar={currentAvatar}
                         />
                     </Dynamic>
                 </View>
@@ -268,6 +278,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
                                     showColors
                                     showXAxis={!compact}
                                     showYAxis={!compact}
+                                    currentAvatar={currentAvatar}
                                 />
                             )}
                         </Pressable>
@@ -281,6 +292,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
                             showColors
                             showXAxis={!compact}
                             showYAxis={!compact}
+                            currentAvatar={currentAvatar}
                         />
                     )}
                 </View>
@@ -297,13 +309,24 @@ export const RideOverlay = (props: RideOverlayProps) => {
                         {
                             top: elevation.top + elevation.height + SLOT_GAP,
                             right: elevation.right,
-                            width: elevation.width,
-                            bottom: BOTTOM_BAR_RATIO * inputs.screenHeight,
+                            // Route-only rides have plenty of ear space to spare (no
+                            // WorkoutDashboard competing for width) — use it, rather than
+                            // matching the elevation preview's own narrower width, so the row's
+                            // full field set (avatar/name/stats/gap) isn't clipped. Combo rides
+                            // keep the narrower, elevation-matching width instead: widening here
+                            // risks crowding WorkoutDashboard, so the row sheds a field
+                            // (showSpeed below) to fit rather than the ear growing.
+                            width: workoutAttached ? elevation.width : (inputs.earWidth ?? elevation.width),
+                            // Shrinks to fit the actual row count (never stretches to the bottom
+                            // bar regardless of how few rows there are); maxHeight is a safety
+                            // ceiling only, matching the same free-band the visibleRows report
+                            // above already sizes rows to.
+                            maxHeight: earFreeBand,
                         },
                     ]}
                 >
                     {prevRides.map((row, index) => (
-                        <PrevRidesRow key={`${row.position}-${index}`} layout="normal" {...row} />
+                        <PrevRidesRow key={`${row.position}-${index}`} layout="normal" showSpeed={!workoutAttached} {...row} />
                     ))}
                 </View>
             )}

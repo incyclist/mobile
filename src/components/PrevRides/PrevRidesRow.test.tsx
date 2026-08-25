@@ -17,6 +17,20 @@ describe('PrevRidesRow', () => {
             expect(getByText('-1:24')).toBeTruthy();
         });
 
+        it('shows speed by default (showSpeed unset)', () => {
+            const { getByText } = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" />);
+            expect(getByText('32.4 km/h')).toBeTruthy();
+        });
+
+        it('hides speed when showSpeed is false, keeping the other stats', () => {
+            const { queryByText, getByText } = render(
+                <PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" showSpeed={false} />
+            );
+            expect(queryByText('32.4 km/h')).toBeNull();
+            expect(getByText('245 W')).toBeTruthy();
+            expect(getByText('158 bpm')).toBeTruthy();
+        });
+
         it('shows distanceGap instead of timeGap when both are present (max 4 stats, never both)', () => {
             const { getByText, queryByText } = render(<PrevRidesRow {...MOCK_ROW_CHASER} layout="normal" />);
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ViewStyle, StyleProp } from 'react-native';
 import { IObserver, RouteApiDetail } from 'incyclist-services';
 import { ElevationGraph, RideMenu, Button } from '../../../components';
+import type { AvatarConfig } from '../../../components/ElevationGraph/types';
 
 const RideMenuButton = React.memo(({ onPress }: { onPress: () => void }) => (
     <Button id='menu' label='Menu' primary={true} onClick={onPress} />
@@ -18,6 +19,10 @@ interface RideBottomBarAndMenuProps {
     menuProps: { finished?: boolean } | null | undefined;
     onMenuClose: () => void;
     onCloseRidePage: () => void;
+    /** The current rider's own avatar (already color-resolved) — matches the current-position
+     *  marker to the "You" row shown elsewhere (e.g. the `prevRides` list) rather than rendering
+     *  with default colors. `undefined` renders the existing default (unchanged behavior). */
+    currentAvatar?: AvatarConfig;
 }
 
 /**
@@ -36,6 +41,7 @@ export const RideBottomBarAndMenu = ({
     menuProps,
     onMenuClose,
     onCloseRidePage,
+    currentAvatar,
 }: RideBottomBarAndMenuProps) => (
     <>
         <View style={bottomBarStyle}>
@@ -51,6 +57,7 @@ export const RideBottomBarAndMenu = ({
                 showXAxis={false}
                 showYAxis={false}
                 style={elevationFullStyle}
+                currentAvatar={currentAvatar}
             />
         </View>
 

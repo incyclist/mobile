@@ -25,6 +25,7 @@ import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { getGestureHintContent } from '../gestureHintContent';
 import { buildPrevRiderMarkers } from '../prevRiderMarkers';
+import { avatarToConfig } from '../../../components/PrevRides';
 
 export interface GPXTourPageViewProps extends RideViewActionProps {
     displayProps: GPXRidePageDisplayProps;
@@ -108,6 +109,14 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     // map via RideOverlay, or the main map below). The current rider's own marker is unaffected —
     // see buildPrevRiderMarkers().
     const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
+
+    // The current rider's own avatar — matches the current-position marker (corner/main map,
+    // elevation strips) to the "You" row shown in the prevRides list, rather than rendering with
+    // default colors. undefined whenever there's no prevRides list to be inconsistent with.
+    const currentAvatar = useMemo(() => {
+        const avatar = prevRides?.rows.find((row) => row.isCurrent)?.avatar;
+        return avatar ? avatarToConfig(avatar) : undefined;
+    }, [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -208,6 +217,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                 scrollWheelZoom={false}
                                 style={styles.fullScreenMap}
                                 prevRiders={prevRiderMarkers}
+                                markerAvatar={currentAvatar}
                             />
                         </Dynamic>
                     )}
@@ -292,6 +302,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             onCollapsePrevRides={onCollapsePrevRides}
                             onVisibleRowsChange={onSetPrevRidesVisibleRows}
                             mapPrevRiders={prevRiderMarkers}
+                            currentAvatar={currentAvatar}
                         />
                     )}
 
@@ -307,6 +318,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         menuProps={menuProps}
                         onMenuClose={onMenuClose}
                         onCloseRidePage={onCloseRidePage}
+                        currentAvatar={currentAvatar}
                     />
                 </View>
     );

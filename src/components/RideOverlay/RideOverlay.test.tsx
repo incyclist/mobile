@@ -19,8 +19,12 @@ const setDimensions = (width: number, height: number) => {
 jest.mock('../Dynamic', () => ({
     Dynamic: ({ children }: any) => children,
 }));
+const mockElevationGraph = jest.fn();
 jest.mock('../ElevationGraph', () => ({
-    ElevationGraph: () => null,
+    ElevationGraph: (props: any) => {
+        mockElevationGraph(props);
+        return null;
+    },
 }));
 const mockFreeMap = jest.fn();
 jest.mock('../FreeMap', () => ({
@@ -226,6 +230,57 @@ describe('RideOverlay — no workout attached', () => {
 
         expect(mockFreeMap).toHaveBeenCalled();
         expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({ prevRiders: markers });
+    });
+
+    it('forwards currentAvatar to the corner map (markerAvatar) and the elevation preview (currentAvatar)', () => {
+        setDimensions(1400, 900);
+        mockFreeMap.mockClear();
+        mockElevationGraph.mockClear();
+        const avatar = { helmOuter: 'red', shirt: 'blue' };
+        render(<RideOverlay {...routeOnlyProps} currentAvatar={avatar} />);
+
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({ markerAvatar: avatar });
+        expect(mockElevationGraph.mock.calls.at(-1)?.[0]).toMatchObject({ currentAvatar: avatar });
+    });
+
+    it('route-only ear: uses the full available ear width, not the narrower elevation-matching width, and shows speed', () => {
+        setDimensions(1400, 900);
+        const { getByTestId, getAllByTestId } = render(<RideOverlay {...routeOnlyProps} />);
+
+        const earStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        const elevationStyle = Object.assign({}, ...getByTestId('ride-overlay-elevation').props.style);
+        expect(earStyle.width).toBeGreaterThan(elevationStyle.width);
+        // no fixed bottom edge — the box shrinks to its own content instead of stretching to it
+        expect(earStyle.bottom).toBeUndefined();
+        expect(earStyle.maxHeight).toEqual(expect.any(Number));
+
+        // 'normal' tier shows the speed stat by default (route-only, showSpeed !== false)
+        const stats = getAllByTestId('prev-rides-row').map((row) => row.findAllByType(require('react-native').Text).map((t: any) => t.props.children).flat());
+        expect(stats.some((cells) => cells.some((c: any) => typeof c === 'string' && c.includes('km/h')))).toBe(true);
+    });
+});
+
+describe('RideOverlay — combo ride, previous-rides ear width/content (repo-owner review 2026-08-25)', () => {
+    const comboWithPrevRidesProps: RideOverlayProps = {
+        ...baseProps,
+        prevRides: MOCK_ROWS,
+    };
+
+    it('keeps the elevation-matching (narrower) width, to avoid crowding WorkoutDashboard', () => {
+        setDimensions(1400, 900);
+        const { getByTestId } = render(<RideOverlay {...comboWithPrevRidesProps} />);
+
+        const earStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        const elevationStyle = Object.assign({}, ...getByTestId('ride-overlay-elevation').props.style);
+        expect(earStyle.width).toBe(elevationStyle.width);
+    });
+
+    it('suppresses the speed stat to fit the narrower width', () => {
+        setDimensions(1400, 900);
+        const { getAllByTestId } = render(<RideOverlay {...comboWithPrevRidesProps} />);
+
+        const stats = getAllByTestId('prev-rides-row').map((row) => row.findAllByType(require('react-native').Text).map((t: any) => t.props.children).flat());
+        expect(stats.some((cells) => cells.some((c: any) => typeof c === 'string' && c.includes('km/h')))).toBe(false);
     });
 });
 
