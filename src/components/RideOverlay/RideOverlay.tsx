@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { IObserver, RouteApiDetail, RoutePoint, WorkoutGraphActuals } from 'incyclist-services';
 import { WorkoutDashboard } from '../WorkoutDashboard/WorkoutDashboard';
@@ -6,11 +6,26 @@ import { StopWorkoutButton } from '../WorkoutDashboard/StopWorkoutButton';
 import { Dynamic } from '../Dynamic';
 import { ElevationGraph } from '../ElevationGraph';
 import { FreeMap } from '../FreeMap';
+import type { PrevRiderMarker } from '../FreeMap/types';
 import { WorkoutGraph } from '../WorkoutGraph';
-import { PrevRidesRow, type PrevRidesRowProps } from '../PrevRides';
-import { useRideOverlayLayout, BOTTOM_BAR_RATIO, SLOT_GAP, type Rect } from '../../hooks/render/useRideOverlayLayout';
+import { PrevRidesRow, PrevRidesCondensedLine, PrevRidesCornerPanel, type PrevRidesRowProps } from '../PrevRides';
+import {
+    useRideOverlayLayout,
+    BOTTOM_BAR_RATIO,
+    SLOT_GAP,
+    type Rect,
+} from '../../hooks/render/useRideOverlayLayout';
 import { colors, textSizes } from '../../theme';
 import type { WorkoutDashboardLine, WorkoutGraphPlan, WorkoutUpcomingSteps } from '../WorkoutDashboard/types';
+
+// design doc §6.2's earFreeBand/visibleRows formula, mirrored from PrevRidesExpandedPanel.tsx
+// (not exported from useRideOverlayLayout.ts — pinned at the identical values here, same as that
+// file already does, rather than introducing a shared export for two call sites).
+const PHASE3_ROW_HEIGHT = 24;
+const PHASE3_HEADER_HEIGHT = 22;
+const EAR_MIN_VISIBLE_ROWS = 1;
+const EAR_MAX_VISIBLE_ROWS = 10;
+const clampVisibleRows = (value: number): number => Math.min(Math.max(value, EAR_MIN_VISIBLE_ROWS), EAR_MAX_VISIBLE_ROWS);
 
 /**
  * The route ride screen's floating overlay — the side-region occupants (corner map / 2 km
@@ -49,7 +64,20 @@ export interface RideOverlayProps {
      *  `RidePageService.getCornerWidget()`); only meaningful in `'fallback'`. This component
      *  doesn't decide which states are available — it renders whichever value it's given and
      *  calls `onToggleCornerWidget` on tap. */
-    cornerWidget?: 'elevation' | 'workout';
+    cornerWidget?: 'elevation' | 'workout' | 'prevRides';
+    /** Phone-only — chevron/expand-panel wiring for the `'prevRides'` fallback state (design doc
+     *  §6.3). Ignored outside `'fallback'`. */
+    onExpandPrevRides?: () => void;
+    onCollapsePrevRides?: () => void;
+    /** How many `prevRides` rows actually fit — reported for the tablet ear (§6.2's
+     *  `earFreeBand` formula, computed here off the resolved `elevation` rect) and forwarded
+     *  as-is to the phone corner slot (`PrevRidesCornerPanel` decides condensed-vs-expanded
+     *  reporting internally). Stands in for `RidePageService.setPrevRidesVisibleRows()` — the
+     *  caller wires this to the real call. */
+    onVisibleRowsChange?: (visibleRows: number) => void;
+    /** Previous riders' live positions for the corner map (design doc §7) — forwarded as-is to
+     *  `FreeMap`'s own `prevRiders` prop. */
+    mapPrevRiders?: PrevRiderMarker[];
     /** Measured, not estimated — same value as `measuredRideDashboardHeight` (§5.4a's fallback
      *  shoutout sits directly below `RideDashboard`, exactly like the corner slot), falling back
      *  to the screen-fraction estimate on the very first frame before it is measured. */
@@ -102,6 +130,10 @@ export const RideOverlay = (props: RideOverlayProps) => {
         mapPoints,
         transformPosition,
         onStopWorkout,
+        onExpandPrevRides,
+        onCollapsePrevRides,
+        onVisibleRowsChange,
+        mapPrevRiders,
     } = props;
 
     // graph/steps/dashboard are populated together — see the class doc above.
@@ -113,6 +145,23 @@ export const RideOverlay = (props: RideOverlayProps) => {
         mapVisible,
         measuredRideDashboardHeight,
     });
+
+    // §6.2 — the tablet ear's own visibleRows report. Only meaningful where an actual ear exists
+    // (not the fallback toggle slot, which has its own condensed/expanded reporting via
+    // PrevRidesCornerPanel below). Keyed on the derived number, not the `elevation` rect object, so
+    // this only fires on a real geometry change.
+    const earVisibleRows = elevation && !cornerSlotIsToggle
+        ? clampVisibleRows(Math.floor(
+            (inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - (elevation.top + elevation.height) - 2 * SLOT_GAP - PHASE3_HEADER_HEIGHT)
+            / PHASE3_ROW_HEIGHT
+        ))
+        : undefined;
+
+    useEffect(() => {
+        if (earVisibleRows !== undefined) {
+            onVisibleRowsChange?.(earVisibleRows);
+        }
+    }, [earVisibleRows, onVisibleRowsChange]);
 
     return (
         <>
@@ -152,15 +201,43 @@ export const RideOverlay = (props: RideOverlayProps) => {
                             followPosition
                             colorActive="blue"
                             colorInactive="rgba(255,255,255,0.4)"
+                            prevRiders={mapPrevRiders}
                         />
                     </Dynamic>
                 </View>
             )}
 
+            {/* --- Fallback corner slot showing 'prevRides': condensed line + expand chevron/panel
+                    (design doc §6.3). A separate branch from the elevation/workout toggle below —
+                    PrevRidesCornerPanel owns its own slot rendering (chrome, chevron, backdrop,
+                    expanded panel), so it mounts in place of (not inside) the plain toggle View. -- */}
+            {elevation && cornerSlotIsToggle && cornerWidget === 'prevRides' && (
+                <PrevRidesCornerPanel
+                    active
+                    slotRect={elevation}
+                    screenHeight={inputs.screenHeight}
+                    rows={prevRides ?? []}
+                    onExpandPrevRides={onExpandPrevRides}
+                    onCollapsePrevRides={onCollapsePrevRides}
+                    onVisibleRowsChange={onVisibleRowsChange}
+                >
+                    <Pressable
+                        testID="ride-overlay-corner-toggle"
+                        style={[styles.cornerWidget, StyleSheet.absoluteFillObject]}
+                        onPress={onToggleCornerWidget}
+                        accessibilityRole="button"
+                        accessibilityLabel="Show elevation"
+                    >
+                        <PrevRidesCondensedLine rows={prevRides ?? []} />
+                    </Pressable>
+                </PrevRidesCornerPanel>
+            )}
+
             {/* --- 2 km elevation preview, or (in 'fallback') the 2-way Elevation<->Workout
                     toggle slot (ride-overlay-layout-design.md §6.2(b)). Absent in 'column-only',
-                    where both corner widgets are dropped so the main view keeps the screen. ---- */}
-            {elevation && (
+                    where both corner widgets are dropped so the main view keeps the screen.
+                    Skipped when the fallback slot is showing 'prevRides' instead (branch above). */}
+            {elevation && !(cornerSlotIsToggle && cornerWidget === 'prevRides') && (
                 <View testID="ride-overlay-elevation" style={[styles.cornerWidget, rectStyle(elevation)]}>
                     {cornerSlotIsToggle ? (
                         <Pressable

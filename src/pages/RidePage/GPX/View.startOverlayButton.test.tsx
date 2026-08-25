@@ -68,6 +68,10 @@ const baseProps: GPXTourPageViewProps = {
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
     onGestureHintDismissed: () => {},
+    onExpandPrevRides: () => {},
+    onCollapsePrevRides: () => {},
+    onSetPrevRidesVisibleRows: () => {},
+    onSetPrevRidesMode: () => {},
 };
 
 // The exact evidence captured in FIXES_BACKLOG #52 (iOS, HRM deliberately off):

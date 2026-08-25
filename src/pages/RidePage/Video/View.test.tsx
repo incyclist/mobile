@@ -40,8 +40,9 @@ jest.mock('../../../components', () => ({
     },
 }));
 
+const mockUseScreenLayout = jest.fn(() => 'normal');
 jest.mock('../../../hooks', () => ({
-    useScreenLayout: () => 'normal',
+    useScreenLayout: () => mockUseScreenLayout(),
 }));
 
 const baseProps: any = {
@@ -74,6 +75,10 @@ const baseProps: any = {
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
     onGestureHintDismissed: () => {},
+    onExpandPrevRides: () => {},
+    onCollapsePrevRides: () => {},
+    onSetPrevRidesVisibleRows: () => {},
+    onSetPrevRidesMode: () => {},
 };
 
 describe('VideoRidePageView — start overlay "Start" button wiring', () => {
@@ -253,5 +258,94 @@ describe('VideoRidePageView — swipe-gesture surface', () => {
             />
         );
         expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Previous-rides overlay wiring (race-against-yourself-mobile-design.md §6.1/§7, session 3.1).
+// Route-only rendering (the workout-overlay tests above) must be unaffected whenever overlayActive
+// is false — this is the regression the whole design depends on being impossible by construction.
+// ---------------------------------------------------------------------------
+
+const prevRidesRows = [
+    { position: 1, label: '12.05.2026', timeGap: '-1:24', isCurrent: false, lat: 1, lng: 2, tsStart: 100 },
+    { position: 2, label: 'You', timeGap: '+0:00', isCurrent: true, lat: 3, lng: 4, tsStart: 200 },
+];
+
+const prevRidesOnlyDisplayProps = {
+    ...baseProps.displayProps,
+    startOverlayProps: null,
+    workoutAttached: false,
+    prevRides: { mode: 'list' as const, rows: prevRidesRows, hasMore: false },
+};
+
+describe('VideoRidePageView — previous-rides overlay wiring', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockUseScreenLayout.mockReturnValue('normal');
+    });
+
+    it('overlayActive via eligible previous rides alone (no workout) mounts the overlay', () => {
+        const { getByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={prevRidesOnlyDisplayProps} />
+        );
+        expect(getByText('ride-overlay')).toBeTruthy();
+    });
+
+    it('does not mount the overlay when prevRides.mode is "hidden" and no workout is attached (overlayActive stays false)', () => {
+        const { queryByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{
+                    ...baseProps.displayProps,
+                    startOverlayProps: null,
+                    workoutAttached: false,
+                    prevRides: { mode: 'hidden', rows: [], hasMore: false },
+                }}
+            />
+        );
+        expect(queryByText('ride-overlay')).toBeNull();
+    });
+
+    it('tablet: passes the full prevRides row list through to the overlay for ear rendering, and mapPrevRiders excludes the current rider', () => {
+        const { getByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={prevRidesOnlyDisplayProps} />
+        );
+        expect(getByText('ride-overlay')).toBeTruthy();
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.prevRides).toEqual(prevRidesRows);
+        expect(overlayProps.mapPrevRiders).toEqual([
+            { key: '100', position: { lat: 1, lng: 2 }, avatar: undefined },
+        ]);
+    });
+
+    it('phone (compact): sets the condensed mode default and still mounts the overlay for the corner-slot state', () => {
+        mockUseScreenLayout.mockReturnValue('compact');
+        const onSetPrevRidesMode = jest.fn();
+        const { getByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{ ...prevRidesOnlyDisplayProps, cornerWidget: 'prevRides' }}
+                onSetPrevRidesMode={onSetPrevRidesMode}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('condensed');
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.cornerWidget).toBe('prevRides');
+    });
+
+    it('tablet (normal): sets the list mode default', () => {
+        const onSetPrevRidesMode = jest.fn();
+        render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={prevRidesOnlyDisplayProps}
+                onSetPrevRidesMode={onSetPrevRidesMode}
+            />
+        );
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('list');
     });
 });

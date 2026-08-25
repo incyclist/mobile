@@ -1,12 +1,8 @@
 import React from 'react';
 import Svg, { G, Path } from 'react-native-svg';
 import { Avatar } from 'incyclist-services';
-import {
-    AVATAR_VIEWBOX,
-    AVATAR_DEFAULT_COLORS,
-    MALE_AVATAR_PATHS,
-    AvatarColors,
-} from '../../assets/avatars/male-paths';
+import { AVATAR_VIEWBOX, MALE_AVATAR_PATHS } from '../../assets/avatars/male-paths';
+import { avatarToConfig } from './avatarToConfig';
 
 export interface PrevRiderAvatarProps {
     avatar: Avatar;
@@ -21,18 +17,11 @@ export interface PrevRiderAvatarProps {
  * as-is: it always positions the figure relative to a graph anchor point (`cx`/`cy`), which a
  * list row has no use for.
  *
- * Only `helmet`/`shirt` map onto the figure's richer per-part color set — everything else
- * (skin, hair, glasses, ...) keeps its default so a two-color `Avatar` value still reads as a
- * recognizable rider without needing those extra parts modeled on this simpler type.
+ * Color mapping (`avatarToConfig`) is shared with `FreeMap`'s previous-rider markers, so the list
+ * and the map always render a given rider in the same colors.
  */
 export const PrevRiderAvatar = ({ avatar, size = 28 }: PrevRiderAvatarProps) => {
-    const overrides: Partial<AvatarColors> = {
-        helmOuter: avatar.helmet,
-        helmInner: avatar.helmet,
-        shirt: avatar.shirt,
-        shirtStripe: avatar.shirt,
-    };
-    const fill: AvatarColors = { ...AVATAR_DEFAULT_COLORS, ...overrides };
+    const fill = avatarToConfig(avatar);
 
     const viewBoxParts = AVATAR_VIEWBOX.split(' ').map(Number);
     const [, , vbWidth, vbHeight] = viewBoxParts;
