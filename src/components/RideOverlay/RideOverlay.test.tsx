@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
-import { RideOverlay, RideOverlayProps } from './RideOverlay';
+import { RideOverlay, RideOverlayProps, PREV_RIDES_TABLET_WIDTH } from './RideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
 
@@ -16,8 +16,12 @@ const setDimensions = (width: number, height: number) => {
     mockDimensions.height = height;
 };
 
+const mockDynamic = jest.fn();
 jest.mock('../Dynamic', () => ({
-    Dynamic: ({ children }: any) => children,
+    Dynamic: (props: any) => {
+        mockDynamic(props);
+        return props.children;
+    },
 }));
 const mockElevationGraph = jest.fn();
 jest.mock('../ElevationGraph', () => ({
@@ -53,6 +57,7 @@ const baseProps: RideOverlayProps = {
     mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
     transformPosition: () => undefined,
     onStopWorkout: () => {},
+    getPrevRidesRows: () => [],
 };
 
 describe('RideOverlay', () => {
@@ -134,7 +139,7 @@ describe('RideOverlay', () => {
 });
 
 // ---------------------------------------------------------------------------
-// No workout attached — a plain route ride mounting this component for its ear occupants only.
+// No workout attached — a plain route ride mounting this component for its side-region occupants and previous-rides list only.
 // graph/steps/dashboard are all absent together (never partially populated).
 // ---------------------------------------------------------------------------
 
@@ -150,9 +155,10 @@ describe('RideOverlay — no workout attached', () => {
         mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
         transformPosition: () => undefined,
         onStopWorkout: () => {},
+        getPrevRidesRows: () => MOCK_ROWS,
     };
 
-    it('block-side: renders the ear occupants (map, elevation, previous rides), no WorkoutDashboard', () => {
+    it('block-side: renders the side-region occupants (map, elevation) and the previous-rides list, no WorkoutDashboard', () => {
         setDimensions(1400, 900); // block-side per ride-overlay-layout-design.md §8.1's table
         const { getByTestId, queryByTestId, getAllByTestId } = render(<RideOverlay {...routeOnlyProps} />);
 
@@ -163,7 +169,7 @@ describe('RideOverlay — no workout attached', () => {
         expect(getAllByTestId('prev-rides-row')).toHaveLength(MOCK_ROWS.length);
     });
 
-    it('renders only the previous-rides ear when that is the only occupant populated (no map points, no workout)', () => {
+    it('renders only the previous-rides list when that is the only occupant populated (no map points, no workout)', () => {
         setDimensions(1400, 900);
         const { getByTestId, queryByTestId } = render(
             <RideOverlay {...routeOnlyProps} mapVisible={false} mapPoints={undefined} />
@@ -175,14 +181,14 @@ describe('RideOverlay — no workout attached', () => {
         expect(getByTestId('ride-overlay-prev-rides')).toBeTruthy();
     });
 
-    it('does not render the previous-rides ear when no rows are given', () => {
+    it('does not render the previous-rides list when no rows are given', () => {
         setDimensions(1400, 900);
         const { queryByTestId } = render(<RideOverlay {...routeOnlyProps} prevRides={undefined} />);
 
         expect(queryByTestId('ride-overlay-prev-rides')).toBeNull();
     });
 
-    it('column-only: drops the ears entirely (no WorkoutDashboard, no crash on the now-optional props)', () => {
+    it('column-only: drops the side-region occupants and the previous-rides list entirely (no WorkoutDashboard, no crash on the now-optional props)', () => {
         setDimensions(860, 480);
         expect(() => render(<RideOverlay {...routeOnlyProps} />)).not.toThrow();
 
@@ -205,13 +211,12 @@ describe('RideOverlay — no workout attached', () => {
         expect(queryByTestId('ride-overlay-dashboard')).toBeNull();
         expect(queryByTestId('ride-overlay-shoutout')).toBeNull();
         expect(queryByTestId('ride-overlay-stop-slot')).toBeNull();
-        // the corner slot itself still renders (elevation, in this case) — cycling between
-        // 'elevation' and 'prevRides' states on a plain ride is a later session's wiring, not this
-        // component's concern; it only guarantees no crash on the toggle path when graph is absent.
+        // the corner slot itself still renders (elevation, in this case) — it only guarantees no
+        // crash on the toggle path when graph is absent.
         expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
     });
 
-    it('block-side: reports the ear\'s own visibleRows via onVisibleRowsChange', () => {
+    it('block-side: reports the list\'s own visibleRows via onVisibleRowsChange', () => {
         setDimensions(1400, 900);
         const onVisibleRowsChange = jest.fn();
         render(<RideOverlay {...routeOnlyProps} onVisibleRowsChange={onVisibleRowsChange} />);
@@ -220,6 +225,23 @@ describe('RideOverlay — no workout attached', () => {
         const reported = onVisibleRowsChange.mock.calls.at(-1)?.[0];
         expect(typeof reported).toBe('number');
         expect(reported).toBeGreaterThanOrEqual(1);
+    });
+
+    it('recomputes visibleRows from the first row\'s real measured height, not the fallback estimate — a taller-than-fallback row means fewer rows fit than the fallback would predict', () => {
+        setDimensions(1400, 900);
+        const onVisibleRowsChange = jest.fn();
+        const { getByTestId } = render(<RideOverlay {...routeOnlyProps} onVisibleRowsChange={onVisibleRowsChange} />);
+        const reportedBeforeMeasurement = onVisibleRowsChange.mock.calls.at(-1)?.[0];
+
+        // Simulate a real device reporting each row as considerably taller than the fallback
+        // guess (this is exactly the bug: PHASE3_ROW_HEIGHT=24, borrowed from the phone's flat
+        // single-line row, wildly under-measured the tablet's two-line padded card).
+        fireEvent(getByTestId('prev-rides-first-row-measure'), 'layout', {
+            nativeEvent: { layout: { height: 120 } },
+        });
+
+        const reportedAfterMeasurement = onVisibleRowsChange.mock.calls.at(-1)?.[0];
+        expect(reportedAfterMeasurement).toBeLessThan(reportedBeforeMeasurement);
     });
 
     it('forwards mapPrevRiders to the corner FreeMap', () => {
@@ -243,36 +265,46 @@ describe('RideOverlay — no workout attached', () => {
         expect(mockElevationGraph.mock.calls.at(-1)?.[0]).toMatchObject({ currentAvatar: avatar });
     });
 
-    it('route-only ear: uses the full available ear width, not the narrower elevation-matching width, and shows speed', () => {
+    it('route-only: uses the fixed list width (independent of the dashboard), and shows speed', () => {
         setDimensions(1400, 900);
         const { getByTestId, getAllByTestId } = render(<RideOverlay {...routeOnlyProps} />);
 
-        const earStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
-        const elevationStyle = Object.assign({}, ...getByTestId('ride-overlay-elevation').props.style);
-        expect(earStyle.width).toBeGreaterThan(elevationStyle.width);
+        const listStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        expect(listStyle.width).toBe(PREV_RIDES_TABLET_WIDTH);
         // no fixed bottom edge — the box shrinks to its own content instead of stretching to it
-        expect(earStyle.bottom).toBeUndefined();
-        expect(earStyle.maxHeight).toEqual(expect.any(Number));
+        expect(listStyle.bottom).toBeUndefined();
+        expect(listStyle.maxHeight).toEqual(expect.any(Number));
 
         // 'normal' tier shows the speed stat by default (route-only, showSpeed !== false)
         const stats = getAllByTestId('prev-rides-row').map((row) => row.findAllByType(require('react-native').Text).map((t: any) => t.props.children).flat());
         expect(stats.some((cells) => cells.some((c: any) => typeof c === 'string' && c.includes('km/h')))).toBe(true);
     });
+
+    it('wires the previous-rides list to live-refresh via <Dynamic> on prev-rides-update, using getPrevRidesRows as the transform', () => {
+        setDimensions(1400, 900);
+        mockDynamic.mockClear();
+        const rideObserver = {} as any;
+        const getPrevRidesRows = jest.fn(() => MOCK_ROWS);
+        render(<RideOverlay {...routeOnlyProps} rideObserver={rideObserver} getPrevRidesRows={getPrevRidesRows} />);
+
+        const call = mockDynamic.mock.calls.find(([props]) => props.event === 'prev-rides-update' && props.prop === 'rows');
+        expect(call).toBeTruthy();
+        expect(call[0]).toMatchObject({ observer: rideObserver, transform: getPrevRidesRows });
+    });
 });
 
-describe('RideOverlay — combo ride, previous-rides ear width/content (repo-owner review 2026-08-25)', () => {
+describe('RideOverlay — combo ride, previous-rides list width/content (repo-owner review 2026-08-25)', () => {
     const comboWithPrevRidesProps: RideOverlayProps = {
         ...baseProps,
         prevRides: MOCK_ROWS,
     };
 
-    it('keeps the elevation-matching (narrower) width, to avoid crowding WorkoutDashboard', () => {
+    it('uses the same fixed list width as route-only — not derived from the dashboard, so SIM vs ERG (or any other tile-count change) can never move it', () => {
         setDimensions(1400, 900);
         const { getByTestId } = render(<RideOverlay {...comboWithPrevRidesProps} />);
 
-        const earStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
-        const elevationStyle = Object.assign({}, ...getByTestId('ride-overlay-elevation').props.style);
-        expect(earStyle.width).toBe(elevationStyle.width);
+        const listStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        expect(listStyle.width).toBe(PREV_RIDES_TABLET_WIDTH);
     });
 
     it('suppresses the speed stat to fit the narrower width', () => {
@@ -282,15 +314,31 @@ describe('RideOverlay — combo ride, previous-rides ear width/content (repo-own
         const stats = getAllByTestId('prev-rides-row').map((row) => row.findAllByType(require('react-native').Text).map((t: any) => t.props.children).flat());
         expect(stats.some((cells) => cells.some((c: any) => typeof c === 'string' && c.includes('km/h')))).toBe(false);
     });
+
+    it('positions below WorkoutDashboard, not below elevation — the two don\'t end at the same depth, so stacking under elevation (as if route-only) risks overlapping it', () => {
+        setDimensions(1400, 900);
+        const { getByTestId } = render(<RideOverlay {...comboWithPrevRidesProps} />);
+
+        const listStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        const dashboardStyle = Object.assign({}, ...getByTestId('ride-overlay-dashboard').props.style);
+        const elevationStyle = Object.assign({}, ...getByTestId('ride-overlay-elevation').props.style);
+
+        const dashboardBottom = dashboardStyle.top + dashboardStyle.maxHeight;
+        const elevationBottom = elevationStyle.top + elevationStyle.height;
+
+        expect(listStyle.top).toBeGreaterThanOrEqual(dashboardBottom);
+        expect(listStyle.top).toBeGreaterThanOrEqual(elevationBottom);
+    });
 });
 
 // ---------------------------------------------------------------------------
-// Fallback corner slot showing 'prevRides' (design doc §6.3) — the chevron/expand-panel wiring
-// RideOverlay.test.tsx previously called out as "a later session's wiring, not this component's
-// concern" (see the 'elevation' fallback test above). This is that session.
+// Phone previous-rides panel — decoupled from cornerWidget (repo-owner review 2026-08-25):
+// elevation/workout always renders in its own slot; the previous-rides panel is a separate,
+// always-visible-when-eligible element anchored below it, starting expanded (full list),
+// collapsing to just the chevron button rather than replacing elevation/workout.
 // ---------------------------------------------------------------------------
 
-describe('RideOverlay — fallback corner slot, cornerWidget="prevRides"', () => {
+describe('RideOverlay — phone previous-rides panel (decoupled from cornerWidget)', () => {
     const prevRidesFallbackProps: RideOverlayProps = {
         mapVisible: true,
         prevRides: MOCK_ROWS,
@@ -302,23 +350,24 @@ describe('RideOverlay — fallback corner slot, cornerWidget="prevRides"', () =>
         mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
         transformPosition: () => undefined,
         onStopWorkout: () => {},
-        cornerWidget: 'prevRides',
+        getPrevRidesRows: () => MOCK_ROWS,
+        cornerWidget: 'elevation',
     };
 
     beforeEach(() => {
         setDimensions(844, 390); // height < 420 => compact => fallback
     });
 
-    it('renders the condensed line and the expand chevron, not the elevation/workout content', () => {
-        const { getByTestId, queryByTestId } = render(<RideOverlay {...prevRidesFallbackProps} />);
+    it('starts expanded, showing the full row list, alongside elevation (not replacing it)', () => {
+        const { getByTestId, getAllByTestId, queryByTestId } = render(<RideOverlay {...prevRidesFallbackProps} />);
 
-        expect(getByTestId('prev-rides-corner-slot')).toBeTruthy();
-        expect(getByTestId('prev-rides-condensed-line')).toBeTruthy();
-        expect(getByTestId('prev-rides-expand-chevron')).toBeTruthy();
-        expect(queryByTestId('ride-overlay-elevation')).toBeNull();
+        expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+        expect(getByTestId('prev-rides-expanded-panel')).toBeTruthy();
+        expect(getAllByTestId('prev-rides-row').length).toBeGreaterThan(0);
+        expect(queryByTestId('prev-rides-collapsed-slot')).toBeNull();
     });
 
-    it('tapping the slot (not the chevron) still cycles the corner widget', () => {
+    it('tapping the elevation/workout slot still cycles the corner widget, independent of the previous-rides panel', () => {
         const onToggleCornerWidget = jest.fn();
         const { getByTestId } = render(
             <RideOverlay {...prevRidesFallbackProps} onToggleCornerWidget={onToggleCornerWidget} />
@@ -328,30 +377,49 @@ describe('RideOverlay — fallback corner slot, cornerWidget="prevRides"', () =>
         expect(onToggleCornerWidget).toHaveBeenCalled();
     });
 
-    it('condensed state reports the fixed 2-row budget via onVisibleRowsChange', () => {
-        const onVisibleRowsChange = jest.fn();
-        render(<RideOverlay {...prevRidesFallbackProps} onVisibleRowsChange={onVisibleRowsChange} />);
-
-        expect(onVisibleRowsChange).toHaveBeenCalledWith(2);
-    });
-
-    it('tapping the chevron expands the panel (not the toggle cycle) and renders the row list', () => {
-        const onToggleCornerWidget = jest.fn();
-        const onExpandPrevRides = jest.fn();
-        const { getByTestId, getAllByTestId } = render(
-            <RideOverlay
-                {...prevRidesFallbackProps}
-                onToggleCornerWidget={onToggleCornerWidget}
-                onExpandPrevRides={onExpandPrevRides}
-            />
+    it('collapsing (tap the header chevron) leaves elevation visible plus just the chevron button, no row data', () => {
+        const onCollapsePrevRides = jest.fn();
+        const { getByTestId, queryByTestId, queryAllByTestId } = render(
+            <RideOverlay {...prevRidesFallbackProps} onCollapsePrevRides={onCollapsePrevRides} />
         );
 
         fireEvent.press(getByTestId('prev-rides-expand-chevron'));
 
+        expect(onCollapsePrevRides).toHaveBeenCalled();
+        expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+        expect(getByTestId('prev-rides-collapsed-slot')).toBeTruthy();
+        expect(queryByTestId('prev-rides-expanded-panel')).toBeNull();
+        expect(queryAllByTestId('prev-rides-row')).toHaveLength(0);
+    });
+
+    it('tapping the chevron from collapsed re-expands the panel and calls onExpandPrevRides', () => {
+        const onExpandPrevRides = jest.fn();
+        const { getByTestId, getAllByTestId } = render(
+            <RideOverlay {...prevRidesFallbackProps} onExpandPrevRides={onExpandPrevRides} />
+        );
+
+        // collapse first (no defaultExpanded override plumbed through RideOverlay - reach the
+        // collapsed state via the same header-chevron tap a user would use).
+        fireEvent.press(getByTestId('prev-rides-expand-chevron'));
+        fireEvent.press(getByTestId('prev-rides-expand-chevron'));
+
         expect(onExpandPrevRides).toHaveBeenCalled();
-        expect(onToggleCornerWidget).not.toHaveBeenCalled();
         expect(getByTestId('prev-rides-expanded-panel')).toBeTruthy();
         expect(getAllByTestId('prev-rides-row').length).toBeGreaterThan(0);
+    });
+
+    it('wires the expanded-panel rows to live-refresh via <Dynamic> on prev-rides-update', () => {
+        mockDynamic.mockClear();
+        const rideObserver = {} as any;
+        const getPrevRidesRows = jest.fn(() => MOCK_ROWS);
+        render(<RideOverlay {...prevRidesFallbackProps} rideObserver={rideObserver} getPrevRidesRows={getPrevRidesRows} />);
+
+        const calls = mockDynamic.mock.calls
+            .map(([props]) => props)
+            .filter((props) => props.event === 'prev-rides-update' && props.prop === 'rows');
+
+        expect(calls.length).toBe(1);
+        expect(calls[0]).toMatchObject({ observer: rideObserver, transform: getPrevRidesRows });
     });
 });
 

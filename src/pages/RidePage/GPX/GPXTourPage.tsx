@@ -45,6 +45,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
         (mode: 'condensed' | 'list') => refService.current?.setPrevRidesMode(mode),
         [refService]
     );
+    const getPrevRidesRows = useCallback(() => refService.current?.getPrevRidesRows() ?? [], [refService]);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -77,6 +78,7 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
                 onCollapsePrevRides={onCollapsePrevRides}
                 onSetPrevRidesVisibleRows={onSetPrevRidesVisibleRows}
                 onSetPrevRidesMode={onSetPrevRidesMode}
+                getPrevRidesRows={getPrevRidesRows}
             />
         </ErrorBoundary>
     );

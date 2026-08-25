@@ -72,6 +72,7 @@ const baseProps: GPXTourPageViewProps = {
     onCollapsePrevRides: () => {},
     onSetPrevRidesVisibleRows: () => {},
     onSetPrevRidesMode: () => {},
+    getPrevRidesRows: () => [],
 };
 
 // The exact evidence captured in FIXES_BACKLOG #52 (iOS, HRM deliberately off):

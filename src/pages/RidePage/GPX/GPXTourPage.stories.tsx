@@ -22,6 +22,7 @@ const meta: Meta<typeof GPXTourPageView> = {
         onCollapsePrevRides: fn(),
         onSetPrevRidesVisibleRows: fn(),
         onSetPrevRidesMode: fn(),
+        getPrevRidesRows: () => [],
     },
 };
 

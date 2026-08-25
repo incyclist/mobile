@@ -50,6 +50,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         (mode: 'condensed' | 'list') => refService.current?.setPrevRidesMode(mode),
         [refService]
     );
+    const getPrevRidesRows = useCallback(() => refService.current?.getPrevRidesRows() ?? [], [refService]);
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -82,6 +83,7 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 onCollapsePrevRides={onCollapsePrevRides}
                 onSetPrevRidesVisibleRows={onSetPrevRidesVisibleRows}
                 onSetPrevRidesMode={onSetPrevRidesMode}
+                getPrevRidesRows={getPrevRidesRows}
             />
         </ErrorBoundary>
     );
