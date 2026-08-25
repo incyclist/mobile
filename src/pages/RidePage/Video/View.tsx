@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { VideoRidePageDisplayProps } from 'incyclist-services';
 import {
@@ -22,6 +22,7 @@ import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { createSharedRideViewStyles } from './sharedRideViewStyles';
 import { getGestureHintContent } from '../gestureHintContent';
+import { buildPrevRiderMarkers } from '../prevRiderMarkers';
 
 interface VideoRidePageViewProps extends RideViewActionProps {
     displayProps: VideoRidePageDisplayProps;
@@ -57,9 +58,13 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         onToggleCornerWidget,
         onStopWorkout,
         onGestureHintDismissed,
+        onExpandPrevRides,
+        onCollapsePrevRides,
+        onSetPrevRidesVisibleRows,
+        onSetPrevRidesMode,
     } = props;
 
-    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint } = displayProps;
+    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint, prevRides } = displayProps;
 
     // Derived properties
     const routeData = route?.details;
@@ -74,6 +79,24 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // untouched path below, exactly as today. `workoutAttached` is the service-side attachment
     // gate (workout-combo-service-design.md §4.2).
     const comboActive = !!workoutAttached;
+
+    // overlayActive generalizes comboActive's gate: the overlay now also renders for a plain
+    // route ride with eligible previous rides. When overlayActive is false (no workout, no
+    // eligible previous rides — most rides, most of the time), every branch below renders
+    // byte-for-byte as it did before this feature existed.
+    const prevRidesEligible = !!prevRides && prevRides.mode !== 'hidden';
+    const overlayActive = comboActive || prevRidesEligible;
+
+    // Tablet always shows the full list ear; phone defaults to the condensed corner slot. Only
+    // (re)applies the tier default on a compact/normal transition, so it never fights with the
+    // phone chevron's own onExpandPrevRides()/onCollapsePrevRides() calls.
+    useEffect(() => {
+        onSetPrevRidesMode(isCompact ? 'condensed' : 'list');
+    }, [isCompact, onSetPrevRidesMode]);
+
+    // Previous riders' live positions for the corner map (Video has no main map). The current
+    // rider's own marker is unaffected — see buildPrevRiderMarkers().
+    const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -137,8 +160,9 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 )})}
 
                 {/* 2km Elevation Preview — route-only rendering, untouched. Replaced by
-                    RideOverlay's own corner-widget rects when a workout is attached. */}
-                {!comboActive && (
+                    RideOverlay's own corner-widget rects whenever overlayActive (a workout is
+                    attached, or eligible previous rides exist). */}
+                {!overlayActive && (
                     <ElevationGraph
                         routeData={routeData}
                         observer={rideObserver ?? undefined}
@@ -156,7 +180,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 )}
 
                 {/* Map Overlay — route-only rendering, untouched (HLD §9.1). See above. */}
-                {!comboActive && !isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
+                {!overlayActive && !isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
                     <View style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
                         <Dynamic
                             observer={rideObserver ?? undefined}
@@ -175,9 +199,12 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     </View>
                 )}
 
-                {/* Workout overlay (WorkoutDashboard + resolved arrangement) — additive, prop-driven
-                    branch. workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5. */}
-                {comboActive && graph && steps && dashboard && (
+                {/* Overlay (WorkoutDashboard when a workout is attached, previous-rides ear/corner
+                    slot when eligible, or both) — additive, prop-driven branch. The
+                    `!comboActive || (graph && steps && dashboard)` half preserves the existing
+                    "don't mount the combo overlay before workout data is ready" defensiveness — a
+                    route-only overlayActive ride never expects that data at all. */}
+                {overlayActive && (!comboActive || (graph && steps && dashboard)) && (
                     <RideOverlay
                         itemCount={dashboardItemCount}
                         mapVisible={mapVisible}
@@ -185,6 +212,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         graph={graph}
                         steps={steps}
                         dashboard={dashboard}
+                        prevRides={prevRides?.rows}
                         cornerWidget={cornerWidget}
                         dashboardHeight={dashboardHeight}
                         compact={isCompact}
@@ -196,6 +224,10 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         mapPoints={routeData?.points}
                         transformPosition={transformPosition}
                         onStopWorkout={onStopWorkout}
+                        onExpandPrevRides={onExpandPrevRides}
+                        onCollapsePrevRides={onCollapsePrevRides}
+                        onVisibleRowsChange={onSetPrevRidesVisibleRows}
+                        mapPrevRiders={prevRiderMarkers}
                     />
                 )}
 

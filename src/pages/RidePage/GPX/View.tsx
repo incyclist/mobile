@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import {
     RoutePoint,
@@ -24,6 +24,7 @@ import { RideViewActionProps } from '../types';
 import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { getGestureHintContent } from '../gestureHintContent';
+import { buildPrevRiderMarkers } from '../prevRiderMarkers';
 
 export interface GPXTourPageViewProps extends RideViewActionProps {
     displayProps: GPXRidePageDisplayProps;
@@ -63,9 +64,13 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onToggleCornerWidget,
         onStopWorkout,
         onGestureHintDismissed,
+        onExpandPrevRides,
+        onCollapsePrevRides,
+        onSetPrevRidesVisibleRows,
+        onSetPrevRidesMode,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -84,6 +89,25 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
     // Additive branch, workout-mobile-hld-phase2.md §5 — see Video/View.tsx's identical comment.
     const comboActive = !!workoutAttached;
+
+    // overlayActive generalizes comboActive's gate: the overlay now also renders for a plain
+    // route ride with eligible previous rides. When overlayActive is false (no workout, no
+    // eligible previous rides — most rides, most of the time), every branch below renders
+    // byte-for-byte as it did before this feature existed.
+    const prevRidesEligible = !!prevRides && prevRides.mode !== 'hidden';
+    const overlayActive = comboActive || prevRidesEligible;
+
+    // Tablet always shows the full list ear; phone defaults to the condensed corner slot. Only
+    // (re)applies the tier default on a compact/normal transition, so it never fights with the
+    // phone chevron's own onExpandPrevRides()/onCollapsePrevRides() calls.
+    useEffect(() => {
+        onSetPrevRidesMode(isCompact ? 'condensed' : 'list');
+    }, [isCompact, onSetPrevRidesMode]);
+
+    // Previous riders' live positions, for whichever map instance is actually on screen (corner
+    // map via RideOverlay, or the main map below). The current rider's own marker is unaffected —
+    // see buildPrevRiderMarkers().
+    const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -183,13 +207,15 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                 zoomControl={false}
                                 scrollWheelZoom={false}
                                 style={styles.fullScreenMap}
+                                prevRiders={prevRiderMarkers}
                             />
                         </Dynamic>
                     )}
                     {/* Corner orientation map — shown only when the main view above isn't itself a map.
                         Route-only rendering, untouched (HLD §9.1). Replaced by RideOverlay's
-                        own corner-widget rects when a workout is attached and the combo toggle is on. */}
-                    {!comboActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
+                        own corner-widget rects whenever overlayActive (a workout is attached, or
+                        eligible previous rides exist). */}
+                    {!overlayActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
                         <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
                             <Dynamic
                                 observer={rideObserver ?? undefined}
@@ -220,7 +246,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     </View>
 
                     {/* 2km Elevation Preview — route-only rendering, untouched (HLD §9.1). See above. */}
-                    {!comboActive && (
+                    {!overlayActive && (
                         <ElevationGraph
                             routeData={routeData}
                             observer={rideObserver ?? undefined}
@@ -237,9 +263,12 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         />
                     )}
 
-                    {/* Workout overlay (WorkoutDashboard + resolved arrangement) — additive,
-                        prop-driven branch. workout-mobile-hld-phase2.md §5, ride-overlay-layout-design.md §5. */}
-                    {comboActive && graph && steps && dashboard && (
+                    {/* Overlay (WorkoutDashboard when a workout is attached, previous-rides ear/
+                        corner slot when eligible, or both) — additive, prop-driven branch. The
+                        `!comboActive || (graph && steps && dashboard)` half preserves the existing
+                        "don't mount the combo overlay before workout data is ready" defensiveness —
+                        a route-only overlayActive ride never expects that data at all. */}
+                    {overlayActive && (!comboActive || (graph && steps && dashboard)) && (
                         <RideOverlay
                             itemCount={dashboardItemCount}
                             mapVisible={mapVisible}
@@ -247,6 +276,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             graph={graph}
                             steps={steps}
                             dashboard={dashboard}
+                            prevRides={prevRides?.rows}
                             cornerWidget={cornerWidget}
                             dashboardHeight={dashboardHeight}
                             compact={isCompact}
@@ -258,6 +288,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             mapPoints={routeData?.points as RoutePoint[]}
                             transformPosition={transformPosition}
                             onStopWorkout={onStopWorkout}
+                            onExpandPrevRides={onExpandPrevRides}
+                            onCollapsePrevRides={onCollapsePrevRides}
+                            onVisibleRowsChange={onSetPrevRidesVisibleRows}
+                            mapPrevRiders={prevRiderMarkers}
                         />
                     )}
 

@@ -40,6 +40,16 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
         [refService]
     );
+    const onExpandPrevRides = useCallback(() => refService.current?.onExpandPrevRides?.(), [refService]);
+    const onCollapsePrevRides = useCallback(() => refService.current?.onCollapsePrevRides?.(), [refService]);
+    const onSetPrevRidesVisibleRows = useCallback(
+        (n: number) => refService.current?.setPrevRidesVisibleRows(n),
+        [refService]
+    );
+    const onSetPrevRidesMode = useCallback(
+        (mode: 'condensed' | 'list') => refService.current?.setPrevRidesMode(mode),
+        [refService]
+    );
 
     const styleEmpty = { flex: 1, backgroundColor: colors.background };
     if (!displayProps) {
@@ -68,6 +78,10 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 onToggleCornerWidget={onToggleCornerWidget}
                 onStopWorkout={onStopWorkout}
                 onGestureHintDismissed={onGestureHintDismissed}
+                onExpandPrevRides={onExpandPrevRides}
+                onCollapsePrevRides={onCollapsePrevRides}
+                onSetPrevRidesVisibleRows={onSetPrevRidesVisibleRows}
+                onSetPrevRidesMode={onSetPrevRidesMode}
             />
         </ErrorBoundary>
     );

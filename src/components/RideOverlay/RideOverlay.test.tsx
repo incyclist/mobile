@@ -22,8 +22,12 @@ jest.mock('../Dynamic', () => ({
 jest.mock('../ElevationGraph', () => ({
     ElevationGraph: () => null,
 }));
+const mockFreeMap = jest.fn();
 jest.mock('../FreeMap', () => ({
-    FreeMap: () => null,
+    FreeMap: (props: any) => {
+        mockFreeMap(props);
+        return null;
+    },
 }));
 jest.mock('../WorkoutGraph', () => ({
     WorkoutGraph: () => null,
@@ -201,6 +205,98 @@ describe('RideOverlay — no workout attached', () => {
         // 'elevation' and 'prevRides' states on a plain ride is a later session's wiring, not this
         // component's concern; it only guarantees no crash on the toggle path when graph is absent.
         expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+    });
+
+    it('block-side: reports the ear\'s own visibleRows via onVisibleRowsChange', () => {
+        setDimensions(1400, 900);
+        const onVisibleRowsChange = jest.fn();
+        render(<RideOverlay {...routeOnlyProps} onVisibleRowsChange={onVisibleRowsChange} />);
+
+        expect(onVisibleRowsChange).toHaveBeenCalled();
+        const reported = onVisibleRowsChange.mock.calls.at(-1)?.[0];
+        expect(typeof reported).toBe('number');
+        expect(reported).toBeGreaterThanOrEqual(1);
+    });
+
+    it('forwards mapPrevRiders to the corner FreeMap', () => {
+        setDimensions(1400, 900);
+        mockFreeMap.mockClear();
+        const markers = [{ key: '1', position: { lat: 1, lng: 2 } }];
+        render(<RideOverlay {...routeOnlyProps} mapPrevRiders={markers} />);
+
+        expect(mockFreeMap).toHaveBeenCalled();
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({ prevRiders: markers });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Fallback corner slot showing 'prevRides' (design doc §6.3) — the chevron/expand-panel wiring
+// RideOverlay.test.tsx previously called out as "a later session's wiring, not this component's
+// concern" (see the 'elevation' fallback test above). This is that session.
+// ---------------------------------------------------------------------------
+
+describe('RideOverlay — fallback corner slot, cornerWidget="prevRides"', () => {
+    const prevRidesFallbackProps: RideOverlayProps = {
+        mapVisible: true,
+        prevRides: MOCK_ROWS,
+        dashboardHeight: 80,
+        compact: true,
+        rideObserver: null,
+        getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
+        onToggleCornerWidget: () => {},
+        mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
+        transformPosition: () => undefined,
+        onStopWorkout: () => {},
+        cornerWidget: 'prevRides',
+    };
+
+    beforeEach(() => {
+        setDimensions(844, 390); // height < 420 => compact => fallback
+    });
+
+    it('renders the condensed line and the expand chevron, not the elevation/workout content', () => {
+        const { getByTestId, queryByTestId } = render(<RideOverlay {...prevRidesFallbackProps} />);
+
+        expect(getByTestId('prev-rides-corner-slot')).toBeTruthy();
+        expect(getByTestId('prev-rides-condensed-line')).toBeTruthy();
+        expect(getByTestId('prev-rides-expand-chevron')).toBeTruthy();
+        expect(queryByTestId('ride-overlay-elevation')).toBeNull();
+    });
+
+    it('tapping the slot (not the chevron) still cycles the corner widget', () => {
+        const onToggleCornerWidget = jest.fn();
+        const { getByTestId } = render(
+            <RideOverlay {...prevRidesFallbackProps} onToggleCornerWidget={onToggleCornerWidget} />
+        );
+
+        fireEvent.press(getByTestId('ride-overlay-corner-toggle'));
+        expect(onToggleCornerWidget).toHaveBeenCalled();
+    });
+
+    it('condensed state reports the fixed 2-row budget via onVisibleRowsChange', () => {
+        const onVisibleRowsChange = jest.fn();
+        render(<RideOverlay {...prevRidesFallbackProps} onVisibleRowsChange={onVisibleRowsChange} />);
+
+        expect(onVisibleRowsChange).toHaveBeenCalledWith(2);
+    });
+
+    it('tapping the chevron expands the panel (not the toggle cycle) and renders the row list', () => {
+        const onToggleCornerWidget = jest.fn();
+        const onExpandPrevRides = jest.fn();
+        const { getByTestId, getAllByTestId } = render(
+            <RideOverlay
+                {...prevRidesFallbackProps}
+                onToggleCornerWidget={onToggleCornerWidget}
+                onExpandPrevRides={onExpandPrevRides}
+            />
+        );
+
+        fireEvent.press(getByTestId('prev-rides-expand-chevron'));
+
+        expect(onExpandPrevRides).toHaveBeenCalled();
+        expect(onToggleCornerWidget).not.toHaveBeenCalled();
+        expect(getByTestId('prev-rides-expanded-panel')).toBeTruthy();
+        expect(getAllByTestId('prev-rides-row').length).toBeGreaterThan(0);
     });
 });
 

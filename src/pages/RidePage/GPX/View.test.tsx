@@ -10,11 +10,15 @@ const mockStartRideDisplay = jest.fn();
 const mockRideOverlay = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
+const mockFreeMap = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
     ElevationGraph: () => null,
-    FreeMap: () => null,
+    FreeMap: (props: any) => {
+        mockFreeMap(props);
+        return null;
+    },
     MainBackground: () => null,
     RideDashboard: () => null,
     RideMenu: () => null,
@@ -74,6 +78,10 @@ const baseProps: GPXTourPageViewProps = {
     onToggleCornerWidget: () => {},
     onStopWorkout: () => {},
     onGestureHintDismissed: () => {},
+    onExpandPrevRides: () => {},
+    onCollapsePrevRides: () => {},
+    onSetPrevRidesVisibleRows: () => {},
+    onSetPrevRidesMode: () => {},
 };
 
 const activeRouteProps = {
@@ -305,5 +313,125 @@ describe('GPXTourPageView — swipe-gesture surface', () => {
             />
         );
         expect(queryByText('gesture-hint-overlay')).toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Previous-rides overlay wiring.
+// Route-only rendering (the corner-map/workout-overlay tests above) must be unaffected whenever
+// overlayActive is false — this is the regression the whole design depends on being impossible by
+// construction.
+// ---------------------------------------------------------------------------
+
+const prevRidesRows = [
+    { position: 1, label: '12.05.2026', timeGap: '-1:24', isCurrent: false, lat: 1, lng: 2, tsStart: 100 },
+    { position: 2, label: 'You', timeGap: '+0:00', isCurrent: true, lat: 3, lng: 4, tsStart: 200 },
+];
+
+const prevRidesOnlyDisplayProps = () => ({
+    ...activeProps('sv').displayProps,
+    workoutAttached: false,
+    prevRides: { mode: 'list' as const, rows: prevRidesRows, hasMore: false },
+});
+
+describe('GPXTourPageView — previous-rides overlay wiring', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockFreeMap.mockClear();
+        mockUseScreenLayout.mockReturnValue('normal');
+    });
+
+    it('overlayActive via eligible previous rides alone (no workout) mounts the overlay and suppresses the route-only corner map', () => {
+        const { getByText, queryByTestId } = render(
+            <GPXTourPageView {...baseProps} displayProps={prevRidesOnlyDisplayProps() as any} />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+
+    it('does not mount the overlay when prevRides.mode is "hidden" and no workout is attached (overlayActive stays false)', () => {
+        const { queryByText, getByTestId } = render(
+            <GPXTourPageView
+                {...activeProps('sv')}
+                displayProps={{
+                    ...activeProps('sv').displayProps,
+                    workoutAttached: false,
+                    prevRides: { mode: 'hidden', rows: [], hasMore: false },
+                } as any}
+            />
+        );
+
+        expect(queryByText('ride-overlay')).toBeNull();
+        // the route-only branches render exactly as before this feature existed
+        expect(getByTestId('gpx-corner-map')).toBeTruthy();
+    });
+
+    it('tablet: passes the full prevRides row list through to the overlay for ear rendering', () => {
+        const { getByText } = render(
+            <GPXTourPageView {...baseProps} displayProps={prevRidesOnlyDisplayProps() as any} />
+        );
+        expect(getByText('ride-overlay')).toBeTruthy();
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.prevRides).toEqual(prevRidesRows);
+    });
+
+    it('phone (compact): sets the condensed mode default and still mounts the overlay for the corner-slot state', () => {
+        mockUseScreenLayout.mockReturnValue('compact');
+        const onSetPrevRidesMode = jest.fn();
+        const { getByText } = render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{ ...prevRidesOnlyDisplayProps(), cornerWidget: 'prevRides' } as any}
+                onSetPrevRidesMode={onSetPrevRidesMode}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('condensed');
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.cornerWidget).toBe('prevRides');
+    });
+
+    it('tablet (normal): sets the list mode default', () => {
+        const onSetPrevRidesMode = jest.fn();
+        render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={prevRidesOnlyDisplayProps() as any}
+                onSetPrevRidesMode={onSetPrevRidesMode}
+            />
+        );
+
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('list');
+    });
+
+    it('GPX marker target switches between the corner map (StreetView) and the main map (Map view) as rideView changes', () => {
+        const { rerender } = render(
+            <GPXTourPageView {...baseProps} displayProps={prevRidesOnlyDisplayProps() as any} />
+        );
+
+        // 'sv': no main map mounted at all, so it never receives markers.
+        expect(mockFreeMap).not.toHaveBeenCalled();
+        // the corner map lives inside the (mocked) RideOverlay — assert markers were handed to it.
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.mapPrevRiders).toEqual([
+            { key: '100', position: { lat: 1, lng: 2 }, avatar: undefined },
+        ]);
+
+        mockFreeMap.mockClear();
+        rerender(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{ ...prevRidesOnlyDisplayProps(), rideView: 'map' } as any}
+            />
+        );
+
+        // 'map': the main FreeMap is now mounted and receives the same markers.
+        expect(mockFreeMap).toHaveBeenCalled();
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({
+            prevRiders: [{ key: '100', position: { lat: 1, lng: 2 }, avatar: undefined }],
+        });
     });
 });
