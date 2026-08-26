@@ -230,7 +230,11 @@ function draftWithClaude(baseRef, appVersion) {
 }
 
 function editInEditor(initialContent) {
-    const editor = process.env.EDITOR || process.env.VISUAL || 'nano';
+    // EDITOR is deliberately not consulted here: npm injects its own default (typically 'vi')
+    // into every `npm run` child process whenever EDITOR isn't already set in the parent shell,
+    // so checking it can't distinguish "you actually want vi" from "npm filled it in behind
+    // your back". VISUAL isn't touched by npm, so it's still honored if you set it.
+    const editor = process.env.VISUAL || 'nano';
     const tmpFile = path.join(os.tmpdir(), `incyclist-whatsnew-${Date.now()}.txt`);
     fs.writeFileSync(tmpFile, initialContent);
     try {
