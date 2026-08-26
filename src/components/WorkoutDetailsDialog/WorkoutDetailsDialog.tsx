@@ -3,13 +3,20 @@ import {
     getWorkoutListPageService,
     getWorkoutGraphSeries,
     formatDateTime,
+    useUserSettings,
     Workout,
     WorkoutGraphPlan,
     WorkoutDetailsProps as ServiceWorkoutDetailsProps,
 } from 'incyclist-services';
 import { WorkoutDetailsView } from './WorkoutDetailsView';
 import { WorkoutDetailsDialogProps } from './types';
-import { useLogging, useScreenLayout, useUnmountEffect } from '../../hooks';
+import {
+    useLogging,
+    useScreenLayout,
+    useUnmountEffect,
+    STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY,
+    DEFAULT_STEP_CHANGE_AUDIO_SIGNAL,
+} from '../../hooks';
 import { navigate } from '../../services';
 
 /** Absolute-Watt bars + an FTP line at the effective (session-override) FTP — mirrors
@@ -38,9 +45,14 @@ const buildDetailPlan = (workout: Workout, ftp: number): WorkoutGraphPlan => {
  */
 export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) => {
     const service = getWorkoutListPageService();
+    const userSettings = useUserSettings();
     const layout = useScreenLayout();
     const compact = layout === 'compact';
     const { logError } = useLogging('WorkoutDetailsDialog');
+
+    const [stepChangeAudioSignal, setStepChangeAudioSignal] = useState<boolean>(() =>
+        Boolean(userSettings.getValue(STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY, DEFAULT_STEP_CHANGE_AUDIO_SIGNAL))
+    );
 
     const [details, setDetails] = useState<ServiceWorkoutDetailsProps | null>(() =>
         service.getWorkoutDetailsProps(workoutId)
@@ -80,6 +92,15 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
     const onSetErgMode = useCallback((enabled: boolean) => {
         service.onSetErgMode(enabled);
     }, [service]);
+
+    // Direct useUserSettings() read/write - deliberately NOT proxied through the page service
+    // (unlike onSetErgMode above), since this setting doesn't need live reactive propagation across
+    // the app; same direct pattern useRideGestures.ts already uses for its own
+    // preferences.workouts.* key. Shared key with WorkoutSettingsDialog's in-ride toggle.
+    const onSetStepChangeAudioSignal = useCallback((enabled: boolean) => {
+        userSettings.set(STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY, enabled);
+        setStepChangeAudioSignal(enabled);
+    }, [userSettings]);
 
     const onChangeGroup = useCallback((group: string) => {
         service.onChangeGroup(workoutId, group);
@@ -150,6 +171,7 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             compact={compact}
             ftp={details.ftp}
             useErgMode={details.useErgMode}
+            stepChangeAudioSignal={stepChangeAudioSignal}
             groups={details.groups}
             group={details.group}
             isScheduled={details.isScheduled}
@@ -163,6 +185,7 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             onClose={onClose}
             onSetFtp={onSetFtp}
             onSetErgMode={onSetErgMode}
+            onSetStepChangeAudioSignal={onSetStepChangeAudioSignal}
             onChangeGroup={onChangeGroup}
             onStart={onStart}
             onDeleteRequest={onDeleteRequest}

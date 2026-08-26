@@ -24,6 +24,15 @@ export interface WorkoutDetailsViewProps {
     ftp: number;
     useErgMode: boolean;
 
+    /**
+     * Workout Step Change Audio Signal feature - read/written directly via useUserSettings() in the
+     * smart WorkoutDetailsDialog (not proxied through a page-service display-prop/onSet* pattern
+     * like useErgMode above, since this setting doesn't need live reactive propagation - see
+     * useRideGestures.ts for the same direct-settings precedent). Shared key with
+     * WorkoutSettingsDialog's in-ride toggle.
+     */
+    stepChangeAudioSignal: boolean;
+
     groups: string[];
     group: string;
     isScheduled: boolean;
@@ -47,6 +56,7 @@ export interface WorkoutDetailsViewProps {
     onClose: () => void;
     onSetFtp: (ftp: number) => void;
     onSetErgMode: (enabled: boolean) => void;
+    onSetStepChangeAudioSignal: (enabled: boolean) => void;
     onChangeGroup: (group: string) => void;
     onStart: () => void;
     onDeleteRequest: () => void;

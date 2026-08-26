@@ -19,17 +19,20 @@ const GRAPH_HEIGHT_COMPACT = 160;
 interface SettingsColumnProps {
     ftp: number;
     useErgMode: boolean;
+    stepChangeAudioSignal: boolean;
     groups: string[];
     group: string;
     isScheduled: boolean;
     onFtpChange: (value?: number) => void;
     onErgChange: (value: boolean) => void;
+    onStepChangeAudioSignalChange: (value: boolean) => void;
     onGroupChange: (value: string) => void;
 }
 
-/** FTP -> ERG -> Group, always in this vertical order (never side-by-side). */
+/** FTP -> ERG -> Step Change Audio -> Group, always in this vertical order (never side-by-side). */
 const SettingsColumn = ({
-    ftp, useErgMode, groups, group, isScheduled, onFtpChange, onErgChange, onGroupChange,
+    ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled,
+    onFtpChange, onErgChange, onStepChangeAudioSignalChange, onGroupChange,
 }: SettingsColumnProps) => (
     <View>
         <View style={styles.settingsField}>
@@ -44,6 +47,17 @@ const SettingsColumn = ({
                 trueLabel="On"
                 falseLabel="Off"
                 onValueChange={onErgChange}
+            />
+        </View>
+        <View style={styles.settingsField}>
+            <BinarySelect
+                label="Step Change Audio"
+                labelPosition="before"
+                labelWidth={100}
+                value={stepChangeAudioSignal}
+                trueLabel="On"
+                falseLabel="Off"
+                onValueChange={onStepChangeAudioSignalChange}
             />
         </View>
         {!isScheduled && (
@@ -72,11 +86,11 @@ const GraphColumn = ({ plan, graphHeight, scheduledLabel, description }: GraphCo
 export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const {
         title, description, duration, plan, compact,
-        ftp, useErgMode, groups, group, isScheduled, scheduledLabel,
+        ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled, scheduledLabel,
         canDelete, canStart, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
         attachedRoute,
-        onClose, onSetFtp, onSetErgMode, onChangeGroup, onStart,
+        onClose, onSetFtp, onSetErgMode, onSetStepChangeAudioSignal, onChangeGroup, onStart,
         onDeleteRequest, onDeleteConfirm, onDeleteCancel,
         onClearRoute, onAddRoute,
     } = props;
@@ -88,6 +102,10 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const handleErgChange = useCallback((value: boolean) => {
         onSetErgMode(value);
     }, [onSetErgMode]);
+
+    const handleStepChangeAudioSignalChange = useCallback((value: boolean) => {
+        onSetStepChangeAudioSignal(value);
+    }, [onSetStepChangeAudioSignal]);
 
     const handleGroupChange = useCallback((value: string) => {
         onChangeGroup(value);
@@ -115,11 +133,13 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         <SettingsColumn
             ftp={ftp}
             useErgMode={useErgMode}
+            stepChangeAudioSignal={stepChangeAudioSignal}
             groups={groups}
             group={group}
             isScheduled={isScheduled}
             onFtpChange={handleFtpChange}
             onErgChange={handleErgChange}
+            onStepChangeAudioSignalChange={handleStepChangeAudioSignalChange}
             onGroupChange={handleGroupChange}
         />
     );

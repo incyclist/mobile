@@ -109,6 +109,17 @@ describe('WorkoutStepsList', () => {
     // Given remaining: 0 exactly, the formula (1 - remaining/duration) computes to exactly 1 -
     // this component's own rendering is correct; if a real ride still looks short of the end,
     // the gap is in the live service's timing, not here.
+    // Workout Step Change Audio Signal feature (mobile section): CurrentRow drives a countdown
+    // pulse/flash off step.remaining/step.duration via Animated.Value - this repo's convention for
+    // RN component tests is render-without-crashing, not style/snapshot assertions.
+    test('renders without crashing when the current step is inside the last-4-seconds countdown window', () => {
+        const stepsInCountdown = {
+            ...MOCK_STEPS_VO2,
+            current: { ...MOCK_STEPS_VO2.current, remaining: 3 },
+        };
+        expect(() => render(<WorkoutStepsList steps={stepsInCountdown as any} />)).not.toThrow();
+    });
+
     test('current step at remaining=0 fills the progress bar to exactly 100%, not short of it', () => {
         const { getByTestId } = render(<WorkoutStepsList steps={MOCK_STEPS_AT_END} />);
         const fill = getByTestId('step-progress-fill');

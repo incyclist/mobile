@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View } from 'react-native';
 import { RideType, WorkoutRidePageDisplayProps } from 'incyclist-services';
-import { useRideGestures } from '../../../hooks';
+import { useRideGestures, useWorkoutStepAudioSignal } from '../../../hooks';
 import { colors } from '../../../theme';
 import { WorkoutRidePageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
@@ -28,6 +28,7 @@ interface WorkoutRidePageProps {
  */
 export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: WorkoutRidePageProps) => {
     const { gesture, feedback, loadIncrement } = useRideGestures();
+    useWorkoutStepAudioSignal();
 
     const {
         displayProps,

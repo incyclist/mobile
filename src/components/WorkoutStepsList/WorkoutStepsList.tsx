@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, DimensionValue } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, DimensionValue, Animated } from 'react-native';
 import { formatTime } from 'incyclist-services';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
 import { POSITION_MARKER_COLOR } from '../WorkoutGraph';
 import { WorkoutStepDisplay, WorkoutStepsListProps } from './types';
+import { getCountdownBucket, hasStepJustStarted } from './utils';
 
 /**
  * Compact "Zwift-style" upcoming-steps panel for the workout ride screen
@@ -59,9 +60,23 @@ const PreviousRow = ({ step }: { step: WorkoutStepDisplay }) => (
     </View>
 );
 
+// Countdown-bucket scale pulse: brief "pop" on the remaining-time text, once per 4/3/2/1s bucket
+// entered (not once per tick within the same bucket, since a 500ms update cadence can visit the
+// same bucket several times).
+const COUNTDOWN_PULSE_SCALE = 1.35;
+
+// Step-start flash: brief full-row highlight the instant a new step begins - independently timed
+// from the audio cue (useWorkoutStepAudioSignal, driven by the actual 'step-changed' event); see
+// utils.ts's header comment for why these two are computed separately.
+const FLASH_DURATION_MS = 400;
+
 // The step's own elapsed fraction — drawn as the row's background fill, with a thin marker line
 // at the fill's leading edge, colored to match WorkoutGraph's `live`-mode position marker (same
 // "where am I" visual language, just horizontal-in-a-row instead of vertical-across-a-timeline).
+//
+// Also drives the countdown pulse/step-start flash (Workout Step Change Audio Signal feature) -
+// computed locally from `step.remaining`/`step.duration`, already passed in every render, rather
+// than a new prop threaded down from the services-layer countdown event (see utils.ts).
 const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: boolean }) => {
     const hasProgress = step.remaining !== null && step.duration > 0;
     const progress = hasProgress
@@ -69,10 +84,40 @@ const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: bool
         : 0;
     const progressPct = `${(progress * 100).toFixed(2)}%` as DimensionValue;
 
+    const remaining = step.remaining;
+    const prevRemainingRef = useRef<number | null>(null);
+    const prevBucketRef = useRef<number | null>(null);
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const flashAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const prevRemaining = prevRemainingRef.current;
+        const prevBucket = prevBucketRef.current;
+        const bucket = getCountdownBucket(remaining, step.duration);
+
+        if (bucket !== null && bucket !== prevBucket) {
+            pulseAnim.setValue(COUNTDOWN_PULSE_SCALE);
+            Animated.spring(pulseAnim, { toValue: 1, useNativeDriver: true, friction: 4 }).start();
+        }
+
+        if (hasStepJustStarted(remaining, prevRemaining)) {
+            flashAnim.setValue(1);
+            Animated.timing(flashAnim, { toValue: 0, duration: FLASH_DURATION_MS, useNativeDriver: true }).start();
+        }
+
+        prevRemainingRef.current = remaining;
+        prevBucketRef.current = bucket;
+    }, [remaining, step.duration, pulseAnim, flashAnim]);
+
     return (
         <View style={[styles.row, styles.currentRow]}>
             {hasProgress && <View testID="step-progress-fill" style={[styles.progressFill, { width: progressPct }]} />}
             {hasProgress && <View style={[styles.progressMarker, { left: progressPct }]} />}
+            <Animated.View
+                testID="step-flash-overlay"
+                pointerEvents="none"
+                style={[StyleSheet.absoluteFill, styles.flashOverlay, { opacity: flashAnim }]}
+            />
             <View style={styles.currentAccent} />
             <View style={styles.rowText}>
                 <Text style={[styles.currentLabel, compact && styles.currentLabelCompact]} numberOfLines={1}>
@@ -80,9 +125,12 @@ const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: bool
                 </Text>
             </View>
             {step.remaining !== null && (
-                <Text style={[styles.remaining, compact && styles.remainingCompact]}>
+                <Animated.Text
+                    testID="step-remaining-text"
+                    style={[styles.remaining, compact && styles.remainingCompact, { transform: [{ scale: pulseAnim }] }]}
+                >
                     -{formatTime(step.remaining, true)}
-                </Text>
+                </Animated.Text>
             )}
         </View>
     );
@@ -150,6 +198,12 @@ const styles = StyleSheet.create({
         bottom: 0,
         width: 2,
         backgroundColor: POSITION_MARKER_COLOR,
+    },
+    // Positioning comes from StyleSheet.absoluteFill, applied directly in the style array at the
+    // usage site (RN's non-deprecated alternative to spreading absoluteFillObject in here) - this
+    // entry only carries the flash's own color.
+    flashOverlay: {
+        backgroundColor: 'rgba(255, 255, 255, 0.35)',
     },
     currentAccent: {
         width: 4,
