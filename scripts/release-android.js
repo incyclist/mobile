@@ -349,17 +349,29 @@ async function checkBranchSync(dryRun) {
     }
 }
 
-// appVersion ends up in a git tag name and a `gh workflow run -f` argument — validate its shape
-// before it's used anywhere rather than trusting app.json content blindly.
+// appVersion and androidVersionCode end up in a git tag name and a `gh workflow run -f`
+// argument — validate their shape before they're used anywhere rather than trusting app.json
+// content blindly.
 function validateAppVersion(appVersion) {
     if (!/^\d+\.\d+\.\d+$/.test(appVersion)) {
         throw new Error(`app.json's appVersion ("${appVersion}") is not a plain semver string.`);
     }
 }
 
-function tagRelease(appVersion, notes, dryRun) {
+function validateAndroidVersionCode(androidVersionCode) {
+    if (!Number.isInteger(androidVersionCode) || androidVersionCode <= 0) {
+        throw new Error(`app.json's androidVersionCode (${JSON.stringify(androidVersionCode)}) is not a positive integer.`);
+    }
+}
+
+// appVersion alone isn't a reliable release identity: Play requires androidVersionCode to be
+// unique and strictly increasing per upload, but appVersion can stay the same across two
+// separate uploads (e.g. a rebuild with no marketing version change). Including both in the tag
+// avoids one release's tag silently overwriting a different release that happened to share the
+// same appVersion.
+function tagRelease(appVersion, androidVersionCode, notes, dryRun) {
     if (!notes) return null;
-    const tagName = `android-release/v${appVersion}`;
+    const tagName = `android-release/v${appVersion}-${androidVersionCode}`;
     if (dryRun) {
         console.log(`[dry-run] Would tag and push ${tagName} with this message:\n${notes}\n`);
         return tagName;
@@ -436,10 +448,12 @@ async function main() {
 
     const appJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'app.json'), 'utf8'));
     const appVersion = appJson.appVersion;
+    const androidVersionCode = appJson.androidVersionCode;
     validateAppVersion(appVersion);
+    validateAndroidVersionCode(androidVersionCode);
 
     const notes = await collectReleaseNotes(appVersion);
-    const tagName = tagRelease(appVersion, notes, dryRun);
+    const tagName = tagRelease(appVersion, androidVersionCode, notes, dryRun);
 
     const { track, rollout } = await pickTrackAndRollout();
 
