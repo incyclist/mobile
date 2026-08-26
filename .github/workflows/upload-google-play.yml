@@ -32,7 +32,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Apply patches
+        run: node_modules/.bin/patch-package
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
