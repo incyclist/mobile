@@ -142,6 +142,29 @@ export const WorkoutFullListCompact: Story = {
     },
 };
 
+/**
+ * Tablet-width verification (`ipadAir`, 1180x820 - a registered `.storybook/preview.ts` viewport,
+ * same convention `WorkoutRidePage.stories.tsx` uses for its own compact/tablet pair). Below the
+ * tablet-width breakpoint, the panel is capped at 300px and Step Back/Forward, Increase/Decrease
+ * Load, and the settings tiles pack two-per-row (see `WorkoutFullListCompact` above and
+ * `WorkoutOpen`). At this width the panel widens proportionally to the screen and every one of
+ * those items renders on its own row instead, since there is no vertical pressure forcing the
+ * 2-column packing here.
+ */
+export const WorkoutOpenTablet: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        workout: true,
+        canStepBack: true,
+        canStepForward: true,
+    },
+    parameters: {
+        viewport: { defaultViewport: 'ipadAir' },
+    },
+};
+
 
 const styles = StyleSheet.create({
     container: {

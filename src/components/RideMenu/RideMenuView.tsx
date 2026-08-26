@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { RideMenuViewProps } from './types';
 import { colors, textSizes } from '../../theme';
-import { useScreenLayout, useLogging } from '../../hooks';
+import { useScreenLayout, useIsTablet, useLogging } from '../../hooks';
 import { Icon } from '../Icon';
 import { Button } from '../ButtonBar';
 import { GearSettings } from '../GearSettings';
@@ -29,11 +29,18 @@ interface RowButtonSpec {
 }
 
 interface TileSpec {
-    icon: any;
+    icon?: any;
     label: string;
     onPress: () => void;
     disabled?: boolean;
 }
+
+// Panel width caps, named rather than inlined. PHONE_MAX_PANEL_WIDTH is the pre-existing 300px
+// cap, kept unchanged for phone-width screens. TABLET_MAX_PANEL_WIDTH is a new, larger ceiling so
+// the panel scales with screenWidth on tablets instead of being clamped to the phone value -
+// still capped so it doesn't stretch absurdly wide on very large tablets.
+const PHONE_MAX_PANEL_WIDTH = 300;
+const TABLET_MAX_PANEL_WIDTH = 420;
 
 export const RideMenuView = ({
     visible,
@@ -66,9 +73,18 @@ export const RideMenuView = ({
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
+    const isTablet = useIsTablet();
+    // The pairing rationale below (renderMenuRow/renderTileRow) is about clawing back vertical
+    // space on a height-constrained screen, not about width - so it stays keyed off `isCompact`
+    // even on a tablet-width screen that happens to also be short. On every real device, a
+    // tablet-width screen is not compact, so this only changes anything for typical tablets.
+    const useSingleColumnRows = isTablet && !isCompact;
     const { logEvent } = useLogging('RideMenu');
 
-    const panelWidth = isCompact ? screenWidth * 0.35 : Math.min(300, screenWidth * 0.35);
+    const maxPanelWidth = isTablet ? TABLET_MAX_PANEL_WIDTH : PHONE_MAX_PANEL_WIDTH;
+    const panelWidth = isCompact
+        ? screenWidth * 0.35
+        : Math.min(maxPanelWidth, screenWidth * 0.35);
 
     const refPanelHeight = useRef<number>(screenHeight);
     const animTranslateY = useRef(new Animated.Value(screenHeight)).current;
@@ -122,15 +138,34 @@ export const RideMenuView = ({
         );
     };
 
-    const renderMenuRow = (rowLabel: string, left: RowButtonSpec, right: RowButtonSpec) => (
-        <View style={styles.menuRow} key={rowLabel}>
-            <Text style={styles.menuItemLabel}>{rowLabel}</Text>
-            <View style={styles.menuRowButtons}>
-                {renderRowButton(left)}
-                {renderRowButton(right)}
+    const renderMenuRow = (rowLabel: string, left: RowButtonSpec, right: RowButtonSpec) => {
+        // On tablet-width screens there is no vertical pressure to pack two buttons onto a shared
+        // row, so each button gets its own full-width row with its own label instead.
+        if (useSingleColumnRows) {
+            return (
+                <React.Fragment key={rowLabel}>
+                    <View style={styles.menuRow}>
+                        <Text style={styles.menuItemLabel}>{left.label}</Text>
+                        <View style={styles.menuRowButtons}>{renderRowButton(left)}</View>
+                    </View>
+                    <View style={styles.menuRow}>
+                        <Text style={styles.menuItemLabel}>{right.label}</Text>
+                        <View style={styles.menuRowButtons}>{renderRowButton(right)}</View>
+                    </View>
+                </React.Fragment>
+            );
+        }
+
+        return (
+            <View style={styles.menuRow} key={rowLabel}>
+                <Text style={styles.menuItemLabel}>{rowLabel}</Text>
+                <View style={styles.menuRowButtons}>
+                    {renderRowButton(left)}
+                    {renderRowButton(right)}
+                </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     // Half-width icon+label tile, used to pack two unrelated settings entries (Gear Settings,
     // Ride Settings, Workout Settings) onto shared rows the same way Step/Load already share
@@ -153,13 +188,15 @@ export const RideMenuView = ({
                     pressed && !disabled && styles.menuItemPressed,
                 ]}
             >
-                <View style={styles.menuItemIcon}>
-                    <Icon
-                        name={icon}
-                        size={24}
-                        color={disabled ? colors.disabled : colors.text}
-                    />
-                </View>
+                {icon && (
+                    <View style={styles.menuItemIcon}>
+                        <Icon
+                            name={icon}
+                            size={24}
+                            color={disabled ? colors.disabled : colors.text}
+                        />
+                    </View>
+                )}
                 <Text style={[styles.menuItemLabel, disabled && styles.menuItemLabelDisabled]}>
                     {label}
                 </Text>
@@ -167,12 +204,26 @@ export const RideMenuView = ({
         );
     };
 
-    const renderTileRow = (rowKey: string, left: TileSpec, right?: TileSpec) => (
-        <View style={styles.menuTileRow} key={rowKey}>
-            {renderMenuTile(left)}
-            {right ? renderMenuTile(right) : <View style={styles.menuTileSpacer} />}
-        </View>
-    );
+    const renderTileRow = (rowKey: string, left: TileSpec, right?: TileSpec) => {
+        // Same reasoning as renderMenuRow: the 2-column packing exists to save vertical space on a
+        // height-constrained screen, which a tablet-width screen isn't - so each tile gets its own
+        // full-width row there instead.
+        if (useSingleColumnRows) {
+            return (
+                <React.Fragment key={rowKey}>
+                    <View style={styles.menuTileRow}>{renderMenuTile(left)}</View>
+                    {right && <View style={styles.menuTileRow}>{renderMenuTile(right)}</View>}
+                </React.Fragment>
+            );
+        }
+
+        return (
+            <View style={styles.menuTileRow} key={rowKey}>
+                {renderMenuTile(left)}
+                {right ? renderMenuTile(right) : <View style={styles.menuTileSpacer} />}
+            </View>
+        );
+    };
 
     const panelIsVisuallyActive = visible && !panelHiddenByDialog;
 
@@ -233,19 +284,17 @@ export const RideMenuView = ({
                             { icon: 'minus', label: 'Decrease Load', onPress: onDecreaseLoad },
                             { icon: 'plus', label: 'Increase Load', onPress: onIncreaseLoad }
                         )}
-                        {/* 'gear' is a real icon (unlike 'settings'/'controller' below, which are not
-                            in Icon's IconName union and silently render blank - a pre-existing gap,
-                            not introduced here; using a valid name for this new item rather than
-                            compounding it). Gear/Ride Settings pair onto one row and Workout
-                            Settings gets its own row - a 2-column layout, same reasoning as the
-                            Step/Load rows above, to remove one 52px row on the height-constrained
-                            landscape phone layout (see workout-mobile-hld.md §5). */}
+                        {/* Settings tiles have no icon - all three line up flush-left with each
+                            other regardless of which row/column they land in. Gear/Ride Settings
+                            pair onto one row and Workout Settings gets its own row - a 2-column
+                            layout, same reasoning as the Step/Load rows above, to remove one 52px
+                            row on the height-constrained landscape phone layout. */}
                         {renderTileRow('SettingsRow1',
-                            { icon: 'settings', label: 'Gear Settings', onPress: onGearSettings },
-                            { icon: 'controller', label: 'Ride Settings', onPress: onRideSettings }
+                            { label: 'Gear Settings', onPress: onGearSettings },
+                            { label: 'Ride Settings', onPress: onRideSettings }
                         )}
                         {workout && renderTileRow('SettingsRow2',
-                            { icon: 'gear', label: 'Workout Settings', onPress: onWorkoutSettings }
+                            { label: 'Workout Settings', onPress: onWorkoutSettings }
                         )}
                     </ScrollView>
                 </View>

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { RideMenuView } from './RideMenuView'; // Target the View component
 import { ActiveDialog } from './types'; // Import ActiveDialog type for clarity
+import { useIsTablet, useScreenLayout } from '../../hooks';
 
 // Mock dependencies that RideMenuView uses
 jest.mock('incyclist-services', () => ({
@@ -17,7 +18,8 @@ jest.mock('incyclist-services', () => ({
 }));
 
 jest.mock('../../hooks', () => ({
-    useScreenLayout: jest.fn(() => 'tablet'),
+    useScreenLayout: jest.fn(() => 'normal'),
+    useIsTablet: jest.fn(() => false),
     useLogging: jest.fn(() => ({ logEvent: jest.fn(), logError: jest.fn() })),
 }));
 
@@ -240,5 +242,85 @@ describe('RideMenuView', () => {
         expect(getByText('Gear Settings')).toBeTruthy();
         expect(getByText('Ride Settings')).toBeTruthy();
         expect(getByText('Workout Settings')).toBeTruthy();
+    });
+
+    describe('on a tablet-width screen', () => {
+        beforeEach(() => {
+            (useIsTablet as jest.Mock).mockReturnValue(true);
+        });
+
+        afterEach(() => {
+            (useIsTablet as jest.Mock).mockReturnValue(false);
+        });
+
+        it('splits Step Back/Forward onto their own rows instead of sharing the "Step" row', () => {
+            const { getByText, queryByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Step Back')).toBeTruthy();
+            expect(getByText('Step Forward')).toBeTruthy();
+            expect(queryByText('Step')).toBeNull();
+        });
+
+        it('splits Increase/Decrease Load onto their own rows instead of sharing the "Load" row', () => {
+            const { getByText, queryByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Increase Load')).toBeTruthy();
+            expect(getByText('Decrease Load')).toBeTruthy();
+            expect(queryByText('Load')).toBeNull();
+        });
+
+        it('still triggers Step Back/Forward and Load callbacks when split onto their own rows', () => {
+            const onStepBack = jest.fn();
+            const onIncreaseLoad = jest.fn();
+            const { getByLabelText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} onStepBack={onStepBack} onIncreaseLoad={onIncreaseLoad} />
+            );
+            fireEvent.press(getByLabelText('Step Back'));
+            fireEvent.press(getByLabelText('Increase Load'));
+            expect(onStepBack).toHaveBeenCalledTimes(1);
+            expect(onIncreaseLoad).toHaveBeenCalledTimes(1);
+        });
+
+        it('still renders Gear Settings, Ride Settings and Workout Settings, one per row', () => {
+            const { getByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Gear Settings')).toBeTruthy();
+            expect(getByText('Ride Settings')).toBeTruthy();
+            expect(getByText('Workout Settings')).toBeTruthy();
+        });
+
+        it('does not render a second tile when a settings row has only one item', () => {
+            const { getByText, queryByText } = render(
+                <RideMenuView {...mockProps} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Gear Settings')).toBeTruthy();
+            expect(getByText('Ride Settings')).toBeTruthy();
+            expect(queryByText('Workout Settings')).toBeNull();
+        });
+    });
+
+    describe('on a tablet-width screen that is also height-constrained (compact)', () => {
+        beforeEach(() => {
+            (useIsTablet as jest.Mock).mockReturnValue(true);
+            (useScreenLayout as jest.Mock).mockReturnValue('compact');
+        });
+
+        afterEach(() => {
+            (useIsTablet as jest.Mock).mockReturnValue(false);
+            (useScreenLayout as jest.Mock).mockReturnValue('normal');
+        });
+
+        it('keeps the phone-style paired "Step"/"Load" rows instead of splitting - compact wins over tablet width', () => {
+            const { getByText, queryByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Step')).toBeTruthy();
+            expect(getByText('Load')).toBeTruthy();
+            expect(queryByText('Step Back')).toBeNull();
+            expect(queryByText('Increase Load')).toBeNull();
+        });
     });
 });
