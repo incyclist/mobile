@@ -75,9 +75,17 @@ jobs:
           case "${{ github.event.inputs.track }}" in
             production)
               echo "play_track=production" >> "$GITHUB_OUTPUT"
-              echo "status=inProgress" >> "$GITHUB_OUTPUT"
-              FRACTION=$(awk "BEGIN { printf \"%.2f\", ${{ github.event.inputs.rollout }}/100 }")
-              echo "user_fraction=$FRACTION" >> "$GITHUB_OUTPUT"
+              if [ "${{ github.event.inputs.rollout }}" = "100" ]; then
+                # The Play Developer API requires 0 < userFraction < 1, so a full
+                # rollout must be a "completed" release with no userFraction at all
+                # rather than an "inProgress" release staged at fraction 1.0.
+                echo "status=completed" >> "$GITHUB_OUTPUT"
+                echo "user_fraction=" >> "$GITHUB_OUTPUT"
+              else
+                echo "status=inProgress" >> "$GITHUB_OUTPUT"
+                FRACTION=$(awk "BEGIN { printf \"%.2f\", ${{ github.event.inputs.rollout }}/100 }")
+                echo "user_fraction=$FRACTION" >> "$GITHUB_OUTPUT"
+              fi
               ;;
             open_testing)
               echo "play_track=beta" >> "$GITHUB_OUTPUT"
