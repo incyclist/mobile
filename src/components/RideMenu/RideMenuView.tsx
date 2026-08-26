@@ -81,9 +81,10 @@ export const RideMenuView = ({
     const useSingleColumnRows = isTablet && !isCompact;
     const { logEvent } = useLogging('RideMenu');
 
+    const maxPanelWidth = isTablet ? TABLET_MAX_PANEL_WIDTH : PHONE_MAX_PANEL_WIDTH;
     const panelWidth = isCompact
         ? screenWidth * 0.35
-        : Math.min(isTablet ? TABLET_MAX_PANEL_WIDTH : PHONE_MAX_PANEL_WIDTH, screenWidth * 0.35);
+        : Math.min(maxPanelWidth, screenWidth * 0.35);
 
     const refPanelHeight = useRef<number>(screenHeight);
     const animTranslateY = useRef(new Animated.Value(screenHeight)).current;
