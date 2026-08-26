@@ -158,6 +158,20 @@ After deploying, seed the store with your secrets via the admin API — the secr
 
 ---
 
+## Updating native dependency locks
+
+The Android build pins its resolved dependency versions in lock files (`android/buildscript-gradle.lockfile`, `android/settings-gradle.lockfile`, `android/app/gradle.lockfile`), and the iOS/CocoaPods toolchain pins its gem versions in `Gemfile.lock`. Gradle checks its lock files on every build and fails if the resolved versions don't match, so these files must stay in sync with the dependencies that produced them.
+
+Whenever a native dependency changes — an Android Gradle Plugin/Kotlin/`compileSdkVersion` bump in `android/build.gradle`, a new or upgraded React Native library with native code, or a `Gemfile` change — regenerate them:
+
+```sh
+npm run update-native-locks
+```
+
+This requires the Android SDK (for the Gradle lock files) and Ruby/Bundler (for `Gemfile.lock`) to be set up locally; it skips whichever half it can't run and tells you why. Commit the updated lock files in the same change as the dependency bump that required them.
+
+---
+
 ## Troubleshooting
 
 If you're having issues getting the above steps to work, see the React Native [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
