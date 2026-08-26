@@ -20,13 +20,57 @@ const REPO_ROOT = path.join(__dirname, '..');
 const SERVICES_DIR = path.join(REPO_ROOT, '..', 'services');
 const DEVICES_DIR = path.join(REPO_ROOT, '..', 'devices');
 
+// Resolves an executable to an absolute path once at startup, rather than letting every
+// execFileSync call re-resolve a bare command name against PATH — a writable early PATH entry
+// could otherwise shadow git/gh/claude with something else entirely. The `which`/`where` lookup
+// itself is pinned to its well-known, fixed OS location so that bootstrap step isn't itself
+// PATH-dependent.
+function resolveBin(name) {
+    const finder = process.platform === 'win32' ? 'C:\\Windows\\System32\\where.exe' : '/usr/bin/which';
+    try {
+        return execFileSync(finder, [name], { encoding: 'utf8' }).trim().split(/\r?\n/)[0];
+    } catch {
+        return null;
+    }
+}
+
+const GIT_BIN = resolveBin('git');
+const GH_BIN = resolveBin('gh');
+const CLAUDE_BIN = resolveBin('claude');
+
+if (!GIT_BIN) {
+    console.error('❌ "git" not found on PATH.');
+    process.exit(1);
+}
+if (!GH_BIN) {
+    console.error('❌ "gh" (GitHub CLI) not found on PATH — required to trigger the release workflow.');
+    process.exit(1);
+}
+
 const onCancel = () => {
     console.log('Aborted.');
     process.exit(1);
 };
 
+// Only real git refs/SHAs are ever expected here. Rejecting a leading '-' stops a value —
+// especially the free-typed "enter a commit or ref manually" input — from being interpreted as
+// a git/CLI flag instead of a revision.
+function isSafeRefFormat(ref) {
+    return typeof ref === 'string' && ref.length > 0 && !ref.startsWith('-');
+}
+
+function refExists(dir, ref) {
+    if (!isSafeRefFormat(ref)) return false;
+    try {
+        execFileSync(GIT_BIN, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], { cwd: dir, stdio: 'ignore' });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function git(args, options = {}) {
-    return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8', ...options }).trim();
+    return execFileSync(GIT_BIN, args, { cwd: REPO_ROOT, encoding: 'utf8', ...options }).trim();
 }
 
 function listTags() {
@@ -48,16 +92,21 @@ function listTags() {
 }
 
 function gitLog(dir, range) {
-    return execFileSync('git', ['log', range, '--oneline'], { cwd: dir, encoding: 'utf8' }).trim();
+    return execFileSync(GIT_BIN, ['log', range, '--oneline'], { cwd: dir, encoding: 'utf8' }).trim();
 }
 
 function cleanSemver(v) {
-    return v ? v.replace(/^[\^~]/, '') : null;
+    if (!v) return null;
+    const stripped = v.replace(/^[\^~]/, '');
+    // Only ever used to build a `v<version>` tag name passed to git commands — reject anything
+    // that doesn't look like a plain semver so a malformed/hostile package.json entry can't turn
+    // into an unexpected CLI argument.
+    return /^\d+\.\d+\.\d+$/.test(stripped) ? stripped : null;
 }
 
 function depVersionAt(dir, ref, depName) {
     try {
-        const content = execFileSync('git', ['show', `${ref}:package.json`], { cwd: dir, encoding: 'utf8' });
+        const content = execFileSync(GIT_BIN, ['show', `${ref}:package.json`], { cwd: dir, encoding: 'utf8' });
         const pkg = JSON.parse(content);
         return cleanSemver(pkg.dependencies && pkg.dependencies[depName]);
     } catch {
@@ -150,15 +199,6 @@ Task:
    fences. It gets written directly into the whatsnew file.`;
 }
 
-function claudeInstalled() {
-    try {
-        execFileSync('which', ['claude'], { stdio: 'ignore' });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 function draftWithClaude(baseRef, appVersion) {
     const context = gatherContext(baseRef);
     const prompt = buildDraftPrompt(context, appVersion);
@@ -166,8 +206,10 @@ function draftWithClaude(baseRef, appVersion) {
     console.log('Drafting release notes with Claude...');
     try {
         // No --add-dir / tool use needed — the prompt is self-contained text, so this is a
-        // single-shot generation, not a multi-turn agentic session.
-        return execFileSync('claude', ['-p', '--model', 'sonnet', prompt], {
+        // single-shot generation, not a multi-turn agentic session. The `--` marker forces the
+        // prompt to be treated as a plain positional value, not re-parsed as flags, regardless
+        // of its content (it's built from commit log text, not written by hand).
+        return execFileSync(CLAUDE_BIN, ['-p', '--model', 'sonnet', '--', prompt], {
             cwd: REPO_ROOT,
             encoding: 'utf8',
             timeout: 60 * 1000,
@@ -220,7 +262,16 @@ async function pickBaseRef() {
     if (choice !== '__manual__') return choice;
 
     const { manualRef } = await prompts(
-        { type: 'text', name: 'manualRef', message: 'Commit SHA or ref' },
+        {
+            type: 'text',
+            name: 'manualRef',
+            message: 'Commit SHA or ref',
+            validate: (value) => {
+                if (!isSafeRefFormat(value)) return 'Must be a valid ref (cannot start with "-")';
+                if (!refExists(REPO_ROOT, value)) return `"${value}" does not resolve to a commit in this repo`;
+                return true;
+            },
+        },
         { onCancel }
     );
     return manualRef || null;
@@ -236,7 +287,7 @@ async function collectReleaseNotes(appVersion) {
     const baseRef = await pickBaseRef();
 
     let draft = '';
-    if (claudeInstalled()) {
+    if (CLAUDE_BIN) {
         draft = draftWithClaude(baseRef, appVersion);
     } else {
         console.log('claude CLI not found — opening editor for manual entry.');
@@ -291,6 +342,11 @@ async function main() {
 
     const appJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'app.json'), 'utf8'));
     const appVersion = appJson.appVersion;
+    // appVersion ends up in a git tag name and a `gh workflow run -f` argument — validate its
+    // shape before it's used anywhere rather than trusting app.json content blindly.
+    if (!/^\d+\.\d+\.\d+$/.test(appVersion)) {
+        throw new Error(`app.json's appVersion ("${appVersion}") is not a plain semver string.`);
+    }
 
     const notes = await collectReleaseNotes(appVersion);
 
@@ -349,7 +405,7 @@ async function main() {
     }
 
     console.log(`\nTriggering: gh ${ghArgs.join(' ')}\n`);
-    execFileSync('gh', ghArgs, { cwd: REPO_ROOT, stdio: 'inherit' });
+    execFileSync(GH_BIN, ghArgs, { cwd: REPO_ROOT, stdio: 'inherit' });
 
     console.log('\nTriggered. Track progress with: gh run list --workflow=upload-google-play.yml');
 }
