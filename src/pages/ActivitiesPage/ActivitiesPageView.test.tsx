@@ -36,8 +36,9 @@ describe('ActivitiesPageView', () => {
         const { toJSON } = render(
             <ActivitiesPageView 
                 props={props} 
-                onSelectActivity={jest.fn()} 
-                onNavigate={jest.fn()} 
+                onSelectActivity={jest.fn()}
+                onDeleteActivity={jest.fn()}
+                onNavigate={jest.fn()}
             />
         );
         expect(toJSON()).toBeDefined();
@@ -48,8 +49,9 @@ describe('ActivitiesPageView', () => {
         const { getByText } = render(
             <ActivitiesPageView 
                 props={props} 
-                onSelectActivity={jest.fn()} 
-                onNavigate={jest.fn()} 
+                onSelectActivity={jest.fn()}
+                onDeleteActivity={jest.fn()}
+                onNavigate={jest.fn()}
             />
         );
         expect(getByText('No activities found')).toBeDefined();
@@ -68,8 +70,9 @@ describe('ActivitiesPageView', () => {
         const { toJSON } = render(
             <ActivitiesPageView 
                 props={props as any} 
-                onSelectActivity={jest.fn()} 
-                onNavigate={jest.fn()} 
+                onSelectActivity={jest.fn()}
+                onDeleteActivity={jest.fn()}
+                onNavigate={jest.fn()}
             />
         );
         expect(toJSON()).toBeDefined();

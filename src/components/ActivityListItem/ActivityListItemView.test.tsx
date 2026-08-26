@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ActivityListItemView } from './ActivityListItemView';
 import { ActivityListItemViewProps } from './types';
 
@@ -16,6 +16,7 @@ const MOCK_PROPS: ActivityListItemViewProps = {
     compact: false,
     outsideFold: false,
     onPress: () => {},
+    onDelete: () => {},
 };
 
 describe('ActivityListItemView', () => {
@@ -33,5 +34,14 @@ describe('ActivityListItemView', () => {
 
     it('renders when outside fold', () => {
         render(<ActivityListItemView {...MOCK_PROPS} outsideFold={true} />);
+    });
+
+    it('calls onDelete when the swipe delete action is pressed', () => {
+        const onDelete = jest.fn();
+        const { getByText } = render(<ActivityListItemView {...MOCK_PROPS} onDelete={onDelete} />);
+
+        fireEvent.press(getByText('Delete'));
+
+        expect(onDelete).toHaveBeenCalledTimes(1);
     });
 });

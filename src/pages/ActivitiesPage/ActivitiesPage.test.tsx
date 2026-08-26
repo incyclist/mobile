@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ActivitiesPage } from './ActivitiesPage';
 
 jest.mock('../../services', () => ({
@@ -10,17 +10,22 @@ jest.mock('../../components/ActivityDetailsDialog', () => ({
     ActivityDetailsDialog: () => null,
 }));
 
+const mockOnDeleteActivity = jest.fn().mockResolvedValue(true);
+
 jest.mock('incyclist-services', () => ({
     getActivitiesPageService: () => ({
         openPage: () => null,
         closePage: () => {},
         getPageDisplayProps: () => ({
-            loading: true,
-            activities: [],
+            loading: false,
+            activities: [
+                { summary: { id: 'activity-42', title: 'Activity', startTime: Date.now(), rideTime: 100, distance: 1000 } },
+            ],
             detailActivityId: undefined
         }),
         onOpenActivity: () => {},
         onCloseActivity: () => {},
+        onDeleteActivity: (id: string) => mockOnDeleteActivity(id),
     }),
     // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
     // ActivitiesPage - now calls.
@@ -33,11 +38,15 @@ jest.mock('incyclist-services', () => ({
 }));
 
 jest.mock('../../components', () => {
-    const { View, Text } = require('react-native');
+    const { View, Text, TouchableOpacity } = require('react-native');
     return {
         MainBackground: ({ children }: any) => children,
         NavigationBar: () => null,
-        ActivitiesTable: () => null,
+        ActivitiesTable: ({ onDelete }: any) => (
+            <TouchableOpacity onPress={() => onDelete('activity-42')}>
+                <Text>DeleteActivity</Text>
+            </TouchableOpacity>
+        ),
         ErrorBoundary: ({ children }: any) => children,
         ScheduledWorkoutPromptModal: () => null,
         ListPageShell: ({ title, headerLeft, headerRight, belowHeader, children }: any) => (
@@ -55,11 +64,19 @@ jest.mock('../../components', () => {
 describe('ActivitiesPage', () => {
     it('renders without crashing when observer is null', () => {
         const { toJSON } = render(
-            <ActivitiesPage 
-                
-                
+            <ActivitiesPage
+
+
             />
         );
         expect(toJSON()).toBeDefined();
+    });
+
+    it('calls the page service delete method when an activity is deleted', () => {
+        const { getByText } = render(<ActivitiesPage />);
+
+        fireEvent.press(getByText('DeleteActivity'));
+
+        expect(mockOnDeleteActivity).toHaveBeenCalledWith('activity-42');
     });
 });

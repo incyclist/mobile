@@ -8,7 +8,7 @@ import { useLogging } from '../../hooks';
 const detailsCache = new Map<string, ActivityDetails>();
 
 export const ActivityListItem = memo((props: ActivityListItemProps) => {
-    const { activityInfo, onPress, outsideFold = false } = props;
+    const { activityInfo, onPress, onDelete, outsideFold = false } = props;
     const { summary, details: initialDetails } = activityInfo;
     const { id, startTime, rideTime, distance } = summary;
 
@@ -65,6 +65,11 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
         onPress(id);
     }, [logEvent, id, displayTitle, onPress]);
 
+    const handleDelete = useCallback(() => {
+        logEvent({message:'item deleted', id, title:displayTitle, eventSource:'user' })
+        onDelete(id);
+    }, [logEvent, id, displayTitle, onDelete]);
+
     const dateStr = formatDateTime(new Date(startTime), '%d.%m.%Y');
     const timeStr = formatDateTime(new Date(startTime), '%H:%M');
 
@@ -108,6 +113,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
             compact={false}
             outsideFold={outsideFold}
             onPress={handlePress}
+            onDelete={handleDelete}
         />
     );
 });
