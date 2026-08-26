@@ -23,6 +23,7 @@ import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { createSharedRideViewStyles } from './sharedRideViewStyles';
 import { getGestureHintContent } from '../gestureHintContent';
 import { buildPrevRiderMarkers } from '../prevRiderMarkers';
+import { avatarToConfig } from '../../../components/PrevRides';
 
 interface VideoRidePageViewProps extends RideViewActionProps {
     displayProps: VideoRidePageDisplayProps;
@@ -62,6 +63,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         onCollapsePrevRides,
         onSetPrevRidesVisibleRows,
         onSetPrevRidesMode,
+        getPrevRidesRows,
     } = props;
 
     const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint, prevRides } = displayProps;
@@ -87,16 +89,25 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const prevRidesEligible = !!prevRides && prevRides.mode !== 'hidden';
     const overlayActive = comboActive || prevRidesEligible;
 
-    // Tablet always shows the full list ear; phone defaults to the condensed corner slot. Only
-    // (re)applies the tier default on a compact/normal transition, so it never fights with the
-    // phone chevron's own onExpandPrevRides()/onCollapsePrevRides() calls.
+    // Both tiers default to the full list ('list') - phone's own PrevRidesCornerPanel now shows
+    // it alongside elevation/workout rather than a condensed one-liner in place of them
+    // (repo-owner review 2026-08-25), and its collapse/expand state is tracked independently via
+    // its own local component state, not this mode - so this only needs to fire once on mount.
     useEffect(() => {
-        onSetPrevRidesMode(isCompact ? 'condensed' : 'list');
-    }, [isCompact, onSetPrevRidesMode]);
+        onSetPrevRidesMode('list');
+    }, [onSetPrevRidesMode]);
 
     // Previous riders' live positions for the corner map (Video has no main map). The current
     // rider's own marker is unaffected — see buildPrevRiderMarkers().
     const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
+
+    // The current rider's own avatar — matches the current-position marker (corner map, elevation
+    // strips) to the "You" row shown in the prevRides list, rather than rendering with default
+    // colors. undefined whenever there's no prevRides list to be inconsistent with.
+    const currentAvatar = useMemo(() => {
+        const avatar = prevRides?.rows.find((row) => row.isCurrent)?.avatar;
+        return avatar ? avatarToConfig(avatar) : undefined;
+    }, [prevRides]);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -227,7 +238,9 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         onExpandPrevRides={onExpandPrevRides}
                         onCollapsePrevRides={onCollapsePrevRides}
                         onVisibleRowsChange={onSetPrevRidesVisibleRows}
+                        getPrevRidesRows={getPrevRidesRows}
                         mapPrevRiders={prevRiderMarkers}
+                        currentAvatar={currentAvatar}
                     />
                 )}
 
@@ -245,6 +258,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     menuProps={menuProps}
                     onMenuClose={onMenuClose}
                     onCloseRidePage={onCloseRidePage}
+                    currentAvatar={currentAvatar}
                 />
             </View>
     );

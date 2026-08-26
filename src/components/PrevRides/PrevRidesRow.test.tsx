@@ -1,8 +1,16 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import { ReactTestInstance } from 'react-test-renderer';
 import { PrevRidesRow } from './PrevRidesRow';
 import { PrevRiderAvatar } from './PrevRiderAvatar';
 import { MOCK_ROW_LEADER, MOCK_ROW_CHASER, MOCK_ROW_CURRENT, MOCK_ROW_LAST, MOCK_ROW_MINIMAL } from './PrevRidesRow.mock';
+import { textSizes } from '../../theme';
+
+const effectiveFontSize = (element: ReactTestInstance): number | undefined =>
+    [element.props.style]
+        .flat()
+        .reverse()
+        .find((s) => (s as { fontSize?: number } | undefined)?.fontSize)?.fontSize;
 
 describe('PrevRidesRow', () => {
     describe('normal (tablet) tier', () => {
@@ -15,6 +23,20 @@ describe('PrevRidesRow', () => {
             expect(getByText('245 W')).toBeTruthy();
             expect(getByText('158 bpm')).toBeTruthy();
             expect(getByText('-1:24')).toBeTruthy();
+        });
+
+        it('shows speed by default (showSpeed unset)', () => {
+            const { getByText } = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" />);
+            expect(getByText('32.4 km/h')).toBeTruthy();
+        });
+
+        it('hides speed when showSpeed is false, keeping the other stats', () => {
+            const { queryByText, getByText } = render(
+                <PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" showSpeed={false} />
+            );
+            expect(queryByText('32.4 km/h')).toBeNull();
+            expect(getByText('245 W')).toBeTruthy();
+            expect(getByText('158 bpm')).toBeTruthy();
         });
 
         it('shows distanceGap instead of timeGap when both are present (max 4 stats, never both)', () => {
@@ -113,6 +135,32 @@ describe('PrevRidesRow', () => {
             const { getByText } = render(<PrevRidesRow {...MOCK_ROW_LAST} layout="normal" />);
             expect(getByText('6')).toBeTruthy();
             expect(getByText('+4:12')).toBeTruthy();
+        });
+    });
+
+    describe('two-digit position', () => {
+        it('shrinks the font size on the compact tier so the second digit does not wrap/clip', () => {
+            const single = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="compact" position={9} />);
+            const double = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="compact" position={10} />);
+
+            const singleSize = effectiveFontSize(single.getByText('9'));
+            const doubleSize = effectiveFontSize(double.getByText('10'));
+
+            expect(singleSize).toBe(textSizes.tinyText);
+            expect(doubleSize).toBe(textSizes.microText);
+            expect(doubleSize).toBeLessThan(singleSize as number);
+        });
+
+        it('shrinks the font size on the normal tier as well', () => {
+            const single = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" position={9} />);
+            const double = render(<PrevRidesRow {...MOCK_ROW_LEADER} layout="normal" position={10} />);
+
+            const singleSize = effectiveFontSize(single.getByText('9'));
+            const doubleSize = effectiveFontSize(double.getByText('10'));
+
+            expect(singleSize).toBe(textSizes.listEntry);
+            expect(doubleSize).toBe(textSizes.subtitle);
+            expect(doubleSize).toBeLessThan(singleSize as number);
         });
     });
 });

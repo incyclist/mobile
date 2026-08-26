@@ -79,6 +79,7 @@ const baseProps: any = {
     onCollapsePrevRides: () => {},
     onSetPrevRidesVisibleRows: () => {},
     onSetPrevRidesMode: () => {},
+    getPrevRidesRows: () => [],
 };
 
 describe('VideoRidePageView — start overlay "Start" button wiring', () => {
@@ -320,21 +321,21 @@ describe('VideoRidePageView — previous-rides overlay wiring', () => {
         ]);
     });
 
-    it('phone (compact): sets the condensed mode default and still mounts the overlay for the corner-slot state', () => {
+    it('phone (compact): sets the list mode default and still mounts the overlay for the corner-slot state', () => {
         mockUseScreenLayout.mockReturnValue('compact');
         const onSetPrevRidesMode = jest.fn();
         const { getByText } = render(
             <VideoRidePageView
                 {...baseProps}
-                displayProps={{ ...prevRidesOnlyDisplayProps, cornerWidget: 'prevRides' }}
+                displayProps={{ ...prevRidesOnlyDisplayProps, cornerWidget: 'elevation' }}
                 onSetPrevRidesMode={onSetPrevRidesMode}
             />
         );
 
         expect(getByText('ride-overlay')).toBeTruthy();
-        expect(onSetPrevRidesMode).toHaveBeenCalledWith('condensed');
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('list');
         const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
-        expect(overlayProps.cornerWidget).toBe('prevRides');
+        expect(overlayProps.cornerWidget).toBe('elevation');
     });
 
     it('tablet (normal): sets the list mode default', () => {

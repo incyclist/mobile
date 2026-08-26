@@ -204,6 +204,7 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                         mapPoints={routeData?.points}
                         transformPosition={(v) => v}
                         onStopWorkout={noop}
+                        getPrevRidesRows={() => []}
                     />
                 )}
 

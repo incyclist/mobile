@@ -19,15 +19,18 @@ import { PrevRidesRowComponentProps } from './types';
  * not a selection state" treatment `WorkoutItemView` already uses for its `isToday` row.
  */
 export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
-    const { layout, position, label, timeGap, distanceGap, isCurrent, avatar, speed, power, heartrate } = props;
+    const { layout, position, label, timeGap, distanceGap, isCurrent, avatar, speed, power, heartrate, showSpeed = true } = props;
     // A row is gapped by time OR distance, never both — if a caller ever sets both (it shouldn't),
     // distanceGap wins so the stats row never exceeds its 4-item budget (speed/power/heartrate/gap).
     const gap = distanceGap || timeGap;
+    // Two-digit positions (10+) need a smaller font to stay inside the fixed-width position
+    // column instead of wrapping their second digit onto a clipped second line.
+    const isTwoDigitPosition = position >= 10;
 
     if (layout === 'compact') {
         return (
             <View style={[styles.rowCompact, isCurrent && styles.rowCompactCurrent]} testID="prev-rides-row">
-                <Text style={[styles.positionCompact, isCurrent && styles.textCurrent]}>{position}</Text>
+                <Text style={[styles.positionCompact, isTwoDigitPosition && styles.positionCompactTwoDigit, isCurrent && styles.textCurrent]}>{position}</Text>
                 <Text style={[styles.labelCompact, isCurrent && styles.textCurrent]} numberOfLines={1}>
                     {label}
                 </Text>
@@ -40,7 +43,7 @@ export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
 
     return (
         <View style={[styles.row, isCurrent && styles.rowCurrent]} testID="prev-rides-row">
-            <Text style={[styles.position, isCurrent && styles.textCurrent]}>{position}</Text>
+            <Text style={[styles.position, isTwoDigitPosition && styles.positionTwoDigit, isCurrent && styles.textCurrent]}>{position}</Text>
 
             <View style={styles.content}>
                 <View style={styles.topRow}>
@@ -53,7 +56,7 @@ export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
                 </View>
 
                 <View style={styles.statsRow}>
-                    {speed !== undefined && (
+                    {showSpeed && speed !== undefined && (
                         <Text style={styles.stat} numberOfLines={1}>{speed.toFixed(1)} km/h</Text>
                     )}
                     {power !== undefined && (
@@ -71,6 +74,11 @@ export const PrevRidesRow = (props: PrevRidesRowComponentProps) => {
     );
 };
 
+// The gap below each 'normal' tier row — exported so the tablet ear's own visibleRows
+// calculation (RideOverlay.tsx) can turn a single measured row height into the effective
+// per-row spacing, without a second, silently-driftable copy of this number.
+export const ROW_MARGIN_BOTTOM = 3;
+
 const styles = StyleSheet.create({
     // --- normal (tablet) tier ---
     row: {
@@ -83,7 +91,7 @@ const styles = StyleSheet.create({
         borderLeftColor: 'transparent',
         backgroundColor: 'rgba(0,0,0,0.45)',
         borderRadius: 8,
-        marginBottom: 3,
+        marginBottom: ROW_MARGIN_BOTTOM,
     },
     rowCurrent: {
         borderLeftColor: colors.buttonPrimary,
@@ -95,9 +103,17 @@ const styles = StyleSheet.create({
         fontSize: textSizes.listEntry,
         fontWeight: '700',
     },
+    positionTwoDigit: {
+        fontSize: textSizes.subtitle,
+    },
     content: {
         flex: 1,
-        overflow: 'hidden',
+        // No overflow:hidden here — this was a redundant *inner* clip, tighter than the outer
+        // box's own overflow:hidden (which already has real slack beyond it via SIDE_GUTTER).
+        // With stat/timeGap kept flexShrink:0 (values must stay legible, not compress/wrap), a
+        // borderline-fitting trailing value (e.g. a distance gap's unit suffix) was being
+        // hard-clipped a second time at this tighter inner boundary instead of using the space
+        // the outer box already accounts for.
         gap: 4,
     },
     topRow: {
@@ -127,6 +143,13 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     timeGap: {
+        // Pinned to a fixed-width, right-aligned column at the end of the row — detached from
+        // the preceding stats' own text width (marginLeft:'auto' pushes it to the row's end
+        // regardless of how much room speed/power/heartrate take), so its position doesn't shift
+        // row-to-row with the gap value's own character count either.
+        marginLeft: 'auto',
+        minWidth: 64,
+        textAlign: 'right',
         color: colors.text,
         fontSize: textSizes.subtitle,
         fontWeight: '700',
@@ -147,7 +170,10 @@ const styles = StyleSheet.create({
         borderLeftColor: 'transparent',
         backgroundColor: 'rgba(0,0,0,0.45)',
         borderRadius: 4,
-        marginBottom: 3,
+        // Shares ROW_MARGIN_BOTTOM with the 'normal' tier's row deliberately (not a coincidence
+        // to leave unexplained) — PrevRidesExpandedPanel.tsx's visibleRows/panelHeight math needs
+        // this same value to size itself correctly.
+        marginBottom: ROW_MARGIN_BOTTOM,
     },
     rowCompactCurrent: {
         borderLeftColor: colors.buttonPrimary,
@@ -158,6 +184,9 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: textSizes.tinyText,
         fontWeight: '700',
+    },
+    positionCompactTwoDigit: {
+        fontSize: textSizes.microText,
     },
     labelCompact: {
         flex: 1,
