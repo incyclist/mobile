@@ -10,10 +10,10 @@
  * before running this script.
  */
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { execFileSync, spawnSync } = require('child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync, spawnSync } = require('node:child_process');
 const prompts = require('prompts');
 
 const REPO_ROOT = path.join(__dirname, '..');
@@ -26,7 +26,7 @@ const DEVICES_DIR = path.join(REPO_ROOT, '..', 'devices');
 // itself is pinned to its well-known, fixed OS location so that bootstrap step isn't itself
 // PATH-dependent.
 function resolveBin(name) {
-    const finder = process.platform === 'win32' ? 'C:\\Windows\\System32\\where.exe' : '/usr/bin/which';
+    const finder = process.platform === 'win32' ? String.raw`C:\Windows\System32\where.exe` : '/usr/bin/which';
     try {
         return execFileSync(finder, [name], { encoding: 'utf8' }).trim().split(/\r?\n/)[0];
     } catch {
@@ -57,15 +57,6 @@ const onCancel = () => {
 // a git/CLI flag instead of a revision.
 function isSafeRefFormat(ref) {
     return typeof ref === 'string' && ref.length > 0 && !ref.startsWith('-');
-}
-
-// Guards each execFileSync call site directly, rather than trusting validation performed
-// earlier in the call chain (e.g. a prompt's `validate` callback) — a value that could
-// plausibly be flag-shaped (starts with '-') is rejected right where it reaches an OS command.
-function assertSafeArg(value, label) {
-    if (typeof value !== 'string' || value.length === 0 || value.startsWith('-')) {
-        throw new Error(`Refusing to use unsafe ${label}: ${JSON.stringify(value)}`);
-    }
 }
 
 function refExists(dir, ref) {
@@ -101,7 +92,9 @@ function listTags() {
 }
 
 function gitLog(dir, range) {
-    assertSafeArg(range, 'git log range');
+    if (!/^[A-Za-z0-9_][A-Za-z0-9_./-]*(\.\.[A-Za-z0-9_][A-Za-z0-9_./-]*)?$/.test(range)) {
+        throw new Error(`Refusing to use unsafe git log range: ${JSON.stringify(range)}`);
+    }
     return execFileSync(GIT_BIN, ['log', range, '--oneline'], { cwd: dir, encoding: 'utf8' }).trim();
 }
 
@@ -116,10 +109,12 @@ function cleanSemver(v) {
 
 function depVersionAt(dir, ref, depName) {
     try {
-        assertSafeArg(ref, 'git ref');
+        if (!/^[A-Za-z0-9_][A-Za-z0-9_./-]*$/.test(ref)) {
+            throw new Error(`Refusing to use unsafe git ref: ${JSON.stringify(ref)}`);
+        }
         const content = execFileSync(GIT_BIN, ['show', `${ref}:package.json`], { cwd: dir, encoding: 'utf8' });
         const pkg = JSON.parse(content);
-        return cleanSemver(pkg.dependencies && pkg.dependencies[depName]);
+        return cleanSemver(pkg.dependencies?.[depName]);
     } catch {
         return null;
     }
@@ -138,41 +133,41 @@ function detectBump(dir, depName, oldRef, newRef) {
 // services itself bumped that. All local git commands, so this is near-instant. Handing Claude
 // pre-assembled text instead of instructing it to go run these commands itself turns the draft
 // call into a single-shot text generation with no tool-use round trips.
+function formatSection(title, body) {
+    return `## ${title}\n${body}`;
+}
+
+// Tries to append one library's commit log for a detected version bump; on failure, appends a
+// section explaining what couldn't be read instead of throwing (a cross-repo checkout being
+// unavailable/stale shouldn't abort drafting mobile's own notes).
+function appendLibrarySection(sections, dir, label, oldTag, newTag) {
+    try {
+        const log = gitLog(dir, `${oldTag}..${newTag}`);
+        sections.push(formatSection(`${label} commits (${oldTag}..${newTag})`, log || '(none)'));
+    } catch (err) {
+        sections.push(formatSection(`${label} commits`, `(could not read: ${err.message})`));
+    }
+}
+
 function gatherContext(baseRef) {
     const range = baseRef ? `${baseRef}..HEAD` : 'HEAD';
-    const sections = [
-        `## mobile commits ${baseRef ? `since ${baseRef}` : '(full history — no prior release tag exists)'}\n` +
-        (gitLog(REPO_ROOT, range) || '(none)'),
-    ];
+    const mobileTitle = baseRef ? `mobile commits since ${baseRef}` : 'mobile commits (full history — no prior release tag exists)';
+    const sections = [formatSection(mobileTitle, gitLog(REPO_ROOT, range) || '(none)')];
 
-    if (baseRef) {
-        const servicesBump = detectBump(REPO_ROOT, 'incyclist-services', baseRef, 'HEAD');
-        if (servicesBump && fs.existsSync(SERVICES_DIR)) {
-            const oldTag = `v${servicesBump.oldVer}`;
-            const newTag = `v${servicesBump.newVer}`;
-            try {
-                sections.push(
-                    `## incyclist-services commits (${oldTag}..${newTag})\n` +
-                    (gitLog(SERVICES_DIR, `${oldTag}..${newTag}`) || '(none)')
-                );
+    if (!baseRef) return sections.join('\n\n');
 
-                const devicesBump = detectBump(SERVICES_DIR, 'incyclist-devices', oldTag, newTag);
-                if (devicesBump && fs.existsSync(DEVICES_DIR)) {
-                    const oldDTag = `v${devicesBump.oldVer}`;
-                    const newDTag = `v${devicesBump.newVer}`;
-                    try {
-                        sections.push(
-                            `## incyclist-devices commits (${oldDTag}..${newDTag})\n` +
-                            (gitLog(DEVICES_DIR, `${oldDTag}..${newDTag}`) || '(none)')
-                        );
-                    } catch (err) {
-                        sections.push(`## incyclist-devices commits\n(could not read: ${err.message})`);
-                    }
-                }
-            } catch (err) {
-                sections.push(`## incyclist-services commits\n(could not read: ${err.message})`);
-            }
-        }
+    const servicesBump = detectBump(REPO_ROOT, 'incyclist-services', baseRef, 'HEAD');
+    if (!servicesBump || !fs.existsSync(SERVICES_DIR)) return sections.join('\n\n');
+
+    const oldTag = `v${servicesBump.oldVer}`;
+    const newTag = `v${servicesBump.newVer}`;
+    appendLibrarySection(sections, SERVICES_DIR, 'incyclist-services', oldTag, newTag);
+
+    const devicesBump = detectBump(SERVICES_DIR, 'incyclist-devices', oldTag, newTag);
+    if (devicesBump && fs.existsSync(DEVICES_DIR)) {
+        const oldDTag = `v${devicesBump.oldVer}`;
+        const newDTag = `v${devicesBump.newVer}`;
+        appendLibrarySection(sections, DEVICES_DIR, 'incyclist-devices', oldDTag, newDTag);
     }
 
     return sections.join('\n\n');
@@ -216,7 +211,9 @@ function draftWithClaude(baseRef, appVersion) {
 
     console.log('Drafting release notes with Claude...');
     try {
-        assertSafeArg(prompt, 'claude prompt');
+        if (!/^[^-]/.test(prompt)) {
+            throw new Error('Refusing to use unsafe claude prompt: starts with "-"');
+        }
         // No --add-dir / tool use needed — the prompt is self-contained text, so this is a
         // single-shot generation, not a multi-turn agentic session. The `--` marker forces the
         // prompt to be treated as a plain positional value, not re-parsed as flags, regardless
@@ -417,9 +414,15 @@ async function main() {
     }
 
     console.log(`\nTriggering: gh ${ghArgs.join(' ')}\n`);
-    assertSafeArg(track, 'track');
-    if (tagName) assertSafeArg(tagName, 'releaseTag');
-    if (rollout !== null) assertSafeArg(String(rollout), 'rollout');
+    if (!/^[A-Za-z0-9_-]+$/.test(track)) {
+        throw new Error(`Refusing to use unsafe track: ${JSON.stringify(track)}`);
+    }
+    if (tagName && !/^[A-Za-z0-9_./-]+$/.test(tagName)) {
+        throw new Error(`Refusing to use unsafe releaseTag: ${JSON.stringify(tagName)}`);
+    }
+    if (rollout !== null && !/^\d+$/.test(String(rollout))) {
+        throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
+    }
     execFileSync(GH_BIN, ghArgs, { cwd: REPO_ROOT, stdio: 'inherit' });
 
     console.log('\nTriggered. Track progress with: gh run list --workflow=upload-google-play.yml');
