@@ -9,10 +9,10 @@
 // every build and fails loudly if they drift, so the regenerated files must
 // be committed in the same change as the dependency bump that required them.
 
-const { spawnSync } = require('child_process')
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
+const { spawnSync } = require('node:child_process')
+const path = require('node:path')
+const fs = require('node:fs')
+const os = require('node:os')
 
 const repoRoot = path.resolve(__dirname, '..')
 const androidDir = path.join(repoRoot, 'android')
