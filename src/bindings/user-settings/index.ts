@@ -143,7 +143,7 @@ class UserSettingsImplementation implements IUserSettingsBinding {
         const appDir = getAppInfo().appDir;
         const fileName = `${appDir}/settings.json`;
 
-        if (this.savePromise) {
+        if (this.savePromise !== null) {
             await this.savePromise;
         }
 

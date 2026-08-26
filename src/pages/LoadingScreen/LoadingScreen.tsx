@@ -25,9 +25,9 @@ export const LoadingScreen = ( {appVersion, bundleVersion, statusMessage}:Loadin
                 style={styles.logo} 
                 resizeMode="contain"
                 />
-                {appVersion && <Text style={styles.versionText}>App Version {appVersion}</Text>}
-                {bundleVersion && <Text style={styles.versionText}>UI Version {bundleVersion}</Text>}
-                {statusMessage && <Text style={styles.versionText}>{statusMessage}</Text>}
+                {!!appVersion && <Text style={styles.versionText}>App Version {appVersion}</Text>}
+                {!!bundleVersion && <Text style={styles.versionText}>UI Version {bundleVersion}</Text>}
+                {!!statusMessage && <Text style={styles.versionText}>{statusMessage}</Text>}
                 <ActivityIndicator size="large" color="#007AFF" />
             </View>
         </SafeAreaView>

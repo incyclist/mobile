@@ -294,7 +294,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 <Text style={styles.infoBarText}>
                     {routeType} • {totalDistance.value}{totalDistance.unit} • {totalElevation.value}{totalElevation.unit}
                 </Text>
-                {canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
+                {!!canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
             </View>
         );
 
@@ -358,7 +358,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             </View>
             <View style={styles.settingsArea}>
                 {renderForm()}
-                {canNotStartReason && <Text style={styles.fullErrorText}>{canNotStartReason}</Text>}
+                {!!canNotStartReason && <Text style={styles.fullErrorText}>{canNotStartReason}</Text>}
             </View>
             <DownloadModalView
                 visible={!!showDownloadModal}

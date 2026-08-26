@@ -63,11 +63,11 @@ const enrichPoints = (original: RoutePoint[], dpp: number): RoutePoint[] => {
                 }
 
                 // Guard: slope may be undefined or NaN — default to 0
-                const slope = isFinite(prev.slope ?? NaN) ? (prev.slope ?? 0) : 0;
+                const slope = Number.isFinite(prev.slope ?? Number.NaN) ? (prev.slope ?? 0) : 0;
                 newPoint.elevation = slope * (newPoint.routeDistance - prev.routeDistance) / 100 + prev.elevation;
 
                 // Guard: if elevation went NaN (e.g. prev.elevation was NaN), inherit parent
-                if (!isFinite(newPoint.elevation)) {
+                if (!Number.isFinite(newPoint.elevation)) {
                     newPoint.elevation = prev.elevation;
                 }
 
@@ -115,7 +115,7 @@ export const domainToPixel = (
     pixelMax: number
 ): number => {
     // Guard: any NaN/Infinity input returns pixelMin to avoid SVG path corruption
-    if (!isFinite(value) || !isFinite(domainMin) || !isFinite(domainMax)) return pixelMin;
+    if (!Number.isFinite(value) || !Number.isFinite(domainMin) || !Number.isFinite(domainMax)) return pixelMin;
     if (domainMax === domainMin) return pixelMin;
     return pixelMin + ((value - domainMin) / (domainMax - domainMin)) * (pixelMax - pixelMin);
 };
@@ -202,7 +202,7 @@ export const computeGraphPoints = (
                 const y = p.elevation * yScale.value;
 
                 // Guard: skip any point with non-finite coordinates — these corrupt SVG paths
-                if (!isFinite(x) || !isFinite(y)) continue;
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
                 graphPoints.push({
                     x,

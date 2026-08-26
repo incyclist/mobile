@@ -55,8 +55,8 @@ const FilterInput = ({
         const cleaned = text.replace(/[^0-9.]/g, '');
         setLocalValue(cleaned);
         if (cleaned !== '') {
-            const val = parseFloat(cleaned);
-            setError(isNaN(val) || val < 0 || (max !== undefined && val > max));
+            const val = Number.parseFloat(cleaned);
+            setError(Number.isNaN(val) || val < 0 || (max !== undefined && val > max));
         } else {
             setError(false);
         }
@@ -67,8 +67,8 @@ const FilterInput = ({
         if (cleaned === '') {
             onValueChange(undefined);
         } else {
-            const val = parseFloat(cleaned);
-            if (!isNaN(val) && val >= 0 && (max === undefined || val <= max)) {
+            const val = Number.parseFloat(cleaned);
+            if (!Number.isNaN(val) && val >= 0 && (max === undefined || val <= max)) {
                 onValueChange(val);
                 logEvent({ 
                     message: 'text entered', 
