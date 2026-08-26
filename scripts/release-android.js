@@ -59,6 +59,15 @@ function isSafeRefFormat(ref) {
     return typeof ref === 'string' && ref.length > 0 && !ref.startsWith('-');
 }
 
+// Guards each execFileSync call site directly, rather than trusting validation performed
+// earlier in the call chain (e.g. a prompt's `validate` callback) — a value that could
+// plausibly be flag-shaped (starts with '-') is rejected right where it reaches an OS command.
+function assertSafeArg(value, label) {
+    if (typeof value !== 'string' || value.length === 0 || value.startsWith('-')) {
+        throw new Error(`Refusing to use unsafe ${label}: ${JSON.stringify(value)}`);
+    }
+}
+
 function refExists(dir, ref) {
     if (!isSafeRefFormat(ref)) return false;
     try {
@@ -92,6 +101,7 @@ function listTags() {
 }
 
 function gitLog(dir, range) {
+    assertSafeArg(range, 'git log range');
     return execFileSync(GIT_BIN, ['log', range, '--oneline'], { cwd: dir, encoding: 'utf8' }).trim();
 }
 
@@ -106,6 +116,7 @@ function cleanSemver(v) {
 
 function depVersionAt(dir, ref, depName) {
     try {
+        assertSafeArg(ref, 'git ref');
         const content = execFileSync(GIT_BIN, ['show', `${ref}:package.json`], { cwd: dir, encoding: 'utf8' });
         const pkg = JSON.parse(content);
         return cleanSemver(pkg.dependencies && pkg.dependencies[depName]);
@@ -205,6 +216,7 @@ function draftWithClaude(baseRef, appVersion) {
 
     console.log('Drafting release notes with Claude...');
     try {
+        assertSafeArg(prompt, 'claude prompt');
         // No --add-dir / tool use needed — the prompt is self-contained text, so this is a
         // single-shot generation, not a multi-turn agentic session. The `--` marker forces the
         // prompt to be treated as a plain positional value, not re-parsed as flags, regardless
@@ -405,6 +417,9 @@ async function main() {
     }
 
     console.log(`\nTriggering: gh ${ghArgs.join(' ')}\n`);
+    assertSafeArg(track, 'track');
+    if (tagName) assertSafeArg(tagName, 'releaseTag');
+    if (rollout !== null) assertSafeArg(String(rollout), 'rollout');
     execFileSync(GH_BIN, ghArgs, { cwd: REPO_ROOT, stdio: 'inherit' });
 
     console.log('\nTriggered. Track progress with: gh run list --workflow=upload-google-play.yml');
