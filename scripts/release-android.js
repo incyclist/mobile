@@ -345,32 +345,28 @@ async function checkBranchSync(dryRun) {
     }
 }
 
-async function main() {
-    const dryRun = process.argv.includes('--dry-run');
-    if (dryRun) console.log('🧪 Dry run: no tag will be created/pushed, no workflow will be triggered.\n');
-
-    const appJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'app.json'), 'utf8'));
-    const appVersion = appJson.appVersion;
-    // appVersion ends up in a git tag name and a `gh workflow run -f` argument — validate its
-    // shape before it's used anywhere rather than trusting app.json content blindly.
+// appVersion ends up in a git tag name and a `gh workflow run -f` argument — validate its shape
+// before it's used anywhere rather than trusting app.json content blindly.
+function validateAppVersion(appVersion) {
     if (!/^\d+\.\d+\.\d+$/.test(appVersion)) {
         throw new Error(`app.json's appVersion ("${appVersion}") is not a plain semver string.`);
     }
+}
 
-    const notes = await collectReleaseNotes(appVersion);
-
-    let tagName = null;
-    if (notes) {
-        tagName = `android-release/v${appVersion}`;
-        if (dryRun) {
-            console.log(`[dry-run] Would tag and push ${tagName} with this message:\n${notes}\n`);
-        } else {
-            git(['tag', '-f', '-a', tagName, '-m', notes]);
-            git(['push', '-f', 'origin', tagName]);
-            console.log(`Tagged and pushed ${tagName}.`);
-        }
+function tagRelease(appVersion, notes, dryRun) {
+    if (!notes) return null;
+    const tagName = `android-release/v${appVersion}`;
+    if (dryRun) {
+        console.log(`[dry-run] Would tag and push ${tagName} with this message:\n${notes}\n`);
+        return tagName;
     }
+    git(['tag', '-f', '-a', tagName, '-m', notes]);
+    git(['push', '-f', 'origin', tagName]);
+    console.log(`Tagged and pushed ${tagName}.`);
+    return tagName;
+}
 
+async function pickTrackAndRollout() {
     const { track } = await prompts(
         {
             type: 'select',
@@ -386,29 +382,38 @@ async function main() {
         { onCancel }
     );
 
-    let rollout = null;
-    if (track === 'production') {
-        const res = await prompts(
-            {
-                type: 'number',
-                name: 'rollout',
-                message: 'Staged rollout percentage (1-100)',
-                initial: 100,
-                min: 1,
-                max: 100,
-            },
-            { onCancel }
-        );
-        rollout = res.rollout;
-        if (!/^\d+$/.test(String(rollout))) {
-            throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
-        }
+    if (track !== 'production') return { track, rollout: null };
+
+    const { rollout } = await prompts(
+        {
+            type: 'number',
+            name: 'rollout',
+            message: 'Staged rollout percentage (1-100)',
+            initial: 100,
+            min: 1,
+            max: 100,
+        },
+        { onCancel }
+    );
+    if (!/^\d+$/.test(rollout)) {
+        throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
+    }
+    return { track, rollout };
+}
+
+function triggerWorkflow(track, rollout, tagName, dryRun) {
+    if (!/^\w[\w-]*$/.test(track)) {
+        throw new Error(`Refusing to use unsafe track: ${JSON.stringify(track)}`);
+    }
+    if (tagName && !/^[\w./-]+$/.test(tagName)) {
+        throw new Error(`Refusing to use unsafe releaseTag: ${JSON.stringify(tagName)}`);
+    }
+    if (rollout !== null && !/^\d+$/.test(rollout)) {
+        throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
     }
 
-    await checkBranchSync(dryRun);
-
     const ghArgs = ['workflow', 'run', 'upload-google-play.yml', '--ref', 'main', '-f', `track=${track}`];
-    if (track === 'production') ghArgs.push('-f', `rollout=${rollout}`);
+    if (rollout !== null) ghArgs.push('-f', `rollout=${rollout}`);
     if (tagName) ghArgs.push('-f', `releaseTag=${tagName}`);
 
     if (dryRun) {
@@ -417,18 +422,26 @@ async function main() {
     }
 
     console.log(`\nTriggering: gh ${ghArgs.join(' ')}\n`);
-    if (!/^\w[\w-]*$/.test(track)) {
-        throw new Error(`Refusing to use unsafe track: ${JSON.stringify(track)}`);
-    }
-    if (tagName && !/^[\w./-]+$/.test(tagName)) {
-        throw new Error(`Refusing to use unsafe releaseTag: ${JSON.stringify(tagName)}`);
-    }
-    if (rollout !== null && !/^\d+$/.test(String(rollout))) {
-        throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
-    }
     execFileSync(GH_BIN, ghArgs, { cwd: REPO_ROOT, stdio: 'inherit' });
-
     console.log('\nTriggered. Track progress with: gh run list --workflow=upload-google-play.yml');
+}
+
+async function main() {
+    const dryRun = process.argv.includes('--dry-run');
+    if (dryRun) console.log('🧪 Dry run: no tag will be created/pushed, no workflow will be triggered.\n');
+
+    const appJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'app.json'), 'utf8'));
+    const appVersion = appJson.appVersion;
+    validateAppVersion(appVersion);
+
+    const notes = await collectReleaseNotes(appVersion);
+    const tagName = tagRelease(appVersion, notes, dryRun);
+
+    const { track, rollout } = await pickTrackAndRollout();
+
+    await checkBranchSync(dryRun);
+
+    triggerWorkflow(track, rollout, tagName, dryRun);
 }
 
 main().catch((err) => {
