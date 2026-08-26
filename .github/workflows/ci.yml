@@ -23,12 +23,15 @@ jobs:
                   cache: 'npm'
 
             - name: Install dependencies
-              run: npm ci
+              run: npm ci --ignore-scripts
+
+            - name: Apply patches
+              run: node_modules/.bin/patch-package
 
             - name: Type check
               id: typecheck
               continue-on-error: true
-              run: npx tsc --noEmit 2>&1 | tee typecheck-output.txt; exit ${PIPESTATUS[0]}
+              run: node_modules/.bin/tsc --noEmit 2>&1 | tee typecheck-output.txt; exit ${PIPESTATUS[0]}
 
             - name: Lint
               id: lint

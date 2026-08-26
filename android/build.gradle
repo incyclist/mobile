@@ -23,6 +23,9 @@ allprojects {
         google()
         mavenCentral()
     }
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
 
