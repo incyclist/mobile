@@ -16,6 +16,13 @@ on:
         description: 'Staged rollout percentage (production only, 1-100)'
         required: false
         default: '10'
+      releaseTag:
+        description: 'Annotated tag (e.g. android-release/v1.2.3) whose message holds the What''s New text. Leave empty to publish without release notes.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
 
 jobs:
   build-and-upload:
@@ -24,6 +31,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history + tags: a shallow fetch can leave an annotated tag's
+          # message unreadable if its commit falls outside the shallow window,
+          # and the release-notes tag may point anywhere in history.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -106,6 +118,17 @@ jobs:
               ;;
           esac
 
+      # The releaseTag input's message holds the What's New text (see scripts/release-android.js).
+      # An empty releaseTag means "publish without release notes" — this step is skipped and
+      # whatsNewDirectory is left empty below, so the action doesn't touch Play's what's-new field.
+      - name: Prepare release notes
+        id: release_notes
+        if: github.event.inputs.releaseTag != ''
+        run: |
+          mkdir -p whatsnew/whatsnew-en-US
+          git tag -l --format='%(contents)' "${{ github.event.inputs.releaseTag }}" > whatsnew/whatsnew-en-US/whatsnew
+          echo "has_notes=true" >> "$GITHUB_OUTPUT"
+
       - name: Upload to Google Play (staged rollout)
         if: steps.release_params.outputs.user_fraction != ''
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
@@ -116,6 +139,7 @@ jobs:
           track: ${{ steps.release_params.outputs.play_track }}
           status: ${{ steps.release_params.outputs.status }}
           userFraction: ${{ steps.release_params.outputs.user_fraction }}
+          whatsNewDirectory: ${{ steps.release_notes.outputs.has_notes == 'true' && 'whatsnew' || '' }}
 
       - name: Upload to Google Play (testing track)
         if: steps.release_params.outputs.user_fraction == ''
@@ -126,3 +150,11 @@ jobs:
           releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
           track: ${{ steps.release_params.outputs.play_track }}
           status: ${{ steps.release_params.outputs.status }}
+          whatsNewDirectory: ${{ steps.release_notes.outputs.has_notes == 'true' && 'whatsnew' || '' }}
+
+      # Keeps "tag exists" strictly meaning "reached Play" — a failed build/upload must not
+      # leave a stale release marker behind for the next release-notes draft to run from.
+      - name: Delete release tag on failure
+        if: failure() && github.event.inputs.releaseTag != ''
+        run: |
+          git push origin --delete "${{ github.event.inputs.releaseTag }}" || true
