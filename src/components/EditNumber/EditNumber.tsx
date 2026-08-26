@@ -56,9 +56,9 @@ export const EditNumber = ({
             return;
         }
 
-        const numericValue = parseFloat(internalValue);
+        const numericValue = Number.parseFloat(internalValue);
 
-        if (isNaN(numericValue)) {
+        if (Number.isNaN(numericValue)) {
             // Reject non-numeric input silently (leave text for correction)
             return;
         }
@@ -120,7 +120,7 @@ export const EditNumber = ({
                     keyboardType="numeric"
                     editable={!disabled}
                 />
-                {unit && <Text style={styles.unit}>{unit}</Text>}
+                {!!unit && <Text style={styles.unit}>{unit}</Text>}
             </View>
             {error && (
                 <Text style={[styles.errorText, errorStyle]}>

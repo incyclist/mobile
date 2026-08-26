@@ -22,6 +22,8 @@ const isWithinTTL = (fetchedAt: string): boolean => {
     return (Date.now() - time) < (TTL_DAYS * 24 * 60 * 60 * 1000);
 };
 
+const DEFAULT_INIT_OPTIONS: { timeout: number } = { timeout: 5000 };
+
 
 
 export const initSecrets = async ( opts: { timeout: number }) => {
@@ -66,7 +68,7 @@ class SecretBinding {
         return this.currentStatus;       
     }
 
-    async init(opts: { timeout: number } = { timeout: 5000 }): Promise<void> {
+    async init(opts: { timeout: number } = DEFAULT_INIT_OPTIONS): Promise<void> {
         await this.initSecrets(opts);
         this.initPromise = null
     }

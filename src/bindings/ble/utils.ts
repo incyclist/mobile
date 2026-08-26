@@ -28,7 +28,7 @@ export const parseUUID = (str:string):string => {
         return uuid
     }
     else if (uuid.length===36) {
-        return uuid.replace(/-/g,'')
+        return uuid.replaceAll('-','')
 
     }
     throw new Error(`Invalid UUID: ${uuid}`)

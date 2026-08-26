@@ -9,8 +9,8 @@ import {
 
 export const getZoneColor = (power: number, ftp?: number | string): string => {
     try {
-        const parsedFtp = typeof ftp === 'string' ? parseFloat(ftp) : ftp;
-        if (!parsedFtp || isNaN(parsedFtp) || parsedFtp === 0) {
+        const parsedFtp = typeof ftp === 'string' ? Number.parseFloat(ftp) : ftp;
+        if (!parsedFtp || Number.isNaN(parsedFtp) || parsedFtp === 0) {
             return '#7f7f7f';
         }
         const pctFtp = (power / parsedFtp) * 100;
@@ -62,7 +62,7 @@ export const getAvailableMetrics = (logs: ActivityLogRecord[]): ActivityMetric[]
         const metrics: ActivityMetric[] = ['power', 'heartrate', 'speed', 'cadence'];
         return metrics.filter(m => logs.some(log => {
             const val = log[m];
-            return val !== undefined && val !== null && !isNaN(val);
+            return val !== undefined && val !== null && !Number.isNaN(val);
         }));
     } catch (err: any) {
         console.log('# getAvailableMetrics error', err.message);
@@ -100,7 +100,7 @@ export const computeElevationPoints = (
         if (w <= 0 || logs.length === 0) return null;
 
         const xField = xMode === 'distance' ? 'distance' : 'time';
-        const hasElevation = logs.some(log => log.elevation !== undefined && log.elevation !== null && !isNaN(log.elevation));
+        const hasElevation = logs.some(log => log.elevation !== undefined && log.elevation !== null && !Number.isNaN(log.elevation));
         if (!hasElevation) return null;
 
         const xMin = 0;
@@ -119,7 +119,7 @@ export const computeElevationPoints = (
             if (bIdx >= w) bIdx = w - 1;
             if (bIdx < 0) bIdx = 0;
 
-            if (y !== undefined && y !== null && !isNaN(y)) {
+            if (y !== undefined && y !== null && !Number.isNaN(y)) {
                 buckets[bIdx].sumY += y;
                 buckets[bIdx].cntY++;
             }
@@ -180,7 +180,7 @@ export const computeActivitySeries = (
 
             metrics.forEach(m => {
                 const val = log[m];
-                if (val !== undefined && val !== null && !isNaN(val)) {
+                if (val !== undefined && val !== null && !Number.isNaN(val)) {
                     buckets[bIdx].sums[m] = (buckets[bIdx].sums[m] || 0) + val;
                     buckets[bIdx].cnts[m] = (buckets[bIdx].cnts[m] || 0) + 1;
                 }

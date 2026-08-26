@@ -93,7 +93,7 @@ export const ActivityListItem = memo((props: ActivityListItemProps) => {
     if (isFormattedNumber(elevation)) {
         elevationValue = Math.round(elevation.value).toString();
         elevationUnit = elevation.unit;
-    } else if (typeof elevation === 'number' && !isNaN(elevation)) {
+    } else if (typeof elevation === 'number' && !Number.isNaN(elevation)) {
         elevationValue = Math.round(elevation).toString();
         elevationUnit = 'm';
     }

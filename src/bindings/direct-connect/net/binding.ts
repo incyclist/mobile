@@ -23,7 +23,7 @@ class RNSocket extends EventEmitter implements Socket  {
     }
 
     destroy() {
-        this.socket?.destroy
+        this.socket?.destroy()
         delete this.socket
     }
 

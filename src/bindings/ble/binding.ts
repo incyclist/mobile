@@ -27,7 +27,10 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
     private permissionsService: PermissionService
 
     public static getInstance(): BleBindingRN {
-        this.instance = this.instance ?? new BleBindingRN()
+        if (!this.instance) {
+            this.instance = new BleBindingRN()
+            this.instance.initializeAuthorization()
+        }
         return this.instance
     }
 
@@ -51,8 +54,6 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         if (Platform.OS==='android') {
             this.setAuthorized(false)
         }
-        this.initializeAuthorization()
-       
     }
 
     start() {

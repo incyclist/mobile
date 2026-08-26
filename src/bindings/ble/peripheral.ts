@@ -192,7 +192,7 @@ export class BlePeripheralRN
         }
 
         // 1. Convert the Hex Company ID (Big Endian String "0059") into an Integer
-        const companyIdInt = parseInt(companyIdHex, 16);
+        const companyIdInt = Number.parseInt(companyIdHex, 16);
 
         // 2. Extract the Little Endian bytes for the Company ID
         const companyIdByte1 = companyIdInt & 0xFF;        // Low byte (0x59)
@@ -239,7 +239,7 @@ export class BlePeripheralRN
     private normalizeUuid(uuid: string): string {
         return uuid
             .toLowerCase()
-            .replace(/-/g, '')
-    }    
+            .replaceAll('-', '')
+    }
 
 }

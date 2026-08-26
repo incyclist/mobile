@@ -97,7 +97,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
                 routeId,
                 title,
                 status: 'downloading',
-                pct: parseFloat(pct),                
+                pct: Number.parseFloat(pct),
             })
         };
         const onDone = () => {
