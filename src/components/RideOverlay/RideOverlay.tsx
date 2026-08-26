@@ -206,11 +206,9 @@ export const RideOverlay = (props: RideOverlayProps) => {
     // overlapping it, since the two don't always end at the same depth. Anchored to whichever of
     // the two actually extends further down, so it's never wrong regardless of the exact geometry
     // in a given arrangement (block-side/t-side, tuned screen size, etc.).
+    const workoutDashboardBottom = workoutAttached && workoutDashboard ? workoutDashboard.top + workoutDashboard.height : 0;
     const prevRidesAnchorBottom = elevation
-        ? Math.max(
-            elevation.top + elevation.height,
-            workoutAttached && workoutDashboard ? workoutDashboard.top + workoutDashboard.height : 0
-        )
+        ? Math.max(elevation.top + elevation.height, workoutDashboardBottom)
         : undefined;
 
     // The tablet list's own free vertical band (below its anchor, above the bottom bar). Only
