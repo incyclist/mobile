@@ -400,6 +400,9 @@ async function main() {
             { onCancel }
         );
         rollout = res.rollout;
+        if (!/^\d+$/.test(String(rollout))) {
+            throw new Error(`Refusing to use unsafe rollout: ${JSON.stringify(rollout)}`);
+        }
     }
 
     await checkBranchSync(dryRun);
