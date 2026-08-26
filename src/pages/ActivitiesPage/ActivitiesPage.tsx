@@ -90,7 +90,7 @@ export const ActivitiesPage = () => {
         navigate(item);
     }, []);
     
-    const handleRideAgain = useCallback(() => navigate('pairingStart'), []);
+    const handleRideAgain = useCallback((route: any) => service.onRideAgain(route), [service]);
 
 
     return (
