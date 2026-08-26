@@ -34,6 +34,10 @@ export interface PrevRidesRowComponentProps extends PrevRidesRowProps {
     /** `useScreenLayout()`'s result — passed in rather than read from the hook here so a list of
      *  rows computes it once and every row stays a plain, easily-tested pure component. */
     layout: ScreenLayout;
+    /** `'normal'` tier only — omit the speed stat to free up width in a combo (route + workout)
+     *  ride, where the ear can't safely widen without risking overlap with the workout dashboard.
+     *  Defaults to `true` (unchanged behavior) when not set. */
+    showSpeed?: boolean;
 }
 
 /**

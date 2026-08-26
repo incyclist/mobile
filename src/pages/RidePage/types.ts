@@ -1,4 +1,4 @@
-import { IObserver, WorkoutGraphActuals } from 'incyclist-services';
+import { IObserver, PrevRidesRowProps, WorkoutGraphActuals } from 'incyclist-services';
 import type { RideGestureFeedback } from '../../hooks';
 
 /**
@@ -30,6 +30,10 @@ export interface RideViewActionProps {
     onSetPrevRidesVisibleRows: (n: number) => void;
     /** Tablet-vs-phone / expanded-vs-not tier default — set once per compact/normal transition. */
     onSetPrevRidesMode: (mode: 'condensed' | 'list') => void;
+    /** Live row values, called fresh on every `prev-rides-update` tick — the `<Dynamic>` transform
+     *  for the previous-rides list, matching `getGraphActuals()`'s pattern. Independent of the
+     *  page-update cycle `displayProps.prevRides.rows` rides on. */
+    getPrevRidesRows: () => PrevRidesRowProps[];
     /** From useRideGestures() — undefined on web/Storybook, where GestureDetector must not be used. */
     gesture: any;
     feedback: RideGestureFeedback;

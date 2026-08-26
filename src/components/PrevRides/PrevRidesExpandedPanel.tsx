@@ -1,16 +1,18 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { PrevRidesRow } from './PrevRidesRow';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { PrevRidesRow, ROW_MARGIN_BOTTOM } from './PrevRidesRow';
+import { PrevRidesExpandChevron } from './PrevRidesExpandChevron';
 import { PrevRidesRowProps, PrevRidesSlotRect } from './types';
 import { colors, textSizes } from '../../theme';
 import { SLOT_GAP, BOTTOM_BAR_RATIO } from '../../hooks/render/useRideOverlayLayout';
 
 /**
- * Mirrors the reserved-slot prototype's ghost sizing (`RideOverlayPrototype.stories.tsx`) — the
- * same 24/22 dp budget the tablet ear already uses. Not currently exported from
- * `useRideOverlayLayout.ts`, so pinned here at the identical values rather than imported.
+ * Fallback budget used only until the first row has actually rendered — mirrors the reserved-slot
+ * prototype's ghost sizing (`RideOverlayPrototype.stories.tsx`). Real device font metrics render a
+ * `rowCompact` taller than this guess (the same gap the tablet ear's fixed constant had), so once a
+ * row has mounted its real measured height replaces it — see `onFirstRowLayout` below.
  */
-const PHASE3_ROW_HEIGHT = 24;
+const PHASE3_ROW_HEIGHT_FALLBACK = 24;
 const PHASE3_HEADER_HEIGHT = 22;
 const MIN_VISIBLE_ROWS = 1;
 const MAX_VISIBLE_ROWS = 10;
@@ -29,6 +31,12 @@ export interface PrevRidesExpandedPanelProps {
      * version does not export yet — wiring this to the real service call is session 3.1's job.
      */
     onVisibleRowsChange?: (visibleRows: number) => void;
+    /** When given, renders a chevron in the header that calls this on tap — the panel's own
+     *  explicit, discoverable collapse control (repo-owner review 2026-08-25: a screen-wide
+     *  tap-outside-to-dismiss backdrop was ambiguous with taps on the row content itself, and gave
+     *  no visible affordance at all). Omitted where the caller has no collapse concept (none, so
+     *  far — every current caller passes it). */
+    onCollapse?: () => void;
 }
 
 /**
@@ -37,11 +45,19 @@ export interface PrevRidesExpandedPanelProps {
  * elevation strip — the same `earFreeBand`/`visibleRows` computation the tablet ear already uses,
  * just anchored at the slot's own bottom edge instead of the elevation widget's.
  */
-export const PrevRidesExpandedPanel = ({ rows, anchor, screenHeight, onVisibleRowsChange }: PrevRidesExpandedPanelProps) => {
+export const PrevRidesExpandedPanel = ({ rows, anchor, screenHeight, onVisibleRowsChange, onCollapse }: PrevRidesExpandedPanelProps) => {
     const anchorBottom = anchor.top + anchor.height;
     const earFreeBand = screenHeight - BOTTOM_BAR_RATIO * screenHeight - anchorBottom - 2 * SLOT_GAP;
+
+    const [measuredRowHeight, setMeasuredRowHeight] = useState<number | undefined>(undefined);
+    const onFirstRowLayout = useCallback((e: LayoutChangeEvent) => {
+        const height = e.nativeEvent.layout.height;
+        setMeasuredRowHeight((prev) => (prev === height ? prev : height));
+    }, []);
+
+    const rowSpacing = (measuredRowHeight ?? PHASE3_ROW_HEIGHT_FALLBACK) + ROW_MARGIN_BOTTOM;
     const visibleRows = clamp(
-        Math.floor((earFreeBand - PHASE3_HEADER_HEIGHT) / PHASE3_ROW_HEIGHT),
+        Math.floor((earFreeBand - PHASE3_HEADER_HEIGHT) / rowSpacing),
         MIN_VISIBLE_ROWS,
         MAX_VISIBLE_ROWS
     );
@@ -51,7 +67,7 @@ export const PrevRidesExpandedPanel = ({ rows, anchor, screenHeight, onVisibleRo
     }, [visibleRows, onVisibleRowsChange]);
 
     const visibleRowData = useMemo(() => rows.slice(0, visibleRows), [rows, visibleRows]);
-    const panelHeight = PHASE3_HEADER_HEIGHT + visibleRowData.length * PHASE3_ROW_HEIGHT;
+    const panelHeight = PHASE3_HEADER_HEIGHT + visibleRowData.length * rowSpacing;
 
     return (
         <View
@@ -67,9 +83,18 @@ export const PrevRidesExpandedPanel = ({ rows, anchor, screenHeight, onVisibleRo
                 },
             ]}
         >
-            <Text style={styles.header}>Previous Rides</Text>
+            <View style={styles.headerRow}>
+                <Text style={styles.header}>Previous Rides</Text>
+                {onCollapse && <PrevRidesExpandChevron expanded onPress={onCollapse} />}
+            </View>
             {visibleRowData.map((row, index) => (
-                <PrevRidesRow key={`${row.position}-${index}`} {...row} layout="compact" />
+                <View
+                    key={`${row.position}-${index}`}
+                    testID={index === 0 ? 'prev-rides-panel-first-row-measure' : undefined}
+                    onLayout={index === 0 ? onFirstRowLayout : undefined}
+                >
+                    <PrevRidesRow {...row} layout="compact" />
+                </View>
             ))}
         </View>
     );
@@ -85,8 +110,10 @@ const styles = StyleSheet.create({
         zIndex: 11,
         elevation: 11,
     },
-    header: {
+    headerRow: {
         height: PHASE3_HEADER_HEIGHT,
+    },
+    header: {
         lineHeight: PHASE3_HEADER_HEIGHT,
         color: colors.text,
         fontSize: textSizes.tinyText,

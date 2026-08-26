@@ -82,6 +82,7 @@ const baseProps: GPXTourPageViewProps = {
     onCollapsePrevRides: () => {},
     onSetPrevRidesVisibleRows: () => {},
     onSetPrevRidesMode: () => {},
+    getPrevRidesRows: () => [],
 };
 
 const activeRouteProps = {
@@ -377,21 +378,21 @@ describe('GPXTourPageView — previous-rides overlay wiring', () => {
         expect(overlayProps.prevRides).toEqual(prevRidesRows);
     });
 
-    it('phone (compact): sets the condensed mode default and still mounts the overlay for the corner-slot state', () => {
+    it('phone (compact): sets the list mode default and still mounts the overlay for the corner-slot state', () => {
         mockUseScreenLayout.mockReturnValue('compact');
         const onSetPrevRidesMode = jest.fn();
         const { getByText } = render(
             <GPXTourPageView
                 {...baseProps}
-                displayProps={{ ...prevRidesOnlyDisplayProps(), cornerWidget: 'prevRides' } as any}
+                displayProps={{ ...prevRidesOnlyDisplayProps(), cornerWidget: 'elevation' } as any}
                 onSetPrevRidesMode={onSetPrevRidesMode}
             />
         );
 
         expect(getByText('ride-overlay')).toBeTruthy();
-        expect(onSetPrevRidesMode).toHaveBeenCalledWith('condensed');
+        expect(onSetPrevRidesMode).toHaveBeenCalledWith('list');
         const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
-        expect(overlayProps.cornerWidget).toBe('prevRides');
+        expect(overlayProps.cornerWidget).toBe('elevation');
     });
 
     it('tablet (normal): sets the list mode default', () => {
