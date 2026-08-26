@@ -86,6 +86,10 @@ export const ActivitiesPage = () => {
         service.onCloseActivity();
     }, [service]);
 
+    const onDeleteActivity = useCallback((id: string) => {
+        service.onDeleteActivity(id).catch((err: any) => logError(err, 'onDeleteActivity'));
+    }, [service, logError]);
+
     const onNavigate = useCallback((item: TNavigationItem) => {
         navigate(item);
     }, []);
@@ -95,9 +99,10 @@ export const ActivitiesPage = () => {
 
     return (
         <ErrorBoundary>
-            <ActivitiesPageView 
+            <ActivitiesPageView
                 props={props}
                 onSelectActivity={onSelectActivity}
+                onDeleteActivity={onDeleteActivity}
                 onNavigate={onNavigate}
             />
             {props.detailActivityId && (

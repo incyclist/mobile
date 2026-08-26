@@ -7,10 +7,11 @@ import { colors, textSizes } from '../../theme';
 export interface ActivitiesPageViewProps {
     props: ActivitiesPageDisplayProps | null;
     onSelectActivity: (id: string) => void;
+    onDeleteActivity: (id: string) => void;
     onNavigate: (item: TNavigationItem) => void;
 }
 
-export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: ActivitiesPageViewProps) => {
+export const ActivitiesPageView = ({ props, onSelectActivity, onDeleteActivity, onNavigate }: ActivitiesPageViewProps) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
     const activities = props?.activities ?? [];
@@ -34,7 +35,7 @@ export const ActivitiesPageView = ({ props, onSelectActivity, onNavigate }: Acti
                 </View>
             }
             { !isLoading && activities.length >0 &&
-                <ActivitiesTable activities={activities} onSelect={onSelectActivity} />
+                <ActivitiesTable activities={activities} onSelect={onSelectActivity} onDelete={onDeleteActivity} />
             }
         </ListPageShell>
     );

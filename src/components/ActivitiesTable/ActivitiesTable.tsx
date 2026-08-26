@@ -10,7 +10,7 @@ import { colors, textSizes } from '../../theme';
 const LOOKAHEAD = 5;
 const ITEM_HEIGHT = ACTIVITY_LIST_ITEM_HEIGHT + 8; // Height (72) + marginVertical (4 * 2)
 
-export const ActivitiesTable = ({ activities, onSelect }: ActivitiesTableProps) => {
+export const ActivitiesTable = ({ activities, onSelect, onDelete }: ActivitiesTableProps) => {
     const refObserver = useRef<Observer | null>(null);
     const refInitialized = useRef(false);
 
@@ -83,6 +83,7 @@ export const ActivitiesTable = ({ activities, onSelect }: ActivitiesTableProps) 
                         <ActivityListItem
                             activityInfo={activity}
                             onPress={onSelect}
+                            onDelete={onDelete}
                             outsideFold={initialFoldState[index]}
                         />
                     </Dynamic>

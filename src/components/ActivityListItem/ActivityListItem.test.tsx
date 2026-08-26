@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ActivityListItem } from './ActivityListItem';
 
 jest.mock('incyclist-services', () => ({
@@ -36,6 +36,7 @@ const MOCK_FORMATTED = {
         },
     },
     onPress: jest.fn(),
+    onDelete: jest.fn(),
 } as any;
 
 describe('ActivityListItem', () => {
@@ -45,6 +46,15 @@ describe('ActivityListItem', () => {
 
     it('renders outsideFold placeholder without crashing', () => {
         render(<ActivityListItem {...MOCK_FORMATTED} outsideFold={true} />);
+    });
+
+    it('calls onDelete with the activity id when the swipe delete action is pressed', () => {
+        const onDelete = jest.fn();
+        const { getByText } = render(<ActivityListItem {...MOCK_FORMATTED} onDelete={onDelete} />);
+
+        fireEvent.press(getByText('Delete'));
+
+        expect(onDelete).toHaveBeenCalledWith('1');
     });
 
     // FIXES_BACKLOG.md item #54: services used to hand out { value: undefined, unit } for

@@ -1,9 +1,27 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ActivityListItemViewProps, ACTIVITY_LIST_ITEM_HEIGHT } from './types';
 import { ActivityGraphPreview } from '../ActivityGraphPreview';
 import { colors, textSizes } from '../../theme';
 import { Icon } from '../Icon';
+
+// Conditional import to prevent Storybook Vite from crashing — same pattern as RouteItemView.
+// The fallback renders renderRightActions inline (rather than discarding it) so the delete
+// action is still reachable in Storybook/web and in this file's own unit tests, where
+// react-native-gesture-handler's native Swipeable is unavailable.
+let Swipeable: any = View;
+try {
+    if (Platform.OS !== 'web') {
+        Swipeable = require('react-native-gesture-handler').Swipeable;
+    }
+} catch {
+    Swipeable = ({ children, renderRightActions }: any) => (
+        <View>
+            {children}
+            {renderRightActions?.()}
+        </View>
+    );
+}
 
 export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
     const {
@@ -20,6 +38,7 @@ export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
         outsideFold,
         ftp,
         onPress,
+        onDelete,
     } = props;
 
     if (outsideFold) {
@@ -32,40 +51,48 @@ export const ActivityListItemView = memo((props: ActivityListItemViewProps) => {
         compact && styles.compactContainer
     ];
 
-    return (
-        <TouchableOpacity style={containerStyle} onPress={onPress} activeOpacity={0.7}>
-            <View style={styles.leftSection}>
-                {hasLogs ? (
-                    <ActivityGraphPreview width={80} height={64} activity={details} ftp={ftp??200} />
-                ) : (
-                    <View style={styles.placeholder} />
-                )}
-            </View>
-
-            <View style={styles.centerSection}>
-                <Text style={styles.title} numberOfLines={1}>
-                    {title}
-                </Text>
-                <Text style={styles.dateTime}>
-                    {dateStr}{'  '}{timeStr}{'  '}{durationStr}
-                </Text>
-            </View>
-
-            <View style={styles.metricsSection}>
-                <View style={styles.metricColumn}>
-                    <Icon name="distance" size={16} color={colors.text} />
-                    <Text style={styles.metricValue}>{distanceValue}</Text>
-                    <Text style={styles.metricUnit}>{distanceUnit}</Text>
-                </View>
-                {elevationValue !== '' && (
-                    <View style={styles.metricColumn}>
-                        <Icon name="elevation" size={16} color={colors.text} />
-                        <Text style={styles.metricValue}>{elevationValue}</Text>
-                        <Text style={styles.metricUnit}>{elevationUnit}</Text>
-                    </View>
-                )}
-            </View>
+    const renderRightActions = () => (
+        <TouchableOpacity style={styles.deleteAction} onPress={onDelete}>
+            <Text style={styles.deleteText}>Delete</Text>
         </TouchableOpacity>
+    );
+
+    return (
+        <Swipeable renderRightActions={renderRightActions}>
+            <TouchableOpacity style={containerStyle} onPress={onPress} activeOpacity={0.7}>
+                <View style={styles.leftSection}>
+                    {hasLogs ? (
+                        <ActivityGraphPreview width={80} height={64} activity={details} ftp={ftp??200} />
+                    ) : (
+                        <View style={styles.placeholder} />
+                    )}
+                </View>
+
+                <View style={styles.centerSection}>
+                    <Text style={styles.title} numberOfLines={1}>
+                        {title}
+                    </Text>
+                    <Text style={styles.dateTime}>
+                        {dateStr}{'  '}{timeStr}{'  '}{durationStr}
+                    </Text>
+                </View>
+
+                <View style={styles.metricsSection}>
+                    <View style={styles.metricColumn}>
+                        <Icon name="distance" size={16} color={colors.text} />
+                        <Text style={styles.metricValue}>{distanceValue}</Text>
+                        <Text style={styles.metricUnit}>{distanceUnit}</Text>
+                    </View>
+                    {elevationValue !== '' && (
+                        <View style={styles.metricColumn}>
+                            <Icon name="elevation" size={16} color={colors.text} />
+                            <Text style={styles.metricValue}>{elevationValue}</Text>
+                            <Text style={styles.metricUnit}>{elevationUnit}</Text>
+                        </View>
+                    )}
+                </View>
+            </TouchableOpacity>
+        </Swipeable>
     );
 });
 
@@ -148,5 +175,18 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: textSizes.smallText,
         textAlign: 'center',
+    },
+    deleteAction: {
+        backgroundColor: colors.error,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        height: ACTIVITY_LIST_ITEM_HEIGHT,
+        marginVertical: 4,
+        borderRadius: 8,
+    },
+    deleteText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
     },
 });

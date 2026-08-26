@@ -3,6 +3,7 @@ import { ActivityInfoUI, ActivityDetails } from 'incyclist-services';
 export interface ActivityListItemProps {
     activityInfo: ActivityInfoUI;
     onPress: (id: string) => void;
+    onDelete: (id: string) => void;
     outsideFold?: boolean;
 }
 
@@ -20,6 +21,7 @@ export interface ActivityListItemViewProps {
     outsideFold: boolean;
     ftp?:number
     onPress: () => void;
+    onDelete: () => void;
 }
 
 export const ACTIVITY_LIST_ITEM_HEIGHT = 72;

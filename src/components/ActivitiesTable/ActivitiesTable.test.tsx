@@ -14,7 +14,7 @@ jest.mock('../Dynamic', () => ({
 }));
 
 jest.mock('../ActivityListItem', () => ({
-    ActivityListItem: () => null,
+    ActivityListItem: jest.fn(() => null),
     ACTIVITY_LIST_ITEM_HEIGHT: 72,
 }));
 
@@ -26,11 +26,24 @@ const MOCK_ACTIVITIES = [
 ] as any;
 
 describe('ActivitiesTable', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
     it('renders empty array without crashing', () => {
-        render(<ActivitiesTable activities={[]} onSelect={jest.fn()} />);
+        render(<ActivitiesTable activities={[]} onSelect={jest.fn()} onDelete={jest.fn()} />);
     });
 
     it('renders with one item without crashing', () => {
-        render(<ActivitiesTable activities={MOCK_ACTIVITIES} onSelect={jest.fn()} />);
+        render(<ActivitiesTable activities={MOCK_ACTIVITIES} onSelect={jest.fn()} onDelete={jest.fn()} />);
+    });
+
+    it('passes onDelete through to ActivityListItem', () => {
+        const { ActivityListItem } = require('../ActivityListItem');
+        const onDelete = jest.fn();
+        render(<ActivitiesTable activities={MOCK_ACTIVITIES} onSelect={jest.fn()} onDelete={onDelete} />);
+
+        const [props] = ActivityListItem.mock.calls[0];
+        expect(props).toEqual(expect.objectContaining({ onDelete }));
     });
 });
