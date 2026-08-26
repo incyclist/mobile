@@ -92,7 +92,7 @@ function listTags() {
 }
 
 function gitLog(dir, range) {
-    if (!/^[A-Za-z0-9_][A-Za-z0-9_./-]*(\.\.[A-Za-z0-9_][A-Za-z0-9_./-]*)?$/.test(range)) {
+    if (!/^\w[\w./-]*(\.\.\w[\w./-]*)?$/.test(range)) {
         throw new Error(`Refusing to use unsafe git log range: ${JSON.stringify(range)}`);
     }
     return execFileSync(GIT_BIN, ['log', range, '--oneline'], { cwd: dir, encoding: 'utf8' }).trim();
@@ -109,7 +109,7 @@ function cleanSemver(v) {
 
 function depVersionAt(dir, ref, depName) {
     try {
-        if (!/^[A-Za-z0-9_][A-Za-z0-9_./-]*$/.test(ref)) {
+        if (!/^\w[\w./-]*$/.test(ref)) {
             throw new Error(`Refusing to use unsafe git ref: ${JSON.stringify(ref)}`);
         }
         const content = execFileSync(GIT_BIN, ['show', `${ref}:package.json`], { cwd: dir, encoding: 'utf8' });
@@ -414,10 +414,10 @@ async function main() {
     }
 
     console.log(`\nTriggering: gh ${ghArgs.join(' ')}\n`);
-    if (!/^[A-Za-z0-9_-]+$/.test(track)) {
+    if (!/^\w[\w-]*$/.test(track)) {
         throw new Error(`Refusing to use unsafe track: ${JSON.stringify(track)}`);
     }
-    if (tagName && !/^[A-Za-z0-9_./-]+$/.test(tagName)) {
+    if (tagName && !/^[\w./-]+$/.test(tagName)) {
         throw new Error(`Refusing to use unsafe releaseTag: ${JSON.stringify(tagName)}`);
     }
     if (rollout !== null && !/^\d+$/.test(String(rollout))) {
