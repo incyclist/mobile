@@ -14,3 +14,6 @@ recurring findings, not just against functional correctness:
   push it over the threshold. When it does, extract the individual branches into small named
   helpers (e.g. separate `useCallback`s per logical concern) rather than leaving one large function
   to refactor later.
+- Node builtin imports: always `require('node:fs')` / `import ... from 'node:path'` etc. - never the
+  bare specifier (`'fs'`, `'path'`, `'child_process'`, `'os'`, ...). This applies to any plain Node.js
+  script in the repo (e.g. `scripts/*.js`), not just app source - SonarCloud scans those files too.
