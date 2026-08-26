@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { ViewAnnotation } from '@maplibre/maplibre-react-native';
 import { FreeMapView } from './FreeMapView.android';
 import { RiderAvatarMarker } from './RiderAvatarMarker';
@@ -19,8 +19,13 @@ const findAnnotations = (root: ReturnType<typeof render>['UNSAFE_root']) =>
     root.findAllByType(ViewAnnotation);
 
 // The map style is fetched asynchronously (getMapStyle -> fetch); until it resolves the
-// component renders null. Flush that before asserting on the map content.
-const flushMapStyle = () => new Promise((resolve) => setTimeout(resolve, 0));
+// component renders null. Rather than racing a fixed delay against that chain, poll for the
+// condition each assertion actually depends on (e.g. the expected marker count/position) so the
+// test waits exactly as long as it needs to, however long the style fetch takes.
+const waitForAnnotationCount = (root: ReturnType<typeof render>['UNSAFE_root'], count: number) =>
+    waitFor(() => {
+        expect(findAnnotations(root)).toHaveLength(count);
+    });
 
 beforeEach(() => {
     (global as any).fetch = jest.fn(() =>
@@ -33,10 +38,9 @@ describe('FreeMapView.android', () => {
         const { UNSAFE_root } = render(
             <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} />
         );
-        await flushMapStyle();
+        await waitForAnnotationCount(UNSAFE_root, 1);
 
         const annotations = findAnnotations(UNSAFE_root);
-        expect(annotations).toHaveLength(1);
         expect(annotations[0].props.id).toBe('marker');
         expect(annotations[0].props.lngLat).toEqual([13.405, 52.52]);
     });
@@ -49,10 +53,9 @@ describe('FreeMapView.android', () => {
         const { UNSAFE_root } = render(
             <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={prevRiderMarkers} />
         );
-        await flushMapStyle();
+        await waitForAnnotationCount(UNSAFE_root, 3);
 
         const annotations = findAnnotations(UNSAFE_root);
-        expect(annotations).toHaveLength(3);
 
         const rider1 = annotations.find(a => a.props.id === 'prev-rider-rider-1');
         const rider2 = annotations.find(a => a.props.id === 'prev-rider-rider-2');
@@ -74,21 +77,22 @@ describe('FreeMapView.android', () => {
         const { UNSAFE_root, rerender } = render(
             <FreeMapView {...baseProps} prevRiderMarkers={initial} />
         );
-        await flushMapStyle();
-        expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
-            .toEqual([13.41, 52.521]);
+        await waitFor(() => {
+            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
+                .toEqual([13.41, 52.521]);
+        });
 
         rerender(<FreeMapView {...baseProps} prevRiderMarkers={moved} />);
-        await flushMapStyle();
-        expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
-            .toEqual([13.50, 52.60]);
+        await waitFor(() => {
+            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
+                .toEqual([13.50, 52.60]);
+        });
     });
 
     it('renders no previous-rider markers when the list is empty/undefined', async () => {
         const { UNSAFE_root } = render(
             <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={[]} />
         );
-        await flushMapStyle();
-        expect(findAnnotations(UNSAFE_root)).toHaveLength(1);
+        await waitForAnnotationCount(UNSAFE_root, 1);
     });
 });
