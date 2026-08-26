@@ -47,13 +47,17 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Decode upload keystore
+        env: 
+          MYAPP_UPLOAD_KEYSTORE: ${{ secrets.MYAPP_UPLOAD_KEYSTORE }}
         run: |
-          echo "${{ secrets.MYAPP_UPLOAD_KEYSTORE }}" | base64 --decode > android/app/upload.jks
+          echo "$MYAPP_UPLOAD_KEYSTORE" | base64 --decode > android/app/upload.jks
 
       - name: Create config.json
+        env:
+          GOOGLE_PROJECT_NUMBER: ${{ secrets.GOOGLE_PROJECT_NUMBER }} 
         run: |
           mkdir -p config
-          echo '{"GOOGLE_PROJECT_NUMBER":"${{ secrets.GOOGLE_PROJECT_NUMBER }}"}' > config/config.json
+          echo '{"GOOGLE_PROJECT_NUMBER":"$GOOGLE_PROJECT_NUMBER"}' > config/config.json
 
       - name: Build release AAB
         working-directory: android
