@@ -52,12 +52,16 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
         setShowDeleteConfirm(true);
     }, []);
 
-    const handleDeleteConfirm = useCallback(() => {
+    const handleDeleteConfirm = useCallback(async () => {
         logEvent({ message: 'delete confirmed' });
         setShowDeleteConfirm(false);
-        // activityRide.delete() will be wired in follow-up
-        onExit();
-    }, [onExit, logEvent]);
+        try {
+            await service.delete();
+            onExit();
+        } catch (err: any) {
+            logError(err as Error, 'handleDeleteConfirm');
+        }
+    }, [service, onExit, logEvent, logError]);
 
     const handleDeleteCancel = useCallback(() => {
         setShowDeleteConfirm(false);
