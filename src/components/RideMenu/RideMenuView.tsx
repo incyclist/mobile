@@ -29,7 +29,7 @@ interface RowButtonSpec {
 }
 
 interface TileSpec {
-    icon: any;
+    icon?: any;
     label: string;
     onPress: () => void;
     disabled?: boolean;
@@ -187,13 +187,15 @@ export const RideMenuView = ({
                     pressed && !disabled && styles.menuItemPressed,
                 ]}
             >
-                <View style={styles.menuItemIcon}>
-                    <Icon
-                        name={icon}
-                        size={24}
-                        color={disabled ? colors.disabled : colors.text}
-                    />
-                </View>
+                {icon && (
+                    <View style={styles.menuItemIcon}>
+                        <Icon
+                            name={icon}
+                            size={24}
+                            color={disabled ? colors.disabled : colors.text}
+                        />
+                    </View>
+                )}
                 <Text style={[styles.menuItemLabel, disabled && styles.menuItemLabelDisabled]}>
                     {label}
                 </Text>
@@ -281,19 +283,17 @@ export const RideMenuView = ({
                             { icon: 'minus', label: 'Decrease Load', onPress: onDecreaseLoad },
                             { icon: 'plus', label: 'Increase Load', onPress: onIncreaseLoad }
                         )}
-                        {/* 'gear' is a real icon (unlike 'settings'/'controller' below, which are not
-                            in Icon's IconName union and silently render blank - a pre-existing gap,
-                            not introduced here; using a valid name for this new item rather than
-                            compounding it). Gear/Ride Settings pair onto one row and Workout
-                            Settings gets its own row - a 2-column layout, same reasoning as the
-                            Step/Load rows above, to remove one 52px row on the height-constrained
-                            landscape phone layout (see workout-mobile-hld.md §5). */}
+                        {/* Settings tiles have no icon - all three line up flush-left with each
+                            other regardless of which row/column they land in. Gear/Ride Settings
+                            pair onto one row and Workout Settings gets its own row - a 2-column
+                            layout, same reasoning as the Step/Load rows above, to remove one 52px
+                            row on the height-constrained landscape phone layout. */}
                         {renderTileRow('SettingsRow1',
-                            { icon: 'settings', label: 'Gear Settings', onPress: onGearSettings },
-                            { icon: 'controller', label: 'Ride Settings', onPress: onRideSettings }
+                            { label: 'Gear Settings', onPress: onGearSettings },
+                            { label: 'Ride Settings', onPress: onRideSettings }
                         )}
                         {workout && renderTileRow('SettingsRow2',
-                            { icon: 'gear', label: 'Workout Settings', onPress: onWorkoutSettings }
+                            { label: 'Workout Settings', onPress: onWorkoutSettings }
                         )}
                     </ScrollView>
                 </View>
