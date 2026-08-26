@@ -125,8 +125,12 @@ jobs:
         id: release_notes
         if: github.event.inputs.releaseTag != ''
         run: |
-          mkdir -p whatsnew/whatsnew-en-US
-          git tag -l --format='%(contents)' "${{ github.event.inputs.releaseTag }}" > whatsnew/whatsnew-en-US/whatsnew
+          # r0adkll/upload-google-play expects whatsNewDirectory to contain flat FILES named
+          # whatsnew-<LOCALE> directly (not a subdirectory per locale) — a nested layout here
+          # made the action try to read whatsnew-en-US as a file and crash with EISDIR since it
+          # found a directory instead.
+          mkdir -p whatsnew
+          git tag -l --format='%(contents)' "${{ github.event.inputs.releaseTag }}" > whatsnew/whatsnew-en-US
           echo "has_notes=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Google Play (staged rollout)
