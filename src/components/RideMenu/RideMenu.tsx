@@ -9,27 +9,25 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
     const refInitialized = useRef(false)
 
     const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
-    // Forces a re-render on every page-update while the menu is mounted, matching
-    // WorkoutSettingsDialog's subscription pattern - menuProps below is read fresh on every
-    // render, but without this nothing re-renders RideMenu itself when the service updates
-    // menuProps out from under it (e.g. RidePageService.onDeviceModeChanged() recomputing
-    // loadControl while the menu stays open behind the Gear Settings dialog).
-    const [_renderTick, setRenderTick] = useState(0);
+    // menuProps in state, seeded from the current service value and refreshed on every
+    // page-update while the menu is mounted (matching WorkoutSettingsDialog's subscription
+    // pattern) - without this, nothing re-renders RideMenu when the service updates menuProps
+    // out from under it (e.g. RidePageService.onDeviceModeChanged() recomputing loadControl while
+    // the menu stays open behind the Gear Settings dialog).
+    const [menuProps, setMenuProps] = useState(() => service.getPageDisplayProps()?.menuProps);
 
     useEffect(() => {
         const observer = service.getPageObserver();
-        const onPageUpdate = () => setRenderTick(n => n + 1);
+        const onPageUpdate = () => setMenuProps(service.getPageDisplayProps()?.menuProps);
         observer?.on('page-update', onPageUpdate);
         return () => { observer?.off('page-update', onPageUpdate); };
     }, [service]);
 
-    // menuProps are derived from service display props, which means they reflect current state.
     // Whether this ride has workout controls (Step/Load/Workout Settings) - Workout-only or a
     // combo ride with a workout attached, either way - is decided by RidePageService, not here:
     // menuProps only ever carries canStepBack/canStepForward together when isWorkoutAttached() is
     // true, so their presence alone is the signal, with no separate `workout` flag to thread in
     // from the parent ride screen and risk dropping along the way.
-    const menuProps = service.getPageDisplayProps()?.menuProps;
     const workout = menuProps?.canStepBack !== undefined;
     const showResume = menuProps?.showResume ?? false;
     const canStepBack = menuProps?.canStepBack ?? false;
