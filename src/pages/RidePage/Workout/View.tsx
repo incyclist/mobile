@@ -170,7 +170,6 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                 <RideMenu
                     visible={true}
                     finished={menuProps.finished}
-                    workout={true}
                     onClose={onMenuClose}
                     onCloseRidePage={onCloseRidePage}
                 />

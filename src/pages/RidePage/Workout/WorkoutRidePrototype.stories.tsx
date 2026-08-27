@@ -83,7 +83,7 @@ const MID_WORKOUT: WorkoutRidePageDisplayProps = {
     rideType: 'Workout',
     startOverlayProps: null,
     startGateProps: null,
-    menuProps: { showResume: false, canStepBack: true, canStepForward: true },
+    menuProps: { showResume: false, canStepBack: true, canStepForward: true, loadControl: { visible: true, label: 'Load' }, showRideSettings: false },
     graph: MOCK_PLAN_LIVE_MID,
     steps: {
         previous: { label: '200W', targetPower: 200, duration: 300, remaining: null, isCurrent: false },
@@ -117,7 +117,7 @@ const AFTER_SKIP_BACK: WorkoutRidePageDisplayProps = {
     rideType: 'Workout',
     startOverlayProps: null,
     startGateProps: null,
-    menuProps: { showResume: false, canStepBack: true, canStepForward: false },
+    menuProps: { showResume: false, canStepBack: true, canStepForward: false, loadControl: { visible: true, label: 'Load' }, showRideSettings: false },
     graph: MOCK_PLAN_LIVE_SKIPBACK,
     steps: {
         previous: { label: '130W', targetPower: 130, duration: 120, remaining: null, isCurrent: false },
