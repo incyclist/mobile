@@ -40,8 +40,13 @@ const meta: Meta<typeof RideMenuView> = {
 
         onStepBack: fn(),
         onStepForward: fn(),
+        // Default to the pre-existing "Load" wording (ERG mode) - stories that need the SIM/Gear
+        // variant override loadControl explicitly, see WorkoutOpenGearMode.
+        loadControl: { visible: true, label: 'Load', buttons: { inc1: '+5W', dec1: '-5W', inc5: '+50W', dec5: '-50W' } },
         onIncreaseLoad: fn(),
         onDecreaseLoad: fn(),
+        onIncreaseLoadBig: fn(),
+        onDecreaseLoadBig: fn(),
         onWorkoutSettings: fn(),
 
         renderGearSettings: () => <GearSettingsView {...AllTypes.args as any} onClose={fn()} />,
@@ -85,12 +90,42 @@ export const GearSettingsActive: Story = {
     },
 };
 
+/**
+ * A plain route ride (no workout attached, `workout` defaults false) in SIM mode with virtual
+ * shifting still needs Gear buttons - the row is not gated on `workout`. Ride Settings still
+ * applies (this ride has a route).
+ */
+export const RouteOnlyGearMode: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        loadControl: { visible: true, label: 'Gear', buttons: { inc1: '+1', dec1: '-1', inc5: '+5', dec5: '-5' } },
+    },
+};
+
+/**
+ * A plain route ride in SIM mode without virtual shifting: no gear concept, nothing to nudge, so
+ * the row is hidden entirely (not just disabled).
+ */
+export const RouteOnlyLoadControlHidden: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        loadControl: { visible: false },
+    },
+};
+
 export const WorkoutOpen: Story = {
     args: {
         visible: true,
         showResume: false,
         activeDialog: null,
         workout: true,
+        // These stories depict the dedicated Workout-only ride screen - no route, so no Ride
+        // View to select.
+        showRideSettings: false,
         canStepBack: true,
         canStepForward: true,
     },
@@ -102,31 +137,66 @@ export const WorkoutFirstStep: Story = {
         showResume: false,
         activeDialog: null,
         workout: true,
+        showRideSettings: false,
         canStepBack: false,
         canStepForward: true,
     },
 };
 
 /**
- * Session 5.10 fit check - the item list has grown across 5.4 (Step Back/Forward, Load), 5.5
- * (RideMenu workout gating), and now 5.10 (Workout Settings). `iphone15Pro` (852x393) is the
- * same viewport already registered in `.storybook/preview.ts` and used by
- * `WorkoutRidePage.stories.tsx` for its compact/normal breakpoint checks (<420dp height =
- * compact). Every workout-ride menu item is present here: Pause, End Ride (footer, always),
- * Step Back/Forward, Increase/Decrease Load, Gear Settings, Ride Settings, Workout Settings
- * (content, this story).
+ * SIM mode with virtual shifting: the row relabels to "Gear" (matching ShiftingControl's
+ * non-workout gear-shift wording) instead of "Load". Same layout as WorkoutOpen otherwise - only
+ * loadControl.label differs.
+ */
+export const WorkoutOpenGearMode: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        workout: true,
+        // These stories depict the dedicated Workout-only ride screen - no route, so no Ride
+        // View to select.
+        showRideSettings: false,
+        canStepBack: true,
+        canStepForward: true,
+        loadControl: { visible: true, label: 'Gear', buttons: { inc1: '+1', dec1: '-1', inc5: '+5', dec5: '-5' } },
+    },
+};
+
+/**
+ * SIM mode without virtual shifting: there is no gear concept and nothing to nudge, so
+ * RidePageService resolves loadControl.visible to false and the row must not render at all (not
+ * just show disabled buttons).
+ */
+export const WorkoutOpenLoadControlHidden: Story = {
+    args: {
+        visible: true,
+        showResume: false,
+        activeDialog: null,
+        workout: true,
+        // These stories depict the dedicated Workout-only ride screen - no route, so no Ride
+        // View to select.
+        showRideSettings: false,
+        canStepBack: true,
+        canStepForward: true,
+        loadControl: { visible: false },
+    },
+};
+
+/**
+ * Fit check - the item list has grown over several rounds of changes: Step Back/Forward, Load
+ * (now 4 individual small/big Load buttons instead of one shared row), Gear Settings/Ride
+ * Settings/Workout Settings. `iphone15Pro` (852x393) is the same viewport already registered in
+ * `.storybook/preview.ts` and used by `WorkoutRidePage.stories.tsx` for its compact/normal
+ * breakpoint checks (<420dp height = compact). Every workout-ride menu item is present here:
+ * Pause, End Ride (footer, always), Step Back/Forward, the 4 Load buttons, Gear Settings, Ride
+ * Settings, Workout Settings (content, this story).
  *
- * FIXED (follow-up session): a headless Playwright screenshot against this exact story at
- * 852x393 originally showed the content list did NOT fully fit above the fixed footer
- * (Pause/End Ride) - "Ride Settings" was the last item visible without scrolling and "Workout
- * Settings" sat below the fold. Row height (`minHeight: 52`) is a deliberate touch-target size
- * and was not reduced. Instead, since ride screens run landscape (width is the generous
- * resource, height is scarce - workout-mobile-hld.md §5), `Gear Settings`/`Ride Settings`/
- * `Workout Settings` were rearranged into a 2-column tile layout (`renderMenuTile`/
- * `renderTileRow`), the same way `Step Back/Forward` and `Load +/-` already share a row. This
- * removes exactly one 52px row, which lined up with the observed one-item overflow. Re-verified
- * via headless Playwright screenshot against this story: the full list, including Workout
- * Settings, now fits above the footer without scrolling.
+ * A prior overflow (content not fitting above the fixed footer) was fixed by packing
+ * Gear/Ride/Workout Settings into a 2-column tile layout instead of one-per-row. The Load row
+ * split into 4 individual buttons (small step + the swipe gesture's "big" step) added a second
+ * content row that fit check has not been re-verified against via a fresh screenshot - if a
+ * future overflow shows up here, this is the most likely place to look first.
  */
 export const WorkoutFullListCompact: Story = {
     args: {
@@ -134,6 +204,9 @@ export const WorkoutFullListCompact: Story = {
         showResume: false,
         activeDialog: null,
         workout: true,
+        // These stories depict the dedicated Workout-only ride screen - no route, so no Ride
+        // View to select.
+        showRideSettings: false,
         canStepBack: true,
         canStepForward: true,
     },
@@ -145,8 +218,8 @@ export const WorkoutFullListCompact: Story = {
 /**
  * Tablet-width verification (`ipadAir`, 1180x820 - a registered `.storybook/preview.ts` viewport,
  * same convention `WorkoutRidePage.stories.tsx` uses for its own compact/tablet pair). Below the
- * tablet-width breakpoint, the panel is capped at 300px and Step Back/Forward, Increase/Decrease
- * Load, and the settings tiles pack two-per-row (see `WorkoutFullListCompact` above and
+ * tablet-width breakpoint, the panel is capped at 300px and Step Back/Forward, the 4 Load
+ * buttons, and the settings tiles pack two-per-row (see `WorkoutFullListCompact` above and
  * `WorkoutOpen`). At this width the panel widens proportionally to the screen and every one of
  * those items renders on its own row instead, since there is no vertical pressure forcing the
  * 2-column packing here.
@@ -157,6 +230,9 @@ export const WorkoutOpenTablet: Story = {
         showResume: false,
         activeDialog: null,
         workout: true,
+        // These stories depict the dedicated Workout-only ride screen - no route, so no Ride
+        // View to select.
+        showRideSettings: false,
         canStepBack: true,
         canStepForward: true,
     },

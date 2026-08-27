@@ -203,7 +203,7 @@ export const AfterSkipBack: Story = {
 
 export const MenuOpen: Story = {
     args: {
-        displayProps: { ...MID_WORKOUT, menuProps: { showResume: false, canStepBack: true, canStepForward: true } },
+        displayProps: { ...MID_WORKOUT, menuProps: { showResume: false, canStepBack: true, canStepForward: true, loadControl: { visible: true, label: 'Load' }, showRideSettings: false } },
         getGraphActuals: (): WorkoutGraphActuals => MOCK_ACTUALS_MID,
     },
 };

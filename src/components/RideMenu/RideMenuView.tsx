@@ -33,6 +33,15 @@ interface TileSpec {
     label: string;
     onPress: () => void;
     disabled?: boolean;
+    // Fuller wording for screen readers when the visible label is a short numeric abbreviation
+    // (e.g. "+5W") that reads unclearly on its own - defaults to `label` otherwise.
+    accessibilityLabel?: string;
+}
+
+interface MagnitudeRowSpec {
+    label: string;
+    small: { text: string; onPress: () => void };
+    big: { text: string; onPress: () => void };
 }
 
 // Panel width caps, named rather than inlined. PHONE_MAX_PANEL_WIDTH is the pre-existing 300px
@@ -60,9 +69,13 @@ export const RideMenuView = ({
     canStepForward = false,
     onStepBack = () => {},
     onStepForward = () => {},
+    loadControl,
     onIncreaseLoad = () => {},
     onDecreaseLoad = () => {},
+    onIncreaseLoadBig = () => {},
+    onDecreaseLoadBig = () => {},
     onWorkoutSettings = () => {},
+    showRideSettings = true,
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
     renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
@@ -167,12 +180,50 @@ export const RideMenuView = ({
         );
     };
 
+    // Small/big magnitude value, its own tappable chip with its own visible text (e.g. "+5W") -
+    // there is no separate static caption next to it, so there is nothing inert nearby to
+    // mistakenly tap instead of the value itself.
+    const renderValueButton = (text: string, onPress: () => void) => {
+        const handlePress = () => {
+            logEvent({ message: 'button clicked', button: text });
+            onPress();
+        };
+
+        return (
+            <Pressable
+                key={text}
+                onPress={handlePress}
+                accessibilityLabel={text}
+                style={({ pressed }) => [
+                    styles.valueButton,
+                    pressed && styles.menuItemPressed,
+                ]}
+            >
+                <Text style={styles.valueButtonText}>{text}</Text>
+            </Pressable>
+        );
+    };
+
+    // Three-column row (label, small step, big step) for the Load/Gear row - e.g.
+    // "Increase Load   +5W   +50W" / "Decrease Load   -5W   -50W". Small = loadIncrement (via
+    // onIncreaseLoad/onDecreaseLoad), big = the swipe gesture's own "big" step (via
+    // onIncreaseLoadBig/onDecreaseLoadBig).
+    const renderMagnitudeRow = ({ label, small, big }: MagnitudeRowSpec) => (
+        <View style={styles.menuRow} key={label}>
+            <Text style={styles.menuItemLabel}>{label}</Text>
+            <View style={styles.menuRowButtons}>
+                {renderValueButton(small.text, small.onPress)}
+                {renderValueButton(big.text, big.onPress)}
+            </View>
+        </View>
+    );
+
     // Half-width icon+label tile, used to pack two unrelated settings entries (Gear Settings,
     // Ride Settings, Workout Settings) onto shared rows the same way Step/Load already share
     // rows. Unlike renderRowButton (icon-only, one shared row caption), each of these actions
     // needs its own visible label, so this uses the same icon+label content as a full-width
     // menu item, just at roughly half width.
-    const renderMenuTile = ({ icon, label, onPress, disabled = false }: TileSpec) => {
+    const renderMenuTile = ({ icon, label, onPress, disabled = false, accessibilityLabel }: TileSpec) => {
         const handlePress = () => {
             logEvent({ message: 'button clicked', button: label });
             onPress();
@@ -183,6 +234,7 @@ export const RideMenuView = ({
                 key={label}
                 onPress={handlePress}
                 disabled={disabled}
+                accessibilityLabel={accessibilityLabel ?? label}
                 style={({ pressed }) => [
                     styles.menuTile,
                     pressed && !disabled && styles.menuItemPressed,
@@ -280,18 +332,39 @@ export const RideMenuView = ({
                             { icon: 'chevron-left', label: 'Step Back', onPress: onStepBack, disabled: !canStepBack },
                             { icon: 'chevron-right', label: 'Step Forward', onPress: onStepForward, disabled: !canStepForward }
                         )}
-                        {workout && renderMenuRow('Load',
-                            { icon: 'minus', label: 'Decrease Load', onPress: onDecreaseLoad },
-                            { icon: 'plus', label: 'Increase Load', onPress: onIncreaseLoad }
-                        )}
+                        {/* Label/icon/visibility come from RidePageService.menuProps.loadControl -
+                            this view renders it as-is rather than deciding "Load" vs "Gear" (or
+                            whether to show the row at all) from cycling mode itself, per the
+                            workspace's services=what/mobile=how split. Independent of `workout` -
+                            a plain route ride still needs Load/Gear buttons whenever cycling mode
+                            calls for them.
+
+                            Three-column rows (label, small step, big step) - e.g.
+                            "Increase Load   +5W   +50W" / "Decrease Load   -5W   -50W" - each
+                            value is its own tappable chip with its own visible text, so there is
+                            no separate static caption sitting next to a small icon-only button a
+                            rider could mistakenly tap instead. */}
+                        {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
+                            label: `Increase ${loadControl.label ?? 'Load'}`,
+                            small: { text: loadControl.buttons.inc1, onPress: onIncreaseLoad },
+                            big: { text: loadControl.buttons.inc5, onPress: onIncreaseLoadBig },
+                        })}
+                        {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
+                            label: `Decrease ${loadControl.label ?? 'Load'}`,
+                            small: { text: loadControl.buttons.dec1, onPress: onDecreaseLoad },
+                            big: { text: loadControl.buttons.dec5, onPress: onDecreaseLoadBig },
+                        })}
                         {/* Settings tiles have no icon - all three line up flush-left with each
                             other regardless of which row/column they land in. Gear/Ride Settings
                             pair onto one row and Workout Settings gets its own row - a 2-column
                             layout, same reasoning as the Step/Load rows above, to remove one 52px
-                            row on the height-constrained landscape phone layout. */}
+                            row on the height-constrained landscape phone layout. Ride Settings
+                            (Ride View selector) is route-specific - omitted (via renderTileRow's
+                            optional `right`) on a route-less Workout-only ride, per
+                            menuProps.showRideSettings. */}
                         {renderTileRow('SettingsRow1',
                             { label: 'Gear Settings', onPress: onGearSettings },
-                            { label: 'Ride Settings', onPress: onRideSettings }
+                            showRideSettings ? { label: 'Ride Settings', onPress: onRideSettings } : undefined
                         )}
                         {workout && renderTileRow('SettingsRow2',
                             { label: 'Workout Settings', onPress: onWorkoutSettings }
@@ -394,6 +467,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginLeft: 8,
         borderRadius: 4,
+    },
+    // Chip-style value button (e.g. "+5W") - a subtle outline gives it a tappable affordance
+    // (unlike rowButton, which relies on its icon for that) since its content is just numeric
+    // text sitting inline with the row's own label.
+    valueButton: {
+        minWidth: 48,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 8,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+    },
+    valueButtonText: {
+        color: colors.text,
+        fontSize: textSizes.normalText,
     },
     menuTileRow: {
         flexDirection: 'row',
