@@ -10,7 +10,7 @@ jest.mock('incyclist-services', () => ({
 }));
 
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { WorkoutStepsList } from './WorkoutStepsList';
 import {
     MOCK_STEPS_VO2,
@@ -104,11 +104,6 @@ describe('WorkoutStepsList', () => {
         expect(getByText(/end of workout/i)).toBeTruthy();
     });
 
-    // Repo-owner request, 2026-08-11 (WorkoutDashboard's "AtEnd" story) - suspected the current-
-    // row progress fill might stop short of the end rather than reaching exactly full width.
-    // Given remaining: 0 exactly, the formula (1 - remaining/duration) computes to exactly 1 -
-    // this component's own rendering is correct; if a real ride still looks short of the end,
-    // the gap is in the live service's timing, not here.
     // Workout Step Change Audio Signal feature (mobile section): CurrentRow drives a countdown
     // pulse/flash off step.remaining/step.duration via Animated.Value - this repo's convention for
     // RN component tests is render-without-crashing, not style/snapshot assertions.
@@ -120,12 +115,57 @@ describe('WorkoutStepsList', () => {
         expect(() => render(<WorkoutStepsList steps={stepsInCountdown as any} />)).not.toThrow();
     });
 
-    test('current step at remaining=0 fills the progress bar to exactly 100%, not short of it', () => {
+    // Repo-owner request, 2026-08-11 (WorkoutDashboard's "AtEnd" story) - suspected the current-row
+    // progress fill might stop short of the end rather than reaching exactly full width.
+    //
+    // Confirmed 2026-08-27 on a real device: the fill/marker DID fall short by exactly the row's
+    // paddingHorizontal, even though the width style value itself was correctly '100.00%' - a
+    // documented Yoga "errata" (AbsolutePercentAgainstInnerSize, on by default in RN) resolves
+    // percentage width/left on a position:'absolute' child against the parent's PADDING-EXCLUDED
+    // content box, not its true border-box width. A prior version of this test only asserted the
+    // style prop's percentage VALUE, which is why it passed despite the real-device bug - RNTL's
+    // render() doesn't run an actual layout pass, so it can't catch a Yoga percentage-resolution
+    // quirk. The fix measures the row via onLayout and computes pixel values instead, sidestepping
+    // percentage resolution entirely - these tests simulate that measurement directly.
+    const measureCurrentRow = (getByTestId: (id: string) => any, width: number) => {
+        fireEvent(getByTestId('step-current-row'), 'layout', { nativeEvent: { layout: { width } } });
+    };
+
+    const flatStyle = (element: any) =>
+        Array.isArray(element.props.style) ? Object.assign({}, ...element.props.style) : element.props.style;
+
+    test('current step at remaining=0 fills the progress bar to exactly the measured row width in pixels', () => {
         const { getByTestId } = render(<WorkoutStepsList steps={MOCK_STEPS_AT_END} />);
-        const fill = getByTestId('step-progress-fill');
-        const flatStyle = Array.isArray(fill.props.style)
-            ? Object.assign({}, ...fill.props.style)
-            : fill.props.style;
-        expect(flatStyle.width).toBe('100.00%');
+        measureCurrentRow(getByTestId, 300);
+
+        expect(flatStyle(getByTestId('step-progress-fill')).width).toBe(300);
+    });
+
+    test('current step at remaining=0 positions the marker flush with the row\'s true right edge, not clipped past it', () => {
+        const { getByTestId } = render(<WorkoutStepsList steps={MOCK_STEPS_AT_END} />);
+        measureCurrentRow(getByTestId, 300);
+
+        // marker's trailing (right) edge, not its leading edge, must land at the measured width -
+        // its left must therefore be inset by its own width so it renders fully inside the row.
+        expect(flatStyle(getByTestId('step-progress-marker')).left).toBe(298);
+    });
+
+    test('a partially-elapsed current step fills proportionally to the measured row width', () => {
+        const halfElapsed = {
+            ...MOCK_STEPS_VO2,
+            current: { ...MOCK_STEPS_VO2.current, duration: 100, remaining: 50 },
+        };
+        const { getByTestId } = render(<WorkoutStepsList steps={halfElapsed as any} />);
+        measureCurrentRow(getByTestId, 300);
+
+        expect(flatStyle(getByTestId('step-progress-fill')).width).toBe(150);
+        expect(flatStyle(getByTestId('step-progress-marker')).left).toBe(148);
+    });
+
+    test('before the row has been measured (no onLayout yet), the fill/marker default to zero width rather than an unmeasured/undefined value', () => {
+        const { getByTestId } = render(<WorkoutStepsList steps={MOCK_STEPS_AT_END} />);
+
+        expect(flatStyle(getByTestId('step-progress-fill')).width).toBe(0);
+        expect(flatStyle(getByTestId('step-progress-marker')).left).toBe(0);
     });
 });

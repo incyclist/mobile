@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, DimensionValue, Animated } from 'react-native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Animated, LayoutChangeEvent } from 'react-native';
 import { formatTime } from 'incyclist-services';
 import { colors } from '../../theme/colors';
 import { textSizes } from '../../theme/textSizes';
@@ -70,6 +70,11 @@ const COUNTDOWN_PULSE_SCALE = 1.35;
 // utils.ts's header comment for why these two are computed separately.
 const FLASH_DURATION_MS = 400;
 
+// Width of the progress marker line - kept as a constant (not just in the stylesheet) since the
+// marker's `left` position must subtract it to land the marker's trailing edge, not its leading
+// edge, at the computed progress point (see CurrentRow).
+const MARKER_WIDTH = 2;
+
 // The step's own elapsed fraction — drawn as the row's background fill, with a thin marker line
 // at the fill's leading edge, colored to match WorkoutGraph's `live`-mode position marker (same
 // "where am I" visual language, just horizontal-in-a-row instead of vertical-across-a-timeline).
@@ -82,7 +87,23 @@ const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: bool
     const progress = hasProgress
         ? Math.min(1, Math.max(0, 1 - (step.remaining as number) / step.duration))
         : 0;
-    const progressPct = `${(progress * 100).toFixed(2)}%` as DimensionValue;
+
+    // Percentage width/left on a position:'absolute' child resolves against the parent's PADDING-
+    // EXCLUDED content box in React Native's Yoga (a legacy "errata" left on by default) - since
+    // `row` has paddingHorizontal, a "100%" fill/marker actually lands `paddingHorizontal*2` short
+    // of the row's true right edge, even though the style prop itself is exactly '100.00%'.
+    // Measuring the row via onLayout and computing raw pixel values instead sidesteps the
+    // percentage-resolution path (and this quirk) entirely.
+    const [rowWidth, setRowWidth] = useState(0);
+    const onRowLayout = useCallback((e: LayoutChangeEvent) => {
+        setRowWidth(e.nativeEvent.layout.width);
+    }, []);
+    const progressPx = progress * rowWidth;
+    // The marker's own width must come off its `left` so its trailing (right) edge - not its
+    // leading edge - lands at progressPx: otherwise at progress=1 the marker's left edge sits
+    // exactly on the row's true right border and the marker renders almost entirely clipped by
+    // currentRow's overflow:'hidden', instead of flush against it as expected.
+    const markerLeft = Math.max(0, Math.min(progressPx - MARKER_WIDTH, rowWidth - MARKER_WIDTH));
 
     const remaining = step.remaining;
     const prevRemainingRef = useRef<number | null>(null);
@@ -110,9 +131,9 @@ const CurrentRow = ({ step, compact }: { step: WorkoutStepDisplay; compact: bool
     }, [remaining, step.duration, pulseAnim, flashAnim]);
 
     return (
-        <View style={[styles.row, styles.currentRow]}>
-            {hasProgress && <View testID="step-progress-fill" style={[styles.progressFill, { width: progressPct }]} />}
-            {hasProgress && <View style={[styles.progressMarker, { left: progressPct }]} />}
+        <View testID="step-current-row" style={[styles.row, styles.currentRow]} onLayout={onRowLayout}>
+            {hasProgress && <View testID="step-progress-fill" style={[styles.progressFill, { width: progressPx }]} />}
+            {hasProgress && <View testID="step-progress-marker" style={[styles.progressMarker, { left: markerLeft }]} />}
             <Animated.View
                 testID="step-flash-overlay"
                 pointerEvents="none"
@@ -196,7 +217,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         bottom: 0,
-        width: 2,
+        width: MARKER_WIDTH,
         backgroundColor: POSITION_MARKER_COLOR,
     },
     // Positioning comes from StyleSheet.absoluteFill, applied directly in the style array at the
