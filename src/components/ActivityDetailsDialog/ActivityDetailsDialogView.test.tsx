@@ -10,6 +10,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { ActivityDetailsDialogViewProps } from './types';
+import { colors } from '../../theme';
 
 const MOCK_LOADING = {
     loading: true,
@@ -150,6 +151,51 @@ describe('ActivityDetailsDialogView', () => {
             );
             expect(queryByText('Add Workout')).toBeNull();
             expect(queryByText(/^Workout:/)).toBeNull();
+        });
+    });
+
+    // FIXES_BACKLOG: workout-only activities (no route attached) have canStart===false. "Ride
+    // Again" used to render disabled but still pressable (the shared Button component ignores
+    // its `disabled` prop), so tapping it silently did nothing. It's now omitted entirely, and
+    // "Close" takes over as the primary action.
+    describe('Ride Again / Close', () => {
+        const loadedProps = (overrides = {}): ActivityDetailsDialogViewProps => ({
+            ...MOCK_LOADING,
+            loading: false,
+            activity: {
+                title: 'Test Ride',
+                startTime: new Date().toISOString(),
+                distance: 10000,
+                time: 3600,
+                totalElevation: 500,
+                logs: [],
+                stats: { speed: { avg: 25, min: 0, max: 40 } },
+            } as any,
+            ...overrides,
+        });
+
+        it('shows "Ride Again" and calls onRideAgain on press when canStart is true', () => {
+            const props = loadedProps({ canStart: true });
+            const { getByText } = render(<ActivityDetailsDialogView {...props} />);
+            fireEvent.press(getByText('Ride Again'));
+            expect(props.onRideAgain).toHaveBeenCalledTimes(1);
+        });
+
+        it('omits "Ride Again" for a workout-only activity (canStart false)', () => {
+            const { queryByText } = render(
+                <ActivityDetailsDialogView {...loadedProps({ canStart: false })} />
+            );
+            expect(queryByText('Ride Again')).toBeNull();
+        });
+
+        it('makes "Close" the primary button for a workout-only activity (canStart false)', () => {
+            const { getByText } = render(
+                <ActivityDetailsDialogView {...loadedProps({ canStart: false })} />
+            );
+            const closeButtonStyle = getByText('Close').parent?.parent?.props.style;
+            expect(closeButtonStyle).toEqual(
+                expect.objectContaining({ backgroundColor: colors.buttonPrimary })
+            );
         });
     });
 });

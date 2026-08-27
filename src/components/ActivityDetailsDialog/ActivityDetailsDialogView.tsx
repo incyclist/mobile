@@ -74,9 +74,9 @@ export const ActivityDetailsDialogView = (props: ActivityDetailsDialogViewProps)
     const showWorkoutChip = canStart && !!attachedWorkout;
 
     const dialogButtons = [
-        { label: 'Ride Again', onClick: onRideAgain, primary: true, disabled: !canStart },
+        ...(canStart ? [{ label: 'Ride Again', onClick: onRideAgain, primary: true }] : []),
         ...(showAddWorkout ? [{ label: 'Add Workout', onClick: onAddWorkout }] : []),
-        { label: 'Close', onClick: onClose },
+        { label: 'Close', onClick: onClose, primary: !canStart },
     ];
 
     const renderKeyFact = (label: string, value: any, unitKey?: 'distance' | 'elevation' | 'speed' | 'time' | 'power') => {
