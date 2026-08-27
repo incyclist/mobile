@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getRidePageService, IObserver } from 'incyclist-services';
-import { useUnmountEffect } from '../../hooks';
+import { getRidePageService, useUserSettings, IObserver } from 'incyclist-services';
+import { useUnmountEffect, STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY, DEFAULT_STEP_CHANGE_AUDIO_SIGNAL } from '../../hooks';
 import { WorkoutSettingsDialogProps } from './types';
 import { WorkoutSettingsDialogView } from './WorkoutSettingsDialogView';
 
@@ -20,12 +20,20 @@ import { WorkoutSettingsDialogView } from './WorkoutSettingsDialogView';
  */
 export const WorkoutSettingsDialog = ({ onClose }: WorkoutSettingsDialogProps) => {
     const service = getRidePageService();
+    const userSettings = useUserSettings();
     // loadIncrement is a Workout-only display prop (optional on the merged AnyRidePageDisplayProps
     // shape now that one service/factory covers every ride type) - this dialog is only ever reached
     // from a workout ride's RideMenu, so it is always populated in practice; ?? 1 is just a type-safe
     // fallback, matching WorkoutRidePageService's own DEFAULT_LOAD_INCREMENT.
     const [loadIncrement, setLoadIncrement] = useState<number>(
         () => service.getPageDisplayProps().loadIncrement ?? 1
+    );
+    // Direct useUserSettings() read/write - not proxied through RidePageService (unlike
+    // loadIncrement above), same direct pattern useRideGestures.ts already uses for its own
+    // preferences.workouts.* key; this setting doesn't need live reactive propagation, so a local
+    // state seeded once is enough (mirrors WorkoutDetailsDialog's pre-ride toggle).
+    const [stepChangeAudioSignal, setStepChangeAudioSignal] = useState<boolean>(() =>
+        Boolean(userSettings.getValue(STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY, DEFAULT_STEP_CHANGE_AUDIO_SIGNAL))
     );
     const refObserver = useRef<IObserver | null>(null);
     const refInitialized = useRef(false);
@@ -56,11 +64,18 @@ export const WorkoutSettingsDialog = ({ onClose }: WorkoutSettingsDialogProps) =
         service.onSetLoadIncrement(value);
     }, [service]);
 
+    const onChangeStepChangeAudioSignal = useCallback((value: boolean) => {
+        userSettings.set(STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY, value);
+        setStepChangeAudioSignal(value);
+    }, [userSettings]);
+
     return (
         <WorkoutSettingsDialogView
             loadIncrement={loadIncrement}
+            stepChangeAudioSignal={stepChangeAudioSignal}
             onClose={onClose}
             onChangeLoadIncrement={onChangeLoadIncrement}
+            onChangeStepChangeAudioSignal={onChangeStepChangeAudioSignal}
         />
     );
 };

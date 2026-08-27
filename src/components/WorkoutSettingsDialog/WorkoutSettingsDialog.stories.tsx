@@ -7,8 +7,10 @@ const meta: Meta<typeof WorkoutSettingsDialogView> = {
     title: 'Components/WorkoutSettingsDialog',
     args: {
         loadIncrement: 1,
+        stepChangeAudioSignal: true,
         onClose: fn(),
         onChangeLoadIncrement: fn(),
+        onChangeStepChangeAudioSignal: fn(),
     },
 };
 export default meta;

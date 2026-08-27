@@ -12,6 +12,7 @@ const baseProps = {
     compact: false,
     ftp: 230,
     useErgMode: true,
+    stepChangeAudioSignal: true,
     groups: ['My Workouts'],
     group: 'My Workouts',
     isScheduled: false,
@@ -25,6 +26,7 @@ const baseProps = {
     onClose: jest.fn(),
     onSetFtp: jest.fn(),
     onSetErgMode: jest.fn(),
+    onSetStepChangeAudioSignal: jest.fn(),
     onChangeGroup: jest.fn(),
     onStart: jest.fn(),
     onDeleteRequest: jest.fn(),
@@ -59,6 +61,22 @@ describe('WorkoutDetailsView', () => {
             <WorkoutDetailsView {...baseProps} canStart={true} canStartWorkoutOnly={false} />
         );
         expect(getByText('Start')).toBeTruthy();
+    });
+
+    // Workout Step Change Audio Signal feature: toggle is shown and functional regardless of
+    // whether the native audio module happens to be available on this binary (no
+    // capability-detection UI) - copies the existing "ERG Mode" BinarySelect pattern exactly.
+    it('renders the Step Change Audio toggle at its current value and calls onSetStepChangeAudioSignal on toggle', () => {
+        const { getByText, getAllByText } = render(
+            <WorkoutDetailsView {...baseProps} stepChangeAudioSignal={true} />
+        );
+        expect(getByText('Step Change Audio')).toBeTruthy();
+
+        // ERG Mode is rendered first, Step Change Audio second - both use the same On/Off labels,
+        // so the last "Off" chip belongs to Step Change Audio.
+        const offChips = getAllByText('Off');
+        fireEvent.press(offChips[offChips.length - 1]);
+        expect(baseProps.onSetStepChangeAudioSignal).toHaveBeenCalledWith(false);
     });
 
     it('hides the group picker for a scheduled workout', () => {

@@ -4,6 +4,8 @@ import { WorkoutSettingsDialog } from './WorkoutSettingsDialog';
 
 const mockOnSetLoadIncrement = jest.fn();
 const mockGetPageDisplayProps = jest.fn(() => ({ loadIncrement: 1 }));
+const mockGetValue = jest.fn((_key: string, def: any) => def);
+const mockSetUserSetting = jest.fn();
 
 let capturedHandlers: Record<string, (...args: any[]) => void> = {};
 const mockOn = jest.fn((event: string, handler: (...args: any[]) => void) => { capturedHandlers[event] = handler; });
@@ -18,6 +20,7 @@ jest.mock('incyclist-services', () => ({
         getPageObserver: mockGetPageObserver,
         onSetLoadIncrement: mockOnSetLoadIncrement,
     }),
+    useUserSettings: () => ({ getValue: mockGetValue, set: mockSetUserSetting }),
 }));
 
 // Unlike WorkoutRidePage.test.tsx, this test does not mock the View (WorkoutSettingsDialogView
@@ -30,6 +33,7 @@ describe('WorkoutSettingsDialog', () => {
         jest.clearAllMocks();
         capturedHandlers = {};
         mockGetPageDisplayProps.mockReturnValue({ loadIncrement: 1 } as any);
+        mockGetValue.mockImplementation((_key: string, def: any) => def);
     });
 
     it('renders without crashing, showing the current loadIncrement from the page service', () => {
@@ -63,6 +67,23 @@ describe('WorkoutSettingsDialog', () => {
         fireEvent(input, 'endEditing');
 
         expect(mockOnSetLoadIncrement).toHaveBeenCalledWith(5);
+    });
+
+    // Workout Step Change Audio Signal feature: read/written directly via useUserSettings(), not
+    // proxied through RidePageService (unlike loadIncrement above) - same direct pattern
+    // useRideGestures.ts already uses for its own preferences.workouts.* key.
+    it('reads the stepChangeAudioSignal setting from useUserSettings() with the documented default', () => {
+        render(<WorkoutSettingsDialog onClose={jest.fn()} />);
+        expect(mockGetValue).toHaveBeenCalledWith('preferences.workouts.stepChangeAudioSignal', true);
+    });
+
+    it('renders the Step Change Audio toggle and calls userSettings.set (not a service method) when toggled', () => {
+        const { getByText } = render(<WorkoutSettingsDialog onClose={jest.fn()} />);
+        expect(getByText('Step Change Audio')).toBeTruthy();
+
+        fireEvent.press(getByText('Off'));
+        expect(mockSetUserSetting).toHaveBeenCalledWith('preferences.workouts.stepChangeAudioSignal', false);
+        expect(mockOnSetLoadIncrement).not.toHaveBeenCalled();
     });
 
     it('calls onClose when Close is pressed', () => {

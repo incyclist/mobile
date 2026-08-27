@@ -64,6 +64,10 @@ jest.mock('../../../hooks', () => ({
         feedback: { visible: false, message: '' },
         loadIncrement: 1,
     }),
+    // Side-effect-only hook (no return value) - stubbed out here since this file already fully
+    // mocks 'incyclist-services' with a bare service object that has no getPageObserver(); the
+    // hook's own subscription behaviour is covered by useWorkoutStepAudioSignal.test.ts.
+    useWorkoutStepAudioSignal: jest.fn(),
 }));
 
 jest.mock('../../../components', () => {

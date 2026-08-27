@@ -19,36 +19,50 @@ const GRAPH_HEIGHT_COMPACT = 160;
 interface SettingsColumnProps {
     ftp: number;
     useErgMode: boolean;
+    stepChangeAudioSignal: boolean;
     groups: string[];
     group: string;
     isScheduled: boolean;
     onFtpChange: (value?: number) => void;
     onErgChange: (value: boolean) => void;
+    onStepChangeAudioSignalChange: (value: boolean) => void;
     onGroupChange: (value: string) => void;
 }
 
-/** FTP -> ERG -> Group, always in this vertical order (never side-by-side). */
+/** FTP -> ERG -> Step Change Audio -> Group, always in this vertical order (never side-by-side). */
 const SettingsColumn = ({
-    ftp, useErgMode, groups, group, isScheduled, onFtpChange, onErgChange, onGroupChange,
+    ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled,
+    onFtpChange, onErgChange, onStepChangeAudioSignalChange, onGroupChange,
 }: SettingsColumnProps) => (
     <View>
         <View style={styles.settingsField}>
-            <EditNumber label="FTP" unit="W" value={ftp} min={0} max={999} digits={0} onValueChange={onFtpChange} />
+            <EditNumber label="FTP" labelWidth={180} unit="W" value={ftp} min={0} max={999} digits={0} onValueChange={onFtpChange} />
         </View>
         <View style={styles.settingsField}>
             <BinarySelect
                 label="ERG Mode"
                 labelPosition="before"
-                labelWidth={100}
+                labelWidth={180}
                 value={useErgMode}
                 trueLabel="On"
                 falseLabel="Off"
                 onValueChange={onErgChange}
             />
         </View>
+        <View style={styles.settingsField}>
+            <BinarySelect
+                label="Step Change Audio"
+                labelPosition="before"
+                labelWidth={180}
+                value={stepChangeAudioSignal}
+                trueLabel="On"
+                falseLabel="Off"
+                onValueChange={onStepChangeAudioSignalChange}
+            />
+        </View>
         {!isScheduled && (
             <View style={styles.settingsField}>
-                <GroupPicker label="Group" groups={groups} value={group} onValueChange={onGroupChange} />
+                <GroupPicker label="Group" labelWidth={180} groups={groups} value={group} onValueChange={onGroupChange} />
             </View>
         )}
     </View>
@@ -72,11 +86,11 @@ const GraphColumn = ({ plan, graphHeight, scheduledLabel, description }: GraphCo
 export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const {
         title, description, duration, plan, compact,
-        ftp, useErgMode, groups, group, isScheduled, scheduledLabel,
+        ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled, scheduledLabel,
         canDelete, canStart, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
         attachedRoute,
-        onClose, onSetFtp, onSetErgMode, onChangeGroup, onStart,
+        onClose, onSetFtp, onSetErgMode, onSetStepChangeAudioSignal, onChangeGroup, onStart,
         onDeleteRequest, onDeleteConfirm, onDeleteCancel,
         onClearRoute, onAddRoute,
     } = props;
@@ -88,6 +102,10 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const handleErgChange = useCallback((value: boolean) => {
         onSetErgMode(value);
     }, [onSetErgMode]);
+
+    const handleStepChangeAudioSignalChange = useCallback((value: boolean) => {
+        onSetStepChangeAudioSignal(value);
+    }, [onSetStepChangeAudioSignal]);
 
     const handleGroupChange = useCallback((value: string) => {
         onChangeGroup(value);
@@ -115,11 +133,13 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
         <SettingsColumn
             ftp={ftp}
             useErgMode={useErgMode}
+            stepChangeAudioSignal={stepChangeAudioSignal}
             groups={groups}
             group={group}
             isScheduled={isScheduled}
             onFtpChange={handleFtpChange}
             onErgChange={handleErgChange}
+            onStepChangeAudioSignalChange={handleStepChangeAudioSignalChange}
             onGroupChange={handleGroupChange}
         />
     );

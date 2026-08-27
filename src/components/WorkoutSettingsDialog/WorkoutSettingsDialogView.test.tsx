@@ -5,8 +5,10 @@ import { WorkoutSettingsDialogViewProps } from './types';
 
 const MOCK_PROPS: WorkoutSettingsDialogViewProps = {
     loadIncrement: 1,
+    stepChangeAudioSignal: true,
     onClose: jest.fn(),
     onChangeLoadIncrement: jest.fn(),
+    onChangeStepChangeAudioSignal: jest.fn(),
 };
 
 describe('WorkoutSettingsDialogView', () => {
@@ -30,6 +32,24 @@ describe('WorkoutSettingsDialogView', () => {
         fireEvent(input, 'endEditing');
 
         expect(onChangeLoadIncrement).toHaveBeenCalledWith(7);
+    });
+
+    // Workout Step Change Audio Signal feature: a second BinarySelect control alongside the
+    // existing loadIncrement EditNumber. Only "Off" appears once here (this view has no other
+    // On/Off toggle), so it can be located directly.
+    it('renders the Step Change Audio toggle at its current value and calls onChangeStepChangeAudioSignal on toggle', () => {
+        const onChangeStepChangeAudioSignal = jest.fn();
+        const { getByText } = render(
+            <WorkoutSettingsDialogView
+                {...MOCK_PROPS}
+                stepChangeAudioSignal={true}
+                onChangeStepChangeAudioSignal={onChangeStepChangeAudioSignal}
+            />
+        );
+        expect(getByText('Step Change Audio')).toBeTruthy();
+
+        fireEvent.press(getByText('Off'));
+        expect(onChangeStepChangeAudioSignal).toHaveBeenCalledWith(false);
     });
 
     it('calls onClose when Close is pressed', () => {

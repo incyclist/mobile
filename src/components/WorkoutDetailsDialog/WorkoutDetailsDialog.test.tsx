@@ -35,6 +35,9 @@ const baseDetails: any = {
 
 const mockGetWorkoutDetailsProps = jest.fn(() => baseDetails);
 
+const mockGetValue = jest.fn((_key: string, def: any) => def);
+const mockSetUserSetting = jest.fn();
+
 const mockService = {
     getWorkoutDetailsProps: mockGetWorkoutDetailsProps,
     getPageObserver: jest.fn(() => mockObserver),
@@ -52,6 +55,7 @@ jest.mock('incyclist-services', () => ({
     getWorkoutListPageService: () => mockService,
     getWorkoutGraphSeries: jest.fn(() => []),
     formatDateTime: jest.fn(() => '21.07.2026'),
+    useUserSettings: () => ({ getValue: mockGetValue, set: mockSetUserSetting }),
 }));
 
 jest.mock('../../services', () => ({
@@ -63,6 +67,7 @@ describe('WorkoutDetailsDialog', () => {
         jest.clearAllMocks();
         mockGetWorkoutDetailsProps.mockReturnValue(baseDetails);
         mockOnDelete.mockResolvedValue(true);
+        mockGetValue.mockImplementation((_key: string, def: any) => def);
     });
 
     it('renders without crashing', () => {
@@ -135,6 +140,21 @@ describe('WorkoutDetailsDialog', () => {
 
         await waitFor(() => expect(mockOnDelete).toHaveBeenCalledWith('w1'));
         await waitFor(() => expect(mockOnCloseDetails).toHaveBeenCalledTimes(1));
+    });
+
+    // Workout Step Change Audio Signal feature: read/written directly via useUserSettings(), not
+    // proxied through the page service (unlike onSetErgMode) - shown/functional regardless of
+    // native-module availability on this binary (no capability-detection UI).
+    it('reads the stepChangeAudioSignal setting from useUserSettings() with the documented default', () => {
+        render(<WorkoutDetailsDialog workoutId="w1" />);
+        expect(mockGetValue).toHaveBeenCalledWith('preferences.workouts.stepChangeAudioSignal', true);
+    });
+
+    it('calls userSettings.set (not a service method) when the Step Change Audio toggle is changed', () => {
+        const { getAllByText } = render(<WorkoutDetailsDialog workoutId="w1" />);
+        const offChips = getAllByText('Off');
+        fireEvent.press(offChips[offChips.length - 1]);
+        expect(mockSetUserSetting).toHaveBeenCalledWith('preferences.workouts.stepChangeAudioSignal', false);
     });
 
     it('unmounts without crashing', () => {
