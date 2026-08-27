@@ -39,11 +39,21 @@ let audioContext: AudioContext | null | undefined; // undefined = not yet probed
 // instead of being silenced by the mute switch (iosCategory 'playback' ignores the mute switch;
 // 'mixWithOthers' keeps any underlying music playing rather than stopping it). No-op on Android.
 // Best-effort - a failure here must never block tone playback.
+//
+// setAudioSessionOptions() only configures the category/options - it does NOT activate the
+// session (iOS's AVAudioSession has a separate "active" flag). Without also calling
+// setAudioSessionActivity(true), the session is configured but never actually engaged, so no
+// audio reaches the speaker even though oscillator.start()/stop() run without error. Fire-and-
+// forget: it's async and there's normally several seconds of lead time before the first real tone
+// (the countdown's first tick), plenty for it to complete in the background.
 const configureAudioSession = (): void => {
     try {
         AudioManager.setAudioSessionOptions({
             iosCategory: 'playback',
             iosOptions: ['mixWithOthers'],
+        });
+        AudioManager.setAudioSessionActivity(true).catch(() => {
+            // ignore - tones still get scheduled, just without a guaranteed-active session
         });
     }
     catch {
@@ -53,11 +63,20 @@ const configureAudioSession = (): void => {
 
 const getAudioContext = (): AudioContext | null => {
     if (audioContext !== undefined) {
+        // A freshly-constructed AudioContext can come up 'suspended' rather than 'running' -
+        // resume() is idempotent/cheap once already running, so this is safe to call on every
+        // probe rather than only at construction time.
+        if (audioContext && audioContext.state !== 'running') {
+            audioContext.resume().catch(() => {});
+        }
         return audioContext;
     }
     try {
         audioContext = new AudioContext();
         configureAudioSession();
+        if (audioContext.state !== 'running') {
+            audioContext.resume().catch(() => {});
+        }
     }
     catch {
         audioContext = null; // native module not linked on this binary - degrade silently

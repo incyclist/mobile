@@ -4,4 +4,5 @@
 
 export default {
     setAudioSessionOptions: jest.fn(),
+    setAudioSessionActivity: jest.fn().mockResolvedValue(undefined),
 };

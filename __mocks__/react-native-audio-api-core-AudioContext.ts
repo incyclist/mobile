@@ -33,7 +33,9 @@ class MockGainNode extends MockAudioNode {
 
 export default class AudioContext {
     currentTime = 0;
+    state = 'running';
     destination = new MockAudioNode();
     createOscillator = jest.fn(() => new MockOscillatorNode());
     createGain = jest.fn(() => new MockGainNode());
+    resume = jest.fn().mockResolvedValue(undefined);
 }

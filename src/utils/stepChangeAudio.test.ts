@@ -3,7 +3,9 @@ const mockLinearRampToValueAtTime = jest.fn();
 const mockConnect = jest.fn();
 const mockStart = jest.fn();
 const mockStop = jest.fn();
+const mockResume = jest.fn().mockResolvedValue(undefined);
 const mockSetAudioSessionOptions = jest.fn();
+const mockSetAudioSessionActivity = jest.fn().mockResolvedValue(undefined);
 
 let mockAudioContextImpl: jest.Mock;
 
@@ -18,6 +20,7 @@ jest.mock('react-native-audio-api/src/system', () => ({
     __esModule: true,
     default: {
         setAudioSessionOptions: (...args: unknown[]) => mockSetAudioSessionOptions(...args),
+        setAudioSessionActivity: (...args: unknown[]) => mockSetAudioSessionActivity(...args),
     },
 }));
 
@@ -40,9 +43,11 @@ describe('stepChangeAudio', () => {
         jest.clearAllMocks();
         mockAudioContextImpl = jest.fn().mockImplementation(function (this: any) {
             this.currentTime = 10;
+            this.state = 'running';
             this.destination = {};
             this.createOscillator = jest.fn(makeOscillator);
             this.createGain = jest.fn(makeGain);
+            this.resume = mockResume;
         });
     });
 
@@ -72,6 +77,39 @@ describe('stepChangeAudio', () => {
             iosCategory: 'playback',
             iosOptions: ['mixWithOthers'],
         });
+    });
+
+    // Regression: setAudioSessionOptions() only configures the category - it does not activate
+    // the session. Without also calling setAudioSessionActivity(true), the session never actually
+    // engages and no audio reaches the speaker even though the oscillator graph runs without error.
+    it('activates the audio session (setAudioSessionActivity(true)) once the context is created', () => {
+        const { isStepAudioAvailable } = require('./stepChangeAudio');
+        isStepAudioAvailable();
+        expect(mockSetAudioSessionActivity).toHaveBeenCalledWith(true);
+    });
+
+    // Regression: a freshly-constructed AudioContext can come up 'suspended' (e.g. created outside
+    // a direct user-gesture call stack) - resume() must be attempted or tones silently never play.
+    it('resumes the context when it is not already running', () => {
+        mockAudioContextImpl = jest.fn().mockImplementation(function (this: any) {
+            this.currentTime = 10;
+            this.state = 'suspended';
+            this.destination = {};
+            this.createOscillator = jest.fn(makeOscillator);
+            this.createGain = jest.fn(makeGain);
+            this.resume = mockResume;
+        });
+
+        const { isStepAudioAvailable } = require('./stepChangeAudio');
+        isStepAudioAvailable();
+        expect(mockResume).toHaveBeenCalled();
+    });
+
+    it('does not call resume() again once the context is already running', () => {
+        const { isStepAudioAvailable, playTone, STEP_COUNTDOWN_TICK_TONE } = require('./stepChangeAudio');
+        isStepAudioAvailable();
+        playTone(STEP_COUNTDOWN_TICK_TONE);
+        expect(mockResume).not.toHaveBeenCalled();
     });
 
     it('builds an oscillator/gain graph matching the tone spec and starts/stops it', () => {
