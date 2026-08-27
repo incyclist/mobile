@@ -7,16 +7,19 @@ const mockSetAudioSessionOptions = jest.fn();
 
 let mockAudioContextImpl: jest.Mock;
 
-jest.mock('react-native-audio-api', () => {
-    return {
-        get AudioContext() {
-            return mockAudioContextImpl;
-        },
-        AudioManager: {
-            setAudioSessionOptions: (...args: unknown[]) => mockSetAudioSessionOptions(...args),
-        },
-    };
-});
+jest.mock('react-native-audio-api/src/core/AudioContext', () => ({
+    __esModule: true,
+    get default() {
+        return mockAudioContextImpl;
+    },
+}));
+
+jest.mock('react-native-audio-api/src/system', () => ({
+    __esModule: true,
+    default: {
+        setAudioSessionOptions: (...args: unknown[]) => mockSetAudioSessionOptions(...args),
+    },
+}));
 
 const makeOscillator = () => ({
     type: 'sine',

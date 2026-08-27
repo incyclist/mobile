@@ -1,4 +1,13 @@
-import { AudioContext, AudioManager, OscillatorType } from 'react-native-audio-api';
+// Deep-imported from the package's own source files rather than its root ('react-native-audio-api')
+// or 'react-native-audio-api/src' index: those barrels re-export AudioControls (an optional UI
+// component), which unconditionally imports react-native-reanimated - a dependency this app
+// doesn't have and doesn't need for tone playback. Metro resolves every module reachable from an
+// import regardless of which named export is actually used, so pulling in the barrel fails the
+// bundle even though AudioControls itself is never referenced. AudioContext/AudioManager's own
+// import chains (verified directly) don't touch AudioControls/reanimated at all.
+import AudioContext from 'react-native-audio-api/src/core/AudioContext';
+import AudioManager from 'react-native-audio-api/src/system';
+import type { OscillatorType } from 'react-native-audio-api/src/types';
 
 /**
  * "App-aware" tone playback for the Workout Step Change Audio Signal feature (see the feature's

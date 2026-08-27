@@ -35,18 +35,17 @@ describe('useWorkoutStepAudioSignal', () => {
         mockGetValue.mockImplementation((_key: string, def: any) => def);
     });
 
-    it('subscribes to step-countdown and step-changed on mount, unsubscribes on unmount', () => {
+    it('subscribes to step-countdown on mount, unsubscribes on unmount', () => {
         const { unmount } = renderHook(() => useWorkoutStepAudioSignal());
 
         expect(mockOn).toHaveBeenCalledWith('step-countdown', expect.any(Function));
-        expect(mockOn).toHaveBeenCalledWith('step-changed', expect.any(Function));
+        expect(mockOn).not.toHaveBeenCalledWith('step-changed', expect.any(Function));
 
         unmount();
         expect(mockOff).toHaveBeenCalledWith('step-countdown', expect.any(Function));
-        expect(mockOff).toHaveBeenCalledWith('step-changed', expect.any(Function));
     });
 
-    it('plays the countdown tick tone on a step-countdown event when the setting is on', () => {
+    it('plays the countdown tick tone on a step-countdown event (secondsRemaining 4-1) when the setting is on', () => {
         renderHook(() => useWorkoutStepAudioSignal());
 
         act(() => { capturedHandlers['step-countdown']({ secondsRemaining: 4 }); });
@@ -64,38 +63,31 @@ describe('useWorkoutStepAudioSignal', () => {
         expect(mockPlayTone).not.toHaveBeenCalled();
     });
 
-    it('plays the step-change tone on a step-changed event with stepChangeSignal:true, when the setting is on', () => {
+    it('plays the step-change tone on a step-countdown event with secondsRemaining:0 (the transition instant), when the setting is on', () => {
+        // secondsRemaining:0 is precisely scheduled by WorkoutRide via wall-clock timers,
+        // decoupled from the (jitter-prone) 'step-changed' event this hook no longer listens to.
         renderHook(() => useWorkoutStepAudioSignal());
 
-        act(() => { capturedHandlers['step-changed']({ stepChangeSignal: true }); });
+        act(() => { capturedHandlers['step-countdown']({ secondsRemaining: 0 }); });
 
         expect(mockPlayTone).toHaveBeenCalledWith(STEP_CHANGE_TONE);
     });
 
-    it('does not play the step-change tone when stepChangeSignal is false (departing step had no valid duration)', () => {
-        renderHook(() => useWorkoutStepAudioSignal());
-
-        act(() => { capturedHandlers['step-changed']({ stepChangeSignal: false }); });
-
-        expect(mockPlayTone).not.toHaveBeenCalled();
-    });
-
-    it('does not play the step-change tone when the setting is off, even with stepChangeSignal:true', () => {
+    it('does not play the step-change tone on secondsRemaining:0 when the setting is off', () => {
         mockGetValue.mockImplementation(() => false);
         renderHook(() => useWorkoutStepAudioSignal());
 
-        act(() => { capturedHandlers['step-changed']({ stepChangeSignal: true }); });
+        act(() => { capturedHandlers['step-countdown']({ secondsRemaining: 0 }); });
 
         expect(mockPlayTone).not.toHaveBeenCalled();
     });
 
-    it('ignores an undefined countdown/step-changed payload without throwing', () => {
+    it('ignores an undefined countdown payload without throwing', () => {
         renderHook(() => useWorkoutStepAudioSignal());
 
         expect(() => {
             act(() => {
                 capturedHandlers['step-countdown'](undefined);
-                capturedHandlers['step-changed'](undefined);
             });
         }).not.toThrow();
         expect(mockPlayTone).not.toHaveBeenCalled();

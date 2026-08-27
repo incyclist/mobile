@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { getRidePageService, useUserSettings, type IObserver, type StepCountdownTick, type WorkoutDisplayProperties } from 'incyclist-services';
+import { getRidePageService, useUserSettings, type IObserver, type StepCountdownTick } from 'incyclist-services';
 import { useUnmountEffect } from '../unmount';
 import { playTone, STEP_COUNTDOWN_TICK_TONE, STEP_CHANGE_TONE } from '../../utils/stepChangeAudio';
 
@@ -23,10 +23,14 @@ export const DEFAULT_STEP_CHANGE_AUDIO_SIGNAL = true;
  * never needs to check availability itself; it just always calls through when the user's setting
  * is on, and audio activates itself automatically once the device's binary supports it.
  *
- * 'step-countdown' and 'step-changed' are pure passthroughs on the page observer
- * (RidePageService.onWorkoutStepCountdown()/onWorkoutStepChanged()) - deliberately not routed
- * through the page's 'page-update' rebuild, so this hook subscribes to them directly rather than
- * reading anything from `getPageDisplayProps()`.
+ * 'step-countdown' is a pure passthrough on the page observer
+ * (RidePageService.onWorkoutStepCountdown()) - deliberately not routed through the page's
+ * 'page-update' rebuild, so this hook subscribes to it directly rather than reading anything from
+ * `getPageDisplayProps()`. It carries the ENTIRE signal now, including the step-change instant
+ * itself (`secondsRemaining:0`) - precisely scheduled by WorkoutRide via wall-clock timers rather
+ * than detected on its poll loop, so it isn't subject to that loop's jitter (previously the
+ * transition tone was driven by 'step-changed', which - being tied to the poll loop - could be
+ * audibly delayed under load; this hook no longer listens to 'step-changed' at all).
  */
 export const useWorkoutStepAudioSignal = (): void => {
     const userSettings = useUserSettings();
@@ -44,14 +48,7 @@ export const useWorkoutStepAudioSignal = (): void => {
         if (!tick || !isEnabled()) {
             return;
         }
-        playTone(STEP_COUNTDOWN_TICK_TONE);
-    }, [isEnabled]);
-
-    const onStepChanged = useCallback((update?: WorkoutDisplayProperties) => {
-        if (!update?.stepChangeSignal || !isEnabled()) {
-            return;
-        }
-        playTone(STEP_CHANGE_TONE);
+        playTone(tick.secondsRemaining === 0 ? STEP_CHANGE_TONE : STEP_COUNTDOWN_TICK_TONE);
     }, [isEnabled]);
 
     useEffect(() => {
@@ -63,12 +60,10 @@ export const useWorkoutStepAudioSignal = (): void => {
         const observer = service.getPageObserver();
         refObserver.current = observer;
         observer?.on('step-countdown', onCountdown);
-        observer?.on('step-changed', onStepChanged);
-    }, [service, onCountdown, onStepChanged]);
+    }, [service, onCountdown]);
 
     useUnmountEffect(() => {
         refObserver.current?.off('step-countdown', onCountdown);
-        refObserver.current?.off('step-changed', onStepChanged);
         refInitialized.current = false;
     });
 };

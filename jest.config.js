@@ -13,7 +13,8 @@ module.exports = {
     '^@maplibre/maplibre-react-native$': '<rootDir>/__mocks__/maplibre-react-native.tsx',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
     'react-native-safe-area-context': '<rootDir>/__mocks__/react-native-safe-area-context.ts',
-    '^react-native-audio-api$': '<rootDir>/__mocks__/react-native-audio-api.ts',
+    '^react-native-audio-api/src/core/AudioContext$': '<rootDir>/__mocks__/react-native-audio-api-core-AudioContext.ts',
+    '^react-native-audio-api/src/system$': '<rootDir>/__mocks__/react-native-audio-api-system.ts',
     'react-native-inappbrowser-reborn': '<rootDir>/__mocks__/react-native-inappbrowser-reborn.ts',
     '@react-navigation/native': '<rootDir>/src/__mocks__/@react-navigation/native.ts', // Added for ESM module support
   },
