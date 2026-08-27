@@ -37,11 +37,19 @@ jest.mock('../FreeMap', () => ({
         return null;
     },
 }));
+const mockWorkoutGraph = jest.fn();
 jest.mock('../WorkoutGraph', () => ({
-    WorkoutGraph: () => null,
+    WorkoutGraph: (props: any) => {
+        mockWorkoutGraph(props);
+        return null;
+    },
 }));
+const mockWorkoutStepsList = jest.fn();
 jest.mock('../WorkoutStepsList', () => ({
-    WorkoutStepsList: () => null,
+    WorkoutStepsList: (props: any) => {
+        mockWorkoutStepsList(props);
+        return null;
+    },
 }));
 
 const baseProps: RideOverlayProps = {
@@ -109,13 +117,30 @@ describe('RideOverlay', () => {
         expect(getByText(MOCK_DASHBOARD_MID_INTERVAL.line.text)).toBeTruthy();
     });
 
-    it('fallback, cornerWidget="workout": the toggle slot still renders (as the workout graph, mocked to null here) inside the same Pressable', () => {
+    it('fallback, cornerWidget="workout": the toggle slot renders WorkoutStepsList (not WorkoutGraph) inside the same Pressable', () => {
         setDimensions(844, 390);
+        mockWorkoutStepsList.mockClear();
+        mockWorkoutGraph.mockClear();
         const { getByTestId } = render(
             <RideOverlay {...baseProps} compact cornerWidget="workout" />
         );
 
         expect(getByTestId('ride-overlay-corner-toggle')).toBeTruthy();
+        expect(mockWorkoutStepsList).toHaveBeenCalledWith(
+            expect.objectContaining({ steps: baseProps.steps, compact: true, showEndHint: false })
+        );
+        expect(mockWorkoutGraph).not.toHaveBeenCalled();
+    });
+
+    it('fallback, cornerWidget="elevation": the toggle slot renders ElevationGraph, not WorkoutStepsList', () => {
+        setDimensions(844, 390);
+        mockWorkoutStepsList.mockClear();
+        const { getByTestId } = render(
+            <RideOverlay {...baseProps} compact cornerWidget="elevation" />
+        );
+
+        expect(getByTestId('ride-overlay-corner-toggle')).toBeTruthy();
+        expect(mockWorkoutStepsList).not.toHaveBeenCalled();
     });
 
     it('does not render a corner map when mapVisible is false, even in an arrangement with room for one', () => {

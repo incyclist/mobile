@@ -8,7 +8,7 @@ import { ElevationGraph } from '../ElevationGraph';
 import type { AvatarConfig } from '../ElevationGraph/types';
 import { FreeMap } from '../FreeMap';
 import type { PrevRiderMarker } from '../FreeMap/types';
-import { WorkoutGraph } from '../WorkoutGraph';
+import { WorkoutStepsList } from '../WorkoutStepsList';
 import { PrevRidesRow, PrevRidesCornerPanel, ROW_MARGIN_BOTTOM, type PrevRidesRowProps } from '../PrevRides';
 import {
     useRideOverlayLayout,
@@ -298,19 +298,10 @@ export const RideOverlay = (props: RideOverlayProps) => {
                             style={styles.flexFill}
                             onPress={onToggleCornerWidget}
                             accessibilityRole="button"
-                            accessibilityLabel={cornerWidget === 'workout' ? 'Show elevation' : 'Show workout'}
+                            accessibilityLabel={cornerWidget === 'workout' ? 'Show elevation' : 'Show steps'}
                         >
-                            {cornerWidget === 'workout' && graph ? (
-                                <Dynamic observer={rideObserver ?? undefined} event="data-update" prop="actuals" transform={getGraphActuals}>
-                                    <WorkoutGraph
-                                        mode="live"
-                                        plan={graph}
-                                        height={elevation.height}
-                                        showAxes={false}
-                                        showFtpLine
-                                        showLegend={false}
-                                    />
-                                </Dynamic>
+                            {cornerWidget === 'workout' && steps ? (
+                                <WorkoutStepsList steps={steps} compact showEndHint={false} />
                             ) : (
                                 <ElevationGraph
                                     routeData={routeData}
