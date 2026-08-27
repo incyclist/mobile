@@ -16,6 +16,7 @@ import {
     useUnmountEffect,
     STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY,
     DEFAULT_STEP_CHANGE_AUDIO_SIGNAL,
+    canPlayAudio,
 } from '../../hooks';
 import { navigate } from '../../services';
 
@@ -171,7 +172,8 @@ export const WorkoutDetailsDialog = ({ workoutId }: WorkoutDetailsDialogProps) =
             compact={compact}
             ftp={details.ftp}
             useErgMode={details.useErgMode}
-            stepChangeAudioSignal={stepChangeAudioSignal}
+            stepChangeAudioSignal={ canPlayAudio() && stepChangeAudioSignal}
+            stepChangeAudioSignalDisabled={ !canPlayAudio() }
             groups={details.groups}
             group={details.group}
             isScheduled={details.isScheduled}
