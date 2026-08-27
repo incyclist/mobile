@@ -133,11 +133,16 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
 
 
 
-    onManagerStateChanged( event:BleManagerDidUpdateStateEvent):void { 
-        if (Platform.OS==='android' && this._state==='unauthorized') {
-            return
+    onManagerStateChanged( event:BleManagerDidUpdateStateEvent):void {
+        try {
+            if (Platform.OS==='android' && this._state==='unauthorized') {
+                return
+            }
+            this.updateState(event.state)
         }
-        this.updateState(event.state)
+        catch(err:any) {
+            this.logger.logEvent({message:'error', fn:'onManagerStateChanged', error:err.message, stack:err.stack})
+        }
     }
 
 

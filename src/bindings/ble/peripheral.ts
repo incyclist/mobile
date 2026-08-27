@@ -5,6 +5,7 @@ import { BleServiceRN } from './service'
 import { BleRawCharacteristicRN } from './characteristics'
 import {  EventSubscription} from 'react-native'
 import { matches } from './utils'
+import { EventLogger } from 'gd-eventlog'
 
 
 export class BlePeripheralRN
@@ -18,6 +19,7 @@ export class BlePeripheralRN
     public advertisement: any
     public state: string = 'disconnected'
     private subDisconnect: EventSubscription|undefined
+    private logger = new EventLogger('BLE')
 
     constructor(private peripheral: Peripheral) {
         super()
@@ -38,16 +40,20 @@ export class BlePeripheralRN
         this.state = 'connected'
 
         this.subDisconnect = BleManager.onDisconnectPeripheral((event) => {
+            try {
+                if (event.peripheral === this.id) {
+                    this.state = 'disconnected'
+                    this.emit('disconnect')
 
-            if (event.peripheral === this.id) {
-                this.state = 'disconnected'
-                this.emit('disconnect')
+                    if (this.subDisconnect) {
+                        this.subDisconnect.remove()
+                        delete this.subDisconnect
+                    }
 
-                if (this.subDisconnect) {
-                    this.subDisconnect.remove()
-                    delete this.subDisconnect
                 }
-
+            }
+            catch(err:any) {
+                this.logger.logEvent({message:'error', fn:'onDisconnectPeripheral', error:err.message, stack:err.stack})
             }
         })
     }
