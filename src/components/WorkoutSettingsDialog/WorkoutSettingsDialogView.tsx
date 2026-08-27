@@ -38,6 +38,7 @@ export const WorkoutSettingsDialogView = ({
         >
             <EditNumber
                 label="Load Increment"
+                labelWidth={180}
                 value={loadIncrement}
                 min={MIN_LOAD_INCREMENT}
                 max={MAX_LOAD_INCREMENT}
@@ -49,7 +50,7 @@ export const WorkoutSettingsDialogView = ({
                 <BinarySelect
                     label="Step Change Audio"
                     labelPosition="before"
-                    labelWidth={140}
+                    labelWidth={180}
                     value={stepChangeAudioSignal}
                     trueLabel="On"
                     falseLabel="Off"

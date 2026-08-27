@@ -9,8 +9,8 @@ import { STEP_COUNTDOWN_TICK_TONE, STEP_CHANGE_TONE } from '../../utils/stepChan
 const mockPlayTone = jest.fn();
 jest.mock('../../utils/stepChangeAudio', () => ({
     playTone: (...args: unknown[]) => mockPlayTone(...args),
-    STEP_COUNTDOWN_TICK_TONE: { frequencyHz: 2731, durationMs: 100, waveform: 'sine' },
-    STEP_CHANGE_TONE: { frequencyHz: 4096, durationMs: 250, waveform: 'sine' },
+    STEP_COUNTDOWN_TICK_TONE: { frequencyHz: 440, durationMs: 100, waveform: 'sine' },
+    STEP_CHANGE_TONE: { frequencyHz: 660, durationMs: 250, waveform: 'sine' },
 }));
 
 let capturedHandlers: Record<string, (...args: any[]) => void> = {};

@@ -51,10 +51,10 @@ describe('stepChangeAudio', () => {
         });
     });
 
-    it('exposes the Garmin-matched tone constants, numerically identical to web-ui\'s contract', () => {
+    it('exposes the tone constants, numerically identical to web-ui\'s contract', () => {
         const { STEP_COUNTDOWN_TICK_TONE, STEP_CHANGE_TONE } = require('./stepChangeAudio');
-        expect(STEP_COUNTDOWN_TICK_TONE).toEqual({ frequencyHz: 2731, durationMs: 100, waveform: 'sine' });
-        expect(STEP_CHANGE_TONE).toEqual({ frequencyHz: 4096, durationMs: 250, waveform: 'sine' });
+        expect(STEP_COUNTDOWN_TICK_TONE).toEqual({ frequencyHz: 440, durationMs: 100, waveform: 'sine' });
+        expect(STEP_CHANGE_TONE).toEqual({ frequencyHz: 660, durationMs: 250, waveform: 'sine' });
     });
 
     it('reports audio available once AudioContext can be constructed', () => {
@@ -116,7 +116,7 @@ describe('stepChangeAudio', () => {
         const { playTone, STEP_CHANGE_TONE } = require('./stepChangeAudio');
         playTone(STEP_CHANGE_TONE);
 
-        expect(mockSetValueAtTime).toHaveBeenCalledWith(4096, 10); // oscillator.frequency at currentTime
+        expect(mockSetValueAtTime).toHaveBeenCalledWith(660, 10); // oscillator.frequency at currentTime
         expect(mockStart).toHaveBeenCalledWith(10);
         expect(mockStop).toHaveBeenCalledWith(10.25); // currentTime + 250ms
         expect(mockConnect).toHaveBeenCalledTimes(2); // oscillator->gain, gain->destination

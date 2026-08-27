@@ -42,7 +42,7 @@ const SettingsColumn = ({
             <BinarySelect
                 label="ERG Mode"
                 labelPosition="before"
-                labelWidth={100}
+                labelWidth={180}
                 value={useErgMode}
                 trueLabel="On"
                 falseLabel="Off"
@@ -53,7 +53,7 @@ const SettingsColumn = ({
             <BinarySelect
                 label="Step Change Audio"
                 labelPosition="before"
-                labelWidth={100}
+                labelWidth={180}
                 value={stepChangeAudioSignal}
                 trueLabel="On"
                 falseLabel="Off"

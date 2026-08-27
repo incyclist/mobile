@@ -25,10 +25,10 @@ export interface ToneSpec {
     waveform: OscillatorType;
 }
 
-// Garmin-watch-matched spec - kept numerically identical to web-ui's stepChangeTone.js constants
-// (cross-platform contract, see the feature's design doc).
-export const STEP_COUNTDOWN_TICK_TONE: ToneSpec = { frequencyHz: 2731, durationMs: 100, waveform: 'sine' };
-export const STEP_CHANGE_TONE: ToneSpec = { frequencyHz: 4096, durationMs: 250, waveform: 'sine' };
+// Kept numerically identical to web-ui's stepChangeTone.js constants (cross-platform contract,
+// see the feature's design doc).
+export const STEP_COUNTDOWN_TICK_TONE: ToneSpec = { frequencyHz: 440, durationMs: 100, waveform: 'sine' };
+export const STEP_CHANGE_TONE: ToneSpec = { frequencyHz: 660, durationMs: 250, waveform: 'sine' };
 
 // Gain ramp-down before oscillator.stop() to avoid an audible click at the tone's end.
 const GAIN_RAMP_MS = 5;

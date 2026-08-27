@@ -28,7 +28,6 @@ interface WorkoutRidePageProps {
  */
 export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelStart, onClose }: WorkoutRidePageProps) => {
     const { gesture, feedback, loadIncrement } = useRideGestures();
-    useWorkoutStepAudioSignal();
 
     const {
         displayProps,
@@ -40,6 +39,14 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
         onIgnoreStart,
         getGraphActuals,
     } = useRidePageLifecycle<WorkoutRidePageDisplayProps>({ simulate, onRideTypeChange });
+
+    // Must run AFTER useRidePageLifecycle: that hook's effect is what calls service.openPage(),
+    // which is what creates the page observer this hook subscribes to. React fires effects in
+    // hook-call order, so calling this hook any earlier finds getPageObserver() still undefined -
+    // and since its subscribe effect only ever runs once, it would never retry (silent, permanent
+    // no-op for the rest of this page's life). Confirmed via device logs (2026-08-27): "subscribing
+    // { hasObserver: false }" was the only line ever logged from this hook.
+    useWorkoutStepAudioSignal();
 
     useRidePageBackgroundPause(refService);
 
