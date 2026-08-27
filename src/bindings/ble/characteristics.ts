@@ -8,6 +8,7 @@ import {
 } from './types'
 import { EventSubscription} from 'react-native'
 import { matches } from './utils'
+import { EventLogger } from 'gd-eventlog'
 
 
 export class BleRawCharacteristicRN extends EventEmitter implements BleRawCharacteristic {
@@ -20,6 +21,7 @@ export class BleRawCharacteristicRN extends EventEmitter implements BleRawCharac
     private deviceId: string
     private subscribed: number = 0
     private subscription: EventSubscription|undefined
+    private logger = new EventLogger('BLE')
 
     constructor(
         deviceId: string,
@@ -39,22 +41,23 @@ export class BleRawCharacteristicRN extends EventEmitter implements BleRawCharac
     subscribe(callback: (err: Error | undefined) => void): void {
 
         if (!this.subscription) {
-            BleManager.onDidUpdateValueForCharacteristic((event) => {
+            this.subscription = BleManager.onDidUpdateValueForCharacteristic((event) => {
+                try {
+                    if (
+                        event.peripheral === this.deviceId &&
+                        matches(event.service,this._serviceUuid!) &&
+                        matches(event.characteristic,this.uuid)
+                    ) {
 
-
-                if (
-                    event.peripheral === this.deviceId &&
-                    matches(event.service,this._serviceUuid!) &&
-                    matches(event.characteristic,this.uuid)
-                ) {
-
-
-
-                    this.emit(
-                        'data',
-                        Buffer.from(event.value),
-                        true
-                    )
+                        this.emit(
+                            'data',
+                            Buffer.from(event.value),
+                            true
+                        )
+                    }
+                }
+                catch(err:any) {
+                    this.logger.logEvent({message:'error', fn:'onDidUpdateValueForCharacteristic', error:err.message, stack:err.stack})
                 }
             })
 
