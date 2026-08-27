@@ -36,7 +36,7 @@ const SettingsColumn = ({
 }: SettingsColumnProps) => (
     <View>
         <View style={styles.settingsField}>
-            <EditNumber label="FTP" unit="W" value={ftp} min={0} max={999} digits={0} onValueChange={onFtpChange} />
+            <EditNumber label="FTP" labelWidth={180} unit="W" value={ftp} min={0} max={999} digits={0} onValueChange={onFtpChange} />
         </View>
         <View style={styles.settingsField}>
             <BinarySelect
@@ -62,7 +62,7 @@ const SettingsColumn = ({
         </View>
         {!isScheduled && (
             <View style={styles.settingsField}>
-                <GroupPicker label="Group" groups={groups} value={group} onValueChange={onGroupChange} />
+                <GroupPicker label="Group" labelWidth={180} groups={groups} value={group} onValueChange={onGroupChange} />
             </View>
         )}
     </View>

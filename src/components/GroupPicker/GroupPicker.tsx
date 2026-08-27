@@ -24,7 +24,7 @@ const NEW_GROUP_OPTION = '+ New';
  * position: absolute overlay. Used by WorkoutImportDialog and WorkoutsTable.
  */
 export const GroupPicker = (props: GroupPickerProps) => {
-    const { label, groups, value, disabled = false, allowNew = true, onValueChange } = props;
+    const { label, labelWidth = 100, groups, value, disabled = false, allowNew = true, onValueChange } = props;
     const [isEditing, setIsEditing] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [newGroup, setNewGroup] = useState('');
@@ -89,7 +89,7 @@ export const GroupPicker = (props: GroupPickerProps) => {
             <View style={styles.container}>
                 <ChipSelect
                     label={label ?? ''}
-                    labelWidth={label ? 100 : 0}
+                    labelWidth={label ? labelWidth : 0}
                     options={options}
                     selected={value}
                     disabled={disabled}
