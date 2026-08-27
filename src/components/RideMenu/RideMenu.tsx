@@ -14,11 +14,11 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
     // render, but without this nothing re-renders RideMenu itself when the service updates
     // menuProps out from under it (e.g. RidePageService.onDeviceModeChanged() recomputing
     // loadControl while the menu stays open behind the Gear Settings dialog).
-    const [, forceUpdate] = useState(0);
+    const [_renderTick, setRenderTick] = useState(0);
 
     useEffect(() => {
         const observer = service.getPageObserver();
-        const onPageUpdate = () => forceUpdate(n => n + 1);
+        const onPageUpdate = () => setRenderTick(n => n + 1);
         observer?.on('page-update', onPageUpdate);
         return () => { observer?.off('page-update', onPageUpdate); };
     }, [service]);
