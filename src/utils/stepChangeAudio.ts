@@ -5,24 +5,74 @@
 // import regardless of which named export is actually used, so pulling in the barrel fails the
 // bundle even though AudioControls itself is never referenced. AudioContext/AudioManager's own
 // import chains (verified directly) don't touch AudioControls/reanimated at all.
-import AudioContext from 'react-native-audio-api/src/core/AudioContext';
-import AudioManager from 'react-native-audio-api/src/system';
-import type { OscillatorType } from 'react-native-audio-api/src/types';
+//
+// Loaded via require(), not `import`/`import type`: the package's package.json only maps the root
+// specifier to a compiled .d.ts, not these deep subpaths, so an `import` here makes `tsc` fall back
+// to compiling the package's raw .ts SOURCE directly - which transitively pulls in its entire
+// internal module graph and fails, since that source assumes TypeScript's DOM lib (OscillatorType,
+// BiquadFilterType, PeriodicWaveConstraints, BaseAudioContext, globalThis index signatures, etc.)
+// this project's tsconfig doesn't include, plus a missing @types/semver for one of its own internal
+// imports (confirmed via CI: node_modules/react-native-audio-api/src/**, dozens of TS7017/TS2304
+// errors). None of that is fixable from here - it's the published package's own type-checking
+// assumptions, not a bug in our code, and adding the "dom" lib project-wide to accommodate it both
+// left the globalThis errors unfixed AND introduced a real new type conflict elsewhere (this
+// project's own VideoMediaError colliding with DOM's global MediaError). A plain require() call is
+// untyped (`any`) as far as `tsc` is concerned, so it never opens/checks the target file at all -
+// this only affects the type-CHECK pass; Metro/Jest still resolve and run the real runtime code
+// exactly as they did with the previous `import` syntax (Babel compiles both to the same
+// require()+interop-default access either way).
+
+interface AudioParamLike {
+    setValueAtTime(value: number, startTime: number): AudioParamLike;
+    linearRampToValueAtTime(value: number, endTime: number): AudioParamLike;
+}
+
+interface AudioNodeLike {
+    connect(destination: AudioNodeLike): void;
+}
+
+interface OscillatorNodeLike extends AudioNodeLike {
+    type: string;
+    frequency: AudioParamLike;
+    start(when?: number): void;
+    stop(when?: number): void;
+}
+
+interface GainNodeLike extends AudioNodeLike {
+    gain: AudioParamLike;
+}
+
+interface AudioContextLike {
+    readonly currentTime: number;
+    readonly state: string;
+    readonly destination: AudioNodeLike;
+    resume(): Promise<void>;
+    createOscillator(): OscillatorNodeLike;
+    createGain(): GainNodeLike;
+}
+
+interface AudioManagerLike {
+    setAudioSessionOptions(options: { iosCategory?: string; iosOptions?: string[] }): void;
+    setAudioSessionActivity(enabled: boolean): Promise<void>;
+}
+
+const AudioContextCtor: new () => AudioContextLike = require('react-native-audio-api/src/core/AudioContext').default;
+const AudioManager: AudioManagerLike = require('react-native-audio-api/src/system').default;
 
 /**
  * "App-aware" tone playback for the Workout Step Change Audio Signal feature (see the feature's
  * design doc, mobile section). This module MUST degrade silently on an app binary that doesn't
  * have `react-native-audio-api`'s native module linked yet: the JS bundle carrying this code ships
  * via hot-update ahead of the app-store release that adds the native dependency, so any device on
- * an older binary will still load and execute this file. `new AudioContext()` throws in that case
- * (missing native module) - caught once here and cached, so every later call is a cheap no-op
+ * an older binary will still load and execute this file. `new AudioContextCtor()` throws in that
+ * case (missing native module) - caught once here and cached, so every later call is a cheap no-op
  * rather than a repeated throw/catch.
  */
 
 export interface ToneSpec {
     frequencyHz: number;
     durationMs: number;
-    waveform: OscillatorType;
+    waveform: 'sine' | 'square' | 'sawtooth' | 'triangle' | 'custom';
 }
 
 // Kept numerically identical to web-ui's stepChangeTone.js constants (cross-platform contract,
@@ -33,7 +83,7 @@ export const STEP_CHANGE_TONE: ToneSpec = { frequencyHz: 660, durationMs: 250, w
 // Gain ramp-down before oscillator.stop() to avoid an audible click at the tone's end.
 const GAIN_RAMP_MS = 5;
 
-let audioContext: AudioContext | null | undefined; // undefined = not yet probed
+let audioContext: AudioContextLike | null | undefined; // undefined = not yet probed
 
 // Configures the iOS audio session so tones mix with whatever media/music is already playing
 // instead of being silenced by the mute switch (iosCategory 'playback' ignores the mute switch;
@@ -61,7 +111,7 @@ const configureAudioSession = (): void => {
     }
 };
 
-const getAudioContext = (): AudioContext | null => {
+const getAudioContext = (): AudioContextLike | null => {
     if (audioContext !== undefined) {
         // A freshly-constructed AudioContext can come up 'suspended' rather than 'running' -
         // resume() is idempotent/cheap once already running, so this is safe to call on every
@@ -72,7 +122,7 @@ const getAudioContext = (): AudioContext | null => {
         return audioContext;
     }
     try {
-        audioContext = new AudioContext();
+        audioContext = new AudioContextCtor();
         configureAudioSession();
         if (audioContext.state !== 'running') {
             audioContext.resume().catch(() => {});

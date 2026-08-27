@@ -13,7 +13,7 @@
  * `null` outside that window (including a step with no known duration, or already at/past zero).
  */
 export const getCountdownBucket = (remaining: number | null, duration: number): number | null => {
-    if (remaining === null || !(duration > 0) || remaining <= 0 || remaining > 4) {
+    if (remaining === null || duration <= 0 || remaining <= 0 || remaining > 4) {
         return null;
     }
     return Math.ceil(remaining);
