@@ -20,6 +20,7 @@ interface SettingsColumnProps {
     ftp: number;
     useErgMode: boolean;
     stepChangeAudioSignal: boolean;
+    stepChangeAudioSignalDisabled?:boolean;
     groups: string[];
     group: string;
     isScheduled: boolean;
@@ -32,7 +33,7 @@ interface SettingsColumnProps {
 /** FTP -> ERG -> Step Change Audio -> Group, always in this vertical order (never side-by-side). */
 const SettingsColumn = ({
     ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled,
-    onFtpChange, onErgChange, onStepChangeAudioSignalChange, onGroupChange,
+    onFtpChange, onErgChange, onStepChangeAudioSignalChange,stepChangeAudioSignalDisabled, onGroupChange,
 }: SettingsColumnProps) => (
     <View>
         <View style={styles.settingsField}>
@@ -55,6 +56,7 @@ const SettingsColumn = ({
                 labelPosition="before"
                 labelWidth={180}
                 value={stepChangeAudioSignal}
+                disabled = {stepChangeAudioSignalDisabled}
                 trueLabel="On"
                 falseLabel="Off"
                 onValueChange={onStepChangeAudioSignalChange}
@@ -86,7 +88,7 @@ const GraphColumn = ({ plan, graphHeight, scheduledLabel, description }: GraphCo
 export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
     const {
         title, description, duration, plan, compact,
-        ftp, useErgMode, stepChangeAudioSignal, groups, group, isScheduled, scheduledLabel,
+        ftp, useErgMode, stepChangeAudioSignal, stepChangeAudioSignalDisabled=false,groups, group, isScheduled, scheduledLabel,
         canDelete, canStart, canStartWorkoutOnly,
         showDeleteConfirm, deleting,
         attachedRoute,
@@ -134,6 +136,7 @@ export const WorkoutDetailsView = (props: WorkoutDetailsViewProps) => {
             ftp={ftp}
             useErgMode={useErgMode}
             stepChangeAudioSignal={stepChangeAudioSignal}
+            stepChangeAudioSignalDisabled={stepChangeAudioSignalDisabled}
             groups={groups}
             group={group}
             isScheduled={isScheduled}

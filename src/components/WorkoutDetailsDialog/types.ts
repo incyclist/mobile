@@ -32,6 +32,7 @@ export interface WorkoutDetailsViewProps {
      * WorkoutSettingsDialog's in-ride toggle.
      */
     stepChangeAudioSignal: boolean;
+    stepChangeAudioSignalDisabled?: boolean;
 
     groups: string[];
     group: string;

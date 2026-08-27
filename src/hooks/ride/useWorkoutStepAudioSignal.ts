@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef } from 'react';
 import { getRidePageService, useUserSettings, type IObserver, type StepCountdownTick } from 'incyclist-services';
 import { useUnmountEffect } from '../unmount';
 import { playTone, STEP_COUNTDOWN_TICK_TONE, STEP_CHANGE_TONE } from '../../utils/stepChangeAudio';
+import { Platform } from 'react-native';
+import { isVersionAtLeast } from '../../utils/version';
+import DeviceInfo from 'react-native-device-info';
 
 // Shared with the settings UI (WorkoutDetailsDialog, WorkoutSettingsDialog) - read/written directly
 // via useUserSettings(), not proxied through a page-service display-prop, same direct pattern
@@ -9,6 +12,14 @@ import { playTone, STEP_COUNTDOWN_TICK_TONE, STEP_CHANGE_TONE } from '../../util
 // audio cue is opt-out, not opt-in.
 export const STEP_CHANGE_AUDIO_SIGNAL_SETTING_KEY = 'preferences.workouts.stepChangeAudioSignal';
 export const DEFAULT_STEP_CHANGE_AUDIO_SIGNAL = true;
+export const MIN_ANDROID_PLAY_AUDIO_VERSION = '1.2.0'
+
+export const canPlayAudio = (): boolean => {
+    if (Platform.OS !== 'android') {
+        return true;
+    }
+    return isVersionAtLeast( DeviceInfo.getVersion() , MIN_ANDROID_PLAY_AUDIO_VERSION);
+};
 
 /**
  * Side-effect-only hook (no return value) that plays the Garmin-watch-style countdown
@@ -48,7 +59,8 @@ export const useWorkoutStepAudioSignal = (): void => {
         if (!tick || !isEnabled()) {
             return;
         }
-        playTone(tick.secondsRemaining === 0 ? STEP_CHANGE_TONE : STEP_COUNTDOWN_TICK_TONE);
+        if (canPlayAudio())        
+            playTone(tick.secondsRemaining === 0 ? STEP_CHANGE_TONE : STEP_COUNTDOWN_TICK_TONE);
     }, [isEnabled]);
 
     useEffect(() => {
