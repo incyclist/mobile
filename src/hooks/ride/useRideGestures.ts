@@ -212,6 +212,17 @@ export const useRideGestures = (): UseRideGesturesResult => {
     }, [logEvent, service, getLoadIncrement, showFeedback]);
 
     const handleSwipe = useCallback((direction: SwipeDirection) => {
+        // The Ride Menu overlay sits on top of this gesture surface but doesn't block it -
+        // scrolling the menu's own ScrollView can still register as a swipe underneath,
+        // unintentionally shifting gear/load while the rider is just trying to scroll the menu.
+        // menuProps is only non-null while the menu is open (RidePageService.onMenuOpen()/
+        // onMenuClose()), read directly off the service rather than threaded in as a prop so this
+        // stays self-contained and always current.
+        if (service.getPageDisplayProps()?.menuProps) {
+            logEvent({ message: 'gesture ignored', gesture: `swipe-${direction}`, reason: 'menu open', eventSource: 'user' });
+            return;
+        }
+
         // FIXES_BACKLOG #37: in SIM/Resistance mode with virtual shifting disabled there is no
         // gear concept and no power target to nudge, so a load-adjust swipe would be a silent
         // no-op. Disable the gesture outright in that case (rather than a "no effect" toast, which
