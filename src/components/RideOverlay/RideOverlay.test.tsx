@@ -1,8 +1,10 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 import { RideOverlay, RideOverlayProps, PREV_RIDES_TABLET_WIDTH } from './RideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
+import { SLOT_GAP } from '../../hooks/render/useRideOverlayLayout';
 
 // Same pattern useRideOverlayLayout.test.ts (session 3.2) uses — the hook reads the real browser
 // window via useWindowDimensions(), so tests drive it by mocking that module directly rather than
@@ -141,6 +143,68 @@ describe('RideOverlay', () => {
 
         expect(getByTestId('ride-overlay-corner-toggle')).toBeTruthy();
         expect(mockWorkoutStepsList).not.toHaveBeenCalled();
+    });
+
+    // FIXES_BACKLOG #70 follow-up: on a real ~390dp-tall phone, the fixed elevation-graph height
+    // clipped WorkoutStepsList down to a single row (no upcoming-step row visible at all) — the
+    // 'workout' toggle state now auto-sizes to its own content instead of reusing that fixed height.
+    it('fallback, cornerWidget="workout": the corner slot does not force the fixed elevation-graph height, unlike cornerWidget="elevation"', () => {
+        setDimensions(844, 390);
+        const { getByTestId, rerender } = render(<RideOverlay {...baseProps} compact cornerWidget="elevation" />);
+        const elevationStyle = StyleSheet.flatten(getByTestId('ride-overlay-elevation').props.style);
+        expect(typeof elevationStyle.height).toBe('number');
+
+        rerender(<RideOverlay {...baseProps} compact cornerWidget="workout" />);
+        const workoutStyle = StyleSheet.flatten(getByTestId('ride-overlay-elevation').props.style);
+        expect(workoutStyle.height).toBeUndefined();
+    });
+
+    it('fallback, cornerWidget="workout": the corner slot widens beyond the elevation-preview width, and the shoutout line insets to make room for it', () => {
+        setDimensions(844, 390);
+        const { getByTestId, rerender } = render(<RideOverlay {...baseProps} compact cornerWidget="elevation" />);
+        const elevationSlotWidth = StyleSheet.flatten(getByTestId('ride-overlay-elevation').props.style).width;
+        const elevationShoutoutRight = StyleSheet.flatten(getByTestId('ride-overlay-shoutout').props.style).right;
+
+        rerender(<RideOverlay {...baseProps} compact cornerWidget="workout" />);
+        const workoutSlotWidth = StyleSheet.flatten(getByTestId('ride-overlay-elevation').props.style).width;
+        const workoutShoutoutRight = StyleSheet.flatten(getByTestId('ride-overlay-shoutout').props.style).right;
+
+        expect(workoutSlotWidth).toBeGreaterThan(elevationSlotWidth);
+        // The shoutout's own right inset always tracks the toggle's current width (plus SLOT_GAP),
+        // so its centered text can never grow into whichever box (elevation or workout) is showing.
+        expect(elevationShoutoutRight).toBe(elevationSlotWidth + SLOT_GAP);
+        expect(workoutShoutoutRight).toBe(workoutSlotWidth + SLOT_GAP);
+    });
+
+    it('fallback, cornerWidget="workout" with prevRides shown: the previous-rides panel anchors below the taller auto-sized slot, not the shorter fixed elevation height', () => {
+        setDimensions(844, 390);
+        const propsWithPrevRides = { ...baseProps, prevRides: MOCK_ROWS, getPrevRidesRows: () => MOCK_ROWS };
+
+        const { getByTestId: getByTestIdElevation } = render(
+            <RideOverlay {...propsWithPrevRides} compact cornerWidget="elevation" />
+        );
+        const elevationAnchorTop = StyleSheet.flatten(getByTestIdElevation('prev-rides-expanded-panel').props.style).top;
+
+        const { getByTestId: getByTestIdWorkout } = render(
+            <RideOverlay {...propsWithPrevRides} compact cornerWidget="workout" />
+        );
+        const workoutAnchorTop = StyleSheet.flatten(getByTestIdWorkout('prev-rides-expanded-panel').props.style).top;
+
+        expect(workoutAnchorTop).toBeGreaterThan(elevationAnchorTop);
+    });
+
+    it('fallback, cornerWidget="workout": measuring the slot\'s real (taller) rendered height pushes the previous-rides panel down further than the initial guess', () => {
+        setDimensions(844, 390);
+        const propsWithPrevRides = { ...baseProps, prevRides: MOCK_ROWS, getPrevRidesRows: () => MOCK_ROWS };
+        const { getByTestId } = render(<RideOverlay {...propsWithPrevRides} compact cornerWidget="workout" />);
+        const topBeforeMeasurement = StyleSheet.flatten(getByTestId('prev-rides-expanded-panel').props.style).top;
+
+        fireEvent(getByTestId('ride-overlay-elevation'), 'layout', {
+            nativeEvent: { layout: { height: 120 } },
+        });
+
+        const topAfterMeasurement = StyleSheet.flatten(getByTestId('prev-rides-expanded-panel').props.style).top;
+        expect(topAfterMeasurement).toBeGreaterThan(topBeforeMeasurement);
     });
 
     it('does not render a corner map when mapVisible is false, even in an arrangement with room for one', () => {

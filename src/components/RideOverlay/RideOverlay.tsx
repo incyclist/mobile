@@ -32,6 +32,23 @@ const PREV_RIDES_MAX_VISIBLE_ROWS = 10;
 const clampVisibleRows = (value: number): number =>
     Math.min(Math.max(value, PREV_RIDES_MIN_VISIBLE_ROWS), PREV_RIDES_MAX_VISIBLE_ROWS);
 
+// The fallback corner slot's fixed height (FALLBACK_ELEVATION_HEIGHT_RATIO) was tuned for the
+// elevation-preview graph, which scales down cleanly — it does not, e.g. on a real ~390dp-tall
+// phone screen only room for one WorkoutStepsList row survives, silently clipping the upcoming-
+// step row a rider actually needs (found via on-device testing, FIXES_BACKLOG #70). So the
+// 'workout' toggle state auto-sizes to its own content instead of using the fixed elevation
+// height — this is only the guess used for the very first frame, before onWorkoutSlotLayout
+// below reports the real measured height (same fallback-then-measure pattern as
+// PREV_RIDES_ROW_HEIGHT_FALLBACK/measuredRideDashboardHeight elsewhere in this file).
+const FALLBACK_WORKOUT_STEPS_HEIGHT_GUESS = 70;
+
+// Width alone wasn't the only problem: the fixed elevation-preview width (FALLBACK_ELEVATION_WIDTH_RATIO,
+// ~169dp on a phone) is too narrow for WorkoutStepsList's text to read at all (confirmed on-device,
+// FIXES_BACKLOG #70 — "Ramp 100-140W" truncates to "Ramp 10…"), unlike the dedicated workout-only
+// ride page, which reads fine. Matches that page's own compact step-list width exactly
+// (RidePage/Workout/View.tsx's `stepsCompact.width`) rather than inventing a new one.
+const FALLBACK_WORKOUT_STEPS_WIDTH = 260;
+
 // The tablet previous-rides list is its own component, sized for its own content — not derived
 // from the corner map/elevation preview's width (that varies with RideDashboard's own width,
 // which itself varies with tile count and, at the icon-top/icon-left threshold, the same tile
@@ -211,6 +228,24 @@ export const RideOverlay = (props: RideOverlayProps) => {
         ? Math.max(elevation.top + elevation.height, workoutDashboardBottom)
         : undefined;
 
+    // 'workout' toggle content auto-sizes (see FALLBACK_WORKOUT_STEPS_HEIGHT_GUESS above) rather
+    // than using the fixed elevation-graph height — measured here so PrevRidesCornerPanel (which
+    // anchors below this slot's actual bottom edge) shifts down with it instead of overlapping.
+    const isWorkoutToggleActive = cornerSlotIsToggle && cornerWidget === 'workout';
+    const [measuredWorkoutSlotHeight, setMeasuredWorkoutSlotHeight] = useState<number | undefined>(undefined);
+    const onWorkoutSlotLayout = useCallback((e: LayoutChangeEvent) => {
+        const height = e.nativeEvent.layout.height;
+        setMeasuredWorkoutSlotHeight((prev) => (prev === height ? prev : height));
+    }, []);
+    const cornerSlotWidth = isWorkoutToggleActive ? FALLBACK_WORKOUT_STEPS_WIDTH : elevation?.width;
+    const cornerSlotRect = elevation
+        ? {
+              ...elevation,
+              width: cornerSlotWidth as number,
+              height: isWorkoutToggleActive ? (measuredWorkoutSlotHeight ?? FALLBACK_WORKOUT_STEPS_HEIGHT_GUESS) : elevation.height,
+          }
+        : elevation;
+
     // The tablet list's own free vertical band (below its anchor, above the bottom bar). Only
     // meaningful where an actual side column exists (not the fallback toggle slot, which has its
     // own condensed/expanded reporting via PrevRidesCornerPanel below).
@@ -291,11 +326,22 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     Always mounted when eligible — previous-rides (below) no longer competes with
                     this slot (repo-owner review 2026-08-25). ------------------------------------ */}
             {elevation && (
-                <View testID="ride-overlay-elevation" style={[styles.cornerWidget, rectStyle(elevation)]}>
+                <View
+                    testID="ride-overlay-elevation"
+                    style={[
+                        styles.cornerWidget,
+                        { top: elevation.top, left: elevation.left, right: elevation.right, width: cornerSlotWidth },
+                        // Auto-sizes to content in the 'workout' toggle state (see
+                        // FALLBACK_WORKOUT_STEPS_HEIGHT_GUESS above) — omitting height here, rather
+                        // than forcing the fixed elevation-graph height, is what lets it grow.
+                        isWorkoutToggleActive ? null : { height: elevation.height },
+                    ]}
+                    onLayout={isWorkoutToggleActive ? onWorkoutSlotLayout : undefined}
+                >
                     {cornerSlotIsToggle ? (
                         <Pressable
                             testID="ride-overlay-corner-toggle"
-                            style={styles.flexFill}
+                            style={isWorkoutToggleActive ? undefined : styles.flexFill}
                             onPress={onToggleCornerWidget}
                             accessibilityRole="button"
                             accessibilityLabel={cornerWidget === 'workout' ? 'Show elevation' : 'Show steps'}
@@ -340,7 +386,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
             {elevation && cornerSlotIsToggle && prevRides && prevRides.length > 0 && (
                 <Dynamic observer={rideObserver ?? undefined} event="prev-rides-update" prop="rows" transform={getPrevRidesRows}>
                     <PrevRidesCornerPanel
-                        slotRect={elevation}
+                        slotRect={cornerSlotRect as Rect}
                         screenHeight={inputs.screenHeight}
                         rows={prevRides}
                         onExpandPrevRides={onExpandPrevRides}
@@ -382,9 +428,19 @@ export const RideOverlay = (props: RideOverlayProps) => {
             )}
 
             {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback',
-                    workout attached only ------------------------------------------------------ */}
+                    workout attached only. Inset on the right by the corner toggle's own width
+                    (widened for 'workout', §6.2(b)) so its centered text can never grow into that
+                    column — same vertical band as the toggle box, see FALLBACK_WORKOUT_STEPS_WIDTH
+                    above. ------------------------------------------------------------------------ */}
             {arrangement === 'fallback' && dashboard && (
-                <View testID="ride-overlay-shoutout" style={[styles.absolute, styles.fallbackShoutout, { top: dashboardHeight }]}>
+                <View
+                    testID="ride-overlay-shoutout"
+                    style={[
+                        styles.absolute,
+                        styles.fallbackShoutout,
+                        { top: dashboardHeight, right: cornerSlotIsToggle && cornerSlotWidth ? cornerSlotWidth + SLOT_GAP : 0 },
+                    ]}
+                >
                     <Text style={styles.fallbackShoutoutText} numberOfLines={1}>
                         {dashboard.text}
                     </Text>
