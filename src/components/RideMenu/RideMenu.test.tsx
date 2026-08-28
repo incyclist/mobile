@@ -170,113 +170,90 @@ describe('RideMenuView', () => {
         expect(onStepBack).not.toHaveBeenCalled();
     });
 
-    describe('Load/Gear buttons', () => {
-        it('renders all four button labels from menuProps.loadControl.buttons, unchanged', () => {
-            const { getByText } = render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} />);
-            expect(getByText('+5W')).toBeTruthy();
-            expect(getByText('-5W')).toBeTruthy();
-            expect(getByText('+50W')).toBeTruthy();
-            expect(getByText('-50W')).toBeTruthy();
+    // Phone width (the default in this file - useIsTablet mocked false): a single icon-only row,
+    // small step only - phones have no vertical room for the tablet's two-row/small+big layout.
+    // See the "on a tablet-width screen" describe block below for that variant.
+    describe('Load/Gear buttons (phone width)', () => {
+        it('renders the row caption and icon-only Increase/Decrease buttons', () => {
+            const { getByText, getByLabelText } = render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} />);
+            expect(getByText('Load')).toBeTruthy();
+            expect(getByLabelText('Increase Load')).toBeTruthy();
+            expect(getByLabelText('Decrease Load')).toBeTruthy();
         });
 
-        // Three-column layout: "Increase Load   +5W   +50W" / "Decrease Load   -5W   -50W" - the
-        // row label states the direction, each numeric value is its own separate tappable chip.
-        it('renders "Increase {label}"/"Decrease {label}" row captions', () => {
-            const { getByText } = render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} />);
-            expect(getByText('Increase Load')).toBeTruthy();
-            expect(getByText('Decrease Load')).toBeTruthy();
-        });
-
-        it('renders "Increase Gear"/"Decrease Gear" row captions in Gear mode', () => {
+        it('renders "Gear" in gear mode', () => {
             const { getByText } = render(
                 <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Gear', buttons: gearButtons }} visible={true} activeDialog={null} />
             );
-            expect(getByText('Increase Gear')).toBeTruthy();
-            expect(getByText('Decrease Gear')).toBeTruthy();
+            expect(getByText('Gear')).toBeTruthy();
         });
 
-        it('calls onIncreaseLoad/onDecreaseLoad (small step) when the small tiles are pressed', () => {
+        it('calls onIncreaseLoad/onDecreaseLoad (small step only) when the icon buttons are pressed', () => {
             const onIncreaseLoad = jest.fn();
             const onDecreaseLoad = jest.fn();
-            const { getByText } = render(
+            const { getByLabelText } = render(
                 <RideMenuView {...workoutProps} visible={true} activeDialog={null} onIncreaseLoad={onIncreaseLoad} onDecreaseLoad={onDecreaseLoad} />
             );
-            fireEvent.press(getByText('+5W'));
-            fireEvent.press(getByText('-5W'));
+            fireEvent.press(getByLabelText('Increase Load'));
+            fireEvent.press(getByLabelText('Decrease Load'));
             expect(onIncreaseLoad).toHaveBeenCalledTimes(1);
             expect(onDecreaseLoad).toHaveBeenCalledTimes(1);
         });
 
-        it('calls onIncreaseLoadBig/onDecreaseLoadBig when the big tiles are pressed', () => {
-            const onIncreaseLoadBig = jest.fn();
-            const onDecreaseLoadBig = jest.fn();
-            const { getByText } = render(
-                <RideMenuView {...workoutProps} visible={true} activeDialog={null} onIncreaseLoadBig={onIncreaseLoadBig} onDecreaseLoadBig={onDecreaseLoadBig} />
-            );
-            fireEvent.press(getByText('+50W'));
-            fireEvent.press(getByText('-50W'));
-            expect(onIncreaseLoadBig).toHaveBeenCalledTimes(1);
-            expect(onDecreaseLoadBig).toHaveBeenCalledTimes(1);
+        it('does not render the tablet-only big-step buttons or numeric labels', () => {
+            const { queryByText } = render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} />);
+            expect(queryByText('+50W')).toBeNull();
+            expect(queryByText('+5W')).toBeNull();
+            expect(queryByText('Increase Load')).toBeNull();
+            expect(queryByText('Decrease Load')).toBeNull();
         });
 
-        // Label/icon/visibility/button text all come from menuProps.loadControl (RidePageService),
-        // resolved from LoadButtonMode - this view must not interpret cycling mode itself.
-        it('renders Gear-mode button labels verbatim (SIM mode, virtual shifting)', () => {
+        it('renders even when loadControl.buttons is absent - phone width does not need the numeric labels', () => {
             const { getByText } = render(
-                <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Gear', buttons: gearButtons }} visible={true} activeDialog={null} />
+                <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Load' }} visible={true} activeDialog={null} />
             );
-            expect(getByText('+1')).toBeTruthy();
-            expect(getByText('-1')).toBeTruthy();
-            expect(getByText('+5')).toBeTruthy();
-            expect(getByText('-5')).toBeTruthy();
+            expect(getByText('Load')).toBeTruthy();
         });
 
-        it('does not render any Load/Gear button when loadControl.visible is false (SIM mode, no virtual shifting)', () => {
-            const { queryByText } = render(
+        it('does not render the row when loadControl.visible is false (SIM mode, no virtual shifting)', () => {
+            const { queryByText, queryByLabelText } = render(
                 <RideMenuView {...workoutProps} loadControl={{ visible: false }} visible={true} activeDialog={null} />
             );
-            expect(queryByText('+5W')).toBeNull();
-            expect(queryByText('-5W')).toBeNull();
-            expect(queryByText('+50W')).toBeNull();
-            expect(queryByText('-50W')).toBeNull();
+            expect(queryByText('Load')).toBeNull();
+            expect(queryByText('Gear')).toBeNull();
+            expect(queryByLabelText('Increase Load')).toBeNull();
+            expect(queryByLabelText('Decrease Load')).toBeNull();
         });
 
-        it('does not render any Load/Gear button when loadControl is absent', () => {
+        it('does not render the row when loadControl is absent', () => {
             const { queryByText } = render(
                 <RideMenuView {...workoutProps} loadControl={undefined} visible={true} activeDialog={null} />
             );
-            expect(queryByText('+5W')).toBeNull();
-        });
-
-        it('does not render any Load/Gear button when loadControl.visible is true but buttons is absent', () => {
-            const { queryByText } = render(
-                <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Load' }} visible={true} activeDialog={null} />
-            );
-            expect(queryByText('+5W')).toBeNull();
+            expect(queryByText('Load')).toBeNull();
         });
 
         // A plain route ride (no workout attached) still needs Load/Gear buttons whenever cycling
         // mode calls for them - not gated on `workout`, only on loadControl.
         it('renders outside workout mode when loadControl.visible is true', () => {
-            const { getByText } = render(
+            const { getByText, getByLabelText } = render(
                 <RideMenuView {...mockProps} loadControl={{ visible: true, label: 'Load', buttons: loadButtons }} visible={true} activeDialog={null} />
             );
-            expect(getByText('+5W')).toBeTruthy();
-            expect(getByText('-50W')).toBeTruthy();
+            expect(getByText('Load')).toBeTruthy();
+            expect(getByLabelText('Increase Load')).toBeTruthy();
         });
 
-        it('renders Gear-mode buttons outside workout mode too', () => {
+        it('renders Gear-mode row outside workout mode too', () => {
             const { getByText } = render(
                 <RideMenuView {...mockProps} loadControl={{ visible: true, label: 'Gear', buttons: gearButtons }} visible={true} activeDialog={null} />
             );
-            expect(getByText('+1')).toBeTruthy();
+            expect(getByText('Gear')).toBeTruthy();
         });
 
         it('does not render outside workout mode when loadControl is absent', () => {
             const { queryByText } = render(
                 <RideMenuView {...mockProps} visible={true} activeDialog={null} />
             );
-            expect(queryByText('+5W')).toBeNull();
+            expect(queryByText('Load')).toBeNull();
         });
     });
 
@@ -382,10 +359,10 @@ describe('RideMenuView', () => {
             expect(queryByText('Step')).toBeNull();
         });
 
-        // Unlike Step/Settings, the Load/Gear rows (renderMagnitudeRow) never pack two unrelated
-        // items onto a shared row to begin with - each row is already just one label + its two
-        // values, so tablet width changes nothing here.
-        it('still renders the Load rows unchanged at tablet width', () => {
+        // Tablet width only: two three-column rows (label, small step, big step) instead of the
+        // phone's single icon-only row - there's vertical room here, so both magnitudes get their
+        // own tappable value with its own visible text.
+        it('renders Load as two magnitude rows (Increase/Decrease, small + big step)', () => {
             const { getByText } = render(
                 <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
             );
@@ -395,6 +372,65 @@ describe('RideMenuView', () => {
             expect(getByText('-5W')).toBeTruthy();
             expect(getByText('+50W')).toBeTruthy();
             expect(getByText('-50W')).toBeTruthy();
+        });
+
+        it('renders "Increase Gear"/"Decrease Gear" row captions and values in Gear mode', () => {
+            const { getByText } = render(
+                <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Gear', buttons: gearButtons }} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Increase Gear')).toBeTruthy();
+            expect(getByText('Decrease Gear')).toBeTruthy();
+            expect(getByText('+1')).toBeTruthy();
+            expect(getByText('-1')).toBeTruthy();
+            expect(getByText('+5')).toBeTruthy();
+            expect(getByText('-5')).toBeTruthy();
+        });
+
+        it('calls onIncreaseLoad/onDecreaseLoad (small step) when the small values are pressed', () => {
+            const onIncreaseLoad = jest.fn();
+            const onDecreaseLoad = jest.fn();
+            const { getByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} onIncreaseLoad={onIncreaseLoad} onDecreaseLoad={onDecreaseLoad} />
+            );
+            fireEvent.press(getByText('+5W'));
+            fireEvent.press(getByText('-5W'));
+            expect(onIncreaseLoad).toHaveBeenCalledTimes(1);
+            expect(onDecreaseLoad).toHaveBeenCalledTimes(1);
+        });
+
+        it('calls onIncreaseLoadBig/onDecreaseLoadBig when the big values are pressed', () => {
+            const onIncreaseLoadBig = jest.fn();
+            const onDecreaseLoadBig = jest.fn();
+            const { getByText } = render(
+                <RideMenuView {...workoutProps} visible={true} activeDialog={null} onIncreaseLoadBig={onIncreaseLoadBig} onDecreaseLoadBig={onDecreaseLoadBig} />
+            );
+            fireEvent.press(getByText('+50W'));
+            fireEvent.press(getByText('-50W'));
+            expect(onIncreaseLoadBig).toHaveBeenCalledTimes(1);
+            expect(onDecreaseLoadBig).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not render any Load/Gear row when loadControl.visible is false', () => {
+            const { queryByText } = render(
+                <RideMenuView {...workoutProps} loadControl={{ visible: false }} visible={true} activeDialog={null} />
+            );
+            expect(queryByText('Increase Load')).toBeNull();
+            expect(queryByText('+5W')).toBeNull();
+        });
+
+        it('does not render any Load/Gear row when loadControl.buttons is absent', () => {
+            const { queryByText } = render(
+                <RideMenuView {...workoutProps} loadControl={{ visible: true, label: 'Load' }} visible={true} activeDialog={null} />
+            );
+            expect(queryByText('Increase Load')).toBeNull();
+        });
+
+        it('renders outside workout mode too (not gated on `workout`, only on loadControl)', () => {
+            const { getByText } = render(
+                <RideMenuView {...mockProps} loadControl={{ visible: true, label: 'Load', buttons: loadButtons }} visible={true} activeDialog={null} />
+            );
+            expect(getByText('Increase Load')).toBeTruthy();
+            expect(getByText('+50W')).toBeTruthy();
         });
 
         it('still triggers Step Back/Forward and Load callbacks when split onto their own rows', () => {
@@ -447,16 +483,16 @@ describe('RideMenuView', () => {
             expect(queryByText('Step Back')).toBeNull();
         });
 
-        it('still renders the Load rows unchanged in compact tablet layout too', () => {
-            const { getByText } = render(
+        // Compact height (even at tablet width) has no more vertical room than a phone, so it
+        // falls back to the same single icon-only row, not the two-row magnitude layout.
+        it('keeps the phone-style single Load row instead of the tablet magnitude rows - compact wins over tablet width', () => {
+            const { getByText, getByLabelText, queryByText } = render(
                 <RideMenuView {...workoutProps} visible={true} activeDialog={null} />
             );
-            expect(getByText('Increase Load')).toBeTruthy();
-            expect(getByText('Decrease Load')).toBeTruthy();
-            expect(getByText('+5W')).toBeTruthy();
-            expect(getByText('-5W')).toBeTruthy();
-            expect(getByText('+50W')).toBeTruthy();
-            expect(getByText('-50W')).toBeTruthy();
+            expect(getByText('Load')).toBeTruthy();
+            expect(getByLabelText('Increase Load')).toBeTruthy();
+            expect(queryByText('Increase Load')).toBeNull();
+            expect(queryByText('+50W')).toBeNull();
         });
     });
 });

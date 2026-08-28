@@ -69,25 +69,26 @@ describe('RideMenu (smart component)', () => {
     // The exact reported scenario: cycling mode changes (RidePageService.onDeviceModeChanged()
     // recomputing menuProps.loadControl and emitting page-update) while the Ride Menu stays
     // mounted - with no local RideMenu state change (no dialog open/close) to force a re-render.
+    // useIsTablet is mocked false (phone width) here, so this exercises the single-row layout.
     it('re-renders with fresh loadControl when the service emits page-update, with no local state change', () => {
         const { getByText, queryByText } = render(<RideMenu visible={true} onClose={jest.fn()} />);
-        expect(getByText('+5W')).toBeTruthy();
+        expect(getByText('Load')).toBeTruthy();
 
         mockMenuProps = { ...mockMenuProps, loadControl: { visible: true, label: 'Gear', buttons: gearButtons } };
         act(() => { capturedHandlers['page-update']?.(); });
 
-        expect(getByText('+1')).toBeTruthy();
-        expect(queryByText('+5W')).toBeNull();
+        expect(getByText('Gear')).toBeTruthy();
+        expect(queryByText('Load')).toBeNull();
     });
 
-    it('hides the Load/Gear buttons when a page-update resolves loadControl to hidden', () => {
+    it('hides the Load/Gear row when a page-update resolves loadControl to hidden', () => {
         const { getByText, queryByText } = render(<RideMenu visible={true} onClose={jest.fn()} />);
-        expect(getByText('+5W')).toBeTruthy();
+        expect(getByText('Load')).toBeTruthy();
 
         mockMenuProps = { ...mockMenuProps, loadControl: { visible: false } };
         act(() => { capturedHandlers['page-update']?.(); });
 
-        expect(queryByText('+5W')).toBeNull();
-        expect(queryByText('+1')).toBeNull();
+        expect(queryByText('Load')).toBeNull();
+        expect(queryByText('Gear')).toBeNull();
     });
 });

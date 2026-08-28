@@ -17,6 +17,9 @@ const mockGetLoadButtonMode = jest.fn(() => 'power');
 // Defaults true - this hook was originally only wired to the Workout ride screen (always
 // workout-attached); tests below that exercise a plain GPX/Video ride override it to false.
 const mockIsWorkoutAttached = jest.fn(() => true);
+// Defaults to "menu closed" (menuProps null) - the Ride Menu open/closed tests below override
+// this to a non-null object.
+const mockGetPageDisplayProps = jest.fn(() => ({ menuProps: null as any }));
 const mockGetValue = jest.fn((_key: string, def: any) => def);
 const mockGetVersion = jest.fn(() => '1.0.19');
 
@@ -33,6 +36,7 @@ jest.mock('incyclist-services', () => ({
         adjustLoad: mockAdjustLoad,
         getLoadButtonMode: mockGetLoadButtonMode,
         isWorkoutAttached: mockIsWorkoutAttached,
+        getPageDisplayProps: mockGetPageDisplayProps,
     }),
     useUserSettings: () => ({ getValue: mockGetValue }),
 }));
@@ -144,6 +148,7 @@ describe('useRideGestures', () => {
         mockAdjustLoad.mockReturnValue(undefined);
         mockGetLoadButtonMode.mockReturnValue('power');
         mockIsWorkoutAttached.mockReturnValue(true);
+        mockGetPageDisplayProps.mockReturnValue({ menuProps: null });
         mockGetVersion.mockReturnValue('1.0.19');
         Platform.OS = 'ios';
         jest.useFakeTimers();
@@ -158,6 +163,46 @@ describe('useRideGestures', () => {
         const { result } = renderHook(() => useRideGestures());
         expect(result.current.gesture).toBe(mockPanBuilder);
         expect(capturedOnEnd).toBeInstanceOf(Function);
+    });
+
+    // The Ride Menu overlay doesn't block the underlying gesture surface - scrolling the menu's
+    // own ScrollView can still register as a swipe underneath it, unintentionally shifting
+    // gear/load while the rider is just trying to scroll the menu.
+    describe('Ride Menu open (menuProps non-null)', () => {
+        beforeEach(() => {
+            mockGetPageDisplayProps.mockReturnValue({ menuProps: { showResume: false } });
+        });
+
+        it('ignores a left/right swipe (step or big-load) while the menu is open', () => {
+            const { result } = renderHook(() => useRideGestures());
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockOnStepBack).not.toHaveBeenCalled();
+            expect(result.current.feedback).toEqual({ visible: false, message: '' });
+        });
+
+        it('ignores an up/down swipe (load adjust) while the menu is open', () => {
+            renderHook(() => useRideGestures());
+            act(() => {
+                capturedOnEnd!({ translationX: 0, translationY: -100, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockAdjustLoad).not.toHaveBeenCalled();
+        });
+
+        it('resumes handling swipes once the menu closes (re-checked fresh on every swipe)', () => {
+            renderHook(() => useRideGestures());
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockOnStepBack).not.toHaveBeenCalled();
+
+            mockGetPageDisplayProps.mockReturnValue({ menuProps: null });
+            act(() => {
+                capturedOnEnd!({ translationX: -100, translationY: 0, velocityX: 0, velocityY: 0 });
+            });
+            expect(mockOnStepBack).toHaveBeenCalledTimes(1);
+        });
     });
 
     it('exposes the live loadIncrement setting, never a hardcoded value', () => {

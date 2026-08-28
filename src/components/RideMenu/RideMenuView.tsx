@@ -339,21 +339,32 @@ export const RideMenuView = ({
                             a plain route ride still needs Load/Gear buttons whenever cycling mode
                             calls for them.
 
-                            Three-column rows (label, small step, big step) - e.g.
-                            "Increase Load   +5W   +50W" / "Decrease Load   -5W   -50W" - each
+                            Tablet width only: three-column rows (label, small step, big step) -
+                            e.g. "Increase Load   +5W   +50W" / "Decrease Load   -5W   -50W" - each
                             value is its own tappable chip with its own visible text, so there is
                             no separate static caption sitting next to a small icon-only button a
-                            rider could mistakenly tap instead. */}
-                        {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
-                            label: `Increase ${loadControl.label ?? 'Load'}`,
-                            small: { text: loadControl.buttons.inc1, onPress: onIncreaseLoad },
-                            big: { text: loadControl.buttons.inc5, onPress: onIncreaseLoadBig },
-                        })}
-                        {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
-                            label: `Decrease ${loadControl.label ?? 'Load'}`,
-                            small: { text: loadControl.buttons.dec1, onPress: onDecreaseLoad },
-                            big: { text: loadControl.buttons.dec5, onPress: onDecreaseLoadBig },
-                        })}
+                            rider could mistakenly tap instead. Phones have no vertical room for a
+                            second row here, so they keep the original single "Load  <  >" /
+                            "Gear  <  >" row (small step only - big step is tablet-only, gated the
+                            same way as the Step/Settings rows above). */}
+                        {useSingleColumnRows
+                            ? <>
+                                {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
+                                    label: `Increase ${loadControl.label ?? 'Load'}`,
+                                    small: { text: loadControl.buttons.inc1, onPress: onIncreaseLoad },
+                                    big: { text: loadControl.buttons.inc5, onPress: onIncreaseLoadBig },
+                                })}
+                                {loadControl?.visible && loadControl.buttons && renderMagnitudeRow({
+                                    label: `Decrease ${loadControl.label ?? 'Load'}`,
+                                    small: { text: loadControl.buttons.dec1, onPress: onDecreaseLoad },
+                                    big: { text: loadControl.buttons.dec5, onPress: onDecreaseLoadBig },
+                                })}
+                              </>
+                            : loadControl?.visible && renderMenuRow(loadControl.label ?? 'Load',
+                                { icon: 'minus', label: `Decrease ${loadControl.label ?? 'Load'}`, onPress: onDecreaseLoad },
+                                { icon: 'plus', label: `Increase ${loadControl.label ?? 'Load'}`, onPress: onIncreaseLoad }
+                              )
+                        }
                         {/* Settings tiles have no icon - all three line up flush-left with each
                             other regardless of which row/column they land in. Gear/Ride Settings
                             pair onto one row and Workout Settings gets its own row - a 2-column
