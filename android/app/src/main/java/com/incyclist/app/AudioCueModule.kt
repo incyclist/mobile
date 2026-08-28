@@ -66,7 +66,10 @@ class AudioCueModule(reactContext: ReactApplicationContext) :
                 override fun onMarkerReached(track: AudioTrack) {
                     track.release()
                 }
-                override fun onPeriodicNotification(track: AudioTrack) {}
+                override fun onPeriodicNotification(track: AudioTrack) {
+                    // Required by the interface, but only onMarkerReached is used - no periodic
+                    // notification period is set, so this is never actually called.
+                }
             })
 
             audioTrack.play()
