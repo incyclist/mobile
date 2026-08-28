@@ -46,7 +46,6 @@
     "react": "^19.2.4",
     "react-native": "0.83.10",
     "react-native-app-attest": "^2.0.1",
-    "react-native-audio-api": "^0.13.3",
     "react-native-ble-manager": "^12.4.4",
     "react-native-bootsplash": "^7.1.0",
     "react-native-create-thumbnail": "^2.2.0",
