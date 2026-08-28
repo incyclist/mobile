@@ -30,9 +30,9 @@ export const canPlayAudio = (): boolean => {
  * on every dependency-array identity change, which `useUnmountEffect` deliberately avoids).
  *
  * `playTone()` (src/utils/stepChangeAudio.ts) is itself "app-aware" - it no-ops silently on a
- * binary that doesn't have the `react-native-audio-api` native module linked yet, so this hook
- * never needs to check availability itself; it just always calls through when the user's setting
- * is on, and audio activates itself automatically once the device's binary supports it.
+ * binary that doesn't have the `AudioCue` native module linked yet, so this hook never needs to
+ * check availability itself; it just always calls through when the user's setting is on, and
+ * audio activates itself automatically once the device's binary supports it.
  *
  * 'step-countdown' is a pure passthrough on the page observer
  * (RidePageService.onWorkoutStepCountdown()) - deliberately not routed through the page's

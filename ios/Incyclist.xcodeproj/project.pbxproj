@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		23C55DBB81501447054C2570 /* AudioCueModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BED0564CE4B03EC8EF24F /* AudioCueModule.swift */; };
 		2D9A8C398F708075935385E9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BCC41758932FA2AB91CC0385 /* libPods-Incyclist.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */; };
+		C77663009711C6FF7AC08B15 /* AudioCueModule.m in Sources */ = {isa = PBXBuildFile; fileRef = B5293BF9E5AA85750B7B7B26 /* AudioCueModule.m */; };
 		DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */; };
 		DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */; };
 		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
@@ -26,9 +28,11 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Incyclist/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Incyclist.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		40F10BB29ECFA3E83275BD6E /* Pods-Incyclist.dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.dev.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.dev.xcconfig"; sourceTree = "<group>"; };
+		4B9BED0564CE4B03EC8EF24F /* AudioCueModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueModule.swift; sourceTree = "<group>"; };
 		5D7DDF37186AFD7B4D381C66 /* Pods-Incyclist.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.release.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Incyclist/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Incyclist/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		B5293BF9E5AA85750B7B7B26 /* AudioCueModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AudioCueModule.m; sourceTree = "<group>"; };
 		DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FullScreenViewController.swift; path = Incyclist/FullScreenViewController.swift; sourceTree = "<group>"; };
 		DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderAccessModule.m; sourceTree = "<group>"; };
 		DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderAccessModule.swift; sourceTree = "<group>"; };
@@ -65,6 +69,7 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				DF2F0E632FA9F4D700340FFD /* FolderAccess */,
+				4EEC379234C831AA5B90364D /* AudioCue */,
 				DFA5700A2FB3000000000001 /* StreetView */,
 			);
 			name = Incyclist;
@@ -77,6 +82,15 @@
 				248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4EEC379234C831AA5B90364D /* AudioCue */ = {
+			isa = PBXGroup;
+			children = (
+				B5293BF9E5AA85750B7B7B26 /* AudioCueModule.m */,
+				4B9BED0564CE4B03EC8EF24F /* AudioCueModule.swift */,
+			);
+			path = AudioCue;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -348,6 +362,8 @@
 			files = (
 				DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */,
 				DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */,
+				23C55DBB81501447054C2570 /* AudioCueModule.swift in Sources */,
+				C77663009711C6FF7AC08B15 /* AudioCueModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */,
 				DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */,

@@ -30,8 +30,9 @@ class MainApplication : Application(), ReactApplication {
 
                 val packages = PackageList(this).packages.toMutableList()
                 packages.add(ExitPackage()) // Add manual package here
-                packages.add(FolderAccessPackage()) 
+                packages.add(FolderAccessPackage())
                 packages.add(StreetViewPackage())
+                packages.add(AudioCuePackage())
 
                 return packages
             }
@@ -111,8 +112,9 @@ class MainApplication : Application(), ReactApplication {
         // IMPORTANT: Manually merge ExitPackage into the host's package list
         val packages = PackageList(this).packages.toMutableList()
         packages.add(ExitPackage())
-        packages.add(FolderAccessPackage()) 
+        packages.add(FolderAccessPackage())
         packages.add(StreetViewPackage())
+        packages.add(AudioCuePackage())
 
         getDefaultReactHost(
             context = applicationContext,
