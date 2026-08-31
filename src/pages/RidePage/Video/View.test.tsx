@@ -10,7 +10,7 @@ jest.mock('react-native-device-info', () => ({
 // AvatarService.get('current') is the source of currentAvatar — self-populating and independent
 // of prevRides/nearbyRiders row state, unlike the old prevRides.rows.find(isCurrent) derivation
 // this replaced.
-const mockAvatarGet = jest.fn((id: string) => ({ helmet: 'blue', shirt: 'red' }));
+const mockAvatarGet = jest.fn((_id: string) => ({ helmet: 'blue', shirt: 'red' }));
 jest.mock('incyclist-services', () => ({
     useAvatars: () => ({ get: (id: string) => mockAvatarGet(id) }),
 }));
