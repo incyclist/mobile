@@ -13,9 +13,9 @@ import {
     RideOverlay,
     RideGestureHintOverlay,
     RideSwipeFeedback,
+    ErrorBoundary,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
-import { ErrorBoundary } from '../../../components';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
 import { RideViewActionProps } from '../types';
