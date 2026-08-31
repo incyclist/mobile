@@ -33,8 +33,8 @@ describe('NearbyRiderRow', () => {
         expect(getByText('-820 m')).toBeTruthy();
     });
 
-    it('formats a distance gap in km once it reaches 1000 m', () => {
-        const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} diffDistance={2500} />);
+    it('renders a diffDistance override in whatever unit it carries', () => {
+        const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} diffDistance={{ value: 2.5, unit: 'km' }} />);
         expect(getByText('+2.5 km')).toBeTruthy();
     });
 
@@ -47,7 +47,7 @@ describe('NearbyRiderRow', () => {
         it('shows no gap value on the current user\'s own row, matching web-ui', () => {
             // MOCK_ROW_USER's diffDistance (0) would format as '' anyway; assert with a non-zero
             // value to prove isUser suppresses the gap regardless of its magnitude.
-            const { queryByText } = render(<NearbyRiderRow {...MOCK_ROW_USER} diffDistance={450} />);
+            const { queryByText } = render(<NearbyRiderRow {...MOCK_ROW_USER} diffDistance={{ value: 450, unit: 'm' }} />);
             expect(queryByText('+450 m')).toBeNull();
         });
 
@@ -92,7 +92,7 @@ describe('NearbyRiderRow', () => {
             const { getByText, getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_COACH} />);
             expect(getByText('Pacer 30 km/h')).toBeTruthy();
             expect(getByText('210 W')).toBeTruthy();
-            expect(getByText('30.0 km/h')).toBeTruthy();
+            expect(getByText('30 km/h')).toBeTruthy();
             expect(getByTestId('prev-rider-avatar')).toBeTruthy();
         });
 
@@ -119,9 +119,9 @@ describe('NearbyRiderRow', () => {
     });
 
     it('renders speed/power at 0 as real values, not as missing data', () => {
-        const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_NO_STATS} power={0} speed={0} />);
+        const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_NO_STATS} power={0} speed={{ value: 0, unit: 'km/h' }} />);
         expect(getByText('0 W')).toBeTruthy();
-        expect(getByText('0.0 km/h')).toBeTruthy();
+        expect(getByText('0 km/h')).toBeTruthy();
     });
 
     it('applies a caller-provided backgroundColor', () => {

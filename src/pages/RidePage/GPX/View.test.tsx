@@ -485,7 +485,7 @@ describe('GPXTourPageView — currentAvatar resolution', () => {
                 displayProps={{
                     ...prevRidesOnlyDisplayProps(),
                     prevRides: undefined,
-                    nearbyRiders: { rows: [{ isUser: true, isPaused: false, isCoach: false, name: 'You', distance: 900, diffDistance: 0, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 }] },
+                    nearbyRiders: { rows: [{ isUser: true, isPaused: false, isCoach: false, name: 'You', distance: { value: 0.9, unit: 'km' }, diffDistance: { value: 0, unit: 'm' }, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 }] },
                 } as any}
             />
         );
@@ -513,8 +513,8 @@ describe('GPXTourPageView — currentAvatar resolution', () => {
 // ---------------------------------------------------------------------------
 
 const nearbyRidersRows = [
-    { isUser: false, isPaused: false, isCoach: false, name: 'Alex Rider', distance: 1000, diffDistance: 100, avatar: { shirt: 'blue', helmet: 'red' }, lat: 5, lng: 6 },
-    { isUser: true, isPaused: false, isCoach: false, name: 'You', distance: 900, diffDistance: 0, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 },
+    { isUser: false, isPaused: false, isCoach: false, name: 'Alex Rider', distance: { value: 1.0, unit: 'km' }, diffDistance: { value: 100, unit: 'm' }, avatar: { shirt: 'blue', helmet: 'red' }, lat: 5, lng: 6 },
+    { isUser: true, isPaused: false, isCoach: false, name: 'You', distance: { value: 0.9, unit: 'km' }, diffDistance: { value: 0, unit: 'm' }, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 },
 ];
 
 const nearbyRidersOnlyDisplayProps = () => ({

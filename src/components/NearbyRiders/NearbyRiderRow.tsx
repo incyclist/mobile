@@ -6,45 +6,50 @@ import { PrevRiderAvatar } from '../PrevRides';
 import { NearbyRiderRowComponentProps } from './types';
 
 /**
- * Formats a distance gap exactly like web-ui's `RiderInfo.getDistanceGapText()`
- * (`web-ui/src/components/molecules/Ride/RiderInfo/rider-info.jsx:100-129`), simplified for this
- * component's plain-`number` `diffDistance` (the source `ActiveRideListDisplayItem.diffDistance`
- * can also carry a `{value, unit}` shape, but `NearbyRiderRowProps` narrows to a plain meters
- * number — the mapping from the richer source shape is a `RidePageService` concern).
+ * distance/diffDistance/speed arrive already unit-converted to the user's display preference
+ * (km/mi, km/h/mph) by ActiveRidesService.getDistance()/getDistanceDiff()/getSpeed() — the
+ * {value,unit} object is rendered as-is, no further conversion (see Correction 2,
+ * nearby-riders-mobile-design.md §4; mirrors web-ui's `RiderInfo.formatted()`,
+ * `rider-info.jsx:90-97`).
  */
-const formatDistanceGap = (diffDistance: number): string => {
-    if (diffDistance === undefined || diffDistance === null || Number.isNaN(diffDistance)) return '';
-    if (Math.abs(diffDistance) < 1) return '';
+type UnitValue = { value: number, unit: string };
 
-    const prefix = Math.sign(diffDistance) > 0 ? '+' : '';
+/**
+ * Formats a distance gap exactly like web-ui's `RiderInfo.formatted(v, true)`
+ * (`web-ui/src/components/molecules/Ride/RiderInfo/rider-info.jsx:90-97`) — value already in the
+ * right unit, just prefix + render.
+ */
+const formatDistanceGap = (diffDistance?: UnitValue): string => {
+    if (diffDistance === undefined || diffDistance === null) return '';
+    const { value, unit } = diffDistance;
+    if (value === undefined || value === null || Number.isNaN(value)) return '';
 
-    if (Math.abs(diffDistance) < 1000) return `${prefix}${diffDistance.toFixed(0)} m`;
-
-    const km = Math.abs(diffDistance) / 1000;
-    const kmDecimals = km > 10 ? 0 : 1;
-    return `${prefix}${(diffDistance / 1000).toFixed(kmDecimals)} km`;
+    const prefix = Math.sign(value) > 0 ? '+' : '';
+    return `${prefix}${value} ${unit}`;
 };
 
-/** Mirrors web-ui's `RiderInfo.getDistance()`. */
-const formatDistance = (distance: number): string => {
-    if (distance === undefined || distance === null || Number.isNaN(distance)) return '';
-    const km = distance / 1000;
-    const decimals = km > 100 ? 0 : 1;
-    return `${km.toFixed(decimals)} km`;
+/** Mirrors web-ui's `RiderInfo.formatted()` (no prefix) for distance. */
+const formatDistance = (distance?: UnitValue): string => {
+    if (distance === undefined || distance === null) return '';
+    const { value, unit } = distance;
+    if (value === undefined || value === null || Number.isNaN(value)) return '';
+    return `${value} ${unit}`;
 };
 
 /** Mirrors web-ui's `RiderInfo.getPowerInfo()` — normalized power (`mpower`, W/kg) takes priority
- *  over absolute power (`power`, W) when both are present. */
+ *  over absolute power (`power`, W) when both are present. Not unit-converted (plain Watts/W-kg). */
 const formatPower = (power?: number, mpower?: number): string => {
     if (mpower !== undefined && mpower !== null && !Number.isNaN(mpower)) return `${mpower.toFixed(1)} W/kg`;
     if (power !== undefined && power !== null && !Number.isNaN(power)) return `${power.toFixed(0)} W`;
     return '';
 };
 
-/** Mirrors web-ui's `RiderInfo.getSpeedInfo()`. */
-const formatSpeed = (speed?: number): string => {
-    if (speed === undefined || speed === null || Number.isNaN(speed)) return '';
-    return `${speed.toFixed(1)} km/h`;
+/** Mirrors web-ui's `RiderInfo.formatted()` (no prefix) for speed. */
+const formatSpeed = (speed?: UnitValue): string => {
+    if (speed === undefined || speed === null) return '';
+    const { value, unit } = speed;
+    if (value === undefined || value === null || Number.isNaN(value)) return '';
+    return `${value} ${unit}`;
 };
 
 /**

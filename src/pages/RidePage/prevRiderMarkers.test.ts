@@ -14,8 +14,8 @@ const nearbyRow = (overrides: Partial<NearbyRiderRowProps> = {}): NearbyRiderRow
     isPaused: false,
     isCoach: false,
     name: 'Alex Rider',
-    distance: 1000,
-    diffDistance: 0,
+    distance: { value: 1.0, unit: 'km' },
+    diffDistance: { value: 0, unit: 'm' },
     avatar: { shirt: 'blue', helmet: 'red' },
     ...overrides,
 });
