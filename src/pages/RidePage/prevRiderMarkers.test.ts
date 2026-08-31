@@ -41,6 +41,12 @@ describe('buildPrevRiderMarkers', () => {
         expect(markers).toEqual([]);
     });
 
+    it('excludes rows with a null (not just undefined) position - crashed FreeMapView.toFixed() otherwise', () => {
+        const markers = buildPrevRiderMarkers([row({ lat: null as unknown as number, lng: null as unknown as number })]);
+
+        expect(markers).toEqual([]);
+    });
+
     it('keys markers by tsStart when present, falling back to position', () => {
         const withTs = buildPrevRiderMarkers([row({ lat: 1, lng: 2, tsStart: 555 })]);
         const withoutTs = buildPrevRiderMarkers([row({ lat: 1, lng: 2, position: 7 })]);
@@ -77,6 +83,12 @@ describe('buildNearbyRiderMarkers', () => {
 
     it('excludes rows with no live position', () => {
         const markers = buildNearbyRiderMarkers([nearbyRow({ lat: undefined, lng: undefined })]);
+
+        expect(markers).toEqual([]);
+    });
+
+    it('excludes rows with a null (not just undefined) position - a rider before their first position update has this shape', () => {
+        const markers = buildNearbyRiderMarkers([nearbyRow({ lat: null as unknown as number, lng: null as unknown as number })]);
 
         expect(markers).toEqual([]);
     });

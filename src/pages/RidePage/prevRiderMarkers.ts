@@ -26,7 +26,7 @@ interface RiderMarkerSource {
  */
 const buildRiderMapMarkers = (sources: RiderMarkerSource[]): RiderMapMarker[] =>
     sources
-        .filter((source) => !source.excludeFromMap && source.lat !== undefined && source.lng !== undefined)
+        .filter((source) => !source.excludeFromMap && source.lat != null && source.lng != null)
         .map((source) => ({
             key: source.key,
             position: { lat: source.lat as number, lng: source.lng as number },

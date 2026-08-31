@@ -463,7 +463,7 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         const { getByTestId, getByText } = render(<RideOverlay {...nearbyRidersProps} />);
 
         expect(getByTestId('nearby-riders-tablet-list-header')).toBeTruthy();
-        expect(getByText('Nearby Riders')).toBeTruthy();
+        expect(getByText('Incyclists Nearby')).toBeTruthy();
     });
 
     it('does not shrink the left ear\'s maxHeight for the title — NearbyRidersTabletList renders its title as a real child inside the existing free band instead (no separate visibleRows formula exists for this list to subtract from)', () => {
