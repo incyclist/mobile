@@ -1,20 +1,18 @@
 /**
  * One row of the nearby-riders (group ride) list — mirrors web-ui's `RiderInfo` field set
  * (`ActiveRideListDisplayItem`, `services/src/activities/active-rides/types.ts`), deliberately
- * **not** `PrevRidesRowProps`' shape (design doc §4 — only the panel *shell* is shared with
- * PrevRides, row content differs).
+ * **not** `PrevRidesRowProps`' shape — only the panel *shell* is shared with PrevRides, row
+ * content differs.
  *
- * Every field always renders, on both tablet and phone panels — no tier-conditional field
- * trimming, unlike `PrevRidesRowProps`' `layout` prop (design doc §5.2 — the one deliberate
- * departure from that pattern, confirmed intentional, not an oversight).
+ * The full field set (avatar, name, distance, power, speed, gap) always renders on the tablet ear.
+ * On the phone corner panel (`NearbyRiderRow`'s `compact` prop), distance/power/speed and the
+ * COACH/PAUSED badges are dropped entirely to keep the row to a single line — see
+ * `NearbyRiderRow.tsx`'s component doc for the full per-tier layout.
  *
- * Re-exported from `incyclist-services` (session 1.1's real, published contract) rather than
- * defined locally — session 2.2 originally built this as a local stand-in ("swapped over to the
- * published type with no further changes once that release lands"); session 3.1 (wiring) found one
- * real difference the swap surfaces: `avatar` here is `ActiveRideListAvatar` (`{shirt, helmet,
- * gender?}`, plain strings) — not the `Avatar` color-enum shape (`{shirt: Color, helmet: Color}`)
- * `PrevRiderAvatar`/`avatarToConfig` are typed for. See `NearbyRiderRow.tsx`'s cast at the one call
- * site this affects.
+ * Re-exported from `incyclist-services` (the published contract) rather than defined locally.
+ * `avatar` here is `ActiveRideListAvatar` (`{shirt, helmet, gender?}`, plain strings) — not the
+ * `Avatar` color-enum shape (`{shirt: Color, helmet: Color}`) `PrevRiderAvatar`/`avatarToConfig`
+ * are typed for. See `NearbyRiderRow.tsx`'s cast at the one call site this affects.
  */
 export type { NearbyRiderRowProps } from 'incyclist-services';
 import type { NearbyRiderRowProps } from 'incyclist-services';
@@ -25,12 +23,11 @@ import type { NearbyRiderRowProps } from 'incyclist-services';
  * contract, same reasoning as `PrevRidesRowComponentProps.layout`/`showSpeed` in
  * `../PrevRides/types.ts`).
  *
- * `compact` is **not** a return to `PrevRidesRowProps`' tier-conditional field-trimming pattern
- * (design doc §5.2 explicitly rules that out — avatar/name/speed/power/distance-gap all still
- * render in every context). It only lets a narrow container (the phone corner panel, ~169-190dp,
- * far tighter than the tablet ear's fixed 340dp — see `NearbyRidersTabletList.tsx`) ask for a
- * denser rendering of the *same* fields: smaller avatar/fonts/spacing, so more rows fit the
- * available height without any field disappearing or its value getting clipped.
+ * `compact` switches `NearbyRiderRow` to its phone corner-panel layout: avatar + name + gap only,
+ * on a single line — distance/power/speed and the COACH/PAUSED badges are not rendered at all in
+ * this mode (not merely styled smaller), the same field-trimming approach `PrevRidesRowProps`'
+ * `layout` prop uses on its own phone tier. The tablet ear (default, `compact` false) keeps every
+ * field, laid out across up to 2 lines.
  */
 export interface NearbyRiderRowComponentProps extends NearbyRiderRowProps {
     /** Defaults to `false` (the tablet-ear / standalone-row treatment). Set by

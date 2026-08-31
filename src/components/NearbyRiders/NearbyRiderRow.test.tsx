@@ -136,46 +136,61 @@ describe('NearbyRiderRow', () => {
         expect(style?.color).toBe('#abcdef');
     });
 
-    describe('statsRow wrapping (bug fix: values were being clipped, not wrapped)', () => {
-        // Regression test for the bug fixed here: a gap value like "+340 m" was rendered inside a
-        // non-wrapping `flexDirection: 'row'` statsRow with every child `flexShrink: 0` — any
-        // container narrower than the row's full intrinsic width clipped the trailing value instead
-        // of the row adapting. flexWrap lets the overflow move to a new line instead.
-        it('sets flexWrap: "wrap" on the stats row so overflowing stats move to a new line instead of being clipped', () => {
+    describe('tablet gap placement (line-cap fix: gap moved off the stats row)', () => {
+        // Regression guard for the 2-line tablet cap: the distance gap used to live in the stats
+        // row alongside distance/power/speed, and that row previously wrapped when the combined
+        // content didn't fit — risking a 3rd line. The gap now renders in the top row (next to the
+        // name), pinned to the row's right edge, so the stats row only ever holds 3 short values.
+        it('still renders the gap value in full, unclipped, unwrapped', () => {
             const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} />);
             const gapText = getByText('+340 m');
-            // Walk up from the gap Text to its parent statsRow View via the rendered tree isn't
-            // directly exposed by RNTL, so assert the row is still present as full, unclipped text
-            // — flexWrap doesn't truncate or reformat the string the way a fixed non-wrapping,
-            // clipped container would (react-native-testing-library renders text nodes as whole
-            // strings regardless of layout, so this also guards against a future regression where
-            // the text itself gets shortened to "fit").
             expect(gapText.props.children).toEqual('+340 m');
         });
     });
 
-    describe('compact prop', () => {
+    describe('compact prop (phone corner panel — exactly 1 line)', () => {
         it('defaults to the non-compact (tablet ear) rendering — full-size avatar', () => {
             const { getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} />);
             const avatarProps = getByTestId('prev-rider-avatar').props;
             expect(avatarProps.height).toBe(32);
         });
 
-        it('renders a smaller avatar when compact is set', () => {
+        it('renders a smaller avatar when compact is set, no wider than the phone position column it replaces', () => {
             const { getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
             const avatarProps = getByTestId('prev-rider-avatar').props;
-            expect(avatarProps.height).toBe(18);
             expect(avatarProps.height).toBeLessThan(32);
+            // width is derived from height via the figure's own aspect ratio (~0.707) — assert it
+            // stays under PrevRidesRow's phone position-column width (14) rather than pinning to
+            // one exact height value.
+            expect(avatarProps.width).toBeLessThan(14);
         });
 
-        it('still renders every field in compact mode — no field trimming (design doc §5.2)', () => {
-            const { getByText, getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
+        it('renders only avatar, name and gap — distance, power and speed are not rendered at all', () => {
+            const { getByText, queryByText } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
             expect(getByText('Alex Rider')).toBeTruthy();
-            expect(getByText('12.4 km')).toBeTruthy();
-            expect(getByText('3.1 W/kg')).toBeTruthy();
-            expect(getByText('32.4 km/h')).toBeTruthy();
             expect(getByText('+340 m')).toBeTruthy();
-            expect(getByTestId('prev-rider-avatar')).toBeTruthy();
+            expect(queryByText('12.4 km')).toBeNull();
+            expect(queryByText('3.1 W/kg')).toBeNull();
+            expect(queryByText('32.4 km/h')).toBeNull();
+        });
+
+        it('never renders power/speed text in compact mode even when present on the row data', () => {
+            const { queryByText } = render(<NearbyRiderRow {...MOCK_ROW_BEHIND} compact />);
+            expect(queryByText(/W\/kg/)).toBeNull();
+            expect(queryByText(/ W$/)).toBeNull();
+            expect(queryByText(/km\/h/)).toBeNull();
+        });
+
+        it('does not render the COACH badge in compact mode', () => {
+            const { queryByText } = render(<NearbyRiderRow {...MOCK_ROW_COACH} compact />);
+            expect(queryByText('COACH')).toBeNull();
+        });
+
+        it('does not render the PAUSED badge in compact mode, but still dims the row', () => {
+            const { queryByText, getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_PAUSED} compact />);
+            expect(queryByText('PAUSED')).toBeNull();
+            const style = Object.assign({}, ...[getByTestId('nearby-rider-row').props.style].flat());
+            expect(style.opacity).toBeLessThan(1);
         });
 
         it('uses a smaller font for the name in compact mode', () => {

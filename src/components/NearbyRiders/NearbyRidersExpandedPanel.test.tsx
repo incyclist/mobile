@@ -16,21 +16,24 @@ describe('NearbyRidersExpandedPanel', () => {
         );
 
         expect(getByText('Nearby Riders')).toBeTruthy();
-        // NearbyRiderRow is a taller, two-line card than PrevRidesRow's flat compact row (no
-        // tier-conditional trimming, design doc §5.2) — earFreeBand=239.2, fallback rowSpacing=67
-        // -> floor((239.2-22)/67) = 3, fewer than the full 6-row mock set.
-        expect(queryAllByTestId('nearby-rider-row')).toHaveLength(3);
+        // NearbyRiderRow's compact tier is now a flat, single-line row (avatar + name + gap only)
+        // — earFreeBand=239.2, fallback rowSpacing=27 -> floor((239.2-22)/27) = 8, more than the
+        // full 6-row mock set, so every mock row fits (density now approaches PrevRides' own
+        // phone-panel row count, the point of dropping distance/power/speed on this tier).
+        expect(queryAllByTestId('nearby-rider-row')).toHaveLength(MOCK_ROWS.length);
     });
 
-    it('renders every field on its rows — no tier-conditional trimming (design doc §5.2)', () => {
-        const { getByText } = render(
+    it('renders only avatar/name/gap on its rows — distance/power/speed are dropped on this tier', () => {
+        const { getByText, queryByText } = render(
             <NearbyRidersExpandedPanel rows={[MOCK_ROW_AHEAD]} anchor={REFERENCE_SLOT} screenHeight={REFERENCE_SCREEN_HEIGHT} />
         );
 
         expect(getByText('Alex Rider')).toBeTruthy();
-        // mpower takes rendering priority over power when both are present (NearbyRiderRow's
-        // formatPower, mirroring web-ui's RiderInfo.getPowerInfo()) — MOCK_ROW_AHEAD has both.
-        expect(getByText('3.1 W/kg')).toBeTruthy();
+        expect(getByText('+340 m')).toBeTruthy();
+        // Not just visually hidden — not rendered at all on the compact tier.
+        expect(queryByText('3.1 W/kg')).toBeNull();
+        expect(queryByText('32.4 km/h')).toBeNull();
+        expect(queryByText('12.4 km')).toBeNull();
     });
 
     it('clamps to the rows that fit rather than overflowing on a tight frame', () => {
@@ -39,8 +42,8 @@ describe('NearbyRidersExpandedPanel', () => {
             <NearbyRidersExpandedPanel rows={MOCK_ROWS} anchor={tightSlot} screenHeight={200} />
         );
 
-        // earFreeBand = 200 - 24 - 67 - 16 = 93 -> floor((93-22)/67) = 1 row.
-        expect(queryAllByTestId('nearby-rider-row')).toHaveLength(1);
+        // earFreeBand = 200 - 24 - 67 - 16 = 93 -> floor((93-22)/27) = 2 rows.
+        expect(queryAllByTestId('nearby-rider-row')).toHaveLength(2);
     });
 
     it('never shows fewer than one row even when the free band is negative', () => {
@@ -63,7 +66,7 @@ describe('NearbyRidersExpandedPanel', () => {
             />
         );
 
-        expect(onVisibleRowsChange).toHaveBeenCalledWith(3);
+        expect(onVisibleRowsChange).toHaveBeenCalledWith(8);
     });
 
     it('renders no rows beyond the data it was given even when the budget allows more', () => {

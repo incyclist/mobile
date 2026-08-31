@@ -8,16 +8,14 @@ import { SLOT_GAP, BOTTOM_BAR_RATIO } from '../../hooks/render/useRideOverlayLay
 
 /**
  * Fallback budget used only until the first row has actually rendered (same fallback-then-measure
- * pattern as `PrevRidesExpandedPanel`'s `PHASE3_ROW_HEIGHT_FALLBACK`). Deliberately **not** copied
- * from that constant (24, tuned for `PrevRidesRow`'s flat one-line compact row): `NearbyRiderRow`
- * has no tier-conditional *field* trimming (design doc §5.2/session plan 2.1 — every field renders
- * on every tier), but it does render this panel's rows with its `compact` prop set (smaller
- * avatar/fonts/spacing, `NearbyRiderRow.tsx`) — still a multi-line, padded card, not a flat single
- * line, so this stays a same-order-of-magnitude estimate rather than `PHASE3_ROW_HEIGHT_FALLBACK`'s
- * value, but doesn't need to be exact: it's only used for the very first frame, until
- * `onFirstRowLayout` below reports the real measured height.
+ * pattern as `PrevRidesExpandedPanel`'s `PHASE3_ROW_HEIGHT_FALLBACK`). `NearbyRiderRow`'s compact
+ * tier is now a flat, single-line row (avatar + name + gap only, no stacked stats) — the same
+ * shape and roughly the same height as `PrevRidesRow`'s compact row — so this mirrors that
+ * constant's value (24) instead of estimating a taller multi-line card. Doesn't need to be exact:
+ * it's only used for the very first frame, until `onFirstRowLayout` below reports the real
+ * measured height.
  */
-const NEARBY_ROW_HEIGHT_FALLBACK = 64;
+const NEARBY_ROW_HEIGHT_FALLBACK = 24;
 /** Matches `NearbyRiderRow`'s own `styles.row.marginBottom` (`NearbyRiderRow.tsx`) — kept as a
  *  local constant rather than an import so this session doesn't need to modify session 2.1's
  *  already-built row component just to export it (mirrors why `PrevRidesRow` exports its own

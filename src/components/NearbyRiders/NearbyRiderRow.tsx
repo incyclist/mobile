@@ -9,9 +9,8 @@ import { NearbyRiderRowComponentProps } from './types';
  * Formats a distance gap exactly like web-ui's `RiderInfo.getDistanceGapText()`
  * (`web-ui/src/components/molecules/Ride/RiderInfo/rider-info.jsx:100-129`), simplified for this
  * component's plain-`number` `diffDistance` (the source `ActiveRideListDisplayItem.diffDistance`
- * can also carry a `{value, unit}` shape, but `NearbyRiderRowProps` (design doc §4) narrows to a
- * plain meters number — the mapping from the richer source shape is a `RidePageService` concern,
- * session 1.1, not this component's).
+ * can also carry a `{value, unit}` shape, but `NearbyRiderRowProps` narrows to a plain meters
+ * number — the mapping from the richer source shape is a `RidePageService` concern).
  */
 const formatDistanceGap = (diffDistance: number): string => {
     if (diffDistance === undefined || diffDistance === null || Number.isNaN(diffDistance)) return '';
@@ -49,105 +48,109 @@ const formatSpeed = (speed?: number): string => {
 };
 
 /**
- * One row of the nearby-riders (group ride) list, used identically by both the tablet ear and the
- * phone corner panel — no tier-conditional *field* trimming (design doc §5.2, session plan 2.1: the
- * one deliberate departure from `PrevRidesRow`'s `layout` prop pattern). Every field renders in
- * every context; only *density* (avatar size, font sizes, spacing) varies per tier, via the
- * `compact` prop below — set by `NearbyRidersExpandedPanel` (phone corner panel) only,
- * `NearbyRidersTabletList` (tablet ear) leaves it at its `false` default.
+ * One row of the nearby-riders (group ride) list. Two genuinely different layouts share this
+ * component, not one shape with a density tweak — a row must never exceed 2 lines on tablet or 1
+ * line on phone, and that cap is a structural guarantee (which elements exist in the tree), not a
+ * CSS wrapping trick:
  *
- * Field treatment mirrors web-ui's `RiderInfo` (the reference implementation, §2.3 of the design
- * doc):
- * - `isUser`: highlighted with a left-edge accent (same "informational highlight" treatment
- *   `PrevRidesRow` uses for `isCurrent`), and — matching `RiderInfo.getDiff()`, which returns `''`
- *   for the current user — no gap value is shown on the user's own row.
- * - `isPaused`: dimmed, with an explicit "PAUSED" indicator (there is nothing to reuse from
- *   web-ui here — it has no paused-row treatment, this ride screen has no web-ui precedent to
- *   diverge from).
- * - `isCoach`: web-ui's `RiderInfo` *does* render coaches with a distinct avatar (`CoachAvatar`,
- *   `rider-info.jsx:243`) — but mobile has no coach avatar asset today (only
- *   `assets/avatars/male-paths.ts`, the figure `PrevRiderAvatar` draws). Building a new coach SVG
- *   asset is out of this session's scope (component + story + tests only), so this row reuses the
- *   existing rider figure for coach rows too and adds a small "COACH" text indicator instead — an
- *   explicit, flagged departure from exact web-ui parity, not an oversight.
- *
- * `statsRow` wraps (`flexWrap: 'wrap'`) rather than staying a fixed non-shrinking single line: with
- * four stat items (distance/power/speed/gap) all `flexShrink: 0` (values must stay legible, never
- * compress), a narrow container's intrinsic content width can exceed the space it's given —
- * previously clipped mid-value (e.g. a gap of "+340 m" cut off as "+34") wherever the row's own
- * container clips overflow (every current caller does: the stories' `panelFrame`, and
- * `NearbyRidersExpandedPanel`'s `overflow: 'hidden'` panel). Wrapping instead of clipping keeps
- * every value fully legible regardless of container width. `compact` (phone corner-panel only, set
- * by `NearbyRidersExpandedPanel` — see `types.ts`) additionally shrinks the avatar/fonts/spacing so
- * more rows fit the corner panel's much narrower band (~169-190dp vs. the tablet ear's fixed
- * 340dp, `NearbyRidersTabletList.NEARBY_RIDERS_TABLET_WIDTH`) without needing to wrap as often.
+ * - **Tablet ear** (`compact` false/default, set by `NearbyRidersTabletList`): every field renders
+ *   — avatar, name, distance, power, speed, gap — across exactly 2 lines, and the COACH/PAUSED
+ *   badge (a small label, not part of either text line) is moved out of both lines entirely: it
+ *   stacks directly below the avatar in the avatar column instead. That keeps the badge from
+ *   competing with the name/gap or the stats for horizontal room in the text column. Line 1 (text
+ *   column) is name + the distance gap, pinned to the row's right edge with `marginLeft: 'auto'`
+ *   so its position doesn't drift with the name's own text width (same fixed-right-column
+ *   technique `PrevRidesRow`'s tablet-tier gap column uses). Line 2 is distance/power/speed, laid
+ *   out without wrapping — 3 short values that comfortably fit the tablet ear's fixed width on one
+ *   line.
+ * - **Phone corner panel** (`compact` true, set by `NearbyRidersExpandedPanel`): content
+ *   compromise, not just smaller fonts. Only avatar + name + gap render — distance, power, speed
+ *   and the COACH/PAUSED badges are omitted from the tree entirely, not merely styled small or
+ *   hidden, matching `PrevRidesRow`'s own phone tier (position/label/time-gap only). The avatar is
+ *   kept (unlike `PrevRidesRow`'s phone tier, which has no avatar) because this list has no
+ *   position-ranking number to anchor identity on the way `PrevRidesRow` does, but it is shrunk to
+ *   cost no more row-width than `PrevRidesRow`'s phone position column (`width: 14`). `isPaused`
+ *   still dims the row (shared `rowPaused` style, opacity) and `isUser` still gets the left-edge
+ *   accent — those don't cost extra width — but the COACH/PAUSED text badges themselves are
+ *   dropped on this tier: there isn't room for them next to name + gap without risking a wrap.
  */
 export const NearbyRiderRow = (props: NearbyRiderRowComponentProps) => {
     const { isUser, isPaused, isCoach, name, distance, diffDistance, power, mpower, speed, avatar, backgroundColor, textColor, compact = false } = props;
 
-    const distanceText = formatDistance(distance);
     const gapText = isUser ? '' : formatDistanceGap(diffDistance);
+    const textColorStyle = textColor ? { color: textColor } : null;
+    const rowStyleBase = [
+        isUser && styles.rowUser,
+        isPaused && styles.rowPaused,
+        backgroundColor ? { backgroundColor } : null,
+    ];
+
+    if (compact) {
+        return (
+            <View style={[styles.rowCompact, ...rowStyleBase]} testID="nearby-rider-row">
+                <View style={styles.avatarSlotCompact}>
+                    {/* NearbyRiderRowProps.avatar is ActiveRideListAvatar (plain shirt/helmet
+                        strings) - PrevRiderAvatar/avatarToConfig are typed for Avatar's Color-enum
+                        shape. ActiveRidesService never validates these strings against the Color
+                        union either, so this is a narrowing cast, not a runtime risk. */}
+                    <PrevRiderAvatar avatar={avatar as Avatar} size={16} />
+                </View>
+                <Text style={[styles.nameCompact, isUser && styles.textUser, textColorStyle]} numberOfLines={1} ellipsizeMode="tail">
+                    {name}
+                </Text>
+                <Text style={[styles.gapCompact, isUser && styles.textUser, textColorStyle]} numberOfLines={1}>
+                    {gapText}
+                </Text>
+            </View>
+        );
+    }
+
+    const distanceText = formatDistance(distance);
     const powerText = formatPower(power, mpower);
     const speedText = formatSpeed(speed);
-    const textColorStyle = textColor ? { color: textColor } : null;
 
     return (
-        <View
-            style={[
-                styles.row,
-                compact && styles.rowCompact,
-                isUser && styles.rowUser,
-                isPaused && styles.rowPaused,
-                backgroundColor ? { backgroundColor } : null,
-            ]}
-            testID="nearby-rider-row"
-        >
-            <View style={[styles.avatarSlot, compact && styles.avatarSlotCompact]}>
-                {/* NearbyRiderRowProps.avatar is ActiveRideListAvatar (plain shirt/helmet
-                    strings) - PrevRiderAvatar/avatarToConfig are typed for Avatar's Color-enum
-                    shape. ActiveRidesService never validates these strings against the Color
-                    union either (same looseness RidePageService.mapNearbyRiderRow() already
-                    widens past on the services side), so this is a narrowing cast, not a runtime
-                    risk. */}
-                <PrevRiderAvatar avatar={avatar as Avatar} size={compact ? 18 : 32} />
+        <View style={[styles.row, ...rowStyleBase]} testID="nearby-rider-row">
+            <View style={styles.avatarSlot}>
+                <PrevRiderAvatar avatar={avatar as Avatar} size={32} />
+                {isCoach && (
+                    <Text style={styles.avatarBadge} numberOfLines={1}>
+                        COACH
+                    </Text>
+                )}
+                {isPaused && (
+                    <Text style={styles.avatarBadge} numberOfLines={1}>
+                        PAUSED
+                    </Text>
+                )}
             </View>
 
-            <View style={[styles.content, compact && styles.contentCompact]}>
-                <View style={[styles.topRow, compact && styles.topRowCompact]}>
-                    <Text style={[styles.name, compact && styles.nameCompact, isUser && styles.textUser, textColorStyle]} numberOfLines={1}>
+            <View style={styles.content}>
+                <View style={styles.topRow}>
+                    <Text style={[styles.name, isUser && styles.textUser, textColorStyle]} numberOfLines={1} ellipsizeMode="tail">
                         {name}
                     </Text>
-                    {isCoach && (
-                        <Text style={[styles.badge, compact && styles.badgeCompact]} numberOfLines={1}>
-                            COACH
-                        </Text>
-                    )}
-                    {isPaused && (
-                        <Text style={[styles.badge, compact && styles.badgeCompact]} numberOfLines={1}>
-                            PAUSED
-                        </Text>
-                    )}
+                    <Text style={[styles.gap, isUser && styles.textUser, textColorStyle]} numberOfLines={1}>
+                        {gapText}
+                    </Text>
                 </View>
 
-                <View style={[styles.statsRow, compact && styles.statsRowCompact]}>
+                <View style={styles.statsRow}>
                     {distanceText ? (
-                        <Text style={[styles.stat, compact && styles.statCompact, textColorStyle]} numberOfLines={1}>
+                        <Text style={[styles.stat, textColorStyle]} numberOfLines={1}>
                             {distanceText}
                         </Text>
                     ) : null}
                     {powerText ? (
-                        <Text style={[styles.stat, compact && styles.statCompact, textColorStyle]} numberOfLines={1}>
+                        <Text style={[styles.stat, textColorStyle]} numberOfLines={1}>
                             {powerText}
                         </Text>
                     ) : null}
                     {speedText ? (
-                        <Text style={[styles.stat, compact && styles.statCompact, textColorStyle]} numberOfLines={1}>
+                        <Text style={[styles.stat, textColorStyle]} numberOfLines={1}>
                             {speedText}
                         </Text>
                     ) : null}
-                    <Text style={[styles.gap, compact && styles.gapCompact, isUser && styles.textUser, textColorStyle]} numberOfLines={1}>
-                        {gapText}
-                    </Text>
                 </View>
             </View>
         </View>
@@ -155,6 +158,7 @@ export const NearbyRiderRow = (props: NearbyRiderRowComponentProps) => {
 };
 
 const styles = StyleSheet.create({
+    // --- tablet-ear (non-compact) tier — 2 lines max ---
     row: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -173,38 +177,31 @@ const styles = StyleSheet.create({
     rowPaused: {
         opacity: 0.55,
     },
-    // --- compact (phone corner-panel) tier — see NearbyRiderRowComponentProps.compact ---
-    rowCompact: {
-        // marginBottom deliberately left at the shared `row.marginBottom` value (not shrunk) —
-        // NearbyRidersExpandedPanel.tsx's NEARBY_ROW_MARGIN_BOTTOM constant assumes it stays in
-        // sync across both tiers, the same way PrevRidesRow's two tiers share ROW_MARGIN_BOTTOM.
-        paddingVertical: 4,
-        paddingHorizontal: 6,
-        gap: 6,
-        borderRadius: 6,
-    },
+    // Column, not row: the avatar and its COACH/PAUSED badge (when present) stack vertically here
+    // instead of the badge competing with the name/gap for room on the text column's top line.
+    // minWidth (not a fixed width) so the column still grows to fit "PAUSED", the wider of the two
+    // badge strings, without clipping it.
     avatarSlot: {
-        width: 32,
+        minWidth: 32,
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 2,
     },
-    avatarSlotCompact: {
-        width: 18,
+    avatarBadge: {
+        color: colors.text,
+        fontSize: textSizes.microText,
+        fontWeight: '700',
+        opacity: 0.75,
+        textAlign: 'center',
     },
     content: {
         flex: 1,
         gap: 4,
     },
-    contentCompact: {
-        gap: 1,
-    },
     topRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-    },
-    topRowCompact: {
-        gap: 4,
     },
     name: {
         flex: 1,
@@ -212,34 +209,16 @@ const styles = StyleSheet.create({
         fontSize: textSizes.listEntry,
         fontWeight: '600',
     },
-    nameCompact: {
-        fontSize: textSizes.tinyText,
-    },
     textUser: {
         color: colors.buttonPrimary,
     },
-    badge: {
-        color: colors.text,
-        fontSize: textSizes.microText,
-        fontWeight: '700',
-        opacity: 0.75,
-        flexShrink: 0,
-    },
-    badgeCompact: {
-        fontSize: 8,
-    },
-    // flexWrap so a container narrower than the stats' combined intrinsic width (every stat and
-    // the gap value are flexShrink:0 — legibility over compression) wraps the overflow onto
-    // additional lines instead of relying on the container to clip it (bug: a gap value like
-    // "+340 m" was being cut off mid-word wherever the container clips overflow).
+    // Line 2: distance/power/speed only (the gap moved to the top row, see the component doc
+    // above) — 3 short values, laid out without wrapping so this line can never itself grow into
+    // a 3rd line of the row.
     statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        flexWrap: 'wrap',
         gap: 8,
-    },
-    statsRowCompact: {
-        gap: 4,
     },
     stat: {
         color: colors.text,
@@ -247,29 +226,60 @@ const styles = StyleSheet.create({
         opacity: 0.75,
         flexShrink: 0,
     },
-    statCompact: {
-        fontSize: textSizes.microText,
-    },
+    // Pinned to a fixed-width, right-aligned column at the end of the top row — detached from the
+    // name's own text width (marginLeft:'auto' pushes it to the row's end regardless of how long
+    // the name is), so its position doesn't shift row-to-row. Same technique PrevRidesRow's
+    // tablet-tier gap column uses for the same reason. Matches `name`'s own font size (not a
+    // smaller secondary size) and never shrinks: if the two don't both fit, `name` is the one that
+    // truncates (its own `numberOfLines`/`ellipsizeMode`) — the gap value always renders in full.
     gap: {
         marginLeft: 'auto',
-        minWidth: 56,
+        minWidth: 80,
         textAlign: 'right',
         color: colors.text,
-        fontSize: textSizes.subtitle,
+        fontSize: textSizes.listEntry,
         fontWeight: '700',
         flexShrink: 0,
     },
-    gapCompact: {
-        // Unlike the tablet-tier `gap` style, compact mode doesn't force the gap value to the far
-        // right of its own line (`marginLeft: 'auto'` on a wrapping row pushes an item to the end
-        // of whatever line has room for it — with the other three stats already close to filling
-        // the compact width, that reliably bumped the gap onto its own third line). Flowing inline
-        // instead lets it share a line with whichever stat(s) fit, so a row is two lines (name,
-        // then wrapped stats+gap) rather than three in the common case — directly reduces the
-        // panel's per-row height, which is the panel's whole way of fitting more rows in the phone
-        // corner-panel's narrow width.
-        marginLeft: 0,
-        minWidth: 0,
+
+    // --- phone corner-panel (compact) tier — exactly 1 line, avatar + name + gap only ---
+    rowCompact: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 24,
+        paddingHorizontal: 6,
+        gap: 6,
+        borderLeftWidth: 2,
+        borderLeftColor: 'transparent',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 4,
+        // Kept equal to the tablet tier's `row.marginBottom` on purpose —
+        // NearbyRidersExpandedPanel.tsx's NEARBY_ROW_MARGIN_BOTTOM constant assumes the two stay
+        // in sync (onLayout reports a view's own box, not the margin around it, so external
+        // row-spacing math needs this value mirrored, the same way PrevRidesRow's two tiers share
+        // its exported ROW_MARGIN_BOTTOM).
+        marginBottom: 3,
+    },
+    // width:14 — no wider than PrevRidesRow's phone position-number column, so this avatar costs
+    // no more row-width than the position number it conceptually replaces (PrevRidesRow's phone
+    // tier has no avatar at all; this list has no ranking number to anchor identity on instead).
+    avatarSlotCompact: {
+        width: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    nameCompact: {
+        flex: 1,
+        color: colors.text,
         fontSize: textSizes.tinyText,
+    },
+    // Same font size as `nameCompact` (not a smaller secondary size) and non-shrinking — if the
+    // two don't both fit on the row's one line, `nameCompact` truncates first (its own
+    // `numberOfLines`/`ellipsizeMode`), the gap value always renders in full.
+    gapCompact: {
+        flexShrink: 0,
+        color: colors.text,
+        fontSize: textSizes.tinyText,
+        fontWeight: '700',
     },
 });
