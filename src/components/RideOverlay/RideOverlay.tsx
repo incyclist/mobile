@@ -311,6 +311,14 @@ export const RideOverlay = (props: RideOverlayProps) => {
         ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - nearbyRidersAnchorBottom - 2 * SLOT_GAP
         : undefined;
 
+    // Phone-only: PrevRides wins the single shared corner slot when both features are eligible
+    // at once (design doc §5.2, "Resolved (repo owner decision, 2026-08-31)"). Same eligibility
+    // check the phone PrevRidesCornerPanel mount condition below already uses — named here so the
+    // NearbyRidersCornerPanel gate can reuse it rather than re-deriving it. Tablet's separate
+    // left/right ears (NearbyRidersTabletList/PrevRidesTabletList above) have no slot contention
+    // and are unaffected — this only feeds the phone (cornerSlotIsToggle) branch below.
+    const prevRidesEligible = !!prevRides && prevRides.length > 0;
+
     return (
         <>
             {/* --- WorkoutDashboard — null in 'fallback' (§5.8), and whenever no workout is attached */}
@@ -463,15 +471,16 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     corner-slot toggle (phone), symmetric to how PrevRides' equivalents are
                     mounted"). Anchored to the SAME `cornerSlotRect` PrevRidesCornerPanel uses —
                     there is only one corner slot on phone (`elevation`/`workout`), not separate
-                    left/right ears the way the tablet arrangement has. When both `prevRides` and
-                    `nearbyRiders` are eligible at once on phone, this means both panels currently
-                    anchor to (and, if both expanded, visually overlap at) the same position — the
-                    design doc's phone tier never established a stacking order for two simultaneous
-                    sibling panels (only the tablet ear table reserves separate left/right space).
-                    Implemented literally per the session plan's "symmetric" instruction rather than
-                    inventing an unreviewed stacking rule here; flagged as a real integration gap for
-                    follow-up (e.g. Wave 4 sign-off), not silently resolved. */}
-            {elevation && cornerSlotIsToggle && nearbyRiders && nearbyRiders.length > 0 && (
+                    left/right ears the way the tablet arrangement has. Session 3.1 found that
+                    mounting this unconditionally alongside PrevRidesCornerPanel makes both panels
+                    anchor to (and, if both expanded, visually overlap at) the same position when
+                    both are eligible at once. Resolved (repo owner decision, 2026-08-31): PrevRides
+                    wins the shared phone corner slot, so this panel stays hidden whenever
+                    `prevRidesEligible` — it only mounts once PrevRides becomes ineligible (toggle
+                    off, or no eligible previous rides for this ride). Tablet's separate left/right
+                    ears (NearbyRidersTabletList above) are unaffected — both render simultaneously
+                    there as already designed. */}
+            {elevation && cornerSlotIsToggle && !prevRidesEligible && nearbyRiders && nearbyRiders.length > 0 && (
                 <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
                     <NearbyRidersCornerPanel
                         slotRect={cornerSlotRect as Rect}

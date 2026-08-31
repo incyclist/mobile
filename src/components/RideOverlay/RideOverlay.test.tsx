@@ -441,7 +441,10 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
     });
 
-    it('both PrevRides and Nearby Riders present simultaneously: both lists render side by side (left/right ears)', () => {
+    // Tablet has separate left/right ears (no shared corner slot), so the phone-only "PrevRides
+    // wins the slot" gate (design doc §5.2, resolved 2026-08-31) does not apply here — both lists
+    // render simultaneously, unaffected.
+    it('both PrevRides and Nearby Riders present simultaneously: both lists render side by side (left/right ears), unaffected by the phone-only slot gate', () => {
         setDimensions(1400, 900);
         const { getByTestId } = render(
             <RideOverlay {...nearbyRidersProps} prevRides={MOCK_ROWS} getPrevRidesRows={() => MOCK_ROWS} />
@@ -504,21 +507,26 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
 
         // Integration finding (session 3.1): PrevRidesCornerPanel and NearbyRidersCornerPanel both
         // anchor to the SAME cornerSlotRect on phone (there is only one corner slot, unlike the
-        // tablet's separate left/right ears) — implemented literally per the session plan's
-        // "symmetric... corner-slot toggle (phone)" instruction. This test documents the resulting
-        // overlap rather than hiding it: both panels currently render at the same position when
-        // both features are eligible at once.
-        it('both PrevRides and Nearby Riders eligible at once: both panels render, anchored to the same corner-slot rect (unresolved stacking order — flagged, not fixed here)', () => {
-            const { getByTestId } = render(
+        // tablet's separate left/right ears). Resolved (repo owner decision, 2026-08-31, design doc
+        // §5.2): PrevRides wins the shared phone corner slot — NearbyRidersCornerPanel stays hidden
+        // whenever PrevRides is eligible too.
+        it('both PrevRides and Nearby Riders eligible at once: PrevRides wins the shared phone corner slot, Nearby Riders panel does not render', () => {
+            const { getByTestId, queryByTestId } = render(
                 <RideOverlay {...fallbackProps} prevRides={MOCK_ROWS} getPrevRidesRows={() => MOCK_ROWS} />
             );
 
-            const prevPanel = getByTestId('prev-rides-expanded-panel');
-            const nearbyPanel = getByTestId('nearby-riders-expanded-panel');
-            const prevTop = StyleSheet.flatten(prevPanel.props.style).top;
-            const nearbyTop = StyleSheet.flatten(nearbyPanel.props.style).top;
+            expect(getByTestId('prev-rides-expanded-panel')).toBeTruthy();
+            expect(queryByTestId('nearby-riders-expanded-panel')).toBeNull();
+            expect(queryByTestId('nearby-riders-collapsed-slot')).toBeNull();
+        });
 
-            expect(nearbyTop).toBe(prevTop);
+        it('PrevRides not eligible: the Nearby Riders phone panel renders normally', () => {
+            const { getByTestId, queryByTestId } = render(
+                <RideOverlay {...fallbackProps} prevRides={undefined} />
+            );
+
+            expect(queryByTestId('prev-rides-expanded-panel')).toBeNull();
+            expect(getByTestId('nearby-riders-expanded-panel')).toBeTruthy();
         });
     });
 });
