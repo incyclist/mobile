@@ -18,8 +18,9 @@ interface RiderAvatarMarkerProps {
 const [, , VIEWBOX_WIDTH, VIEWBOX_HEIGHT] = AVATAR_VIEWBOX.split(' ').map(Number);
 const AVATAR_ASPECT_RATIO = VIEWBOX_WIDTH / VIEWBOX_HEIGHT;
 
-// Full avatar SVG marker for a previous rider (or the current rider, via FreeMap's optional
-// `markerAvatar` prop) on FreeMap, reusing the same male-cyclist path data
+// Full avatar SVG marker for another rider (via FreeMap's `riderMarkers` prop — fed by PrevRides
+// or Nearby Riders) or the current rider (via FreeMap's optional `markerAvatar` prop) on FreeMap,
+// reusing the same male-cyclist path data
 // (`src/assets/avatars/male-paths.ts`) and color parameterization (shirt/helmet/skin/etc.)
 // already ported from web-ui's Avatar component and used by `ElevationGraph`'s `AvatarMarker`.
 //

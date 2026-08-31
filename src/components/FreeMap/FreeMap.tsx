@@ -26,7 +26,7 @@ export const FreeMap = (props: TFreeMapProps) => {
         activity,
         followPosition,
         showDone,
-        prevRiders
+        riderMarkers
     } = props;
 
     const points = useMemo(() => getPointsFromProps({ points: propsPoints, route, activity }), [propsPoints, route, activity]);
@@ -143,13 +143,13 @@ export const FreeMap = (props: TFreeMapProps) => {
         ? toMapCoord(position)
         : undefined;
 
-    const prevRiderMarkers = useMemo(
-        () => prevRiders?.map((rider) => ({
+    const riderMarkerCoordinates = useMemo(
+        () => riderMarkers?.map((rider) => ({
             key: rider.key,
             coordinate: toMapCoord(rider.position),
             avatar: rider.avatar,
         })),
-        [prevRiders]
+        [riderMarkers]
     );
 
     const handlePositionChanged = useCallback(
@@ -173,7 +173,7 @@ export const FreeMap = (props: TFreeMapProps) => {
             polylineData={polylineData}
             markerCoordinate={markerCoordinate}
             followPosition={followPosition}
-            prevRiderMarkers={prevRiderMarkers}
+            riderMarkerCoordinates={riderMarkerCoordinates}
         />
     );
 };

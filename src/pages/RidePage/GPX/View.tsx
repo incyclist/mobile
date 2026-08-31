@@ -218,7 +218,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                 zoomControl={false}
                                 scrollWheelZoom={false}
                                 style={styles.fullScreenMap}
-                                prevRiders={prevRiderMarkers}
+                                riderMarkers={prevRiderMarkers}
                                 markerAvatar={currentAvatar}
                             />
                         </Dynamic>

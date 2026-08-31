@@ -340,7 +340,7 @@ describe('RideOverlay — no workout attached', () => {
         render(<RideOverlay {...routeOnlyProps} mapPrevRiders={markers} />);
 
         expect(mockFreeMap).toHaveBeenCalled();
-        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({ prevRiders: markers });
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({ riderMarkers: markers });
     });
 
     it('forwards currentAvatar to the corner map (markerAvatar) and the elevation preview (currentAvatar)', () => {

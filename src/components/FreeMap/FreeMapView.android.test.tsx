@@ -46,19 +46,19 @@ describe('FreeMapView.android', () => {
     });
 
     it('renders one marker per previous rider, at the given positions, alongside the unchanged current marker', async () => {
-        const prevRiderMarkers = [
+        const riderMarkerCoordinates = [
             { key: 'rider-1', coordinate: [13.41, 52.521] as [number, number] },
             { key: 'rider-2', coordinate: [13.42, 52.522] as [number, number], avatar: { shirt: '#ABCDEF' } },
         ];
         const { UNSAFE_root } = render(
-            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={prevRiderMarkers} />
+            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} riderMarkerCoordinates={riderMarkerCoordinates} />
         );
         await waitForAnnotationCount(UNSAFE_root, 3);
 
         const annotations = findAnnotations(UNSAFE_root);
 
-        const rider1 = annotations.find(a => a.props.id === 'prev-rider-rider-1');
-        const rider2 = annotations.find(a => a.props.id === 'prev-rider-rider-2');
+        const rider1 = annotations.find(a => a.props.id === 'rider-rider-1');
+        const rider2 = annotations.find(a => a.props.id === 'rider-rider-2');
         const current = annotations.find(a => a.props.id === 'marker');
 
         expect(rider1?.props.lngLat).toEqual([13.41, 52.521]);
@@ -75,23 +75,23 @@ describe('FreeMapView.android', () => {
         const moved = [{ key: 'rider-1', coordinate: [13.50, 52.60] as [number, number] }];
 
         const { UNSAFE_root, rerender } = render(
-            <FreeMapView {...baseProps} prevRiderMarkers={initial} />
+            <FreeMapView {...baseProps} riderMarkerCoordinates={initial} />
         );
         await waitFor(() => {
-            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
+            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'rider-rider-1')?.props.lngLat)
                 .toEqual([13.41, 52.521]);
         });
 
-        rerender(<FreeMapView {...baseProps} prevRiderMarkers={moved} />);
+        rerender(<FreeMapView {...baseProps} riderMarkerCoordinates={moved} />);
         await waitFor(() => {
-            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'prev-rider-rider-1')?.props.lngLat)
+            expect(findAnnotations(UNSAFE_root).find(a => a.props.id === 'rider-rider-1')?.props.lngLat)
                 .toEqual([13.50, 52.60]);
         });
     });
 
     it('renders no previous-rider markers when the list is empty/undefined', async () => {
         const { UNSAFE_root } = render(
-            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={[]} />
+            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} riderMarkerCoordinates={[]} />
         );
         await waitForAnnotationCount(UNSAFE_root, 1);
     });
