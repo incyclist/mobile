@@ -89,9 +89,10 @@ const styles = StyleSheet.create({
     header: {
         height: HEADER_HEIGHT,
         lineHeight: HEADER_HEIGHT,
-        color: colors.text,
+        paddingHorizontal: 6,
+        backgroundColor: colors.buttonPrimary,
+        color: '#fff',
         fontSize: textSizes.tinyText,
         fontWeight: '700',
-        opacity: 0.8,
     },
 });

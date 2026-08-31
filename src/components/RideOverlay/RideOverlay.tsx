@@ -604,10 +604,11 @@ const styles = StyleSheet.create({
     tabletListHeader: {
         height: TABLET_LIST_HEADER_HEIGHT,
         lineHeight: TABLET_LIST_HEADER_HEIGHT,
-        color: colors.text,
+        paddingHorizontal: 6,
+        backgroundColor: colors.buttonPrimary,
+        color: '#fff',
         fontSize: textSizes.tinyText,
         fontWeight: '700',
-        opacity: 0.8,
     },
     fallbackShoutout: {
         left: 0,
