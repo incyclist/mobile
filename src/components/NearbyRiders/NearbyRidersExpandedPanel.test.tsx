@@ -15,7 +15,7 @@ describe('NearbyRidersExpandedPanel', () => {
             <NearbyRidersExpandedPanel rows={MOCK_ROWS} anchor={REFERENCE_SLOT} screenHeight={REFERENCE_SCREEN_HEIGHT} />
         );
 
-        expect(getByText('Nearby Riders')).toBeTruthy();
+        expect(getByText('Incyclists Nearby')).toBeTruthy();
         // NearbyRiderRow's compact tier is now a flat, single-line row (avatar + name + gap only)
         // — earFreeBand=239.2, fallback rowSpacing=27 -> floor((239.2-22)/27) = 8, more than the
         // full 6-row mock set, so every mock row fits (density now approaches PrevRides' own

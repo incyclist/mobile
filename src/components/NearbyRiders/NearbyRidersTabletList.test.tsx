@@ -7,18 +7,18 @@ describe('NearbyRidersTabletList', () => {
     // design doc §5.2 "Correction 3" (2026-08-31): the tablet ear never rendered a title, unlike
     // the phone NearbyRidersExpandedPanel's headerRow — fixed here, no collapse chevron (tablet
     // ears have no collapse mechanism).
-    it('renders a static "Nearby Riders" title above the rows, with no collapse chevron', () => {
+    it('renders a static "Incyclists Nearby" title above the rows, with no collapse chevron', () => {
         const { getByTestId, getByText, queryByTestId } = render(<NearbyRidersTabletList rows={MOCK_ROWS} />);
 
         expect(getByTestId('nearby-riders-tablet-list-header')).toBeTruthy();
-        expect(getByText('Nearby Riders')).toBeTruthy();
+        expect(getByText('Incyclists Nearby')).toBeTruthy();
         expect(queryByTestId('nearby-riders-expand-chevron')).toBeNull();
     });
 
     it('still renders the title even when the row list is empty', () => {
         const { getByText } = render(<NearbyRidersTabletList rows={[]} />);
 
-        expect(getByText('Nearby Riders')).toBeTruthy();
+        expect(getByText('Incyclists Nearby')).toBeTruthy();
     });
 
     it('renders one row per entry, every field shown regardless of position in the list', () => {

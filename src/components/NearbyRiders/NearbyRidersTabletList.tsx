@@ -63,7 +63,7 @@ export interface NearbyRidersTabletListProps {
 export const NearbyRidersTabletList = ({ rows, style, onFirstRowLayout }: NearbyRidersTabletListProps) => (
     <View testID="nearby-riders-tablet-list" style={style}>
         <Text testID="nearby-riders-tablet-list-header" style={styles.header}>
-            Nearby Riders
+            Incyclists Nearby
         </Text>
         {rows.map((row, index) => {
             const rowKey = `${row.name}-${index}`;

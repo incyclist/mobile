@@ -88,7 +88,7 @@ export const NearbyRidersExpandedPanel = ({ rows, anchor, screenHeight, onVisibl
             ]}
         >
             <View style={styles.headerRow}>
-                <Text style={styles.header}>Nearby Riders</Text>
+                <Text style={styles.header}>Incyclists Nearby</Text>
                 {onCollapse && <PrevRidesExpandChevron expanded onPress={onCollapse} label="nearby riders" testID="nearby-riders-expand-chevron" />}
             </View>
             {visibleRowData.map((row, index) => (
