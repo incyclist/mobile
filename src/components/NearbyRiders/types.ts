@@ -44,3 +44,20 @@ export interface NearbyRiderRowProps {
     backgroundColor?: string;
     textColor?: string;
 }
+
+/**
+ * The geometry a panel/list anchors itself below — deliberately the same `{top, left?, right?,
+ * width, height}` shape as `PrevRides`' `PrevRidesSlotRect` (`../PrevRides/types.ts`), but defined
+ * independently rather than imported from there: these components are built standalone and
+ * position-agnostic this session (session plan 2.2 — no wiring into `RideOverlay.tsx`/its ear or
+ * corner-slot geometry yet, that's session 3.1), so they take a plain rect from whatever caller
+ * eventually supplies one rather than depending on a PrevRides-named type for an otherwise
+ * feature-agnostic concept.
+ */
+export interface NearbyRidersSlotRect {
+    top: number;
+    left?: number;
+    right?: number;
+    width: number;
+    height: number;
+}

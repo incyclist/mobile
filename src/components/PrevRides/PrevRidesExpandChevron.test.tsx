@@ -21,4 +21,15 @@ describe('PrevRidesExpandChevron', () => {
 
         expect(onPress).toHaveBeenCalledTimes(1);
     });
+
+    // label/testID overrides let other features (e.g. NearbyRiders, session plan 2.2) reuse this
+    // component directly instead of forking a near-identical copy — see the component's own doc.
+    it('uses a custom label and testID when given, without affecting the default call sites', () => {
+        const { getByLabelText, getByTestId } = render(
+            <PrevRidesExpandChevron expanded={false} onPress={jest.fn()} label="nearby riders" testID="nearby-riders-expand-chevron" />
+        );
+
+        expect(getByLabelText('Expand nearby riders')).toBeTruthy();
+        expect(getByTestId('nearby-riders-expand-chevron')).toBeTruthy();
+    });
 });
