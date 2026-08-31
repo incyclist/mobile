@@ -15,6 +15,7 @@ import {
     RideSwipeFeedback,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
+import { ErrorBoundary } from '../../../components';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
 import { RideViewActionProps } from '../types';
@@ -207,20 +208,22 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 {/* Map Overlay — route-only rendering, untouched (HLD §9.1). See above. */}
                 {!overlayActive && !isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
                     <View style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
-                        <Dynamic
-                            observer={rideObserver ?? undefined}
-                            event='position-update'
-                            prop='position'
-                            transform={transformPosition}
-                        >
-                            <FreeMap
-                                points={routeData.points}
-                                draggable={false}
-                                followPosition={true}
-                                colorActive='blue'
-                                colorInactive='rgba(255,255,255,0.4)'
-                            />
-                        </Dynamic>
+                        <ErrorBoundary>
+                            <Dynamic
+                                observer={rideObserver ?? undefined}
+                                event='position-update'
+                                prop='position'
+                                transform={transformPosition}
+                            >
+                                <FreeMap
+                                    points={routeData.points}
+                                    draggable={false}
+                                    followPosition={true}
+                                    colorActive='blue'
+                                    colorInactive='rgba(255,255,255,0.4)'
+                                />
+                            </Dynamic>
+                        </ErrorBoundary>
                     </View>
                 )}
 

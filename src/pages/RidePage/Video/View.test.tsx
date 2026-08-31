@@ -23,6 +23,7 @@ jest.mock('../../../components', () => ({
     Video: () => null,
     Button: () => null,
     Dynamic: ({ children }: any) => children,
+    ErrorBoundary: ({ children }: any) => children,
     ElevationGraph: () => null,
     InfoText: () => null,
     FreeMap: () => null,

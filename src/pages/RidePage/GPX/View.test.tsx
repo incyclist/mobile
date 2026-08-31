@@ -23,6 +23,7 @@ const mockFreeMap = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
+    ErrorBoundary: ({ children }: any) => children,
     ElevationGraph: () => null,
     FreeMap: (props: any) => {
         mockFreeMap(props);

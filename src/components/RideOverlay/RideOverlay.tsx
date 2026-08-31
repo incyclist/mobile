@@ -4,6 +4,7 @@ import type { IObserver, RouteApiDetail, RoutePoint, WorkoutGraphActuals } from 
 import { WorkoutDashboard } from '../WorkoutDashboard/WorkoutDashboard';
 import { StopWorkoutButton } from '../WorkoutDashboard/StopWorkoutButton';
 import { Dynamic } from '../Dynamic';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { ElevationGraph } from '../ElevationGraph';
 import type { AvatarConfig } from '../ElevationGraph/types';
 import { FreeMap } from '../FreeMap';
@@ -376,17 +377,19 @@ export const RideOverlay = (props: RideOverlayProps) => {
             {/* --- Corner orientation map — null when !mapVisible or 'fallback' ----------- */}
             {map && mapPoints && mapPoints.length > 0 && (
                 <View testID="ride-overlay-map" style={[styles.cornerWidget, rectStyle(map)]}>
-                    <Dynamic observer={rideObserver ?? undefined} event="position-update" prop="position" transform={transformPosition}>
-                        <FreeMap
-                            points={mapPoints}
-                            draggable={false}
-                            followPosition
-                            colorActive="blue"
-                            colorInactive="rgba(255,255,255,0.4)"
-                            riderMarkers={mapPrevRiders}
-                            markerAvatar={currentAvatar}
-                        />
-                    </Dynamic>
+                    <ErrorBoundary>
+                        <Dynamic observer={rideObserver ?? undefined} event="position-update" prop="position" transform={transformPosition}>
+                            <FreeMap
+                                points={mapPoints}
+                                draggable={false}
+                                followPosition
+                                colorActive="blue"
+                                colorInactive="rgba(255,255,255,0.4)"
+                                riderMarkers={mapPrevRiders}
+                                markerAvatar={currentAvatar}
+                            />
+                        </Dynamic>
+                    </ErrorBoundary>
                 </View>
             )}
 
@@ -396,23 +399,25 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     and an actual side column exists (not the fallback toggle slot, which has no
                     left ear at all — see NearbyRidersCornerPanel below for that case). ---------- */}
             {map && !cornerSlotIsToggle && nearbyRiders && nearbyRiders.length > 0 && (
-                <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
-                    <NearbyRidersTabletList
-                        rows={nearbyRiders}
-                        style={[
-                            styles.cornerWidget,
-                            {
-                                // Below the corner map, left side — see nearbyRidersAnchorBottom
-                                // above. Width is fixed (NEARBY_RIDERS_TABLET_WIDTH, session 2.2),
-                                // not derived from the map's own geometry.
-                                top: (nearbyRidersAnchorBottom as number) + SLOT_GAP,
-                                left: 0,
-                                width: NEARBY_RIDERS_TABLET_WIDTH,
-                                maxHeight: nearbyRidersFreeBand,
-                            },
-                        ]}
-                    />
-                </Dynamic>
+                <ErrorBoundary>
+                    <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
+                        <NearbyRidersTabletList
+                            rows={nearbyRiders}
+                            style={[
+                                styles.cornerWidget,
+                                {
+                                    // Below the corner map, left side — see nearbyRidersAnchorBottom
+                                    // above. Width is fixed (NEARBY_RIDERS_TABLET_WIDTH, session 2.2),
+                                    // not derived from the map's own geometry.
+                                    top: (nearbyRidersAnchorBottom as number) + SLOT_GAP,
+                                    left: 0,
+                                    width: NEARBY_RIDERS_TABLET_WIDTH,
+                                    maxHeight: nearbyRidersFreeBand,
+                                },
+                            ]}
+                        />
+                    </Dynamic>
+                </ErrorBoundary>
             )}
 
             {/* --- 2 km elevation preview, or (in 'fallback') the 2-way Elevation<->Workout
@@ -479,16 +484,18 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     expanded (full list); collapsing leaves just the chevron button in its place,
                     per "keep elevation preview and the button that allows to show the full list". */}
             {elevation && cornerSlotIsToggle && prevRides && prevRides.length > 0 && (
-                <Dynamic observer={rideObserver ?? undefined} event="prev-rides-update" prop="rows" transform={getPrevRidesRows}>
-                    <PrevRidesCornerPanel
-                        slotRect={cornerSlotRect as Rect}
-                        screenHeight={inputs.screenHeight}
-                        rows={prevRides}
-                        onExpandPrevRides={onExpandPrevRides}
-                        onCollapsePrevRides={onCollapsePrevRides}
-                        onVisibleRowsChange={onVisibleRowsChange}
-                    />
-                </Dynamic>
+                <ErrorBoundary>
+                    <Dynamic observer={rideObserver ?? undefined} event="prev-rides-update" prop="rows" transform={getPrevRidesRows}>
+                        <PrevRidesCornerPanel
+                            slotRect={cornerSlotRect as Rect}
+                            screenHeight={inputs.screenHeight}
+                            rows={prevRides}
+                            onExpandPrevRides={onExpandPrevRides}
+                            onCollapsePrevRides={onCollapsePrevRides}
+                            onVisibleRowsChange={onVisibleRowsChange}
+                        />
+                    </Dynamic>
+                </ErrorBoundary>
             )}
 
             {/* --- Phone nearby-riders panel: mounted as a sibling of the elevation/workout
@@ -507,13 +514,15 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     ears (NearbyRidersTabletList above) are unaffected — both render simultaneously
                     there as already designed. */}
             {elevation && cornerSlotIsToggle && !prevRidesEligible && nearbyRiders && nearbyRiders.length > 0 && (
-                <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
-                    <NearbyRidersCornerPanel
-                        slotRect={cornerSlotRect as Rect}
-                        screenHeight={inputs.screenHeight}
-                        rows={nearbyRiders}
-                    />
-                </Dynamic>
+                <ErrorBoundary>
+                    <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
+                        <NearbyRidersCornerPanel
+                            slotRect={cornerSlotRect as Rect}
+                            screenHeight={inputs.screenHeight}
+                            rows={nearbyRiders}
+                        />
+                    </Dynamic>
+                </ErrorBoundary>
             )}
 
             {/* --- Previous-rides list: stacked below elevation (or WorkoutDashboard, in combo
@@ -521,30 +530,32 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     t-side) — the fallback corner slot has no room for it, and column-only has no
                     side column at all. ------------------------------------------------------- */}
             {elevation && !cornerSlotIsToggle && prevRides && prevRides.length > 0 && (
-                <Dynamic observer={rideObserver ?? undefined} event="prev-rides-update" prop="rows" transform={getPrevRidesRows}>
-                    <PrevRidesTabletList
-                        rows={prevRides}
-                        showSpeed={!workoutAttached}
-                        onFirstRowLayout={onFirstRowLayout}
-                        style={[
-                            styles.cornerWidget,
-                            {
-                                // Below elevation (route-only) or below WorkoutDashboard, whichever
-                                // is deeper (combo) — see prevRidesAnchorBottom above. Width is
-                                // fixed (PREV_RIDES_TABLET_WIDTH), not derived from the corner map/
-                                // elevation preview or the dashboard at all.
-                                top: (prevRidesAnchorBottom as number) + SLOT_GAP,
-                                right: 0,
-                                width: PREV_RIDES_TABLET_WIDTH,
-                                // Shrinks to fit the actual row count (never stretches to the
-                                // bottom bar regardless of how few rows there are); maxHeight is
-                                // a safety ceiling only, matching the same free-band the
-                                // visibleRows report above already sizes rows to.
-                                maxHeight: prevRidesFreeBand,
-                            },
-                        ]}
-                    />
-                </Dynamic>
+                <ErrorBoundary>
+                    <Dynamic observer={rideObserver ?? undefined} event="prev-rides-update" prop="rows" transform={getPrevRidesRows}>
+                        <PrevRidesTabletList
+                            rows={prevRides}
+                            showSpeed={!workoutAttached}
+                            onFirstRowLayout={onFirstRowLayout}
+                            style={[
+                                styles.cornerWidget,
+                                {
+                                    // Below elevation (route-only) or below WorkoutDashboard, whichever
+                                    // is deeper (combo) — see prevRidesAnchorBottom above. Width is
+                                    // fixed (PREV_RIDES_TABLET_WIDTH), not derived from the corner map/
+                                    // elevation preview or the dashboard at all.
+                                    top: (prevRidesAnchorBottom as number) + SLOT_GAP,
+                                    right: 0,
+                                    width: PREV_RIDES_TABLET_WIDTH,
+                                    // Shrinks to fit the actual row count (never stretches to the
+                                    // bottom bar regardless of how few rows there are); maxHeight is
+                                    // a safety ceiling only, matching the same free-band the
+                                    // visibleRows report above already sizes rows to.
+                                    maxHeight: prevRidesFreeBand,
+                                },
+                            ]}
+                        />
+                    </Dynamic>
+                </ErrorBoundary>
             )}
 
             {/* --- §5.4(a): single-line current-step description, unconditional in 'fallback',

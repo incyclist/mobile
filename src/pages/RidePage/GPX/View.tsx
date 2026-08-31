@@ -17,6 +17,7 @@ import {
     RideSwipeFeedback,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
+import { ErrorBoundary } from '../../../components';
 import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 import { StreetView } from '../../../components/StreetView';
@@ -220,31 +221,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                 <View style={StyleSheet.absoluteFill}>
                     {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
                     { (rideView === 'map' || rideView === 'sat') && (
-                        <Dynamic
-                            observer={rideObserver ?? undefined}
-                            event='position-update'
-                            prop='position'
-                            transform={transformPosition}
-                        >
-                            <FreeMap
-                                points={routeData?.points as RoutePoint[] ?? []}
-                                position={undefined}
-                                draggable={false}
-                                followPosition={true}
-                                zoomControl={false}
-                                scrollWheelZoom={false}
-                                style={styles.fullScreenMap}
-                                riderMarkers={riderMarkers}
-                                markerAvatar={currentAvatar}
-                            />
-                        </Dynamic>
-                    )}
-                    {/* Corner orientation map — shown only when the main view above isn't itself a map.
-                        Route-only rendering, untouched (HLD §9.1). Replaced by RideOverlay's
-                        own corner-widget rects whenever overlayActive (a workout is attached, or
-                        eligible previous rides exist). */}
-                    {!overlayActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
-                        <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
+                        <ErrorBoundary>
                             <Dynamic
                                 observer={rideObserver ?? undefined}
                                 event='position-update'
@@ -252,13 +229,41 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                 transform={transformPosition}
                             >
                                 <FreeMap
-                                    points={routeData.points as RoutePoint[]}
+                                    points={routeData?.points as RoutePoint[] ?? []}
+                                    position={undefined}
                                     draggable={false}
                                     followPosition={true}
-                                    colorActive='blue'
-                                    colorInactive='rgba(255,255,255,0.4)'
+                                    zoomControl={false}
+                                    scrollWheelZoom={false}
+                                    style={styles.fullScreenMap}
+                                    riderMarkers={riderMarkers}
+                                    markerAvatar={currentAvatar}
                                 />
                             </Dynamic>
+                        </ErrorBoundary>
+                    )}
+                    {/* Corner orientation map — shown only when the main view above isn't itself a map.
+                        Route-only rendering, untouched (HLD §9.1). Replaced by RideOverlay's
+                        own corner-widget rects whenever overlayActive (a workout is attached, or
+                        eligible previous rides exist). */}
+                    {!overlayActive && !isCompact && mainViewIsNotAMap && hasGpx && !!routeData?.points?.length && (
+                        <View testID='gpx-corner-map' style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
+                            <ErrorBoundary>
+                                <Dynamic
+                                    observer={rideObserver ?? undefined}
+                                    event='position-update'
+                                    prop='position'
+                                    transform={transformPosition}
+                                >
+                                    <FreeMap
+                                        points={routeData.points as RoutePoint[]}
+                                        draggable={false}
+                                        followPosition={true}
+                                        colorActive='blue'
+                                        colorInactive='rgba(255,255,255,0.4)'
+                                    />
+                                </Dynamic>
+                            </ErrorBoundary>
                         </View>
                     )}
 
