@@ -104,9 +104,14 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         handleApplySettings({ ...data, nextOverwrite: v });
     }, [handleApplySettings, data]);
 
+    // Local-only: unlike the other handlers above, this must not round-trip through
+    // onSettingsChanged (refreshPrevRides) - that re-queries past activities for the current
+    // position and always recomputes showPrev from whether results exist, clobbering the
+    // user's explicit choice right back to "on". Toggling display doesn't change which
+    // activities are available, so there's nothing to refresh.
     const handleShowPrevChange = useCallback((v: boolean) => {
-        handleApplySettings({ ...data, showPrev: v });
-    }, [handleApplySettings, data]);
+        setData(prev => ({ ...prev, showPrev: v }));
+    }, []);
 
 
     const markerPosition = useMemo(() => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { RouteDetailsView } from './RouteDetailsView';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
@@ -235,6 +235,47 @@ describe('RouteDetailsView', () => {
             );
             fireEvent.press(getByText('Add Workout'));
             expect(MOCK_PROPS.onAddWorkout).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('"Compare prev rides" toggle', () => {
+        // Regression test: turning the toggle off used to round-trip through onSettingsChanged
+        // (refreshPrevRides in RouteDetailsDialog), which always recomputes showPrev from whether
+        // past activities exist for the current position - ignoring the value the user just set -
+        // and so silently reverted the toggle back to "on".
+        it('does not call onSettingsChanged when toggled', () => {
+            const onSettingsChanged = jest.fn().mockResolvedValue({});
+            const { getByText } = render(
+                <RouteDetailsView
+                    {...MOCK_PROPS}
+                    prevRides={[{ id: 'a1' }]}
+                    showPrev={true}
+                    onSettingsChanged={onSettingsChanged}
+                />
+            );
+            fireEvent.press(getByText('No'));
+            expect(onSettingsChanged).not.toHaveBeenCalled();
+        });
+
+        it('stays off (and is carried into onStart) after being turned off, even if onSettingsChanged would say otherwise', async () => {
+            const onSettingsChanged = jest.fn().mockResolvedValue({ showPrev: true });
+            const onStart = jest.fn();
+            const { getByText, getAllByText } = render(
+                <RouteDetailsView
+                    {...MOCK_PROPS}
+                    prevRides={[{ id: 'a1' }]}
+                    showPrev={true}
+                    onSettingsChanged={onSettingsChanged}
+                    onStart={onStart}
+                />
+            );
+            fireEvent.press(getByText('No'));
+            // Let any in-flight onSettingsChanged round-trip (and its state merge) fully settle
+            // before checking - a prior version of this fix only "worked" because the test raced
+            // ahead of that merge, which made it pass even on the buggy code.
+            await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+            getAllByText('Start').forEach(el => fireEvent.press(el));
+            expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ showPrev: false }));
         });
     });
 });
