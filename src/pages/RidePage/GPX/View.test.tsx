@@ -1,9 +1,18 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { GPXTourPageView, GPXTourPageViewProps } from './View';
+import { avatarToConfig } from '../../../components/PrevRides';
 
 jest.mock('react-native-device-info', () => ({
     isTablet: () => false,
+}));
+
+// AvatarService.get('current') is the source of currentAvatar — self-populating and independent
+// of prevRides/nearbyRiders row state, unlike the old prevRides.rows.find(isCurrent) derivation
+// this replaced.
+const mockAvatarGet = jest.fn((id: string) => ({ helmet: 'blue', shirt: 'red' }));
+jest.mock('incyclist-services', () => ({
+    useAvatars: () => ({ get: (id: string) => mockAvatarGet(id) }),
 }));
 
 const mockStartRideDisplay = jest.fn();
@@ -434,6 +443,66 @@ describe('GPXTourPageView — previous-rides overlay wiring', () => {
         expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({
             riderMarkers: [{ key: '100', position: { lat: 1, lng: 2 }, avatar: undefined }],
         });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// currentAvatar resolution — regression coverage. currentAvatar used to be derived from
+// prevRides?.rows.find(row => row.isCurrent)?.avatar, which resolved to undefined (default marker
+// styling) whenever prevRides had no eligible rows, e.g. a first-time route. It is now resolved
+// directly via AvatarService (useAvatars().get('current')), which self-populates and is
+// independent of prevRides/nearbyRiders row state entirely.
+// ---------------------------------------------------------------------------
+
+describe('GPXTourPageView — currentAvatar resolution', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockFreeMap.mockClear();
+        mockAvatarGet.mockClear();
+    });
+
+    it('resolves currentAvatar from AvatarService even when prevRides is empty (regression: used to fall back to undefined)', () => {
+        const { getByText } = render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{
+                    ...prevRidesOnlyDisplayProps(),
+                    prevRides: { mode: 'list', rows: [], hasMore: false },
+                } as any}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+        expect(mockAvatarGet).toHaveBeenCalledWith('current');
+    });
+
+    it('resolves currentAvatar from AvatarService when prevRides is undefined', () => {
+        const { getByText } = render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{
+                    ...prevRidesOnlyDisplayProps(),
+                    prevRides: undefined,
+                    nearbyRiders: { rows: [{ isUser: true, isPaused: false, isCoach: false, name: 'You', distance: 900, diffDistance: 0, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 }] },
+                } as any}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+    });
+
+    it('resolves the same currentAvatar from AvatarService when prevRides is populated — no longer sourced from its rows', () => {
+        const { getByText } = render(
+            <GPXTourPageView {...baseProps} displayProps={prevRidesOnlyDisplayProps() as any} />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
     });
 });
 

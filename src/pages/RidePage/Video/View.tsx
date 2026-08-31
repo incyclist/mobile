@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
-import { VideoRidePageDisplayProps } from 'incyclist-services';
+import { VideoRidePageDisplayProps, useAvatars } from 'incyclist-services';
 import {
     Video,
     RideDashboard,
@@ -115,12 +115,13 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     );
 
     // The current rider's own avatar — matches the current-position marker (corner map, elevation
-    // strips) to the "You" row shown in the prevRides list, rather than rendering with default
-    // colors. undefined whenever there's no prevRides list to be inconsistent with.
-    const currentAvatar = useMemo(() => {
-        const avatar = prevRides?.rows.find((row) => row.isCurrent)?.avatar;
-        return avatar ? avatarToConfig(avatar) : undefined;
-    }, [prevRides]);
+    // strips) to the "You" row shown in the Nearby Riders list. Resolved directly from
+    // AvatarService (via useAvatars(), same as web-ui's MapRideView/MapOverlay) rather than derived
+    // from prevRides.rows: that derivation used to fall back to undefined (default marker styling)
+    // whenever prevRides had no eligible rows (e.g. a first-time route), even though a real avatar
+    // was available and Nearby Riders' own "You" row resolved it independently via the same
+    // AvatarService. AvatarService.get('current') self-populates and always resolves to a value.
+    const currentAvatar = useMemo(() => avatarToConfig(useAvatars().get('current')), []);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
