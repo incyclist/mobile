@@ -8,6 +8,7 @@ export * from './PermissionsService';
 export * from './Navigation';
 export * from './IncyclistApi';
 export * from './RestLogging';
+export * from './CrashReporting';
 
 let currentSecretsStatus: SecretsStatus = 'missing';
 

@@ -39,6 +39,8 @@ if (!EventEmitter.default) {
 }
 */
 
+import { installCrashReporting } from './src/services/CrashReporting/CrashReporting.ts';
+installCrashReporting();
 
 import { Loader } from './src/Loader.tsx';
 
