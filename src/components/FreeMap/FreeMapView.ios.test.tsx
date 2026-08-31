@@ -29,12 +29,12 @@ describe('FreeMapView.ios', () => {
     });
 
     it('renders one marker per previous rider, at the given positions, alongside the unchanged current marker', () => {
-        const prevRiderMarkers = [
+        const riderMarkerCoordinates = [
             { key: 'rider-1', coordinate: [13.41, 52.521] as [number, number] },
             { key: 'rider-2', coordinate: [13.42, 52.522] as [number, number], avatar: { shirt: '#ABCDEF' } },
         ];
         const { UNSAFE_root } = render(
-            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={prevRiderMarkers} />
+            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} riderMarkerCoordinates={riderMarkerCoordinates} />
         );
 
         const markers = findMarkers(UNSAFE_root);
@@ -54,17 +54,17 @@ describe('FreeMapView.ios', () => {
         const moved = [{ key: 'rider-1', coordinate: [13.50, 52.60] as [number, number] }];
 
         const { UNSAFE_root, rerender } = render(
-            <FreeMapView {...baseProps} prevRiderMarkers={initial} />
+            <FreeMapView {...baseProps} riderMarkerCoordinates={initial} />
         );
         expect(findMarkers(UNSAFE_root)[0].props.coordinate).toEqual({ latitude: 52.521, longitude: 13.41 });
 
-        rerender(<FreeMapView {...baseProps} prevRiderMarkers={moved} />);
+        rerender(<FreeMapView {...baseProps} riderMarkerCoordinates={moved} />);
         expect(findMarkers(UNSAFE_root)[0].props.coordinate).toEqual({ latitude: 52.60, longitude: 13.50 });
     });
 
     it('renders no previous-rider markers when the list is empty/undefined', () => {
         const { UNSAFE_root } = render(
-            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} prevRiderMarkers={[]} />
+            <FreeMapView {...baseProps} markerCoordinate={[13.405, 52.52]} riderMarkerCoordinates={[]} />
         );
         expect(findMarkers(UNSAFE_root)).toHaveLength(1);
     });

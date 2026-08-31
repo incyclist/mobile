@@ -7,7 +7,7 @@ import { Dynamic } from '../Dynamic';
 import { ElevationGraph } from '../ElevationGraph';
 import type { AvatarConfig } from '../ElevationGraph/types';
 import { FreeMap } from '../FreeMap';
-import type { PrevRiderMarker } from '../FreeMap/types';
+import type { RiderMapMarker } from '../FreeMap/types';
 import { WorkoutStepsList } from '../WorkoutStepsList';
 import { PrevRidesRow, PrevRidesCornerPanel, ROW_MARGIN_BOTTOM, type PrevRidesRowProps } from '../PrevRides';
 import {
@@ -110,9 +110,11 @@ export interface RideOverlayProps {
      *  row budget internally). Stands in for `RidePageService.setPrevRidesVisibleRows()` — the
      *  caller wires this to the real call. */
     onVisibleRowsChange?: (visibleRows: number) => void;
-    /** Previous riders' live positions for the corner map — forwarded as-is to `FreeMap`'s own
-     *  `prevRiders` prop. */
-    mapPrevRiders?: PrevRiderMarker[];
+    /** Other riders' live positions for the corner map — forwarded as-is to `FreeMap`'s own
+     *  `riderMarkers` prop. Named for its current (PrevRides-only) caller; from a later session
+     *  this may also carry Nearby Riders markers, merged by the caller before being passed down —
+     *  `FreeMap` itself doesn't distinguish where a given marker came from. */
+    mapPrevRiders?: RiderMapMarker[];
     /** The current rider's own avatar (already color-resolved) — forwarded to the corner map's
      *  `markerAvatar` and to the elevation preview's `currentAvatar`, so the current-position
      *  marker matches the same rider's "You" row in the `prevRides` list rather than rendering
@@ -313,7 +315,7 @@ export const RideOverlay = (props: RideOverlayProps) => {
                             followPosition
                             colorActive="blue"
                             colorInactive="rgba(255,255,255,0.4)"
-                            prevRiders={mapPrevRiders}
+                            riderMarkers={mapPrevRiders}
                             markerAvatar={currentAvatar}
                         />
                     </Dynamic>

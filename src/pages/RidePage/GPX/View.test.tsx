@@ -432,7 +432,7 @@ describe('GPXTourPageView — previous-rides overlay wiring', () => {
         // 'map': the main FreeMap is now mounted and receives the same markers.
         expect(mockFreeMap).toHaveBeenCalled();
         expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({
-            prevRiders: [{ key: '100', position: { lat: 1, lng: 2 }, avatar: undefined }],
+            riderMarkers: [{ key: '100', position: { lat: 1, lng: 2 }, avatar: undefined }],
         });
     });
 });

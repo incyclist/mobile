@@ -58,12 +58,16 @@ export interface AvatarConfig {
     helmet?: string; // override for the helmet color specifically (falls back to helmOuter)
 }
 
-// A previous rider's live position + identity, rendered as a marker alongside the current
-// rider's own (unchanged) position marker. `key` must be stable across ticks for a given rider
-// (e.g. the rider's `tsStart`) — it's used both as the React list key and, were positions to be
-// re-computed on every tick, as the basis for a forced remount so the marker's map annotation is
-// re-captured cleanly (matching the existing single-marker `key={marker-${coord}}` pattern).
-export interface PrevRiderMarker {
+// Another rider's live position + identity, rendered as a marker alongside the current rider's
+// own (unchanged) position marker. Feature-agnostic — fed by PrevRides (Race Against Yourself)
+// today and, from a later session, Nearby Riders too; both sources resolve down to this same
+// shape before being merged into one array, so FreeMap/the platform views never need to know
+// which feature a given marker came from. `key` must be stable across ticks for a given rider
+// (e.g. a previous rider's `tsStart`, or a nearby rider's session id) — it's used both as the
+// React list key and, were positions to be re-computed on every tick, as the basis for a forced
+// remount so the marker's map annotation is re-captured cleanly (matching the existing
+// single-marker `key={marker-${coord}}` pattern).
+export interface RiderMapMarker {
     key: string;
     position: LatLng | RoutePoint;
     avatar?: AvatarConfig;
@@ -99,11 +103,12 @@ export interface TFreeMapProps {
     colorDone?:string;
     followPosition?: boolean;
     showDone?: boolean
-    // Previous riders' live positions (Race Against Yourself). Rendered alongside — never instead
+    // Other riders' live positions — Race Against Yourself's previous rides and (from a later
+    // session) Nearby Riders both funnel into this one array. Rendered alongside — never instead
     // of — the current rider's own marker, which is unaffected by this prop.
-    prevRiders?: Array<PrevRiderMarker>;
+    riderMarkers?: Array<RiderMapMarker>;
     // Color customization for the current rider's own position marker, always rendered as an
-    // avatar SVG (same figure as `prevRiders`). Omit for default colors.
+    // avatar SVG (same figure as `riderMarkers`). Omit for default colors.
     markerAvatar?: AvatarConfig;
 }
 
@@ -113,9 +118,9 @@ export type MapCoord = [number, number];
 // Internal type for MapLibre v11's Camera `bounds` prop: [west, south, east, north]
 export type MapBounds = [number, number, number, number];
 
-// A previous-rider marker resolved down to a plain map coordinate, as computed by `FreeMap.tsx`
-// and consumed by the platform-specific view implementations.
-export interface PrevRiderMapMarker {
+// A `RiderMapMarker` resolved down to a plain map coordinate, as computed by `FreeMap.tsx` and
+// consumed by the platform-specific view implementations.
+export interface RiderMapMarkerCoordinate {
     key: string;
     coordinate: MapCoord;
     avatar?: AvatarConfig;
@@ -136,5 +141,5 @@ export interface FreeMapViewProps extends TFreeMapProps {
     polylineData: GeoJSON.FeatureCollection<GeoJSON.LineString>;
     markerCoordinate?: MapCoord;
     followPosition?: boolean;
-    prevRiderMarkers?: Array<PrevRiderMapMarker>;
+    riderMarkerCoordinates?: Array<RiderMapMarkerCoordinate>;
 }
