@@ -38,6 +38,15 @@ const PREV_RIDES_MAX_VISIBLE_ROWS = 10;
 const clampVisibleRows = (value: number): number =>
     Math.min(Math.max(value, PREV_RIDES_MIN_VISIBLE_ROWS), PREV_RIDES_MAX_VISIBLE_ROWS);
 
+/**
+ * Design doc §5.2 "Correction 3" (2026-08-31): the tablet ears (`PrevRidesTabletList` below and
+ * `NearbyRidersTabletList`) never rendered a title, unlike the phone corner panels' `headerRow`
+ * (`PrevRidesExpandedPanel`/`NearbyRidersExpandedPanel`'s `HEADER_HEIGHT`/`PHASE3_HEADER_HEIGHT`,
+ * 22dp). Same value, duplicated as a local constant rather than imported — those panels are
+ * phone-only components with no shared module for this one number; keep them in sync by eye.
+ */
+const TABLET_LIST_HEADER_HEIGHT = 22;
+
 // The fallback corner slot's fixed height (FALLBACK_ELEVATION_HEIGHT_RATIO) was tuned for the
 // elevation-preview graph, which scales down cleanly — it does not, e.g. on a real ~390dp-tall
 // phone screen only room for one WorkoutStepsList row survives, silently clipping the upcoming-
@@ -176,6 +185,9 @@ interface PrevRidesTabletListProps {
  *  `PrevRidesCondensedLine` already accepts `rows` directly for the phone case. */
 const PrevRidesTabletList = ({ rows, showSpeed, style, onFirstRowLayout }: PrevRidesTabletListProps) => (
     <View testID="ride-overlay-prev-rides" style={style}>
+        <Text testID="ride-overlay-prev-rides-header" style={styles.tabletListHeader}>
+            Previous Rides
+        </Text>
         {rows.map((row, index) => {
             const rowKey = `${row.position}-${index}`;
             const rowElement = <PrevRidesRow layout="normal" showSpeed={showSpeed} {...row} />;
@@ -289,8 +301,14 @@ export const RideOverlay = (props: RideOverlayProps) => {
     // visibleRows report, keyed on the derived number rather than the `elevation` rect object, so
     // this only fires on a real geometry change.
     const prevRidesRowSpacing = (measuredPrevRidesRowHeight ?? PREV_RIDES_ROW_HEIGHT_FALLBACK) + ROW_MARGIN_BOTTOM;
+    // TABLET_LIST_HEADER_HEIGHT subtracted before the floor (design doc §5.2 "Correction 3") — the
+    // title row above the list (PrevRidesTabletList below) now eats into this same free band, so
+    // the row count must budget for it too, the same way the phone PrevRidesExpandedPanel already
+    // subtracts its own HEADER_HEIGHT before computing visibleRows. `maxHeight` on the list's own
+    // style (below) stays the full, unreduced prevRidesFreeBand — it's a safety ceiling for
+    // header+rows together, not itself the row-count budget.
     const prevRidesTabletVisibleRows = prevRidesFreeBand !== undefined
-        ? clampVisibleRows(Math.floor(prevRidesFreeBand / prevRidesRowSpacing))
+        ? clampVisibleRows(Math.floor((prevRidesFreeBand - TABLET_LIST_HEADER_HEIGHT) / prevRidesRowSpacing))
         : undefined;
 
     useEffect(() => {
@@ -307,6 +325,14 @@ export const RideOverlay = (props: RideOverlayProps) => {
     // on `mapRect` truthiness, so this list is simply not shown in that case rather than reserving
     // an anchor for it.
     const nearbyRidersAnchorBottom = map ? map.top + map.height : undefined;
+    // Unlike prevRidesFreeBand above, this feeds a plain CSS `maxHeight` clamp on
+    // NearbyRidersTabletList's `style` prop below, not a separate visibleRows formula — that
+    // component has no internal row-count clamping of its own (design doc §5.2 "Correction 3").
+    // So no TABLET_LIST_HEADER_HEIGHT subtraction here: NearbyRidersTabletList now renders its own
+    // title as a real child inside this same maxHeight-bounded box, which already eats into the
+    // row space exactly once. Subtracting the header height here too would double-count it (title
+    // space reserved both by a smaller maxHeight AND by the title itself), clipping one row more
+    // than intended.
     const nearbyRidersFreeBand = nearbyRidersAnchorBottom !== undefined && !cornerSlotIsToggle
         ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - nearbyRidersAnchorBottom - 2 * SLOT_GAP
         : undefined;
@@ -572,6 +598,16 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         zIndex: 10,
         elevation: 10,
+    },
+    // Matches NearbyRidersTabletList.tsx's own `styles.header` (kept as a separate copy, see
+    // TABLET_LIST_HEADER_HEIGHT above) — PrevRidesTabletList's tablet-ear title.
+    tabletListHeader: {
+        height: TABLET_LIST_HEADER_HEIGHT,
+        lineHeight: TABLET_LIST_HEADER_HEIGHT,
+        color: colors.text,
+        fontSize: textSizes.tinyText,
+        fontWeight: '700',
+        opacity: 0.8,
     },
     fallbackShoutout: {
         left: 0,

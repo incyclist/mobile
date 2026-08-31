@@ -1,7 +1,18 @@
 import React from 'react';
-import { LayoutChangeEvent, StyleProp, View, ViewStyle } from 'react-native';
+import { LayoutChangeEvent, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { NearbyRiderRow } from './NearbyRiderRow';
 import { NearbyRiderRowProps } from './types';
+import { colors, textSizes } from '../../theme';
+
+/**
+ * Design doc §5.2 "Correction 3" (2026-08-31): the tablet ear never rendered a title, unlike the
+ * phone `NearbyRidersExpandedPanel`'s `headerRow` (title + collapse chevron on one line). No
+ * chevron here — tablet ears have no collapse mechanism today and none is being added. Matches
+ * `NearbyRidersExpandedPanel.tsx`'s own `HEADER_HEIGHT` value (22dp) — duplicated as a local
+ * constant rather than imported, since that panel is a phone-only component with no shared module
+ * for this one number; keep the two in sync by eye if either changes.
+ */
+const HEADER_HEIGHT = 22;
 
 /**
  * The tablet ear's own fixed width (design doc §5.2, mirroring `race-against-yourself-mobile-
@@ -51,6 +62,9 @@ export interface NearbyRidersTabletListProps {
  */
 export const NearbyRidersTabletList = ({ rows, style, onFirstRowLayout }: NearbyRidersTabletListProps) => (
     <View testID="nearby-riders-tablet-list" style={style}>
+        <Text testID="nearby-riders-tablet-list-header" style={styles.header}>
+            Nearby Riders
+        </Text>
         {rows.map((row, index) => {
             const rowKey = `${row.name}-${index}`;
             const rowElement = <NearbyRiderRow {...row} />;
@@ -64,3 +78,20 @@ export const NearbyRidersTabletList = ({ rows, style, onFirstRowLayout }: Nearby
         })}
     </View>
 );
+
+const styles = StyleSheet.create({
+    // Rendered as a real child inside the caller's own `maxHeight`-bounded container (`style`
+    // prop, `RideOverlay.tsx`'s `nearbyRidersFreeBand`) rather than absolutely positioned — this
+    // is what performs the header-height "budget subtraction" for row count: it eats into the
+    // same box the rows would otherwise get the whole of, rather than needing the caller to also
+    // shrink its own height budget (which would double-subtract). See `RideOverlay.tsx`'s comment
+    // at `nearbyRidersFreeBand` for the caller-side half of this.
+    header: {
+        height: HEADER_HEIGHT,
+        lineHeight: HEADER_HEIGHT,
+        color: colors.text,
+        fontSize: textSizes.tinyText,
+        fontWeight: '700',
+        opacity: 0.8,
+    },
+});

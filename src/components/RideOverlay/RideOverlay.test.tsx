@@ -6,6 +6,7 @@ import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboar
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
 import { MOCK_ROWS as MOCK_NEARBY_ROWS } from '../NearbyRiders/NearbyRiderRow.mock';
 import { SLOT_GAP } from '../../hooks/render/useRideOverlayLayout';
+import { ROW_MARGIN_BOTTOM } from '../PrevRides';
 
 // Same pattern useRideOverlayLayout.test.ts (session 3.2) uses — the hook reads the real browser
 // window via useWindowDimensions(), so tests drive it by mocking that module directly rather than
@@ -259,6 +260,46 @@ describe('RideOverlay — no workout attached', () => {
         expect(getAllByTestId('prev-rides-row')).toHaveLength(MOCK_ROWS.length);
     });
 
+    // design doc §5.2 "Correction 3" (2026-08-31): the tablet ear never rendered a title, unlike
+    // the phone PrevRidesExpandedPanel's headerRow — fixed here, no collapse chevron (tablet ears
+    // have no collapse mechanism).
+    it('renders a static "Previous Rides" title above the tablet ear\'s rows', () => {
+        setDimensions(1400, 900);
+        const { getByTestId, getByText } = render(<RideOverlay {...routeOnlyProps} />);
+
+        expect(getByTestId('ride-overlay-prev-rides-header')).toBeTruthy();
+        expect(getByText('Previous Rides')).toBeTruthy();
+    });
+
+    it('subtracts the tablet title\'s height (22dp) from the free band before computing visibleRows, so the title never eats into row space unbudgeted', () => {
+        setDimensions(1400, 900);
+        const onVisibleRowsChange = jest.fn();
+        const { getByTestId } = render(<RideOverlay {...routeOnlyProps} onVisibleRowsChange={onVisibleRowsChange} />);
+
+        // A known, exact row height (chosen so the -22dp subtraction actually crosses an integer
+        // floor boundary for this screen size's free band, rather than landing on a value where
+        // it happens not to matter) so rowSpacing is exact (PrevRidesRow's own ROW_MARGIN_BOTTOM).
+        fireEvent(getByTestId('prev-rides-first-row-measure'), 'layout', {
+            nativeEvent: { layout: { height: 96 } },
+        });
+        const rowSpacing = 96 + ROW_MARGIN_BOTTOM;
+
+        // maxHeight on the list's own style is the unreduced free band (a safety ceiling for
+        // title + rows together, see RideOverlay.tsx's comment on prevRidesTabletVisibleRows) —
+        // read it back rather than re-deriving the layout geometry independently.
+        const listStyle = Object.assign({}, ...getByTestId('ride-overlay-prev-rides').props.style);
+        const freeBand = listStyle.maxHeight as number;
+
+        const reported = onVisibleRowsChange.mock.calls.at(-1)?.[0];
+        const expectedWithHeader = Math.min(Math.max(Math.floor((freeBand - 22) / rowSpacing), 1), 10);
+        const expectedWithoutHeader = Math.min(Math.max(Math.floor(freeBand / rowSpacing), 1), 10);
+
+        expect(reported).toBe(expectedWithHeader);
+        // Confirms the subtraction actually changes the reported count for this geometry — not a
+        // vacuously-true assertion against a boundary where it wouldn't have mattered.
+        expect(reported).toBeLessThan(expectedWithoutHeader);
+    });
+
     it('renders only the previous-rides list when that is the only occupant populated (no map points, no workout)', () => {
         setDimensions(1400, 900);
         const { getByTestId, queryByTestId } = render(
@@ -412,6 +453,26 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         expect(getByTestId('ride-overlay-map')).toBeTruthy();
         expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
         expect(getAllByTestId('nearby-rider-row')).toHaveLength(MOCK_NEARBY_ROWS.length);
+    });
+
+    // design doc §5.2 "Correction 3" (2026-08-31): same gap, same fix, as PrevRides' tablet ear
+    // above — NearbyRidersTabletList renders its own title (component-level fix); this only
+    // confirms it reaches the screen through RideOverlay's wiring too.
+    it('renders the "Nearby Riders" title (from NearbyRidersTabletList itself) above the left ear\'s rows', () => {
+        setDimensions(1400, 900);
+        const { getByTestId, getByText } = render(<RideOverlay {...nearbyRidersProps} />);
+
+        expect(getByTestId('nearby-riders-tablet-list-header')).toBeTruthy();
+        expect(getByText('Nearby Riders')).toBeTruthy();
+    });
+
+    it('does not shrink the left ear\'s maxHeight for the title — NearbyRidersTabletList renders its title as a real child inside the existing free band instead (no separate visibleRows formula exists for this list to subtract from)', () => {
+        setDimensions(1400, 900);
+        const { getByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
+
+        const listStyle = Object.assign({}, ...[getByTestId('nearby-riders-tablet-list').props.style].flat());
+        expect(listStyle.maxHeight).toEqual(expect.any(Number));
+        expect(listStyle.maxHeight).toBeGreaterThan(22);
     });
 
     it('does not render the nearby-riders list when no rows are given', () => {
