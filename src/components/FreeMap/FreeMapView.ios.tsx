@@ -39,7 +39,7 @@ export const FreeMapView = ({
     onPositionChanged,
     children,
     followPosition,
-    prevRiderMarkers,
+    riderMarkerCoordinates,
     markerAvatar,
 }: FreeMapViewProps) => {
     const mapRef = useRef<MapView | null>(null);
@@ -127,8 +127,8 @@ export const FreeMapView = ({
     // If bounds are provided, `initialRegion` should be `undefined` as `fitToCoordinates` will handle the camera.
     const regionProp = cameraProps.bounds ? undefined : initialRegion;
 
-    // If no polyline, marker, prev-rider markers, or center coordinate, return null (matches Android's behavior before style loads)
-    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.center && !prevRiderMarkers?.length) {
+    // If no polyline, marker, rider markers, or center coordinate, return null (matches Android's behavior before style loads)
+    if (!polylineCoordinates.length && !markerCoordinate && !cameraProps?.center && !riderMarkerCoordinates?.length) {
         return null;
     }
 
@@ -151,12 +151,12 @@ export const FreeMapView = ({
                     />
                 )}
 
-                {prevRiderMarkers?.map((rider) => (
+                {riderMarkerCoordinates?.map((rider) => (
                     <Marker
-                        key={`prev-rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
+                        key={`rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
                         coordinate={toRNLatLng(rider.coordinate)}
                     >
-                        <View style={styles.prevRiderTouchTarget}>
+                        <View style={styles.riderTouchTarget}>
                             <RiderAvatarMarker avatar={rider.avatar} />
                         </View>
                     </Marker>
@@ -169,7 +169,7 @@ export const FreeMapView = ({
                         draggable={draggable}
                         onDragEnd={handleMarkerDragEnd}
                     >
-                        <View style={styles.prevRiderTouchTarget}>
+                        <View style={styles.riderTouchTarget}>
                             <RiderAvatarMarker avatar={markerAvatar} />
                         </View>
                     </Marker>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     map: {
         flex: 1,
     },
-    prevRiderTouchTarget: {
+    riderTouchTarget: {
         alignItems: 'center',
         justifyContent: 'flex-end',
         backgroundColor: 'transparent',

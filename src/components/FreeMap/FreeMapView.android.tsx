@@ -35,7 +35,7 @@ export const FreeMapView = ({
     scrollWheelZoom = true,
     children,
     followPosition,
-    prevRiderMarkers,
+    riderMarkerCoordinates,
     markerAvatar,
 }: FreeMapViewProps) => {
     const [mapStyle, setMapStyle] = useState<any>(null);
@@ -147,13 +147,13 @@ export const FreeMapView = ({
                     />
                 </GeoJSONSource>
 
-                {prevRiderMarkers?.map((rider) => (
+                {riderMarkerCoordinates?.map((rider) => (
                     <ViewAnnotation
-                        id={`prev-rider-${rider.key}`}
-                        key={`prev-rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
+                        id={`rider-${rider.key}`}
+                        key={`rider-${rider.key}-${rider.coordinate[0].toFixed(5)}-${rider.coordinate[1].toFixed(5)}`}
                         lngLat={rider.coordinate}
                     >
-                        <View style={styles.prevRiderTouchTarget}>
+                        <View style={styles.riderTouchTarget}>
                             <RiderAvatarMarker avatar={rider.avatar} />
                         </View>
                     </ViewAnnotation>
@@ -167,7 +167,7 @@ export const FreeMapView = ({
                         draggable={draggable}
                         onDragEnd={handleDragEnd}
                     >
-                        <View style={styles.prevRiderTouchTarget}>
+                        <View style={styles.riderTouchTarget}>
                             <RiderAvatarMarker avatar={markerAvatar} />
                         </View>
                     </ViewAnnotation>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     map: {
         flex: 1,
     },
-    prevRiderTouchTarget: {
+    riderTouchTarget: {
         alignItems: 'center',
         justifyContent: 'flex-end',
         backgroundColor: 'transparent',

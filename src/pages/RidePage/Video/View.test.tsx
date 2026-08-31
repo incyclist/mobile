@@ -1,9 +1,18 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { VideoRidePageView } from './View';
+import { avatarToConfig } from '../../../components/PrevRides';
 
 jest.mock('react-native-device-info', () => ({
     isTablet: () => false,
+}));
+
+// AvatarService.get('current') is the source of currentAvatar — self-populating and independent
+// of prevRides/nearbyRiders row state, unlike the old prevRides.rows.find(isCurrent) derivation
+// this replaced.
+const mockAvatarGet = jest.fn((_id: string) => ({ helmet: 'blue', shirt: 'red' }));
+jest.mock('incyclist-services', () => ({
+    useAvatars: () => ({ get: (id: string) => mockAvatarGet(id) }),
 }));
 
 const mockStartRideDisplay = jest.fn();
@@ -14,6 +23,7 @@ jest.mock('../../../components', () => ({
     Video: () => null,
     Button: () => null,
     Dynamic: ({ children }: any) => children,
+    ErrorBoundary: ({ children }: any) => children,
     ElevationGraph: () => null,
     InfoText: () => null,
     FreeMap: () => null,
@@ -348,5 +358,171 @@ describe('VideoRidePageView — previous-rides overlay wiring', () => {
             />
         );
         expect(onSetPrevRidesMode).toHaveBeenCalledWith('list');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// currentAvatar resolution — regression coverage. currentAvatar used to be derived from
+// prevRides?.rows.find(row => row.isCurrent)?.avatar, which resolved to undefined (default marker
+// styling) whenever prevRides had no eligible rows, e.g. a first-time route. It is now resolved
+// directly via AvatarService (useAvatars().get('current')), which self-populates and is
+// independent of prevRides/nearbyRiders row state entirely.
+// ---------------------------------------------------------------------------
+
+describe('VideoRidePageView — currentAvatar resolution', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockAvatarGet.mockClear();
+    });
+
+    it('resolves currentAvatar from AvatarService even when prevRides is empty (regression: used to fall back to undefined)', () => {
+        const { getByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{
+                    ...prevRidesOnlyDisplayProps,
+                    prevRides: { mode: 'list', rows: [], hasMore: false },
+                }}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+        expect(mockAvatarGet).toHaveBeenCalledWith('current');
+    });
+
+    it('resolves currentAvatar from AvatarService when prevRides is undefined', () => {
+        const { getByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{
+                    ...prevRidesOnlyDisplayProps,
+                    prevRides: undefined,
+                    nearbyRiders: { rows: [{ isUser: true, isPaused: false, isCoach: false, name: 'You', distance: { value: 0.9, unit: 'km' }, diffDistance: { value: 0, unit: 'm' }, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 }] },
+                }}
+            />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+    });
+
+    it('resolves the same currentAvatar from AvatarService when prevRides is populated — no longer sourced from its rows', () => {
+        const { getByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={prevRidesOnlyDisplayProps} />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Nearby-riders overlay wiring (session 3.1) — overlayActive's three-way OR
+// (comboActive || prevRidesEligible || nearbyRidersEligible) and marker merging with PrevRides.
+// Video has no separate main-view FreeMap (video is the main view) — markers are only asserted via
+// the corner map's mapPrevRiders prop, forwarded to the (mocked) RideOverlay.
+// ---------------------------------------------------------------------------
+
+const nearbyRidersRows = [
+    { isUser: false, isPaused: false, isCoach: false, name: 'Alex Rider', distance: { value: 1.0, unit: 'km' }, diffDistance: { value: 100, unit: 'm' }, avatar: { shirt: 'blue', helmet: 'red' }, lat: 5, lng: 6 },
+    { isUser: true, isPaused: false, isCoach: false, name: 'You', distance: { value: 0.9, unit: 'km' }, diffDistance: { value: 0, unit: 'm' }, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 },
+];
+
+const nearbyRidersOnlyDisplayProps = {
+    ...baseProps.displayProps,
+    startOverlayProps: null,
+    workoutAttached: false,
+    nearbyRiders: { rows: nearbyRidersRows },
+};
+
+describe('VideoRidePageView — nearby-riders overlay wiring', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockUseScreenLayout.mockReturnValue('normal');
+    });
+
+    it('overlayActive via eligible nearby riders alone (no workout, no prevRides) mounts the overlay', () => {
+        const { getByText } = render(
+            <VideoRidePageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps} />
+        );
+        expect(getByText('ride-overlay')).toBeTruthy();
+    });
+
+    it('does not mount the overlay when nearbyRiders.rows is empty (present but nothing to show)', () => {
+        const { queryByText } = render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{ ...baseProps.displayProps, startOverlayProps: null, workoutAttached: false, nearbyRiders: { rows: [] } }}
+            />
+        );
+        expect(queryByText('ride-overlay')).toBeNull();
+    });
+
+    it('passes the full nearbyRiders row list through to the overlay for ear rendering', () => {
+        render(<VideoRidePageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps} />);
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.nearbyRiders).toEqual(nearbyRidersRows);
+    });
+
+    it('merges nearby-riders markers into mapPrevRiders, excluding the current user', () => {
+        render(<VideoRidePageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps} />);
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.mapPrevRiders).toEqual([
+            expect.objectContaining({ key: 'Alex Rider', position: { lat: 5, lng: 6 } }),
+        ]);
+    });
+
+    it('both PrevRides and Nearby Riders eligible simultaneously: mapPrevRiders carries both features\' markers', () => {
+        const combinedDisplayProps = {
+            ...baseProps.displayProps,
+            startOverlayProps: null,
+            workoutAttached: false,
+            prevRides: {
+                mode: 'list' as const,
+                rows: [{ position: 1, label: '12.05.2026', timeGap: '-1:24', isCurrent: false, lat: 1, lng: 2, tsStart: 100 }],
+                hasMore: false,
+            },
+            nearbyRiders: { rows: nearbyRidersRows },
+        };
+        render(<VideoRidePageView {...baseProps} displayProps={combinedDisplayProps} />);
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.mapPrevRiders).toEqual([
+            expect.objectContaining({ key: '100' }),
+            expect.objectContaining({ key: 'Alex Rider' }),
+        ]);
+    });
+
+    it('overlayActive truth table: comboActive || prevRidesEligible || nearbyRidersEligible', () => {
+        const cases: Array<{ combo: boolean; prevMode: 'hidden' | 'list' | undefined; nearby: boolean; expected: boolean }> = [
+            { combo: false, prevMode: undefined, nearby: false, expected: false },
+            { combo: true, prevMode: undefined, nearby: false, expected: true },
+            { combo: false, prevMode: 'list', nearby: false, expected: true },
+            { combo: false, prevMode: 'hidden', nearby: false, expected: false },
+            { combo: false, prevMode: undefined, nearby: true, expected: true },
+            { combo: true, prevMode: 'list', nearby: true, expected: true },
+        ];
+
+        cases.forEach(({ combo, prevMode, nearby, expected }) => {
+            mockRideOverlay.mockClear();
+            const displayProps: any = {
+                ...baseProps.displayProps,
+                startOverlayProps: null,
+                workoutAttached: combo,
+                ...(combo ? { graph: {}, steps: {}, dashboard: {} } : {}),
+                ...(prevMode ? { prevRides: { mode: prevMode, rows: [], hasMore: false } } : {}),
+                ...(nearby ? { nearbyRiders: { rows: nearbyRidersRows } } : {}),
+            };
+            const { queryByText, unmount } = render(<VideoRidePageView {...baseProps} displayProps={displayProps} />);
+
+            expect(queryByText('ride-overlay') !== null).toBe(expected);
+            unmount();
+        });
     });
 });

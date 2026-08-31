@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
-import { VideoRidePageDisplayProps } from 'incyclist-services';
+import { VideoRidePageDisplayProps, useAvatars } from 'incyclist-services';
 import {
     Video,
     RideDashboard,
@@ -13,6 +13,7 @@ import {
     RideOverlay,
     RideGestureHintOverlay,
     RideSwipeFeedback,
+    ErrorBoundary,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
@@ -22,7 +23,7 @@ import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
 import { createSharedRideViewStyles } from './sharedRideViewStyles';
 import { getGestureHintContent } from '../gestureHintContent';
-import { buildPrevRiderMarkers } from '../prevRiderMarkers';
+import { buildPrevRiderMarkers, buildNearbyRiderMarkers } from '../prevRiderMarkers';
 import { avatarToConfig } from '../../../components/PrevRides';
 
 interface VideoRidePageViewProps extends RideViewActionProps {
@@ -66,7 +67,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         getPrevRidesRows,
     } = props;
 
-    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint, prevRides } = displayProps;
+    const { video, videos, route, startOverlayProps, menuProps, workoutAttached, graph, steps, dashboard, cornerWidget, loadButtonMode, gestureHint, prevRides, nearbyRiders } = displayProps;
 
     // Derived properties
     const routeData = route?.details;
@@ -83,11 +84,15 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const comboActive = !!workoutAttached;
 
     // overlayActive generalizes comboActive's gate: the overlay now also renders for a plain
-    // route ride with eligible previous rides. When overlayActive is false (no workout, no
-    // eligible previous rides — most rides, most of the time), every branch below renders
-    // byte-for-byte as it did before this feature existed.
+    // route ride with eligible previous rides or eligible nearby riders. When overlayActive is
+    // false (no workout, no eligible previous rides, no eligible nearby riders — most rides, most
+    // of the time), every branch below renders byte-for-byte as it did before this feature
+    // existed.
     const prevRidesEligible = !!prevRides && prevRides.mode !== 'hidden';
-    const overlayActive = comboActive || prevRidesEligible;
+    // Unlike prevRides, there is no 'hidden' mode — nearbyRiders is simply present-with-rows or
+    // absent (nearby-riders-mobile-design.md §4/§5.3).
+    const nearbyRidersEligible = !!nearbyRiders && nearbyRiders.rows.length > 0;
+    const overlayActive = comboActive || prevRidesEligible || nearbyRidersEligible;
 
     // Both tiers default to the full list ('list') - phone's own PrevRidesCornerPanel now shows
     // it alongside elevation/workout rather than a condensed one-liner in place of them
@@ -101,13 +106,23 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // rider's own marker is unaffected — see buildPrevRiderMarkers().
     const prevRiderMarkers = useMemo(() => buildPrevRiderMarkers(prevRides?.rows), [prevRides]);
 
+    // Nearby (group-ride) riders' live positions — same page-update cadence as prevRiderMarkers
+    // above, not <Dynamic>-scoped (design doc §5.4/§6.2). Merged with prevRiderMarkers below into
+    // one array before being handed to FreeMap's generalized riderMarkers prop.
+    const nearbyRiderMarkers = useMemo(() => buildNearbyRiderMarkers(nearbyRiders?.rows), [nearbyRiders]);
+    const riderMarkers = useMemo(
+        () => [...prevRiderMarkers, ...nearbyRiderMarkers],
+        [prevRiderMarkers, nearbyRiderMarkers]
+    );
+
     // The current rider's own avatar — matches the current-position marker (corner map, elevation
-    // strips) to the "You" row shown in the prevRides list, rather than rendering with default
-    // colors. undefined whenever there's no prevRides list to be inconsistent with.
-    const currentAvatar = useMemo(() => {
-        const avatar = prevRides?.rows.find((row) => row.isCurrent)?.avatar;
-        return avatar ? avatarToConfig(avatar) : undefined;
-    }, [prevRides]);
+    // strips) to the "You" row shown in the Nearby Riders list. Resolved directly from
+    // AvatarService (via useAvatars(), same as web-ui's MapRideView/MapOverlay) rather than derived
+    // from prevRides.rows: that derivation used to fall back to undefined (default marker styling)
+    // whenever prevRides had no eligible rows (e.g. a first-time route), even though a real avatar
+    // was available and Nearby Riders' own "You" row resolved it independently via the same
+    // AvatarService. AvatarService.get('current') self-populates and always resolves to a value.
+    const currentAvatar = useMemo(() => avatarToConfig(useAvatars().get('current')), []);
 
     // Shared with Workout/View.tsx (getGestureHintContent()) - null when there's nothing useful
     // to teach (loadButtonMode==='hidden' with no workout attached, up/down has no effect at all).
@@ -193,20 +208,22 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 {/* Map Overlay — route-only rendering, untouched (HLD §9.1). See above. */}
                 {!overlayActive && !isCompact && route?.description?.hasGpx && !!routeData?.points?.length && (
                     <View style={[styles.mapOverlay, mapOverlayDynamicStyle]}>
-                        <Dynamic
-                            observer={rideObserver ?? undefined}
-                            event='position-update'
-                            prop='position'
-                            transform={transformPosition}
-                        >
-                            <FreeMap
-                                points={routeData.points}
-                                draggable={false}
-                                followPosition={true}
-                                colorActive='blue'
-                                colorInactive='rgba(255,255,255,0.4)'
-                            />
-                        </Dynamic>
+                        <ErrorBoundary>
+                            <Dynamic
+                                observer={rideObserver ?? undefined}
+                                event='position-update'
+                                prop='position'
+                                transform={transformPosition}
+                            >
+                                <FreeMap
+                                    points={routeData.points}
+                                    draggable={false}
+                                    followPosition={true}
+                                    colorActive='blue'
+                                    colorInactive='rgba(255,255,255,0.4)'
+                                />
+                            </Dynamic>
+                        </ErrorBoundary>
                     </View>
                 )}
 
@@ -239,8 +256,9 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         onCollapsePrevRides={onCollapsePrevRides}
                         onVisibleRowsChange={onSetPrevRidesVisibleRows}
                         getPrevRidesRows={getPrevRidesRows}
-                        mapPrevRiders={prevRiderMarkers}
+                        mapPrevRiders={riderMarkers}
                         currentAvatar={currentAvatar}
+                        nearbyRiders={nearbyRiders?.rows}
                     />
                 )}
 
