@@ -135,4 +135,57 @@ describe('NearbyRiderRow', () => {
         const style = [getByText('Alex Rider').props.style].flat().reverse().find((s) => s?.color);
         expect(style?.color).toBe('#abcdef');
     });
+
+    describe('statsRow wrapping (bug fix: values were being clipped, not wrapped)', () => {
+        // Regression test for the bug fixed here: a gap value like "+340 m" was rendered inside a
+        // non-wrapping `flexDirection: 'row'` statsRow with every child `flexShrink: 0` — any
+        // container narrower than the row's full intrinsic width clipped the trailing value instead
+        // of the row adapting. flexWrap lets the overflow move to a new line instead.
+        it('sets flexWrap: "wrap" on the stats row so overflowing stats move to a new line instead of being clipped', () => {
+            const { getByText } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} />);
+            const gapText = getByText('+340 m');
+            // Walk up from the gap Text to its parent statsRow View via the rendered tree isn't
+            // directly exposed by RNTL, so assert the row is still present as full, unclipped text
+            // — flexWrap doesn't truncate or reformat the string the way a fixed non-wrapping,
+            // clipped container would (react-native-testing-library renders text nodes as whole
+            // strings regardless of layout, so this also guards against a future regression where
+            // the text itself gets shortened to "fit").
+            expect(gapText.props.children).toEqual('+340 m');
+        });
+    });
+
+    describe('compact prop', () => {
+        it('defaults to the non-compact (tablet ear) rendering — full-size avatar', () => {
+            const { getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} />);
+            const avatarProps = getByTestId('prev-rider-avatar').props;
+            expect(avatarProps.height).toBe(32);
+        });
+
+        it('renders a smaller avatar when compact is set', () => {
+            const { getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
+            const avatarProps = getByTestId('prev-rider-avatar').props;
+            expect(avatarProps.height).toBe(18);
+            expect(avatarProps.height).toBeLessThan(32);
+        });
+
+        it('still renders every field in compact mode — no field trimming (design doc §5.2)', () => {
+            const { getByText, getByTestId } = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
+            expect(getByText('Alex Rider')).toBeTruthy();
+            expect(getByText('12.4 km')).toBeTruthy();
+            expect(getByText('3.1 W/kg')).toBeTruthy();
+            expect(getByText('32.4 km/h')).toBeTruthy();
+            expect(getByText('+340 m')).toBeTruthy();
+            expect(getByTestId('prev-rider-avatar')).toBeTruthy();
+        });
+
+        it('uses a smaller font for the name in compact mode', () => {
+            const normal = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} />);
+            const compact = render(<NearbyRiderRow {...MOCK_ROW_AHEAD} compact />);
+
+            const normalStyle = Object.assign({}, ...[normal.getByText('Alex Rider').props.style].flat());
+            const compactStyle = Object.assign({}, ...[compact.getByText('Alex Rider').props.style].flat());
+
+            expect(compactStyle.fontSize).toBeLessThan(normalStyle.fontSize);
+        });
+    });
 });

@@ -10,10 +10,12 @@ import { SLOT_GAP, BOTTOM_BAR_RATIO } from '../../hooks/render/useRideOverlayLay
  * Fallback budget used only until the first row has actually rendered (same fallback-then-measure
  * pattern as `PrevRidesExpandedPanel`'s `PHASE3_ROW_HEIGHT_FALLBACK`). Deliberately **not** copied
  * from that constant (24, tuned for `PrevRidesRow`'s flat one-line compact row): `NearbyRiderRow`
- * has no compact/trimmed variant (design doc §5.2/session plan 2.1 — every field renders on every
- * tier) and renders as a two-line, padded card instead, much closer in shape to `PrevRidesRow`'s
- * `'normal'` tablet tier (~90dp) than its phone tier. This is a same-order-of-magnitude estimate
- * for the very first frame only — the real value always comes from `onFirstRowLayout` below.
+ * has no tier-conditional *field* trimming (design doc §5.2/session plan 2.1 — every field renders
+ * on every tier), but it does render this panel's rows with its `compact` prop set (smaller
+ * avatar/fonts/spacing, `NearbyRiderRow.tsx`) — still a multi-line, padded card, not a flat single
+ * line, so this stays a same-order-of-magnitude estimate rather than `PHASE3_ROW_HEIGHT_FALLBACK`'s
+ * value, but doesn't need to be exact: it's only used for the very first frame, until
+ * `onFirstRowLayout` below reports the real measured height.
  */
 const NEARBY_ROW_HEIGHT_FALLBACK = 64;
 /** Matches `NearbyRiderRow`'s own `styles.row.marginBottom` (`NearbyRiderRow.tsx`) — kept as a
@@ -97,7 +99,7 @@ export const NearbyRidersExpandedPanel = ({ rows, anchor, screenHeight, onVisibl
                     testID={index === 0 ? 'nearby-riders-panel-first-row-measure' : undefined}
                     onLayout={index === 0 ? onFirstRowLayout : undefined}
                 >
-                    <NearbyRiderRow {...row} />
+                    <NearbyRiderRow {...row} compact />
                 </View>
             ))}
         </View>

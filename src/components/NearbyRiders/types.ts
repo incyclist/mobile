@@ -17,6 +17,26 @@
  * site this affects.
  */
 export type { NearbyRiderRowProps } from 'incyclist-services';
+import type { NearbyRiderRowProps } from 'incyclist-services';
+
+/**
+ * `NearbyRiderRow`'s own component props — the published `NearbyRiderRowProps` plus one
+ * presentation-only flag this component owns locally (not part of the services-side data
+ * contract, same reasoning as `PrevRidesRowComponentProps.layout`/`showSpeed` in
+ * `../PrevRides/types.ts`).
+ *
+ * `compact` is **not** a return to `PrevRidesRowProps`' tier-conditional field-trimming pattern
+ * (design doc §5.2 explicitly rules that out — avatar/name/speed/power/distance-gap all still
+ * render in every context). It only lets a narrow container (the phone corner panel, ~169-190dp,
+ * far tighter than the tablet ear's fixed 340dp — see `NearbyRidersTabletList.tsx`) ask for a
+ * denser rendering of the *same* fields: smaller avatar/fonts/spacing, so more rows fit the
+ * available height without any field disappearing or its value getting clipped.
+ */
+export interface NearbyRiderRowComponentProps extends NearbyRiderRowProps {
+    /** Defaults to `false` (the tablet-ear / standalone-row treatment). Set by
+     *  `NearbyRidersExpandedPanel` (the phone corner-panel's row renderer) only. */
+    compact?: boolean;
+}
 
 /**
  * The geometry a panel/list anchors itself below — deliberately the same `{top, left?, right?,

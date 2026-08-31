@@ -102,6 +102,18 @@ describe('NearbyRidersExpandedPanel', () => {
         expect(queryByTestId('nearby-riders-expand-chevron')).toBeNull();
     });
 
+    it('renders its rows in compact mode — denser avatar/fonts so more rows fit the narrow phone corner-panel width', () => {
+        // Bug fix regression guard: NearbyRiderRow's default (non-compact) sizing made this
+        // panel's rows overflow its ~169-190dp width badly (design doc's phone corner-panel
+        // context). NearbyRidersExpandedPanel is phone-only, so it always renders NearbyRiderRow
+        // with compact set.
+        const { getByTestId } = render(
+            <NearbyRidersExpandedPanel rows={[MOCK_ROW_AHEAD]} anchor={REFERENCE_SLOT} screenHeight={REFERENCE_SCREEN_HEIGHT} />
+        );
+
+        expect(getByTestId('prev-rider-avatar').props.height).toBeLessThan(32);
+    });
+
     it('renders a chevron in the header and calls onCollapse when tapped', () => {
         const onCollapse = jest.fn();
         const { getByTestId } = render(
