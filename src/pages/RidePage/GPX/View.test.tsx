@@ -436,3 +436,133 @@ describe('GPXTourPageView — previous-rides overlay wiring', () => {
         });
     });
 });
+
+// ---------------------------------------------------------------------------
+// Nearby-riders overlay wiring (session 3.1) — overlayActive's three-way OR
+// (comboActive || prevRidesEligible || nearbyRidersEligible), marker merging with PrevRides, and
+// the legacy plain-corner-map branch becoming unreachable whenever either feature is eligible.
+// ---------------------------------------------------------------------------
+
+const nearbyRidersRows = [
+    { isUser: false, isPaused: false, isCoach: false, name: 'Alex Rider', distance: 1000, diffDistance: 100, avatar: { shirt: 'blue', helmet: 'red' }, lat: 5, lng: 6 },
+    { isUser: true, isPaused: false, isCoach: false, name: 'You', distance: 900, diffDistance: 0, avatar: { shirt: 'green', helmet: 'yellow' }, lat: 7, lng: 8 },
+];
+
+const nearbyRidersOnlyDisplayProps = () => ({
+    ...activeProps('sv').displayProps,
+    workoutAttached: false,
+    nearbyRiders: { rows: nearbyRidersRows },
+});
+
+describe('GPXTourPageView — nearby-riders overlay wiring', () => {
+    beforeEach(() => {
+        mockRideOverlay.mockClear();
+        mockFreeMap.mockClear();
+        mockUseScreenLayout.mockReturnValue('normal');
+    });
+
+    it('overlayActive via eligible nearby riders alone (no workout, no prevRides) mounts the overlay and suppresses the route-only corner map', () => {
+        const { getByText, queryByTestId } = render(
+            <GPXTourPageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps() as any} />
+        );
+
+        expect(getByText('ride-overlay')).toBeTruthy();
+        expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+
+    it('does not mount the overlay when nearbyRiders is absent and no workout/prevRides eligible (overlayActive stays false)', () => {
+        const { queryByText, getByTestId } = render(<GPXTourPageView {...activeProps('sv')} />);
+
+        expect(queryByText('ride-overlay')).toBeNull();
+        expect(getByTestId('gpx-corner-map')).toBeTruthy();
+    });
+
+    it('does not mount the overlay when nearbyRiders.rows is empty (present but nothing to show)', () => {
+        const { queryByText, getByTestId } = render(
+            <GPXTourPageView
+                {...activeProps('sv')}
+                displayProps={{ ...activeProps('sv').displayProps, workoutAttached: false, nearbyRiders: { rows: [] } } as any}
+            />
+        );
+
+        expect(queryByText('ride-overlay')).toBeNull();
+        expect(getByTestId('gpx-corner-map')).toBeTruthy();
+    });
+
+    it('passes the full nearbyRiders row list through to the overlay for ear rendering', () => {
+        render(<GPXTourPageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps() as any} />);
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        expect(overlayProps.nearbyRiders).toEqual(nearbyRidersRows);
+    });
+
+    it('merges nearby-riders markers into mapPrevRiders/riderMarkers, excluding the current user', () => {
+        const { rerender } = render(
+            <GPXTourPageView {...baseProps} displayProps={nearbyRidersOnlyDisplayProps() as any} />
+        );
+
+        const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
+        // 'You' (isUser: true) is excluded from the map; only Alex Rider's marker is present.
+        expect(overlayProps.mapPrevRiders).toEqual([
+            expect.objectContaining({ key: 'Alex Rider', position: { lat: 5, lng: 6 } }),
+        ]);
+
+        mockFreeMap.mockClear();
+        rerender(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{ ...nearbyRidersOnlyDisplayProps(), rideView: 'map' } as any}
+            />
+        );
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({
+            riderMarkers: [expect.objectContaining({ key: 'Alex Rider', position: { lat: 5, lng: 6 } })],
+        });
+    });
+
+    it('both PrevRides and Nearby Riders eligible simultaneously: mapPrevRiders/riderMarkers carries both features\' markers', () => {
+        const combinedDisplayProps = {
+            ...activeProps('map').displayProps,
+            workoutAttached: false,
+            prevRides: {
+                mode: 'list' as const,
+                rows: [{ position: 1, label: '12.05.2026', timeGap: '-1:24', isCurrent: false, lat: 1, lng: 2, tsStart: 100 }],
+                hasMore: false,
+            },
+            nearbyRiders: { rows: nearbyRidersRows },
+        };
+        render(<GPXTourPageView {...baseProps} displayProps={combinedDisplayProps as any} />);
+
+        expect(mockFreeMap.mock.calls.at(-1)?.[0]).toMatchObject({
+            riderMarkers: [
+                expect.objectContaining({ key: '100' }),
+                expect.objectContaining({ key: 'Alex Rider' }),
+            ],
+        });
+    });
+
+    it('overlayActive truth table: comboActive || prevRidesEligible || nearbyRidersEligible', () => {
+        const cases: Array<{ combo: boolean; prevMode: 'hidden' | 'list' | undefined; nearby: boolean; expected: boolean }> = [
+            { combo: false, prevMode: undefined, nearby: false, expected: false },
+            { combo: true, prevMode: undefined, nearby: false, expected: true },
+            { combo: false, prevMode: 'list', nearby: false, expected: true },
+            { combo: false, prevMode: 'hidden', nearby: false, expected: false },
+            { combo: false, prevMode: undefined, nearby: true, expected: true },
+            { combo: true, prevMode: 'list', nearby: true, expected: true },
+        ];
+
+        cases.forEach(({ combo, prevMode, nearby, expected }) => {
+            mockRideOverlay.mockClear();
+            const displayProps: any = {
+                ...activeProps('sv').displayProps,
+                workoutAttached: combo,
+                ...(combo ? { graph: {}, steps: {}, dashboard: {} } : {}),
+                ...(prevMode ? { prevRides: { mode: prevMode, rows: [], hasMore: false } } : {}),
+                ...(nearby ? { nearbyRiders: { rows: nearbyRidersRows } } : {}),
+            };
+            const { queryByText, unmount } = render(<GPXTourPageView {...baseProps} displayProps={displayProps} />);
+
+            expect(queryByText('ride-overlay') !== null).toBe(expected);
+            unmount();
+        });
+    });
+});

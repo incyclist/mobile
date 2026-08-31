@@ -4,6 +4,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { RideOverlay, RideOverlayProps, PREV_RIDES_TABLET_WIDTH } from './RideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
+import { MOCK_ROWS as MOCK_NEARBY_ROWS } from '../NearbyRiders/NearbyRiderRow.mock';
 import { SLOT_GAP } from '../../hooks/render/useRideOverlayLayout';
 
 // Same pattern useRideOverlayLayout.test.ts (session 3.2) uses — the hook reads the real browser
@@ -379,6 +380,146 @@ describe('RideOverlay — no workout attached', () => {
         const call = mockDynamic.mock.calls.find(([props]) => props.event === 'prev-rides-update' && props.prop === 'rows');
         expect(call).toBeTruthy();
         expect(call[0]).toMatchObject({ observer: rideObserver, transform: getPrevRidesRows });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Nearby-riders overlay wiring (session 3.1) — the left-ear/corner-slot-sibling counterpart to
+// the previous-rides tests above. Only where the map itself is rendered (`map` non-null) does a
+// tablet left-ear reserve exist at all (design doc §2.4/§5.2, RideOverlayPrototype.stories.tsx's
+// own Phase-3 ghost gates identically on `mapRect`).
+// ---------------------------------------------------------------------------
+
+describe('RideOverlay — nearby-riders overlay wiring', () => {
+    const nearbyRidersProps: RideOverlayProps = {
+        mapVisible: true,
+        nearbyRiders: MOCK_NEARBY_ROWS,
+        dashboardHeight: 80,
+        compact: false,
+        rideObserver: null,
+        getGraphActuals: () => ({ power: [], heartrate: [], position: 0 }),
+        onToggleCornerWidget: () => {},
+        mapPoints: [{ lat: 1, lng: 2 } as any, { lat: 3, lng: 4 } as any],
+        transformPosition: () => undefined,
+        onStopWorkout: () => {},
+        getPrevRidesRows: () => [],
+    };
+
+    it('block-side: renders the nearby-riders list below the corner map (left ear)', () => {
+        setDimensions(1400, 900);
+        const { getByTestId, getAllByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
+
+        expect(getByTestId('ride-overlay-map')).toBeTruthy();
+        expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
+        expect(getAllByTestId('nearby-rider-row')).toHaveLength(MOCK_NEARBY_ROWS.length);
+    });
+
+    it('does not render the nearby-riders list when no rows are given', () => {
+        setDimensions(1400, 900);
+        const { queryByTestId } = render(<RideOverlay {...nearbyRidersProps} nearbyRiders={undefined} />);
+
+        expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
+    });
+
+    it('does not render the nearby-riders list when the corner map itself is not rendered (mapVisible false) — no reserved left ear without the map', () => {
+        setDimensions(1400, 900);
+        const { queryByTestId, getByTestId } = render(
+            <RideOverlay {...nearbyRidersProps} mapVisible={false} mapPoints={undefined} />
+        );
+
+        expect(queryByTestId('ride-overlay-map')).toBeNull();
+        expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
+        // the right ear (elevation) is unaffected
+        expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+    });
+
+    it('column-only: drops the nearby-riders list entirely along with the other side-region occupants', () => {
+        setDimensions(860, 480);
+        const { queryByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
+
+        expect(queryByTestId('ride-overlay-map')).toBeNull();
+        expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
+    });
+
+    it('both PrevRides and Nearby Riders present simultaneously: both lists render side by side (left/right ears)', () => {
+        setDimensions(1400, 900);
+        const { getByTestId } = render(
+            <RideOverlay {...nearbyRidersProps} prevRides={MOCK_ROWS} getPrevRidesRows={() => MOCK_ROWS} />
+        );
+
+        expect(getByTestId('ride-overlay-prev-rides')).toBeTruthy();
+        expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
+    });
+
+    it('wires the nearby-riders list to live-refresh via <Dynamic> on nearby-riders-update, extracting rows from the event payload', () => {
+        setDimensions(1400, 900);
+        mockDynamic.mockClear();
+        const rideObserver = {} as any;
+        render(<RideOverlay {...nearbyRidersProps} rideObserver={rideObserver} />);
+
+        const call = mockDynamic.mock.calls.find(([props]) => props.event === 'nearby-riders-update' && props.prop === 'rows');
+        expect(call).toBeTruthy();
+        expect(call[0].observer).toBe(rideObserver);
+        expect(typeof call[0].transform).toBe('function');
+        expect(call[0].transform({ rows: MOCK_NEARBY_ROWS })).toEqual(MOCK_NEARBY_ROWS);
+        expect(call[0].transform(undefined)).toEqual([]);
+    });
+
+    describe('phone (fallback): mounted as a sibling of the corner-slot toggle', () => {
+        const fallbackProps: RideOverlayProps = {
+            ...nearbyRidersProps,
+            compact: true,
+            cornerWidget: 'elevation',
+        };
+
+        beforeEach(() => {
+            setDimensions(844, 390); // height < 420 => compact => fallback
+        });
+
+        it('starts expanded, showing the full row list, alongside elevation', () => {
+            const { getByTestId, getAllByTestId } = render(<RideOverlay {...fallbackProps} />);
+
+            expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+            expect(getByTestId('nearby-riders-expanded-panel')).toBeTruthy();
+            expect(getAllByTestId('nearby-rider-row').length).toBeGreaterThan(0);
+        });
+
+        it('collapsing leaves elevation visible plus just the chevron button, no row data', () => {
+            const { getByTestId, queryByTestId, queryAllByTestId } = render(<RideOverlay {...fallbackProps} />);
+
+            fireEvent.press(getByTestId('nearby-riders-expand-chevron'));
+
+            expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+            expect(getByTestId('nearby-riders-collapsed-slot')).toBeTruthy();
+            expect(queryByTestId('nearby-riders-expanded-panel')).toBeNull();
+            expect(queryAllByTestId('nearby-rider-row')).toHaveLength(0);
+        });
+
+        it('does not render when no rows are given', () => {
+            const { queryByTestId } = render(<RideOverlay {...fallbackProps} nearbyRiders={undefined} />);
+
+            expect(queryByTestId('nearby-riders-expanded-panel')).toBeNull();
+            expect(queryByTestId('nearby-riders-collapsed-slot')).toBeNull();
+        });
+
+        // Integration finding (session 3.1): PrevRidesCornerPanel and NearbyRidersCornerPanel both
+        // anchor to the SAME cornerSlotRect on phone (there is only one corner slot, unlike the
+        // tablet's separate left/right ears) — implemented literally per the session plan's
+        // "symmetric... corner-slot toggle (phone)" instruction. This test documents the resulting
+        // overlap rather than hiding it: both panels currently render at the same position when
+        // both features are eligible at once.
+        it('both PrevRides and Nearby Riders eligible at once: both panels render, anchored to the same corner-slot rect (unresolved stacking order — flagged, not fixed here)', () => {
+            const { getByTestId } = render(
+                <RideOverlay {...fallbackProps} prevRides={MOCK_ROWS} getPrevRidesRows={() => MOCK_ROWS} />
+            );
+
+            const prevPanel = getByTestId('prev-rides-expanded-panel');
+            const nearbyPanel = getByTestId('nearby-riders-expanded-panel');
+            const prevTop = StyleSheet.flatten(prevPanel.props.style).top;
+            const nearbyTop = StyleSheet.flatten(nearbyPanel.props.style).top;
+
+            expect(nearbyTop).toBe(prevTop);
+        });
     });
 });
 

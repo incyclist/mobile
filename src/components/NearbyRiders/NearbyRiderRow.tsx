@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import type { Avatar } from 'incyclist-services';
 import { colors, textSizes } from '../../theme';
 import { PrevRiderAvatar } from '../PrevRides';
 import { NearbyRiderRowProps } from './types';
@@ -84,7 +85,13 @@ export const NearbyRiderRow = (props: NearbyRiderRowProps) => {
             testID="nearby-rider-row"
         >
             <View style={styles.avatarSlot}>
-                <PrevRiderAvatar avatar={avatar} size={32} />
+                {/* NearbyRiderRowProps.avatar is ActiveRideListAvatar (plain shirt/helmet
+                    strings) - PrevRiderAvatar/avatarToConfig are typed for Avatar's Color-enum
+                    shape. ActiveRidesService never validates these strings against the Color
+                    union either (same looseness RidePageService.mapNearbyRiderRow() already
+                    widens past on the services side), so this is a narrowing cast, not a runtime
+                    risk. */}
+                <PrevRiderAvatar avatar={avatar as Avatar} size={32} />
             </View>
 
             <View style={styles.content}>
