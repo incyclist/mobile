@@ -1,4 +1,4 @@
-import { TRideView } from 'incyclist-services';
+import { TRideView, TRideViewOption } from 'incyclist-services';
 
 export interface RideSettingsProps {
     onClose: () => void;
@@ -6,7 +6,7 @@ export interface RideSettingsProps {
 
 export interface RideSettingsViewProps {
     rideView: TRideView;
-    rideViewOptions: Map<TRideView, string>;
+    rideViewOptions: Map<TRideView, TRideViewOption>;
     onClose: () => void;
     onChangeRideView: (value: TRideView) => void;
 }

@@ -62,3 +62,21 @@ export const MultiSelect: Story = {
         multi: true,
     },
 };
+
+// A per-option disabled state with an explanatory message, mixed with plain-string
+// options - e.g. Ride Settings' Satellite View option when the device can't use it.
+export const WithDisabledOption: Story = {
+    args: {
+        label: 'Ride View',
+        options: [
+            'Street View',
+            'Map',
+            {
+                label: 'Satellite View',
+                disabled: true,
+                message: 'Install Google Play Services to use this view',
+            },
+        ],
+        selected: 'Street View',
+    },
+};
