@@ -59,6 +59,14 @@ jest.mock('../../../hooks', () => ({
 
 jest.mock('../../../components/StreetView', () => ({ StreetView: () => null }));
 
+const mockSatelliteView = jest.fn();
+jest.mock('../../../components/SatelliteView', () => ({
+    SatelliteView: (props: any) => {
+        mockSatelliteView(props);
+        return null;
+    },
+}));
+
 const baseProps: GPXTourPageViewProps = {
     displayProps: {
         startOverlayProps: {
@@ -147,9 +155,9 @@ describe('GPXTourPageView — corner orientation map', () => {
         expect(queryByTestId('gpx-corner-map')).toBeNull();
     });
 
-    it('does not show the corner map when the main view is Satellite (still rendered as a full-screen map today)', () => {
+    it('shows the corner map when the main view is Satellite', () => {
         const { queryByTestId } = render(<GPXTourPageView {...activeProps('sat')} />);
-        expect(queryByTestId('gpx-corner-map')).toBeNull();
+        expect(queryByTestId('gpx-corner-map')).not.toBeNull();
     });
 
     it('does not show the corner map in compact mode, even in StreetView', () => {
@@ -166,6 +174,53 @@ describe('GPXTourPageView — corner orientation map', () => {
         };
         const { queryByTestId } = render(<GPXTourPageView {...props} />);
         expect(queryByTestId('gpx-corner-map')).toBeNull();
+    });
+});
+
+describe('GPXTourPageView — Satellite View branch', () => {
+    beforeEach(() => {
+        mockSatelliteView.mockClear();
+    });
+
+    it('renders SatelliteView only when rideView is "sat"', () => {
+        render(<GPXTourPageView {...activeProps('sat')} />);
+        expect(mockSatelliteView).toHaveBeenCalled();
+    });
+
+    it('does not render SatelliteView when rideView is "map"', () => {
+        render(<GPXTourPageView {...activeProps('map')} />);
+        expect(mockSatelliteView).not.toHaveBeenCalled();
+    });
+
+    it('does not render SatelliteView when rideView is "sv"', () => {
+        render(<GPXTourPageView {...activeProps('sv')} />);
+        expect(mockSatelliteView).not.toHaveBeenCalled();
+    });
+
+    it('onLoaded forwards a "Loaded" event to the service', () => {
+        const onDisplayEvent = jest.fn();
+        const props = activeProps('sat');
+        (props.displayProps as any).onDisplayEvent = onDisplayEvent;
+        render(<GPXTourPageView {...props} />);
+
+        const satProps = mockSatelliteView.mock.calls.at(-1)?.[0];
+        satProps.onLoaded();
+
+        expect(onDisplayEvent).toHaveBeenCalledWith('Loaded');
+    });
+
+    it('onError forwards every reason to the service as-is (no retry ladder to protect, unlike Street View)', () => {
+        const onDisplayEvent = jest.fn();
+        const props = activeProps('sat');
+        (props.displayProps as any).onDisplayEvent = onDisplayEvent;
+        render(<GPXTourPageView {...props} />);
+
+        const satProps = mockSatelliteView.mock.calls.at(-1)?.[0];
+        satProps.onError('unavailable');
+        satProps.onError('unknown');
+
+        expect(onDisplayEvent).toHaveBeenNthCalledWith(1, 'Error', 'unavailable');
+        expect(onDisplayEvent).toHaveBeenNthCalledWith(2, 'Error', 'unknown');
     });
 });
 

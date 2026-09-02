@@ -22,6 +22,8 @@ import { colors, textSizes } from '../../../theme';
 import { useScreenLayout } from '../../../hooks';
 import { StreetView } from '../../../components/StreetView';
 import { IPosition } from '../../../components/StreetView/types';
+import { SatelliteView } from '../../../components/SatelliteView';
+import { IPosition as ISatPosition, SatelliteViewErrorReason } from '../../../components/SatelliteView/types';
 import { RideViewActionProps } from '../types';
 import { useRouteOnlyRideGeometry } from '../hooks/useRouteOnlyRideGeometry';
 import { RideBottomBarAndMenu } from '../components/RideBottomBarAndMenu';
@@ -36,6 +38,8 @@ export interface GPXTourPageViewProps extends RideViewActionProps {
 const SV = React.memo(StreetView
 //    ,(prev,next)=>prev.position?.lat!==next.position?.lat || prev.position?.lng!==next.position?.lng || prev.position?.heading!==next.position?.heading
 )
+
+const Sat = React.memo(SatelliteView)
 
 // Conditional import — same pattern as Workout/View.tsx / useRideGestures (session 5.4): keeps
 // Storybook (Vite/web) and any environment without the native module from crashing. `gesture`
@@ -82,11 +86,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     const hasGpx = route?.description?.hasGpx;
 
     // Whether the full-screen main view already shows a map, making the corner orientation map
-    // redundant. Deliberately not `rideView !== 'map'`: GPX also renders 'sat' through FreeMap as a
-    // full-screen map today ("currently also draw sv and sat as map - to be replaced later"), so that
-    // predicate would double-render a map on top of a map. Update to
-    // `rideView === 'sv' || rideView === 'sat'` once SatelliteView is a real, distinct view.
-    const mainViewIsNotAMap = rideView === 'sv';
+    // redundant. Deliberately not `rideView !== 'map'`: only 'sv' and 'sat' render their own
+    // full-screen view outside the plain FreeMap branch below - everything else (currently just
+    // 'map') still needs the corner map for orientation.
+    const mainViewIsNotAMap = rideView === 'sv' || rideView === 'sat';
 
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
@@ -173,6 +176,10 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         return val
     }, []);
 
+    const transformSatPosition = useCallback((val: ISatPosition):ISatPosition => {
+        return val
+    }, []);
+
     // The native component's event names are translated onto the service's (desktop-derived)
     // StreetViewEvent vocabulary here, so `onStreetViewEvent()` stays a single code path for
     // both platforms.
@@ -213,14 +220,26 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         // StreetView component logs these for telemetry.
     }, []);
 
+    // Releases the start overlay - see onSVLoaded above for why that matters.
+    const onSatLoaded = useCallback(() => {
+        displayEventRef.current?.('Loaded')
+    }, []);
+
+    // Unlike SV, SatelliteView has no retry ladder, so every error reason is forwarded as-is -
+    // there's no "might still resolve on its own" case to protect here.
+    const onSatError = useCallback((reason: SatelliteViewErrorReason) => {
+        displayEventRef.current?.('Error', reason)
+    }, []);
+
     const svPosition = displayPosition as IPosition | undefined;
+    const satPosition = displayPosition as ISatPosition | undefined;
 
     // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
     // duplicating this whole subtree - same reasoning as Workout/View.tsx's identical `content`.
     const mainContent = (
                 <View style={StyleSheet.absoluteFill}>
-                    {/* Render main view based on rideView (currently also draw sv and sat as map - to be replaced later) */}
-                    { (rideView === 'map' || rideView === 'sat') && (
+                    {/* Render the plain 2D map. 'sv' and 'sat' render their own full-screen views below. */}
+                    { (rideView === 'map') && (
                         <ErrorBoundary>
                             <Dynamic
                                 observer={rideObserver ?? undefined}
@@ -370,6 +389,23 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         onPanoramaChanged={onSVPanoramaChanged}
                         onNoPanorama={onSVNoPanorama}
                         onError={onSVError}
+                    />
+                </Dynamic>
+            )}
+
+            {/* Satellite lives outside the start-overlay gate too, for the same reason as Street View above. */}
+            { (rideView === 'sat') && (
+                <Dynamic
+                    observer={displayObserver}
+                    event='position-update'
+                    prop='position'
+                    transform={transformSatPosition}
+                >
+                    <Sat
+                        position={satPosition}
+                        style={styles.fullScreenMap}
+                        onLoaded={onSatLoaded}
+                        onError={onSatError}
                     />
                 </Dynamic>
             )}
