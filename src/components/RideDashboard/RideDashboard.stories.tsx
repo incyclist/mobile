@@ -125,8 +125,9 @@ export const WorkoutShoutoutLongText: Story = {
 };
 
 /**
- * Workout ride screen, compact (phone) layout: the shoutout is tablet-only, so compact mode
- * renders exactly like a route ride in compact mode — no second line at all.
+ * Workout ride screen, compact (phone) layout: the shoutout renders below the metrics row at a
+ * smaller, single-line sizing (`textSizes.subtitle`), spanning the full window width — unlike
+ * tablet, where it can wrap to 2 lines at the larger metrics-row number size.
  */
 export const WorkoutShoutoutCompact: Story = {
     args: {

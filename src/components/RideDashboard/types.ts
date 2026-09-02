@@ -28,9 +28,10 @@ export interface RideDashboardViewProps {
     layout?: DashboardLayout
     compact?:boolean
     /**
-     * Workout ride screen only (workout-ride-page-service-design.md §3.3). When set and the
-     * layout isn't compact, replaces every item's normal-layout secondary row with one shared
-     * target+description shoutout line. `null`/`undefined` leaves route-ride rendering untouched.
+     * Workout ride screen only (workout-ride-page-service-design.md §3.3). When set, replaces
+     * every item's normal-layout secondary row (non-compact) or renders as a single-line strip
+     * below the metrics row (compact) with one shared target+description shoutout line.
+     * `null`/`undefined` leaves route-ride rendering untouched.
      */
     workoutShoutout?: WorkoutDashboardLine | null
 }
