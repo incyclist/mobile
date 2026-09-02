@@ -1,7 +1,7 @@
 import React from 'react';
 import { useWindowDimensions, View, Text, StyleSheet } from 'react-native';
 import { Icon, IconName } from '../Icon';
-import { colors } from '../../theme';
+import { colors, textSizes } from '../../theme';
 import { METRIC_ICON, RideDashboardViewProps, getValueColor, ActivityDashboardItem, WorkoutDashboardLine } from './types';
 
 const SEPARATOR_WIDTH = 1; // styles.separator's own width, below
@@ -9,7 +9,7 @@ const CONTAINER_H_PADDING = 8; // styles.container's own paddingHorizontal, belo
 
 export const RideDashboardView = ({ items, layout = 'icon-top', compact = false, workoutShoutout = null }: RideDashboardViewProps) => {
     const { width } = useWindowDimensions();
-    const showWorkoutShoutout = !!workoutShoutout && !compact;
+    const showWorkoutShoutout = !!workoutShoutout;
 
     const minColWidth = 70; // Minimum column width for calculation in compact mode
     const maxCols = Math.floor(width / minColWidth);
@@ -29,17 +29,21 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false,
     const iconSizeLeft = valueSize; // Fix 1: Reduce icon size to match value font height
     const colWidthLeft = colWidthBase + iconSizeLeft + 6; // Fix 1: Adjust column width
 
-    // The workout shoutout must share the metrics row's exact left/right edges. The row is
-    // intrinsically sized (centered, not stretched) in normal/tablet layout, so its width is
-    // computed analytically here from the same per-column width `renderMetric` uses below —
-    // deliberately not measured via onLayout, which this codebase has already found unreliable
-    // under both the Jest test renderer and the Storybook react-native-web renderer (see
-    // WorkoutGraph's smart wrapper), and would otherwise leave the shoutout permanently hidden
-    // in both tests and stories.
+    // The workout shoutout must share the metrics row's exact left/right edges. In normal/tablet
+    // layout the row is intrinsically sized (centered, not stretched), so its width is computed
+    // analytically here from the same per-column width `renderMetric` uses below — deliberately
+    // not measured via onLayout, which this codebase has already found unreliable under both the
+    // Jest test renderer and the Storybook react-native-web renderer (see WorkoutGraph's smart
+    // wrapper), and would otherwise leave the shoutout permanently hidden in both tests and
+    // stories. In compact layout the container is `alignSelf: 'stretch'` (see `container` style
+    // below), so its actual rendered width is simply the full window width — same value
+    // `getRideDashboardWidth()`'s own `compact` branch already uses.
     const nonCompactColWidth = layout === 'icon-left' ? colWidthLeft : colWidthBase;
-    const metricsRowWidth = visibleItems.length * nonCompactColWidth
-        + Math.max(0, visibleItems.length - 1) * SEPARATOR_WIDTH
-        + CONTAINER_H_PADDING * 2;
+    const metricsRowWidth = compact
+        ? width
+        : visibleItems.length * nonCompactColWidth
+            + Math.max(0, visibleItems.length - 1) * SEPARATOR_WIDTH
+            + CONTAINER_H_PADDING * 2;
 
     // Data helpers
     const getPrimary = (item: ActivityDashboardItem) => item.data[0];
@@ -170,23 +174,41 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false,
                 <WorkoutShoutoutLine
                     line={workoutShoutout as WorkoutDashboardLine}
                     width={metricsRowWidth}
-                    fontSize={valueSize}
+                    fontSize={compact ? textSizes.subtitle : valueSize}
+                    numberOfLines={compact ? 1 : 2}
                 />
             )}
         </View>
     );
 };
 
-// Tablet-only, workout-ride-screen-only shoutout that takes over the normal-layout second line
+// Workout-ride-screen-only shoutout that takes over the normal-layout second line
 // (workout-ride-page-service-design.md §3.3): one fully-composed sentence, e.g. "260W at
 // 100-120HR for 5min - VO2 max (3/5)" — no separate power/duration/remaining chips (those are
 // already live on WorkoutStepsList's current-step row; repeating them here was the pre-1.0
 // design and is now considered wrong, session 3.3 rework). `width` matches the metrics row above
 // it exactly, so the two share left/right boundaries instead of one being centered narrower/wider
-// than the other; `fontSize` matches the metrics row's own number size (`valueSize`).
-const WorkoutShoutoutLine = ({ line, width, fontSize }: { line: WorkoutDashboardLine; width: number; fontSize: number }) => (
-    <View style={[styles.shoutout, { width, alignSelf: 'center' }]}>
-        <Text style={[styles.shoutoutText, { fontSize }]} numberOfLines={2}>
+// than the other.
+//
+// Shown in compact (phone) layout too (session revisit, 2026-09-02): WorkoutStepsList's
+// current-step row only ever shows the *remaining* time on the current step, never its planned
+// duration/target — the shoutout is the only place that context exists, so hiding it on phone
+// left riders without it. Uses `RideOverlay`'s already-proven-fitting `fallbackShoutoutText`
+// sizing (`textSizes.subtitle`, one line) rather than the tablet's larger `valueSize`/two-line
+// treatment, which was tuned for a much wider, centered row.
+const WorkoutShoutoutLine = ({
+    line,
+    width,
+    fontSize,
+    numberOfLines,
+}: {
+    line: WorkoutDashboardLine
+    width: number
+    fontSize: number
+    numberOfLines: number
+}) => (
+    <View testID="workout-shoutout" style={[styles.shoutout, { width, alignSelf: 'center' }]}>
+        <Text style={[styles.shoutoutText, { fontSize }]} numberOfLines={numberOfLines}>
             {line.text}
         </Text>
     </View>

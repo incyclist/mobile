@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, render } from '@testing-library/react-native';
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { RideDashboardView } from './RideDashboardView';
 import { RideDashboard } from './RideDashboard';
 import { ActivityDashboardItem, WorkoutDashboardLine } from './types';
@@ -46,12 +46,29 @@ describe('RideDashboardView — workout shoutout', () => {
         expect(queryByText('170')).toBeNull();
     });
 
-    test('workout ride, compact layout: shoutout is tablet-only and does not render', () => {
-        const { queryByText } = render(
+    // Reversed 2026-09-02 (was 'shoutout is tablet-only and does not render'): WorkoutStepsList's
+    // current-step row only shows remaining time, never the step's planned target/duration — the
+    // shoutout is the only place that context exists, so phone riders need it too.
+    test('workout ride, compact layout: shoutout renders, at the compact (single-line) sizing', () => {
+        const { getByText, queryByText } = render(
             <RideDashboardView items={items} layout="icon-top" compact workoutShoutout={workoutShoutout} />
         );
 
-        expect(queryByText(workoutShoutout.text)).toBeNull();
+        const shoutoutText = getByText(workoutShoutout.text);
+        expect(shoutoutText).toBeTruthy();
+        expect(shoutoutText.props.numberOfLines).toBe(1);
+        // secondary rows are never shown in compact mode regardless of the shoutout
+        expect(queryByText('170')).toBeNull();
+    });
+
+    test('workout ride, compact layout: shoutout width matches the full window width (container stretches in compact)', () => {
+        const { getByTestId } = render(
+            <RideDashboardView items={items} layout="icon-top" compact workoutShoutout={workoutShoutout} />
+        );
+
+        const screenWidth = Dimensions.get('window').width;
+        const flattenedStyle = StyleSheet.flatten(getByTestId('workout-shoutout').props.style);
+        expect(flattenedStyle.width).toBe(screenWidth);
     });
 });
 
