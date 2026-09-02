@@ -119,4 +119,56 @@ describe('ChipSelect', () => {
         fireEvent.press(getByText('Power'));
         expect(onValueChange).not.toHaveBeenCalled();
     });
+
+    describe('object-based options (per-option disabled state + message)', () => {
+        it('renders a mix of plain-string and disabled object options', () => {
+            const { getByText } = render(
+                <ChipSelect
+                    label="Ride View"
+                    options={[
+                        'Map',
+                        { label: 'Satellite View', disabled: true, message: 'Install Google Play Services to use this view' },
+                    ]}
+                    selected="Map"
+                    onValueChange={jest.fn()}
+                />
+            );
+            expect(getByText('Map')).toBeTruthy();
+            expect(getByText('Satellite View')).toBeTruthy();
+            expect(getByText('Install Google Play Services to use this view')).toBeTruthy();
+        });
+
+        it('does not show a message for an enabled object option', () => {
+            const { getByText, queryByText } = render(
+                <ChipSelect
+                    label="Ride View"
+                    options={[{ label: 'Map' }, { label: 'Street View' }]}
+                    selected="Map"
+                    onValueChange={jest.fn()}
+                />
+            );
+            expect(getByText('Map')).toBeTruthy();
+            expect(queryByText('Install Google Play Services to use this view')).toBeNull();
+        });
+
+        it('tapping a per-option disabled chip does not call onValueChange, other chips stay tappable', () => {
+            const onValueChange = jest.fn();
+            const { getByText } = render(
+                <ChipSelect
+                    label="Ride View"
+                    options={[
+                        'Map',
+                        { label: 'Satellite View', disabled: true, message: 'unavailable' },
+                    ]}
+                    selected="Map"
+                    onValueChange={onValueChange}
+                />
+            );
+            fireEvent.press(getByText('Satellite View'));
+            expect(onValueChange).not.toHaveBeenCalled();
+
+            fireEvent.press(getByText('Map'));
+            expect(onValueChange).toHaveBeenCalledWith('Map');
+        });
+    });
 });
