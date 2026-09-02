@@ -17,22 +17,11 @@ const samePosition = (a?: IPosition | null, b?: IPosition | null) =>
     a?.lat === b?.lat && a?.lng === b?.lng && a?.heading === b?.heading;
 
 /**
- * Wraps the native Satellite View component.
- *
- * Structurally this mirrors StreetView.tsx, but deliberately without its retry
- * ladder and watchdog marks. Those exist because a Street View panorama can
- * genuinely have no imagery at a position and because a fetch can be superseded
- * into never completing - neither has an equivalent here. A satellite map is
- * tile-based: every coordinate renders something, and moving the camera IS the
- * update rather than a request that can fail (satellite-view-mobile-design.md
- * 2.11). Retrying a position that already worked would be pure noise.
- *
- * What is kept is the load-lifecycle queuing: while the very first load is still
- * outstanding, updates are held rather than applied, because each camera move
- * pulls a fresh set of tiles and a stream of them can push the first completed
- * load further out. That is a startup-only concern - once loaded, every update
- * goes straight through, which is what the design's no-throttling decision
- * requires.
+ * Wraps the native Satellite View component. Mirrors StreetView.tsx's structure, but
+ * deliberately without its retry ladder or watchdog: a satellite map is tile-based, so
+ * moving the camera IS the update, not a fetch that can fail or need retrying. The
+ * load-lifecycle queuing is kept - updates are held until the first load completes,
+ * since a stream of camera moves would otherwise keep pushing that completion out.
  */
 export const SatelliteView = (props: SatelliteViewProps) => {
 

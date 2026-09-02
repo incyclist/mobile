@@ -6,10 +6,8 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * RCTSatelliteViewComponentView — Fabric native view component (iOS)
  *
- * Renders Apple MapKit satellite imagery under a fixed 45 degree camera for the
- * ride screen's 'sat' view. See internal/designs/satellite-view-mobile-design.md
- * for the reasoning, and ios/StreetView/RCTStreetViewComponentView.{h,mm} for the
- * structural template this mirrors.
+ * Renders Apple MapKit satellite imagery under a fixed 45 degree camera for the ride
+ * screen's 'sat' view, structurally mirroring ios/StreetView/RCTStreetViewComponentView.
  *
  * The interface is deliberately empty: everything is driven by props and MKMapView
  * delegate callbacks, and nothing outside the renderer talks to this class.
