@@ -102,7 +102,7 @@ export const ChipSelect = (props: ChipSelectProps) => {
                                 >
                                     <Text style={styles.chipText}>{normalized.label}</Text>
                                 </TouchableOpacity>
-                                {normalized.disabled && normalized.message && (
+                                {Boolean(normalized.disabled && normalized.message) && (
                                     <Text style={styles.helperText}>{normalized.message}</Text>
                                 )}
                             </View>

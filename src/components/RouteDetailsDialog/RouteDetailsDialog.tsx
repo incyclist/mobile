@@ -182,9 +182,11 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
     const isOnline = onlineStatusMonitor.onlineStatus;
     // AVI takes precedence when both reasons apply - it is checked first below.
-    const canNotStartReason = isAvi
-        ? 'AVI videos are not supported on mobile'
-        : (!isOnline ? 'You are offline (no network)' : undefined);
+    let canNotStartReason: string | undefined;
+    if (isAvi)
+        canNotStartReason = 'AVI videos are not supported on mobile';
+    else if (!isOnline)
+        canNotStartReason = 'You are offline (no network)';
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
     const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
