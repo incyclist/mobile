@@ -1,7 +1,5 @@
 package com.incyclist.app
 
-import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -17,9 +15,6 @@ import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
 import com.facebook.react.viewmanagers.StreetViewManagerDelegate
 import com.facebook.react.viewmanagers.StreetViewManagerInterface
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.maps.MapsInitializer
-import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import com.google.android.gms.maps.StreetViewPanorama
 import com.google.android.gms.maps.StreetViewPanoramaView
 import com.google.android.gms.maps.model.LatLng
@@ -115,6 +110,17 @@ import java.util.WeakHashMap
  * The Maps SDK for Android does not support multiple StreetViewPanoramaView
  * instances in one Activity. The demo page (and later GPXTourPage) must
  * render exactly one StreetView at a time.
+ *
+ * ── Availability ─────────────────────────────────────────────────────────
+ *
+ * The Maps SDK bootstrap, the manifest API-key state and the Play Services
+ * version now live in MapsAvailability, shared with SatelliteViewManager and
+ * with MapAvailabilityModule (which reports the same verdict to JS). This
+ * component's own onError paths are unchanged and still needed — they catch
+ * what only shows up once a panorama has actually been asked for (no network,
+ * no imagery, an invalid key) — but a device with no usable Maps SDK is now
+ * expected to be caught before a rider can select this view at all, so the
+ * reactive paths should become rare rather than being the only defence.
  */
 @ReactModule(name = StreetViewManager.NAME)
 class StreetViewManager(
@@ -132,7 +138,7 @@ class StreetViewManager(
     override fun getName(): String = NAME
 
     override fun createViewInstance(context: ThemedReactContext): StreetViewPanoramaView {
-        initializeMaps(context)
+        MapsAvailability.initialize(context)
 
         val view = StreetViewPanoramaView(context)
         val state = PanoramaState()
@@ -141,15 +147,9 @@ class StreetViewManager(
         // Check API key availability FIRST, before any lifecycle methods or license-consumed event.
         // If the key is missing or unreadable, fail immediately without triggering a billable
         // Street View SDK event (onCreate is the billing trigger per Google's docs).
-        val keyState = apiKeyState(context)
+        val keyState = MapsAvailability.apiKeyState(context)
         if (keyState != "present") {
-            emitLog(view, "createViewInstance", mapOf(
-                "apiKey" to keyState,
-                "mapsInit" to mapsInitResult,
-                "mapsInitName" to connectionResultName(mapsInitResult),
-                "renderer" to (activeRenderer ?: "pending"),
-                "playServices" to playServicesVersion(context),
-            ))
+            emitLog(view, "createViewInstance", MapsAvailability.diagnostics(context, keyState))
             emitError(view, state, "apiKeyMissing")
             return view
         }
@@ -167,13 +167,7 @@ class StreetViewManager(
 
         // Whether the Maps SDK is healthy on this device is the main open question for the
         // black-screen reports, so every instance reports what it is working with.
-        emitLog(view, "createViewInstance", mapOf(
-            "apiKey" to keyState,
-            "mapsInit" to mapsInitResult,
-            "mapsInitName" to connectionResultName(mapsInitResult),
-            "renderer" to (activeRenderer ?: "pending"),
-            "playServices" to playServicesVersion(context),
-        ))
+        emitLog(view, "createViewInstance", MapsAvailability.diagnostics(context, keyState))
 
         // Arm the ready timeout. Cancelled when getStreetViewPanoramaAsync fires.
         val readyTimeoutRunnable = Runnable {
@@ -191,7 +185,7 @@ class StreetViewManager(
             state.panorama = panorama
 
             emitLog(view, "panorama ready", mapOf(
-                "renderer" to (activeRenderer ?: "unknown"),
+                "renderer" to (MapsAvailability.renderer() ?: "unknown"),
                 "width" to view.width,
                 "height" to view.height,
             ))
@@ -258,78 +252,6 @@ class StreetViewManager(
         }
         states.remove(view)
         super.onDropViewInstance(view)
-    }
-
-    // ── Maps SDK initialisation ───────────────────────────────────────────
-
-    /**
-     * MapsInitializer is process-global and only takes effect on its first call, so the
-     * result and the renderer that was actually selected are cached for every later view.
-     *
-     * The renderer matters: the black screen we are chasing looks exactly like the panorama
-     * pipeline stalling on a specific device, and RENDERER_PREFERENCE is the one lever we
-     * have over it. The previous code used the deprecated single-argument overload and threw
-     * the ConnectionResult away, so a degraded Play Services install was indistinguishable
-     * from a healthy one.
-     */
-    private fun initializeMaps(context: Context) {
-        if (mapsInitResult != null)
-            return
-
-        try {
-            mapsInitResult = MapsInitializer.initialize(
-                context.applicationContext,
-                RENDERER_PREFERENCE,
-                OnMapsSdkInitializedCallback { renderer -> activeRenderer = renderer.name }
-            )
-        } catch (t: Throwable) {
-            mapsInitError = t.message
-            mapsInitResult = INIT_THREW
-        }
-    }
-
-    /**
-     * Whether the manifest carries a Maps API key at all — reported as present/missing, never
-     * the value itself.
-     *
-     * This exists because released builds shipped `android:value=""` for months: the key was
-     * absent from CI and the Gradle build substituted an empty string. An empty key produces
-     * a build that initialises cleanly and then has every panorama request rejected, so the
-     * ride screen was black with nothing anywhere saying why. One line here would have made
-     * that obvious from the first user report.
-     */
-    private fun apiKeyState(context: Context): String {
-        return try {
-            @Suppress("DEPRECATION")
-            val info = context.packageManager.getApplicationInfo(
-                context.packageName,
-                PackageManager.GET_META_DATA,
-            )
-            val key = info.metaData?.getString(API_KEY_META_DATA)
-            if (key.isNullOrBlank()) "missing" else "present"
-        } catch (t: Throwable) {
-            "unreadable"
-        }
-    }
-
-    private fun playServicesVersion(context: Context): String {
-        return try {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(PLAY_SERVICES_PACKAGE, 0).versionName ?: "unknown"
-        } catch (t: Throwable) {
-            "missing"
-        }
-    }
-
-    private fun connectionResultName(result: Int?): String = when (result) {
-        null -> "not-initialised"
-        ConnectionResult.SUCCESS -> "success"
-        ConnectionResult.SERVICE_MISSING -> "service-missing"
-        ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> "update-required"
-        ConnectionResult.SERVICE_DISABLED -> "service-disabled"
-        ConnectionResult.SERVICE_INVALID -> "service-invalid"
-        INIT_THREW -> "threw: ${mapsInitError ?: "unknown"}"
-        else -> "code-$result"
     }
 
     // ── Panorama change handler ────────────────────────────────────────────
@@ -632,28 +554,6 @@ class StreetViewManager(
         private const val DEFAULT_POSITION_TIMEOUT_MS = 2_000L
 
         private const val PANORAMA_SEARCH_RADIUS = 50
-        private const val PLAY_SERVICES_PACKAGE = "com.google.android.gms"
-        private const val API_KEY_META_DATA = "com.google.android.geo.API_KEY"
-
-        /** sentinel for "MapsInitializer.initialize threw", which has no ConnectionResult */
-        private const val INIT_THREW = -1
-
-        /**
-         * Renderer used for the Maps SDK. LATEST is the SDK default and is what the failing
-         * builds have been running; LEGACY is the fallback to try if the diagnostics show
-         * the panorama pipeline stalling with LATEST. Process-global and applied on first
-         * use, so this cannot be switched at runtime — changing it needs a new build.
-         */
-        private val RENDERER_PREFERENCE = MapsInitializer.Renderer.LATEST
-
-        @Volatile
-        private var mapsInitResult: Int? = null
-
-        @Volatile
-        private var mapsInitError: String? = null
-
-        @Volatile
-        private var activeRenderer: String? = null
 
         // Event name constants — must match the prop names in the Codegen spec.
         private const val EVENT_LICENSE_CONSUMED = "onLicenseConsumed"

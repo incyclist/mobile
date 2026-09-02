@@ -33,6 +33,7 @@ class MainApplication : Application(), ReactApplication {
                 packages.add(FolderAccessPackage())
                 packages.add(StreetViewPackage())
                 packages.add(SatelliteViewPackage())
+                packages.add(MapAvailabilityPackage())
                 packages.add(AudioCuePackage())
 
                 return packages
@@ -116,6 +117,7 @@ class MainApplication : Application(), ReactApplication {
         packages.add(FolderAccessPackage())
         packages.add(StreetViewPackage())
         packages.add(SatelliteViewPackage())
+        packages.add(MapAvailabilityPackage())
         packages.add(AudioCuePackage())
 
         getDefaultReactHost(
