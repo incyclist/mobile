@@ -132,7 +132,8 @@
     },
     "ios": {
       "componentProvider": {
-        "StreetView": "RCTStreetViewComponentView"
+        "StreetView": "RCTStreetViewComponentView",
+        "SatelliteView": "RCTSatelliteViewComponentView"
       }
     }
   }
