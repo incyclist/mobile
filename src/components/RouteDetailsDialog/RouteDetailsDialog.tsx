@@ -181,12 +181,16 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const downloadStatus = downloadRow?.status ?? 'none'
     const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
     const isOnline = onlineStatusMonitor.onlineStatus;
-    // AVI takes precedence when both reasons apply - it is checked first below.
+    // Only ever explains a Start button that is actually unavailable. Being offline is not by
+    // itself a reason - a downloaded video plays from local storage and starts fine offline.
+    // AVI takes precedence when both apply.
     let canNotStartReason: string | undefined;
-    if (isAvi)
-        canNotStartReason = 'AVI videos are not supported on mobile';
-    else if (!isOnline)
-        canNotStartReason = 'You are offline (no network)';
+    if (!canStart) {
+        if (isAvi)
+            canNotStartReason = 'AVI videos are not supported on mobile';
+        else if (!isOnline)
+            canNotStartReason = 'You are offline (no network)';
+    }
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
     const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;

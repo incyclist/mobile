@@ -219,11 +219,23 @@ describe('RouteDetailsDialog - canNotStartReason (AVI vs offline)', () => {
         expect(queryByText('You are offline (no network)')).toBeNull();
     });
 
-    it('offline + not-AVI: shows the offline reason', () => {
+    it('offline + not-AVI + not startable: shows the offline reason', () => {
         mockOnlineStatusMonitor.onlineStatus = false;
         mockRouteData.description.videoFormat = undefined;
+        // e.g. a GPX route, or a video that has not been downloaded - RouteCard.canStart()
+        // returns false while offline for both.
+        mockCard.openSettings.mockReturnValue({ ...mockCardProps, canStart: false });
         const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
         expect(getByText('You are offline (no network)')).toBeTruthy();
+        expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
+    });
+
+    it('offline + not-AVI + startable: no reason shown, since a downloaded video plays locally', () => {
+        mockOnlineStatusMonitor.onlineStatus = false;
+        mockRouteData.description.videoFormat = undefined;
+        mockCard.openSettings.mockReturnValue({ ...mockCardProps, canStart: true });
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('You are offline (no network)')).toBeNull();
         expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
     });
 
