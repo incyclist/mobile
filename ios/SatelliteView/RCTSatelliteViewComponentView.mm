@@ -186,6 +186,7 @@ static const double kLoadTimeoutMs = 8000;
 
     double _latitude;
     double _longitude;
+    double _heading;
     BOOL   _hasPosition;
 
     /** When the first position was applied — onLoaded reports elapsed against it. */
@@ -262,6 +263,7 @@ static const double kLoadTimeoutMs = 8000;
     _loadedEmitted   = NO;
     _latitude        = 0;
     _longitude       = 0;
+    _heading         = 0;
     _hasPosition     = NO;
     _firstPositionAt = nil;
     _loadToken++;   // invalidate anything still scheduled
@@ -357,10 +359,12 @@ static const double kLoadTimeoutMs = 8000;
     const auto &next = *std::static_pointer_cast<SatelliteViewProps const>(props);
 
     const BOOL isFirst = !_hasPosition;
-    const BOOL changed = isFirst || next.latitude != _latitude || next.longitude != _longitude;
+    const BOOL changed = isFirst || next.latitude != _latitude || next.longitude != _longitude
+                          || next.heading != _heading;
 
     _latitude    = next.latitude;
     _longitude   = next.longitude;
+    _heading     = next.heading;
     _hasPosition = YES;
 
     [self ensureMap];
@@ -394,7 +398,7 @@ static const double kLoadTimeoutMs = 8000;
     MKMapCamera *camera = [MKMapCamera cameraLookingAtCenterCoordinate:coordinate
                                                           fromDistance:kCameraDistanceMeters
                                                                  pitch:kCameraPitchDegrees
-                                                               heading:0];
+                                                               heading:_heading];
 
     if (animated) {
         // MKMapView has no camera API that takes a duration: setCamera:animated:
@@ -421,6 +425,7 @@ static const double kLoadTimeoutMs = 8000;
     [self emitLog:@"position applied" detail:@{
         @"lat": @(_latitude),
         @"lng": @(_longitude),
+        @"heading": @(_heading),
         @"animated": @(animated),
         @"duration": @(animated ? kCameraAnimationDurationS : 0),
         @"loaded": @(_loadedEmitted),

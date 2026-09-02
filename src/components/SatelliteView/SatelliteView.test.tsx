@@ -4,8 +4,8 @@ import { SatelliteView } from './SatelliteView';
 
 jest.mock('../../specs/SatelliteViewNativeComponent', () => 'SatelliteView');
 
-const P1 = { lat: 40.758, lng: -73.9855 };
-const P2 = { lat: 40.759, lng: -73.986 };
+const P1 = { lat: 40.758, lng: -73.9855, heading: 0 };
+const P2 = { lat: 40.759, lng: -73.986, heading: 45 };
 
 /** props the native component was rendered with, or null when it was not rendered at all */
 const nativeProps = (result: ReturnType<typeof render>): any =>
@@ -29,11 +29,16 @@ it('applies the initial position', () => {
     expect(nativeProps(result).longitude).toBe(P1.lng);
 });
 
-it('does not pass a heading to the native component', () => {
-    // a satellite view has no facing direction - the camera pitch is fixed natively
-    const result = render(<SatelliteView position={P1} />);
+it('passes heading to the native component, matching desktop\'s rotating camera', () => {
+    const result = render(<SatelliteView position={P2} />);
 
-    expect(nativeProps(result).heading).toBeUndefined();
+    expect(nativeProps(result).heading).toBe(P2.heading);
+});
+
+it('defaults heading to 0 when the position has none', () => {
+    const result = render(<SatelliteView position={{lat: P1.lat, lng: P1.lng} as any} />);
+
+    expect(nativeProps(result).heading).toBe(0);
 });
 
 it('queues position updates while the initial load is outstanding', () => {
@@ -69,7 +74,7 @@ it('applies every update in a stream once loaded', () => {
     act(() => { nativeProps(result).onLoaded(); });
 
     for (let i = 1; i <= 5; i++) {
-        const next = { lat: P1.lat + i * 0.0001, lng: P1.lng };
+        const next = { lat: P1.lat + i * 0.0001, lng: P1.lng, heading: P1.heading };
         result.rerender(<SatelliteView position={next} />);
         expect(nativeProps(result).latitude).toBe(next.lat);
     }

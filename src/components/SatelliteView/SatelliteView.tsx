@@ -14,7 +14,7 @@ import { useLogging, useWhyDidYouRender } from '../../hooks';
 const STALE_AFTER = 8000;
 
 const samePosition = (a?: IPosition | null, b?: IPosition | null) =>
-    a?.lat === b?.lat && a?.lng === b?.lng;
+    a?.lat === b?.lat && a?.lng === b?.lng && a?.heading === b?.heading;
 
 /**
  * Wraps the native Satellite View component.
@@ -63,6 +63,7 @@ export const SatelliteView = (props: SatelliteViewProps) => {
                 reason,
                 lat: next.lat,
                 lng: next.lng,
+                heading: next.heading,
                 ...sizeRef.current,
             });
         }
@@ -160,6 +161,7 @@ export const SatelliteView = (props: SatelliteViewProps) => {
         <SatelliteViewNativeComponent
             latitude={applied.lat}
             longitude={applied.lng}
+            heading={applied.heading ?? 0}
             onLoaded={handleLoaded}
             onError={handleNativeError}
             onLog={handleNativeLog}

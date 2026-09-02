@@ -1,12 +1,13 @@
 import { StyleProp, ViewStyle } from 'react-native';
 
 /**
- * Only lat/lng: a satellite view has no facing direction, so unlike Street View's
- * IPosition there is no heading (satellite-view-mobile-design.md 2.4).
+ * Same shape as Street View's IPosition - satellite rotates with heading too, matching
+ * desktop's rotating camera (satellite-view-mobile-design.md 2.4).
  */
 export interface IPosition {
     lat: number;
     lng: number;
+    heading: number;
 }
 
 export type SatelliteViewErrorReason = 'unavailable' | 'unknown';

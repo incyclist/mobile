@@ -14,14 +14,15 @@ type OnLogEvent = { message: string; detail: string };
 /**
  * Satellite View native component spec - shared by both platforms.
  *
- * Deliberately narrower than StreetViewNativeComponent's contract:
+ * `heading` rotates the camera to match desktop exactly (desktop calls
+ * `setOptions({center, heading, tilt:45})` on every update - satellite-view-mobile-design.md
+ * 2.4). The camera stays non-interactive either way - no rotation gesture - heading is driven
+ * purely by the prop, not touch input.
  *
- * - no `heading`: the camera is fixed at a 45 deg pitch with no facing direction
- *   (satellite-view-mobile-design.md 2.4). Desktop's Google Maps JS view does pass a
- *   heading and rotates with it; mobile does not follow it, by design.
- * - no `onNoPanorama` / `onPanoramaChanged`: Street-View-specific, there is no
- *   "no imagery at this position" failure mode for a tile-based satellite map - a
- *   satellite update is a camera move over already-loaded tiles, not a fetch.
+ * Otherwise deliberately narrower than StreetViewNativeComponent's contract: no
+ * `onNoPanorama` / `onPanoramaChanged` - Street-View-specific, there is no "no imagery at this
+ * position" failure mode for a tile-based satellite map - a satellite update is a camera move
+ * over already-loaded tiles, not a fetch.
  *
  * `onLicenseConsumed` stays in the shared spec (optional) but is Android-only in practice:
  * Android renders Google satellite imagery through the Maps SDK, which bills per map
@@ -38,6 +39,7 @@ type OnLogEvent = { message: string; detail: string };
 export interface NativeProps extends ViewProps {
     latitude: CodegenTypes.Double;
     longitude: CodegenTypes.Double;
+    heading: CodegenTypes.Double;
     readyTimeout?: CodegenTypes.Double;
     onLicenseConsumed?: CodegenTypes.BubblingEventHandler<{}> | null;
     onLoaded?: CodegenTypes.BubblingEventHandler<{}> | null;

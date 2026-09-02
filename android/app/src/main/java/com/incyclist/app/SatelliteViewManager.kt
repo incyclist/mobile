@@ -39,15 +39,16 @@ import java.util.WeakHashMap
  *
  * ── Camera ────────────────────────────────────────────────────────────────
  *
- * MAP_TYPE_SATELLITE at zoom 20 with a 45° tilt, north-up, all gestures disabled. Those
- * numbers are not chosen here — they are what the desktop/web satellite view has always
- * rendered (Google Maps JS API: mapTypeId 'satellite', zoom 20, tilt 45), so mobile matches
- * what riders already know. MAP_TYPE_HYBRID would add road/place labels on top of the same
- * imagery, which desktop does not show.
+ * MAP_TYPE_SATELLITE at zoom 20 with a 45° tilt, all gestures disabled. Those numbers are not
+ * chosen here — they are what the desktop/web satellite view has always rendered (Google Maps
+ * JS API: mapTypeId 'satellite', zoom 20, tilt 45), so mobile matches what riders already know.
+ * MAP_TYPE_HYBRID would add road/place labels on top of the same imagery, which desktop does
+ * not show.
  *
- * Bearing stays fixed at 0. Desktop does pass a heading, but this component takes no heading
- * prop: the ride camera is deliberately fixed and non-interactive, both for predictability
- * while riding and because there is no rotation gesture to reconcile it with.
+ * Bearing follows the `heading` prop, matching desktop exactly: desktop calls
+ * `setOptions({center, heading, tilt:45})` on every update, rotating the view with the rider.
+ * The camera itself is still non-interactive (no rotation gesture), the heading is driven
+ * entirely by the prop, not by touch input.
  *
  * ── Position updates ──────────────────────────────────────────────────────
  *
@@ -357,6 +358,13 @@ class SatelliteViewManager(
         state.applyIfReady()
     }
 
+    @ReactProp(name = "heading", defaultDouble = 0.0)
+    override fun setHeading(view: MapView, value: Double) {
+        val state = states[view] ?: return
+        state.pendingHeading = value
+        state.applyIfReady()
+    }
+
     @ReactProp(name = "readyTimeout", defaultDouble = DEFAULT_READY_TIMEOUT_MS.toDouble())
     override fun setReadyTimeout(view: MapView, value: Double) {
         val state = states[view] ?: return
@@ -376,6 +384,7 @@ class SatelliteViewManager(
         var marker: Marker? = null
         var pendingLat: Double? = null
         var pendingLng: Double? = null
+        var pendingHeading: Double = MAP_BEARING.toDouble()
 
         var readyTimeoutMs: Long = DEFAULT_READY_TIMEOUT_MS
 
@@ -424,7 +433,7 @@ class SatelliteViewManager(
                 .target(target)
                 .zoom(MAP_ZOOM)
                 .tilt(MAP_TILT)
-                .bearing(MAP_BEARING)
+                .bearing(pendingHeading.toFloat())
                 .build()
 
             val update = CameraUpdateFactory.newCameraPosition(camera)
