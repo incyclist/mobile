@@ -7,7 +7,7 @@ export interface IPosition {
     heading: number;
 }
 
-export type SatelliteViewErrorReason = 'unavailable' | 'unknown';
+export type SatelliteViewErrorReason = 'unavailable' | 'unknown' | 'apiKeyMissing';
 
 export interface SatelliteViewProps {
     position?: IPosition;
