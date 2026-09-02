@@ -7,6 +7,23 @@ import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
 import { navigate } from '../../services';
 
+/**
+ * Explains a Start button that is actually unavailable. Being offline is not by itself a reason -
+ * a downloaded video plays from local storage and starts fine offline - so this only ever
+ * describes a route that genuinely cannot be started. AVI takes precedence when both apply.
+ */
+const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnline: boolean }): string | undefined => {
+    const { canStart, isAvi, isOnline } = props;
+
+    if (canStart)
+        return undefined;
+    if (isAvi)
+        return 'AVI videos are not supported on mobile';
+    if (!isOnline)
+        return 'You are offline (no network)';
+    return undefined;
+};
+
 export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
@@ -181,16 +198,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const downloadStatus = downloadRow?.status ?? 'none'
     const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
     const isOnline = onlineStatusMonitor.onlineStatus;
-    // Only ever explains a Start button that is actually unavailable. Being offline is not by
-    // itself a reason - a downloaded video plays from local storage and starts fine offline.
-    // AVI takes precedence when both apply.
-    let canNotStartReason: string | undefined;
-    if (!canStart) {
-        if (isAvi)
-            canNotStartReason = 'AVI videos are not supported on mobile';
-        else if (!isOnline)
-            canNotStartReason = 'You are offline (no network)';
-    }
+    const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline });
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
     const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
