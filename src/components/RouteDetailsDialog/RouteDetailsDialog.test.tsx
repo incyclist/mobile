@@ -76,12 +76,15 @@ const mockActivityListService = {
     getPastActivitiesWithDetails: jest.fn().mockResolvedValue([]),
 };
 
+const mockOnlineStatusMonitor = { onlineStatus: true };
+
 jest.mock('incyclist-services', () => ({
     useRouteList: () => mockRouteListService,
     useActivityList: () => mockActivityListService,
     getRoutesPageService: () => mockPageService,
     useUnitConverter: () => ({ convert: (v: number) => v, getUnit: () => 'km' }),
     getPosition: jest.fn(() => undefined),
+    useOnlineStatusMonitoring: () => mockOnlineStatusMonitor,
 }));
 
 jest.mock('../../hooks', () => ({
@@ -118,6 +121,8 @@ describe('RouteDetailsDialog - workout attachment (workout-combo-service-design.
         jest.clearAllMocks();
         mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
         mockCard.openSettings.mockReturnValue(mockCardProps);
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
     });
 
     it('renders "Add Workout" driven only by RouteDetailsProps, ignoring the stale showWorkoutOption=false', () => {
@@ -182,5 +187,51 @@ describe('RouteDetailsDialog - workout attachment (workout-combo-service-design.
         // The stale cardProps.showWorkoutOption (captured once at mount, still false) must NOT
         // suppress "Add Workout" - it comes back because RouteDetailsProps is the only source.
         expect(getByText('Add Workout')).toBeTruthy();
+    });
+});
+
+// `RouteCard.canStart()` conflates the AVI-unsupported and offline cases into one boolean, so
+// `canNotStartReason` needs its own offline read (`useOnlineStatusMonitoring().onlineStatus`)
+// alongside the pre-existing AVI check. Covers all four combinations explicitly, including which
+// reason wins when both apply.
+describe('RouteDetailsDialog - canNotStartReason (AVI vs offline)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockCard.openSettings.mockReturnValue(mockCardProps);
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+    });
+
+    it('online + not-AVI: no reason shown, Start enabled', () => {
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
+        expect(queryByText('You are offline (no network)')).toBeNull();
+    });
+
+    it('online + AVI: shows the AVI reason', () => {
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = 'avi';
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('AVI videos are not supported on mobile')).toBeTruthy();
+        expect(queryByText('You are offline (no network)')).toBeNull();
+    });
+
+    it('offline + not-AVI: shows the offline reason', () => {
+        mockOnlineStatusMonitor.onlineStatus = false;
+        mockRouteData.description.videoFormat = undefined;
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('You are offline (no network)')).toBeTruthy();
+        expect(queryByText('AVI videos are not supported on mobile')).toBeNull();
+    });
+
+    it('offline + AVI: AVI reason wins (checked first), offline reason is not shown', () => {
+        mockOnlineStatusMonitor.onlineStatus = false;
+        mockRouteData.description.videoFormat = 'avi';
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('AVI videos are not supported on mobile')).toBeTruthy();
+        expect(queryByText('You are offline (no network)')).toBeNull();
     });
 });

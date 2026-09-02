@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useRouteList, useActivityList, getRoutesPageService } from 'incyclist-services';
+import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMonitoring } from 'incyclist-services';
 import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
@@ -15,6 +15,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const activities = useActivityList();
     const pageService = getRoutesPageService();
     const card = service.getCard(routeId);
+    // `RouteCard.canStart()` conflates the AVI-unsupported and offline cases into one boolean
+    // (`cardCanStart` below), so the offline reason needs its own read here, mirroring how
+    // web-ui's RouteDetails wrapper derives `isOnline` separately from `canStart`.
+    const onlineStatusMonitor = useOnlineStatusMonitoring();
 
     const { logEvent } = useLogging('RouteDetailsDialog');
     const refMounted = useRef(true);
@@ -176,7 +180,11 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const isAvi = videoFormat?.toLowerCase() === 'avi';
     const downloadStatus = downloadRow?.status ?? 'none'
     const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
-    const canNotStartReason = isAvi ? 'AVI videos are not supported on mobile' : undefined;
+    const isOnline = onlineStatusMonitor.onlineStatus;
+    // AVI takes precedence when both reasons apply - it is checked first below.
+    const canNotStartReason = isAvi
+        ? 'AVI videos are not supported on mobile'
+        : (!isOnline ? 'You are offline (no network)' : undefined);
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
     const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
