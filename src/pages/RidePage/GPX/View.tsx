@@ -176,8 +176,15 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         return val
     }, []);
 
-    const transformSatPosition = useCallback((val: ISatPosition):ISatPosition => {
-        return val
+    // Unlike Street View (which gets its own dedicated, throttled svObserver emitting a plain
+    // {lat,lng,heading}), Satellite has no throttling by design and rides the same per-tick
+    // rideObserver FreeMap uses - so the emitted value here is the full display-props payload,
+    // not a plain position. Extract the enriched position (heading already computed) from it.
+    const transformSatPosition = useCallback((val: any): ISatPosition | undefined => {
+        if (!val) return undefined;
+        const p = val?.displayPosition;
+        if (p?.lat === undefined || p?.lng === undefined) return undefined;
+        return { lat: p.lat, lng: p.lng, heading: p.heading ?? 0 };
     }, []);
 
     // The native component's event names are translated onto the service's (desktop-derived)
@@ -393,10 +400,13 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                 </Dynamic>
             )}
 
-            {/* Satellite lives outside the start-overlay gate too, for the same reason as Street View above. */}
+            {/* Satellite lives outside the start-overlay gate too, for the same reason as Street View above.
+                Wired to rideObserver (the unthrottled per-tick channel FreeMap also uses), not
+                displayObserver - getSatelliteViewProps() never populates displayObserver, since
+                satellite deliberately has no throttling to protect (see transformSatPosition). */}
             { (rideView === 'sat') && (
                 <Dynamic
-                    observer={displayObserver}
+                    observer={rideObserver ?? undefined}
                     event='position-update'
                     prop='position'
                     transform={transformSatPosition}
