@@ -16,6 +16,7 @@ import { getCryptoBinding } from "./crypto"
 import { getFetchBinding } from "./fetch"
 import { getFormBinding } from './form';
 import { MobileDownloadManager } from './download';
+import { getMapAvailabilityBinding } from './mapAvailability';
 
 
 let _bindings:IncyclistBindings|undefined
@@ -47,6 +48,12 @@ export const initBindings = async  ()=> {
     bindings.fetch = getFetchBinding()
     bindings.form = getFormBinding()
     bindings.downloadManager = new MobileDownloadManager()
+
+    // Gates which ride views are offered and which are safe to render. Its own check runs
+    // asynchronously in the background from here - nothing waits on it.
+    const mapAvailability = getMapAvailabilityBinding()
+    mapAvailability.start()
+    bindings.mapAvailability = mapAvailability
 
     
     // bindings.form = FormPostBinding.getInstance()

@@ -19,6 +19,8 @@
 		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
 		DF6FB3E12F76C8C300067D3E /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 545B78D46B72D3C354028E49 /* MapLibre */; };
 		DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */ = {isa = PBXBuildFile; fileRef = DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */; };
+		DFA5700B2FB3000000000004 /* RCTSatelliteViewComponentView.mm in Sources */ = {isa = PBXBuildFile; fileRef = DFA5700B2FB3000000000003 /* RCTSatelliteViewComponentView.mm */; };
+		DFA5700C2FB3000000000002 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DFA5700C2FB3000000000001 /* MapKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +41,9 @@
 		DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "incyclist--Bridging-Header.h"; sourceTree = "<group>"; };
 		DFA5700A2FB3000000000002 /* RCTStreetViewComponentView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTStreetViewComponentView.h; sourceTree = "<group>"; };
 		DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RCTStreetViewComponentView.mm; sourceTree = "<group>"; };
+		DFA5700B2FB3000000000002 /* RCTSatelliteViewComponentView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTSatelliteViewComponentView.h; sourceTree = "<group>"; };
+		DFA5700B2FB3000000000003 /* RCTSatelliteViewComponentView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RCTSatelliteViewComponentView.mm; sourceTree = "<group>"; };
+		DFA5700C2FB3000000000001 /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Incyclist.entitlements; path = Incyclist/Incyclist.entitlements; sourceTree = "<group>"; };
 		E9D6821723439ED529EBAFF2 /* Pods-Incyclist.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.debug.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -50,6 +55,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DF6FB3E12F76C8C300067D3E /* MapLibre in Frameworks */,
+				DFA5700C2FB3000000000002 /* MapKit.framework in Frameworks */,
 				BCC41758932FA2AB91CC0385 /* libPods-Incyclist.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +77,7 @@
 				DF2F0E632FA9F4D700340FFD /* FolderAccess */,
 				4EEC379234C831AA5B90364D /* AudioCue */,
 				DFA5700A2FB3000000000001 /* StreetView */,
+				DFA5700B2FB3000000000001 /* SatelliteView */,
 			);
 			name = Incyclist;
 			sourceTree = "<group>";
@@ -79,6 +86,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				DFA5700C2FB3000000000001 /* MapKit.framework */,
 				248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */,
 			);
 			name = Frameworks;
@@ -148,6 +156,15 @@
 				DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */,
 			);
 			path = StreetView;
+			sourceTree = "<group>";
+		};
+		DFA5700B2FB3000000000001 /* SatelliteView */ = {
+			isa = PBXGroup;
+			children = (
+				DFA5700B2FB3000000000002 /* RCTSatelliteViewComponentView.h */,
+				DFA5700B2FB3000000000003 /* RCTSatelliteViewComponentView.mm */,
+			);
+			path = SatelliteView;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -367,6 +384,7 @@
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */,
 				DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */,
+				DFA5700B2FB3000000000004 /* RCTSatelliteViewComponentView.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

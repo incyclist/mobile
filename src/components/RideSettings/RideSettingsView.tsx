@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { RideSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { ChipSelect } from '../ChipSelect';
@@ -9,14 +9,29 @@ export const RideSettingsView = ({
     onClose,
     onChangeRideView,
 }: RideSettingsViewProps) => {
-    const options = Array.from(rideViewOptions.values());
-    const keys = Array.from(rideViewOptions.keys());
+    // ChipSelect's own contract is keyed by label (string), not by TRideView - map the
+    // already-resolved {label, disabled, message} entries straight through.
+    const options = useMemo(
+        () =>
+            Array.from(rideViewOptions.values()).map((option) => ({
+                label: option.label,
+                disabled: option.disabled,
+                message: option.message,
+            })),
+        [rideViewOptions]
+    );
 
-    const handleChange = useCallback((label: string) => {
-        const index = options.indexOf(label);
-        console.log('# handleChange',label,index)
-        if (index !== -1) onChangeRideView(keys[index]);
-    }, [options, keys, onChangeRideView]);
+    const selected = rideViewOptions.get(rideView)?.label;
+
+    const handleChange = useCallback(
+        (label: string) => {
+            const entry = Array.from(rideViewOptions.entries()).find(
+                ([, option]) => option.label === label
+            );
+            if (entry) onChangeRideView(entry[0]);
+        },
+        [rideViewOptions, onChangeRideView]
+    );
 
     return (
         <Dialog
@@ -28,7 +43,7 @@ export const RideSettingsView = ({
             <ChipSelect
                 label="Select View"
                 options={options}
-                selected={rideViewOptions.get(rideView)}
+                selected={selected}
                 onValueChange={handleChange}
             />
         </Dialog>
