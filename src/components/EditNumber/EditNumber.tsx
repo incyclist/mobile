@@ -8,6 +8,11 @@ import { useLogging } from '../../hooks';
 
 const LABEL_MARGIN = 8;
 
+// `value`, `min` and `max` are typed as optional numbers, but callers routinely pass an explicit
+// null for "not known" - a route distance, for instance, is null until the route's points have
+// been loaded. Both spellings of absent have to read the same way here.
+const isSet = (v?: number): v is number => v !== undefined && v !== null;
+
 export const EditNumber = ({
     label,
     value,
@@ -23,7 +28,7 @@ export const EditNumber = ({
 }: EditNumberProps) => {
     const formatValue = useCallback(
         (val?: number) => {
-            if (val === undefined || val === null) return '';
+            if (!isSet(val)) return '';
             return val.toFixed(digits);
         },
         [digits]
@@ -63,12 +68,12 @@ export const EditNumber = ({
             return;
         }
 
-        if (min !== undefined && numericValue < min) {
+        if (isSet(min) && numericValue < min) {
             setError(`Minimum value is ${min}`);
             return;
         }
 
-        if (max !== undefined && numericValue > max) {
+        if (isSet(max) && numericValue > max) {
             setError(`Maximum value is ${max}`);
             return;
         }
@@ -83,12 +88,12 @@ export const EditNumber = ({
 
     const deriveLength = useCallback((): number | undefined => {
         if (length !== undefined) return length;
-        if (min === undefined && max === undefined) {
-            if (value === undefined) return undefined;
+        if (!isSet(min) && !isSet(max)) {
+            if (!isSet(value)) return undefined;
             return value.toFixed(digits).length + 3;
         }
-        const minStr = min !== undefined ? min.toString() : '';
-        const maxStr = max !== undefined ? max.toString() : '';
+        const minStr = isSet(min) ? min.toString() : '';
+        const maxStr = isSet(max) ? max.toString() : '';
         const longestLen = Math.max(minStr.length, maxStr.length);
         return longestLen + 3;
     }, [length, min, max, value, digits]);

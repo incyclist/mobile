@@ -43,7 +43,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const refDownloadObserver = useRef<any>(null);
 
     const [cardProps, setCardProps] = useState(() => card?.openSettings());
-    const [loading, setLoading] = useState(false);
+    // The route details are loaded lazily, so the settings above can be a provisional copy in
+    // which distance, elevation and the video location are not known yet. `detailsAvailable`
+    // says so, and the dialog shows a loading body until the real values have been read.
+    const [loading, setLoading] = useState(() => cardProps?.detailsAvailable === false);
     const [prevRides, setPrevRides] = useState<any[] | null>(null);
     const [showPrev, setShowPrev] = useState(false);
     const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -96,10 +99,16 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
 
         const data = card.getData();
 
-        if (!data.details) {
+        if (currentProps?.detailsAvailable === false) {
             setLoading(true);
             service.getRouteDetails(routeId)
-                .then(() => { if (refMounted.current) setLoading(false); })
+                .then(() => {
+                    if (!refMounted.current) return;
+                    // Loading the details fills in distance, elevation and the video location, so
+                    // everything read above is stale by now - read the settings again.
+                    setCardProps(card.openSettings());
+                    setLoading(false);
+                })
                 .catch(() => { if (refMounted.current) setLoading(false); });
         }
 
@@ -196,7 +205,9 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const routeType = `${hasVideo ? 'Video' : 'GPX'} - ${isLoop ? 'Loop' : 'Point to Point'}`;
     const isAvi = videoFormat?.toLowerCase() === 'avi';
     const downloadStatus = downloadRow?.status ?? 'none'
-    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading';
+    // Nothing is startable on provisional settings - a GPX route has no points to ride yet, and
+    // for a video route the location of the video is still unknown.
+    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading' && !loading;
     const isOnline = onlineStatusMonitor.onlineStatus;
     const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline });
 
