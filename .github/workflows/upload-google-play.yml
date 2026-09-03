@@ -66,10 +66,16 @@ jobs:
 
       - name: Create config.json
         env:
-          GOOGLE_PROJECT_NUMBER: ${{ secrets.GOOGLE_PROJECT_NUMBER }} 
+          GOOGLE_PROJECT_NUMBER: ${{ secrets.GOOGLE_PROJECT_NUMBER }}
         run: |
+          # Play Integrity parses this as a Long. A missing or non-numeric value only
+          # surfaces at runtime as WRONG_GOOGLE_CLOUD_PROJECT_NUMBER_FORMAT, so fail here.
+          if ! [[ "$GOOGLE_PROJECT_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "GOOGLE_PROJECT_NUMBER is missing or not numeric"
+            exit 1
+          fi
           mkdir -p config
-          echo '{"GOOGLE_PROJECT_NUMBER":"$GOOGLE_PROJECT_NUMBER"}' > config/config.json
+          node -e 'require("node:fs").writeFileSync("config/config.json", JSON.stringify({ GOOGLE_PROJECT_NUMBER: process.env.GOOGLE_PROJECT_NUMBER }))'
 
       - name: Build release AAB
         working-directory: android

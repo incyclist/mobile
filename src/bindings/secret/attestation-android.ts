@@ -13,11 +13,14 @@ export class AndroidAttestationProvider implements AttestationProvider {
 
     async getAttestationToken(): Promise<string> {
 
-        // 1. Validate that the Google Cloud project number is available
+        // 1. Validate that the Google Cloud project number is available.
+        // Play Integrity parses it as a Long, so anything non-numeric (e.g. an
+        // unexpanded shell placeholder written by the build) must be rejected here
+        // rather than surfacing as WRONG_GOOGLE_CLOUD_PROJECT_NUMBER_FORMAT at runtime.
         const googleCloudProjectNumber = (config as Record<string, string>).GOOGLE_PROJECT_NUMBER;
-        if (!googleCloudProjectNumber) {
+        if (!googleCloudProjectNumber || !/^\d+$/.test(googleCloudProjectNumber)) {
             throw new Error(
-                'AndroidAttestationProvider: GOOGLE_PROJECT_NUMBER is not set in config/config.json. ' +
+                'AndroidAttestationProvider: GOOGLE_PROJECT_NUMBER is missing or not numeric in config/config.json. ' +
                 'This value is required to initialise the Play Integrity SDK.',
             );
         }
