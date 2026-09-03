@@ -210,6 +210,9 @@ export interface RideOverlayLayout {
     elevation: Rect | null
     /** True iff `arrangement === 'fallback'` (§6). */
     cornerSlotIsToggle: boolean
+    /** The layout mode `RideDashboard` must render in for this arrangement to hold - see
+     *  `chooseDashboardLayout()`. Callers pass it straight to `<RideDashboard layout=...>`. */
+    dashboardLayout: DashboardLayoutMode
     inputs: RideOverlayLayoutInputs
 }
 
@@ -341,6 +344,7 @@ const buildFallback = (
     mapVisible: boolean,
     rideDashboardWidth: number,
     measuredRideDashboardHeight: number | undefined,
+    dashboardLayout: DashboardLayoutMode,
 ): RideOverlayLayout => {
     const dashboardHeight = measuredRideDashboardHeight ?? RIDE_DASH_HEIGHT_RATIO * screenHeight
     return {
@@ -355,6 +359,7 @@ const buildFallback = (
             height: FALLBACK_ELEVATION_HEIGHT_RATIO * screenHeight,
         },
         cornerSlotIsToggle: true,
+        dashboardLayout,
         inputs: {
             screenWidth,
             screenHeight,
@@ -367,14 +372,11 @@ const buildFallback = (
     }
 }
 
-/**
- * Pure decision function - design doc §4 invariant 1: a pure function of
- * `(screenWidth, screenHeight, screenLayout, itemCount, mapVisible)`, all synchronous. No measured
- * value (besides the position-only refinement of invariant 2), no async value, no device query.
- * Exported separately from the hook (§9/`useRideOverlayLayout` below) so it is directly unit
- * testable without React rendering machinery.
- */
-export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): RideOverlayLayout => {
+/** The cascade itself, for one given dashboard layout mode. Not exported: callers go through
+ *  `computeRideOverlayLayout()`, which picks the mode first (`chooseDashboardLayout()`). Kept
+ *  mode-parameterised rather than mode-deriving so the chooser can evaluate both without
+ *  recursing into itself. */
+const computeForMode = (input: ComputeRideOverlayLayoutInput, dashboardLayout: DashboardLayoutMode): RideOverlayLayout => {
     const {
         screenWidth,
         screenHeight,
@@ -386,7 +388,6 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
     } = input
     const itemCount = input.itemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT
 
-    const dashboardLayout: DashboardLayoutMode = itemCount > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD ? 'icon-top' : 'icon-left'
     const rideDashboardWidth = getRideDashboardWidth({
         itemCount,
         layout: dashboardLayout,
@@ -397,7 +398,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
     // §6.1 - compact is not a heuristic: RideDashboard is `alignSelf: 'stretch'` in compact, so
     // W_rd === screenWidth and there is no side region to arrange at all.
     if (screenLayout === 'compact') {
-        return buildFallback(screenWidth, screenHeight, screenLayout, itemCount, mapVisible, rideDashboardWidth, measuredRideDashboardHeight)
+        return buildFallback(screenWidth, screenHeight, screenLayout, itemCount, mapVisible, rideDashboardWidth, measuredRideDashboardHeight, dashboardLayout)
     }
 
     const rideDashboardWidthEffective = Math.min(rideDashboardWidth, screenWidth) // §5.7 clamp
@@ -457,6 +458,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
             map,
             elevation,
             cornerSlotIsToggle: false,
+            dashboardLayout,
             inputs: workoutAttached
                 ? { ...baseInputs, earWidth: blockEar, workoutDashboardWidth: rideDashboardWidthEffective }
                 : { ...baseInputs, earWidth: blockEar },
@@ -481,6 +483,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
                 map,
                 elevation,
                 cornerSlotIsToggle: false,
+                dashboardLayout,
                 inputs: { ...baseInputs, earWidth: belowSlotWidthOf(screenWidth) },
             }
         }
@@ -492,6 +495,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
             map: null,
             elevation: null,
             cornerSlotIsToggle: false,
+            dashboardLayout,
             inputs: baseInputs,
         }
     }
@@ -509,6 +513,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
             map,
             elevation,
             cornerSlotIsToggle: false,
+            dashboardLayout,
             inputs: { ...baseInputs, earWidth: earWidthOf(screenWidth, wWdT), workoutDashboardWidth: wWdT },
         }
     }
@@ -524,6 +529,7 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
             map,
             elevation,
             cornerSlotIsToggle: false,
+            dashboardLayout,
             inputs: { ...baseInputs, earWidth: belowSlotWidthOf(screenWidth), workoutDashboardWidth: rideDashboardWidthEffective },
         }
     }
@@ -537,9 +543,70 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         map: null,
         elevation: null,
         cornerSlotIsToggle: false,
+        dashboardLayout,
         inputs: { ...baseInputs, workoutDashboardWidth: rideDashboardWidthEffective },
     }
 }
+
+/** Whether an arrangement places the corner widgets BESIDE the dashboard column (row 1 for
+ *  `block-side`, row 2 alongside WorkoutDashboard for `t-side`) rather than relegating them to a row
+ *  of their own. This is the whole test the mode choice turns on - deliberately binary, not a
+ *  ranking of the side arrangements against each other: `t-side` already places the widgets beside
+ *  the column, so "rescuing" it into `block-side` would buy no fit and would cost WorkoutDashboard
+ *  width (at 1280x800/N=7 it is 864 px wide in the T, but only 652 px beside an icon-top column). */
+const placesWidgetsBeside = (arrangement: RideOverlayArrangement): boolean =>
+    arrangement === 'block-side' || arrangement === 't-side'
+
+/**
+ * Which layout mode `RideDashboard` should render in.
+ *
+ * `RideDashboard` renders each tile far narrower in `'icon-top'` (90 dp) than in `'icon-left'`
+ * (~125 dp), so the same tiles occupy a much narrower row - narrow enough, on a mid-size tablet,
+ * to free the ears that `'icon-left'` denies. That was previously an accident of the
+ * `> 7 tiles` rule: a rider with virtual shifting on got 8 tiles, was forced into `'icon-top'`, and
+ * their map and elevation preview fitted beside the dashboard; the same rider with shifting off got
+ * 7 tiles, `'icon-left'`, and the widgets dropped to a row below. The tile count decided the
+ * layout quality, which is backwards.
+ *
+ * So the mode is chosen for fit instead: if `'icon-left'` already places the widgets beside the
+ * column, keep it; otherwise switch to `'icon-top'` if THAT places them beside; otherwise keep
+ * `'icon-left'` and let them take the row below. The test is binary - "beside or not" - not a
+ * ranking of `block-side` against `t-side` (see `placesWidgetsBeside`).
+ *
+ * Two constraints bound the choice:
+ *  - above `RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD` tiles `RideDashboard` forces `'icon-top'`
+ *    regardless of the prop (`RideDashboard.tsx`), so there is nothing to choose - mirroring it here
+ *    keeps the layout's assumed width and the rendered width in agreement;
+ *  - in compact the dashboard stretches to the full screen width, so the mode cannot buy any room.
+ *
+ * Pure in exactly the inputs the arrangement is (§4, invariant 1) - `itemCount` does not depend on
+ * the mode, so there is no feedback loop between the choice and the thing it is chosen from.
+ */
+export const chooseDashboardLayout = (input: ComputeRideOverlayLayoutInput): DashboardLayoutMode => {
+    if (input.screenLayout === 'compact')
+        return 'icon-left'
+
+    const itemCount = input.itemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT
+    if (itemCount > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD)
+        return 'icon-top'
+
+    // icon-left keeps precedence wherever it already places the widgets beside the column, so
+    // icon-top is only ever reached as a rescue - never as a restyle of a screen that was fine.
+    if (placesWidgetsBeside(computeForMode(input, 'icon-left').arrangement))
+        return 'icon-left'
+
+    return placesWidgetsBeside(computeForMode(input, 'icon-top').arrangement) ? 'icon-top' : 'icon-left'
+}
+
+/**
+ * Pure decision function - design doc §4 invariant 1: a pure function of
+ * `(screenWidth, screenHeight, screenLayout, itemCount, mapVisible)`, all synchronous. No measured
+ * value (besides the position-only refinement of invariant 2), no async value, no device query.
+ * Exported separately from the hook (§9/`useRideOverlayLayout` below) so it is directly unit
+ * testable without React rendering machinery.
+ */
+export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): RideOverlayLayout =>
+    computeForMode(input, chooseDashboardLayout(input))
 
 // -----------------------------------------------------------------------------------------------
 // §9 - the hook

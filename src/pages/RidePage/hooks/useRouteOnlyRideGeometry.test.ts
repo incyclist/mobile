@@ -17,7 +17,7 @@ describe('useRouteOnlyRideGeometry', () => {
     });
 
     it('places the corner widgets side-by-side when there is room beside the dashboard (isCompact=false)', () => {
-        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: true }));
+        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: true, workoutAttached: false }));
 
         // Very wide screen, default 7-tile dashboard - side-by-side should fit, so the elevation
         // preview style comes from the analytic sideRects rather than the stacked-below fallback.
@@ -32,7 +32,7 @@ describe('useRouteOnlyRideGeometry', () => {
 
     it('falls back to the stacked-below layout in compact mode', () => {
         setDimensions(400, 700);
-        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: true, mapVisible: false }));
+        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: true, mapVisible: false, workoutAttached: false }));
 
         expect(result.current.elevationPreviewDynamicStyle).toMatchObject({
             width: 400 * 0.20,
@@ -40,7 +40,7 @@ describe('useRouteOnlyRideGeometry', () => {
     });
 
     it('tracks dashboard height reported via updateDashboardDimensions', () => {
-        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: false }));
+        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: false, workoutAttached: false }));
 
         act(() => {
             result.current.updateDashboardDimensions({ nativeEvent: { layout: { height: 123 } } });
@@ -50,7 +50,7 @@ describe('useRouteOnlyRideGeometry', () => {
     });
 
     it('tracks the dashboard item count reported via onDashboardMetrics', () => {
-        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: false }));
+        const { result } = renderHook(() => useRouteOnlyRideGeometry({ isCompact: false, mapVisible: false, workoutAttached: false }));
 
         expect(result.current.dashboardItemCount).toBeUndefined();
 

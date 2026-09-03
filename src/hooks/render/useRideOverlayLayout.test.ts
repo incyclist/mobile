@@ -11,6 +11,8 @@ import {
     ARRANGEMENT_HYSTERESIS_PX,
     DEFAULT_ROUTE_RIDE_TILE_COUNT,
     WORKOUT_DASH_MIN_WIDTH,
+    chooseDashboardLayout,
+    ComputeRideOverlayLayoutInput,
     RIDE_DASH_HEIGHT_RATIO,
     SLOT_GAP,
     belowSlotWidthOf,
@@ -453,20 +455,21 @@ describe('computeRideOverlayLayout - workoutAttached: false (one-member column)'
     // meaningful sense: `block-side` - the one arrangement that IS in both cascades - has an
     // identical, unworsened threshold (previous test); column-only is what a one-member column falls
     // to instead of needing a rescue mechanism it structurally cannot have.
-    it('1280x800, N=7: falls to below - there is no WorkoutDashboard to narrow for a t-side rescue', () => {
+    it('1280x800, N=7: rescued to block-side via icon-top - a one-member column has no t-side to fall back on, so the dashboard mode buys the ears instead', () => {
         const combo = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
         const routeOnly = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
 
+        // The combo screen keeps icon-left: t-side already places the widgets beside the column.
         expect(combo.arrangement).toBe('t-side')
-        expect(routeOnly.arrangement).toBe('below')
+        expect(combo.dashboardLayout).toBe('icon-left')
+
+        // The route-only screen has no t-side rescue, so icon-left would drop the widgets to the row
+        // below. icon-top's narrower column frees the ears instead.
+        expect(routeOnly.dashboardLayout).toBe('icon-top')
+        expect(routeOnly.arrangement).toBe('block-side')
         expect(routeOnly.workoutDashboard).toBeNull()
         expect(routeOnly.map).not.toBeNull()
         expect(routeOnly.elevation).not.toBeNull()
-        // Row 2 of the ride-only layout: directly under RideDashboard, no WorkoutDashboard band to clear.
-        expect(routeOnly.elevation!.top).toBeCloseTo(RIDE_DASH_HEIGHT_RATIO * 800 + SLOT_GAP, 5)
-        // RideDashboard itself is never compromised either way - unlike combo's t-side, which narrows
-        // WorkoutDashboard, a one-member column always renders RideDashboard at its own full width.
-        expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
     })
 
     it('640x430, N=7: below, same as the combo case - neither cascade has a side arrangement that fits here', () => {
@@ -638,6 +641,81 @@ describe('layout spec - corner widgets are placed, never dropped', () => {
             })
             expect(result.map).toBeNull()
             expect(result.elevation).not.toBeNull()
+        }
+    })
+})
+
+
+// -----------------------------------------------------------------------------------------------
+// chooseDashboardLayout - the dashboard's own layout mode is picked for fit, not derived from the
+// tile count.
+//
+// This started as a real-device observation: with virtual shifting ON the rider had 8 tiles, was
+// forced into icon-top by RideDashboard's own >7 rule, and the corner widgets fitted beside the
+// dashboard. With shifting OFF they had 7 tiles, icon-left, and the widgets dropped to the row
+// below - the tile count was deciding the layout quality by accident.
+// -----------------------------------------------------------------------------------------------
+
+describe('chooseDashboardLayout', () => {
+    const at = (o: Partial<ComputeRideOverlayLayoutInput> = {}) => chooseDashboardLayout({
+        screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+        itemCount: 7, mapVisible: true, workoutAttached: false, ...o,
+    })
+
+    it('keeps icon-left wherever it already fits the widgets beside the column', () => {
+        expect(at({ screenWidth: 1366, screenHeight: 1024 })).toBe('icon-left')
+        expect(at({ itemCount: 5 })).toBe('icon-left')
+    })
+
+    it('switches to icon-top when icon-left would push the widgets to the row below', () => {
+        // iPad 10 / Air 11, the frame the production bug was reported on.
+        expect(at({ itemCount: 6 })).toBe('icon-top')
+        expect(at({ itemCount: 7 })).toBe('icon-top')
+        expect(computeRideOverlayLayout({
+            screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: false,
+        }).arrangement).toBe('block-side')
+    })
+
+    it('keeps icon-left when neither mode fits - there is nothing to buy, so the default stands', () => {
+        // 1024x768 at 7 tiles: icon-left W_rd 896, icon-top 652, both leave the ear under its floor.
+        expect(at({ screenWidth: 1024, screenHeight: 768, itemCount: 7 })).toBe('icon-left')
+        expect(computeRideOverlayLayout({
+            screenWidth: 1024, screenHeight: 768, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: false,
+        }).arrangement).toBe('below')
+    })
+
+    it('does not restyle a combo screen that already reaches t-side - t-side places the widgets beside the column, and block-side beside an icon-top column would be a NARROWER WorkoutDashboard', () => {
+        expect(at({ screenWidth: 1280, screenHeight: 800, itemCount: 7, workoutAttached: true })).toBe('icon-left')
+
+        const tSide = computeRideOverlayLayout({
+            screenWidth: 1280, screenHeight: 800, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: true,
+        })
+        expect(tSide.arrangement).toBe('t-side')
+        expect(tSide.workoutDashboard!.width).toBe(864)
+    })
+
+    it('mirrors RideDashboard\'s own >7-tile override, so the assumed and rendered widths agree', () => {
+        expect(at({ itemCount: 8 })).toBe('icon-top')
+        expect(at({ itemCount: 9, screenWidth: 1366, screenHeight: 1024 })).toBe('icon-top')
+    })
+
+    it('is a no-op in compact, where RideDashboard stretches to the full screen width anyway', () => {
+        expect(at({ screenLayout: 'compact', screenWidth: 844, screenHeight: 390 })).toBe('icon-left')
+    })
+
+    // The bug this rule removes: with shifting on (8 tiles) the widgets fitted, with it off (7) they
+    // did not, purely because of the forced mode. Both must now land beside the column.
+    it('makes the virtual-shifting Gear tile stop deciding whether the widgets fit', () => {
+        for (const itemCount of [7, 8]) {
+            const l = computeRideOverlayLayout({
+                screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+                itemCount, mapVisible: true, workoutAttached: false,
+            })
+            expect(l.dashboardLayout).toBe('icon-top')
+            expect(l.arrangement).toBe('block-side')
         }
     })
 })
