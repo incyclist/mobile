@@ -13,6 +13,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
 import java.io.File
+import org.wonday.orientation.OrientationActivityLifecycle
 
 
 
@@ -133,6 +134,14 @@ class MainApplication : Application(), ReactApplication {
     override fun onCreate() {
         super.onCreate()
         loadReactNative(this)
+
+        // react-native-orientation-locker ships an ActivityLifecycleCallbacks implementation
+        // (OrientationActivityLifecycle) but never attaches it to the Application. Without it,
+        // the module's OrientationEventListener is enabled once at construction and never
+        // disabled, so the accelerometer keeps sampling at SENSOR_DELAY_UI (15Hz) while the app
+        // is in the background. Attaching it lets the library stop the sensor once no activity
+        // is running. Orientation locking itself does not depend on the sensor.
+        registerActivityLifecycleCallbacks(OrientationActivityLifecycle.getInstance())
 
         // super.onCreate()        
         // SoLoader.init(this, false)
