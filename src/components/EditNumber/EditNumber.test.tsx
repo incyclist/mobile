@@ -67,3 +67,45 @@ describe('EditNumber', () => {
         expect(getByDisplayValue('abc')).toBeTruthy();
     });
 });
+// `min`, `max` and `value` are typed as optional numbers, but callers routinely pass an explicit
+// null for "not known yet" - e.g. RouteDetailsView feeds `max={totalDistance.value}`, and a route
+// whose details carry no points has a distance of null rather than undefined.
+describe('EditNumber - null instead of undefined for an absent number', () => {
+
+    it('renders when max is null', () => {
+        const { getByText } = render(
+            <EditNumber label="Start" value={0} max={null as any} onValueChange={jest.fn()} />
+        );
+        expect(getByText('Start')).toBeTruthy();
+    });
+
+    it('renders when min is null', () => {
+        const { getByText } = render(
+            <EditNumber label="Start" value={0} min={null as any} onValueChange={jest.fn()} />
+        );
+        expect(getByText('Start')).toBeTruthy();
+    });
+
+    it('renders when value is null and no bounds are given', () => {
+        const { getByText } = render(
+            <EditNumber label="Start" value={null as any} onValueChange={jest.fn()} />
+        );
+        expect(getByText('Start')).toBeTruthy();
+    });
+
+    it('does not enforce a null bound as if it were zero', () => {
+        const onValueChange = jest.fn();
+        const { getByDisplayValue, queryByText } = render(
+            <EditNumber label="Start" value={10} min={null as any} max={null as any}
+                onValueChange={onValueChange} />
+        );
+        const input = getByDisplayValue('10');
+
+        fireEvent.changeText(input, '25');
+        fireEvent(input, 'blur');
+
+        expect(queryByText(/Maximum value is/)).toBeNull();
+        expect(queryByText(/Minimum value is/)).toBeNull();
+        expect(onValueChange).toHaveBeenCalledWith(25);
+    });
+});

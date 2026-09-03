@@ -247,3 +247,85 @@ describe('RouteDetailsDialog - canNotStartReason (AVI vs offline)', () => {
         expect(queryByText('You are offline (no network)')).toBeNull();
     });
 });
+
+// A route's details (points, video info) are loaded lazily, so the dialog is routinely mounted
+// before they exist. Everything RouteCard.openSettings() derives from them - distance, elevation,
+// whether the video is reachable - is provisional until `detailsAvailable` turns true, so the
+// dialog has to read the settings again once the load lands instead of keeping the mount-time copy.
+describe('RouteDetailsDialog - settings captured before the route details are loaded', () => {
+
+    const provisionalProps = {
+        ...mockCardProps,
+        detailsAvailable: false,
+        canStart: false,
+        totalDistance: { value: null, unit: 'km' },
+        totalElevation: { value: null, unit: 'm' },
+    };
+
+    const loadedProps = { ...mockCardProps, detailsAvailable: true };
+
+    let resolveDetails: (value?: unknown) => void;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+
+        mockRouteData.details = undefined;
+        mockCard.openSettings.mockReturnValue(provisionalProps);
+        mockRouteListService.getRouteDetails.mockImplementation(() => new Promise(resolve => {
+            resolveDetails = () => {
+                mockRouteData.details = { points: [] };
+                mockCard.openSettings.mockReturnValue(loadedProps);
+                resolve(mockRouteData.details);
+            };
+        }));
+    });
+
+    afterEach(() => {
+        mockRouteData.details = { points: [] };
+        mockRouteListService.getRouteDetails.mockResolvedValue(undefined);
+    });
+
+    it('shows a loading body instead of provisional distance, elevation and settings', () => {
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+
+        expect(getByText('Loading route details…')).toBeTruthy();
+        expect(queryByText('50 km')).toBeNull();
+    });
+
+    it('does not offer Start while the settings are still provisional', () => {
+        const { queryAllByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+
+        expect(queryAllByText('Start')).toHaveLength(0);
+    });
+
+    it('re-reads the card settings once the details have loaded', async () => {
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('50 km')).toBeNull();
+
+        await act(async () => { resolveDetails(); });
+
+        expect(queryByText('Loading route details…')).toBeNull();
+        expect(getByText('50 km')).toBeTruthy();
+        expect(getByText('800 m')).toBeTruthy();
+    });
+
+    it('offers Start again once the details have loaded', async () => {
+        const { queryAllByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+
+        await act(async () => { resolveDetails(); });
+
+        expect(queryAllByText('Start').length).toBeGreaterThan(0);
+    });
+
+    it('does not re-read the settings when the details are already available at mount', () => {
+        mockRouteData.details = { points: [] };
+        mockCard.openSettings.mockReturnValue(loadedProps);
+
+        render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+
+        expect(mockRouteListService.getRouteDetails).not.toHaveBeenCalled();
+    });
+});

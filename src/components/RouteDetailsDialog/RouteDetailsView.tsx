@@ -175,7 +175,21 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };
 
+    // Distance and elevation are derived from the route details, so they read as unknown for as
+    // long as those are still loading.
+    const formatStat = (stat: { value: number, unit: string }, separator = ' ') =>
+        loading ? '—' : `${stat.value}${separator}${stat.unit}`;
+
     const renderForm = () => {
+        if (loading) {
+            return (
+                <View style={styles.formLoading}>
+                    <ActivityIndicator color={colors.text} />
+                    <Text style={styles.placeholderText}>Loading route details…</Text>
+                </View>
+            );
+        }
+
         const useChips = !compact && (segments?.length ?? 0) <= SEGMENT_CHIP_THRESHOLD;
 
         return (
@@ -297,7 +311,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         const infoBar = (
             <View style={styles.infoBar}>
                 <Text style={styles.infoBarText}>
-                    {routeType} • {totalDistance.value}{totalDistance.unit} • {totalElevation.value}{totalElevation.unit}
+                    {routeType} • {formatStat(totalDistance, '')} • {formatStat(totalElevation, '')}
                 </Text>
                 {!!canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
             </View>
@@ -350,11 +364,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Distance</Text>
-                    <Text style={styles.statValue}>{totalDistance.value} {totalDistance.unit}</Text>
+                    <Text style={styles.statValue}>{formatStat(totalDistance)}</Text>
                 </View>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Elevation</Text>
-                    <Text style={styles.statValue}>{totalElevation.value} {totalElevation.unit}</Text>
+                    <Text style={styles.statValue}>{formatStat(totalElevation)}</Text>
                 </View>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Type</Text>
@@ -384,6 +398,7 @@ const styles = StyleSheet.create({
     mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     fullMedia: { width: '100%', height: '100%' },
     placeholderText: { color: colors.disabled, fontSize: 12 },
+    formLoading: { alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 30 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
     statBox: { flex: 1, alignItems: 'center' },
     statLabel: { color: colors.disabled, fontSize: 10, textTransform: 'uppercase' },
