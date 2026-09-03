@@ -156,11 +156,12 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         dashboardItemCount,
         updateDashboardDimensions,
         onDashboardMetrics,
+        dashboardLayoutMode,
         dashboardDynamicStyle,
         elevationPreviewDynamicStyle,
         mapOverlayDynamicStyle,
         bottomBarStyle,
-    } = useRouteOnlyRideGeometry({ isCompact, mapVisible });
+    } = useRouteOnlyRideGeometry({ isCompact, mapVisible, workoutAttached: comboActive });
 
     const transformPosition = useCallback((val: any): LatLng|RoutePoint | undefined|IPosition => {
         if (!val) return undefined;
@@ -300,7 +301,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                         dashboardDynamicStyle,
                     ]}>
                         <View onLayout={updateDashboardDimensions}>
-                            <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
+                            <RideDashboard layout={dashboardLayoutMode} onMetrics={onDashboardMetrics} />
                         </View>
                     </View>
 

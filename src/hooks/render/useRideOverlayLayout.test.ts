@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react-native'
 import {
     useRideOverlayLayout,
     computeRideOverlayLayout,
+    computeRideOverlayLayoutForMode,
     getRideDashboardWidth,
     fitsSideBySide,
     buildSideRects,
@@ -11,6 +12,8 @@ import {
     ARRANGEMENT_HYSTERESIS_PX,
     DEFAULT_ROUTE_RIDE_TILE_COUNT,
     WORKOUT_DASH_MIN_WIDTH,
+    chooseDashboardLayout,
+    ComputeRideOverlayLayoutInput,
     RIDE_DASH_HEIGHT_RATIO,
     SLOT_GAP,
     belowSlotWidthOf,
@@ -29,6 +32,11 @@ import {
 // under the side-fit threshold - and is reverted: the merged arrangement is 'below', and it places
 // the widgets beneath the column. 'column-only' remains only as the terminal "no vertical room at
 // all" case, which no landscape non-compact frame reaches (see the spec suite at the end).
+
+// The cascade's own mechanics (arrangement shapes, §8 hysteresis) are per-mode, and are exercised
+// through computeRideOverlayLayoutForMode so they stay independent of which mode chooseDashboardLayout
+// would pick for a given screen. The choice itself is covered by the `chooseDashboardLayout` suite.
+const computeIconLeft = (input: ComputeRideOverlayLayoutInput) => computeRideOverlayLayoutForMode(input, 'icon-left')
 
 const mockDimensions = { width: 1280, height: 800 }
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
@@ -95,11 +103,11 @@ describe('fitsSideBySide / buildSideRects - exported for route-only reuse', () =
     })
 })
 
-describe('computeRideOverlayLayout - the arrangements', () => {
+describe('the cascade (icon-left) - the arrangements', () => {
     // `block-side` needs the ears to clear their floor beside the FULL-width dashboard, i.e.
     // screenWidth >= W_rd_eff + 2*(200 + 8): 1311.6 at 7 tiles, 1159.0 at 8.
     it('1400x900, N=7: block-side - the ears clear their floor beside the whole block', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('block-side')
         expect(result.workoutDashboard?.width).toBeCloseTo(895.6, 5)
         expect(result.inputs.earWidth).toBeCloseTo(244.2, 5)
@@ -109,7 +117,7 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('1280x800, N=7: t-side - a SHALLOW T (864 wide), not the old narrow 320 one', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('t-side')
         expect(result.workoutDashboard?.width).toBe(864) // 1280 - 2*(200+8)
         expect(result.inputs.earWidth).toBe(200) // exactly the floor, by construction
@@ -117,7 +125,7 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('1194x834 (iPad Air), N=7: t-side at 778 wide, ears at their floor', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('t-side')
         expect(result.workoutDashboard?.width).toBe(778)
         expect(result.inputs.earWidth).toBe(200)
@@ -125,8 +133,8 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('1024x768, N=7 and N=8: both t-side, and at the same geometry - the tile count cannot reach it', () => {
-        const at7 = computeRideOverlayLayout({ screenWidth: 1024, screenHeight: 768, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const at8 = computeRideOverlayLayout({ screenWidth: 1024, screenHeight: 768, screenLayout: 'normal', itemCount: 8, mapVisible: true })
+        const at7 = computeIconLeft({ screenWidth: 1024, screenHeight: 768, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const at8 = computeIconLeft({ screenWidth: 1024, screenHeight: 768, screenLayout: 'normal', itemCount: 8, mapVisible: true })
         expect(at7.arrangement).toBe('t-side')
         expect(at8.arrangement).toBe('t-side')
         expect(at7.workoutDashboard?.width).toBe(608)
@@ -134,7 +142,7 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('932x430 (large phone landscape), N=7: t-side - the old aspect ceiling no longer forces anything', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 932, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 932, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('t-side')
         expect(result.workoutDashboard?.width).toBe(516)
         expect(result.inputs.earWidth).toBe(200)
@@ -144,7 +152,7 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     // (width > height) - the app is orientation-locked to landscape (`Loader.tsx`), so a portrait
     // frame is not a state it can be in and must not be used to justify an arrangement.
     it('640x430, N=7: below - no side arrangement fits, so the widgets relocate under the column', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.inputs.rideDashboardWidthEffective).toBe(640) // clamped (§5.7) - raw W_rd (895.6) would overflow
         expect(result.arrangement).toBe('below')
         expect(result.workoutDashboard?.width).toBe(640) // matches the (clamped) dashboard
@@ -157,14 +165,14 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('860x480, N=7: below as well, just under the t-side floor', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 860, screenHeight: 480, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 860, screenHeight: 480, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('below')
         expect(result.workoutDashboard?.width).toBeCloseTo(860, 5)
         expect(result.elevation).not.toBeNull()
     })
 
     it('the below row is bounded by half the screen, not by the leftover side region', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         // The column is clamped to the full 640, so there is no ear at all - yet the below row still
         // has room, because it splits the screen rather than the remainder beside the column.
         expect(result.inputs.earWidth).toBe(belowSlotWidthOf(640))
@@ -172,7 +180,7 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     })
 
     it('844x390 (phone landscape), any N: fallback, because screenLayout is compact', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 844, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 844, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true })
         expect(result.arrangement).toBe('fallback')
         expect(result.rideDashboard.width).toBe(844) // W_rd === screenWidth exactly in compact (§1.1)
         expect(result.workoutDashboard).toBeNull()
@@ -187,25 +195,25 @@ describe('computeRideOverlayLayout - widget sizing (session 4.1)', () => {
     // Before the retune every ear occupant rendered at exactly SIDE_WIDGET_MIN_*, which made the
     // elevation preview visibly smaller than on today's route-only screen (96 px tall vs 160).
     it('renders ear occupants at today`s route-only proportions when the ear allows it', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1400, screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.elevation?.width).toBeCloseTo(210, 5) // 0.15 * 1400
         expect(result.elevation?.height).toBeCloseTo(180, 5) // 0.20 * 900
     })
 
     it('never renders an ear occupant below its floor, or wider than the ear it sits in', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.elevation?.width).toBe(SIDE_WIDGET_MIN_WIDTH) // 0.15*1280 = 192 would be below the floor
         expect(result.elevation?.width as number).toBeLessThanOrEqual(result.inputs.earWidth as number)
     })
 
     it('keeps WorkoutDashboard`s height budget at ~1.5x RideDashboard`s, not 3x (HLD §6.2)', () => {
-        const result = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const result = computeIconLeft({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.workoutDashboard?.height).toBe(120) // 0.15 * 800, against RideDashboard's 0.10 * 800 = 80
     })
 
     it('clamps WorkoutDashboard`s height on very short and very tall screens', () => {
-        const short = computeRideOverlayLayout({ screenWidth: 1024, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const tall = computeRideOverlayLayout({ screenWidth: 1400, screenHeight: 1200, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const short = computeIconLeft({ screenWidth: 1024, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const tall = computeIconLeft({ screenWidth: 1400, screenHeight: 1200, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(short.workoutDashboard?.height).toBe(100) // floor - the widget's own intrinsic height
         expect(tall.workoutDashboard?.height).toBe(160) // ceiling - its content does not grow with the screen
     })
@@ -213,8 +221,8 @@ describe('computeRideOverlayLayout - widget sizing (session 4.1)', () => {
 
 describe('computeRideOverlayLayout - invariants (design doc §4)', () => {
     it('invariant 2: arrangement is identical with and without measuredRideDashboardHeight - only positions move', () => {
-        const withoutMeasured = computeRideOverlayLayout({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const withMeasured = computeRideOverlayLayout({
+        const withoutMeasured = computeIconLeft({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const withMeasured = computeIconLeft({
             screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true,
             measuredRideDashboardHeight: 60, // deliberately far from the 83.4 estimate (0.10 * 834)
         })
@@ -227,8 +235,8 @@ describe('computeRideOverlayLayout - invariants (design doc §4)', () => {
     })
 
     it('a compact screenLayout always resolves to fallback, regardless of itemCount/mapVisible', () => {
-        const a = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true })
-        const b = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 390, screenLayout: 'compact', itemCount: 8, mapVisible: false })
+        const a = computeIconLeft({ screenWidth: 1280, screenHeight: 390, screenLayout: 'compact', itemCount: 7, mapVisible: true })
+        const b = computeIconLeft({ screenWidth: 1280, screenHeight: 390, screenLayout: 'compact', itemCount: 8, mapVisible: false })
         expect(a.arrangement).toBe('fallback')
         expect(b.arrangement).toBe('fallback')
     })
@@ -239,8 +247,8 @@ describe('computeRideOverlayLayout - invariants (design doc §4)', () => {
     // `mapVisible` from the fit test entirely (behaviour-identical) - it now only decides whether
     // the `map` rect is populated.
     it('mapVisible does not change the arrangement decision in v1 - only whether `map` is populated', () => {
-        const withMap = computeRideOverlayLayout({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const withoutMap = computeRideOverlayLayout({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: false })
+        const withMap = computeIconLeft({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const withoutMap = computeIconLeft({ screenWidth: 1194, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: false })
 
         expect(withMap.arrangement).toBe(withoutMap.arrangement)
         expect(withMap.map).not.toBeNull()
@@ -249,13 +257,13 @@ describe('computeRideOverlayLayout - invariants (design doc §4)', () => {
     })
 })
 
-describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
+describe('the cascade (icon-left) - hysteresis (design doc §8.2)', () => {
     // N=7 => W_rd_eff = 895.6, so the unrelaxed block-side boundary is at
     // 895.6 + 2*(200+8) = 1311.6 (ear === 200 exactly).
     const BOUNDARY_SCREEN_WIDTH = 1311.6
 
     it('a small width change that crosses the normal boundary does NOT flip out of the active arrangement', () => {
-        const result = computeRideOverlayLayout({
+        const result = computeIconLeft({
             screenWidth: BOUNDARY_SCREEN_WIDTH - 12, // ear = 194, below the normal 200 floor
             screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true,
             previousArrangement: 'block-side',
@@ -267,7 +275,7 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
     it('a large width change that exceeds the hysteresis cushion DOES flip', () => {
         // earWidthOf moves at half the rate of screenWidth, so clearing the 24 px ear cushion needs
         // >= 48 px of screenWidth; 60 is comfortably past it.
-        const result = computeRideOverlayLayout({
+        const result = computeIconLeft({
             screenWidth: BOUNDARY_SCREEN_WIDTH - 60, // block-side's ear would be 170, below even the relaxed 176
             screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true,
             previousArrangement: 'block-side',
@@ -276,7 +284,7 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
     })
 
     it('with no previous arrangement (first render), the normal (unrelaxed) floor applies', () => {
-        const result = computeRideOverlayLayout({
+        const result = computeIconLeft({
             screenWidth: BOUNDARY_SCREEN_WIDTH - 12, // would stay under hysteresis, but there is no "previous" to relax for
             screenHeight: 900, screenLayout: 'normal', itemCount: 7, mapVisible: true,
             previousArrangement: null,
@@ -286,8 +294,8 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
 
     it('relaxes the t-side/below boundary too, not just block-side/t-side', () => {
         // t-side needs screenWidth >= 2*(floor+8) + WORKOUT_DASH_MIN_WIDTH: 896 unrelaxed, 848 relaxed.
-        const cold = computeRideOverlayLayout({ screenWidth: 870, screenHeight: 600, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const warm = computeRideOverlayLayout({
+        const cold = computeIconLeft({ screenWidth: 870, screenHeight: 600, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const warm = computeIconLeft({
             screenWidth: 870, screenHeight: 600, screenLayout: 'normal', itemCount: 7, mapVisible: true, previousArrangement: 't-side',
         })
         expect(cold.arrangement).toBe('below')
@@ -298,8 +306,8 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
     // Session 4.1's headline OQ5 finding: on most screens the Gear tile can no longer change the
     // arrangement at all, because in a T the geometry is derived from screenWidth, not from W_rd.
     it('the 1112px 7<->8 tile flip no longer changes anything (it flipped t-side<->block-side before)', () => {
-        const at7 = computeRideOverlayLayout({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        const at8 = computeRideOverlayLayout({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 8, mapVisible: true })
+        const at7 = computeIconLeft({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const at8 = computeIconLeft({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 8, mapVisible: true })
         expect(at7.arrangement).toBe('t-side')
         expect(at8.arrangement).toBe('t-side')
         expect(at8.workoutDashboard?.width).toBe(at7.workoutDashboard?.width)
@@ -307,18 +315,46 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
 
     // It is not gone everywhere though - the settle window still earns its keep in the band where
     // the 8-tile dashboard clears the block-side boundary and the 7-tile one doesn't (1159..1311.6).
-    it('a tile-count flip can still change the arrangement inside the 1159-1311.6 band', () => {
+    // Per-mode, the Gear tile cannot reach the arrangement here at all - both tile counts land on
+    // t-side at the same geometry, since in a T the width is derived from screenWidth, not W_rd.
+    it('a tile-count flip does not change the icon-left cascade inside this band', () => {
+        const at7 = computeIconLeft({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const at8 = computeIconLeft({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 8, mapVisible: true })
+        expect(at7.arrangement).toBe('t-side')
+        expect(at8.arrangement).toBe('t-side')
+        expect(at8.workoutDashboard?.width).toBe(at7.workoutDashboard?.width)
+    })
+
+    // ...but not once the mode is chosen for fit: at 1280 the 7-tile screen takes icon-top and
+    // reaches block-side on its own, so the Gear tile no longer moves the layout at all here. This is
+    // the behaviour that made the production bug present as "it works with virtual shifting on".
+    it('the chooser absorbs that same flip - both tile counts reach block-side at 1280', () => {
         const at7 = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         const at8 = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 8, mapVisible: true })
-        expect(at7.arrangement).toBe('t-side')
+        expect(at7.arrangement).toBe('block-side')
         expect(at8.arrangement).toBe('block-side')
+        expect(at7.dashboardLayout).toBe('icon-top')
+    })
+
+    // Not absorbed everywhere: at 1112 the 8-tile icon-top column (743) is too wide for the ears but
+    // the 7-tile one (652) is not, so the Gear tile still moves the layout - which is what the
+    // settle timer is for.
+    it('a tile-count flip still changes the arrangement at 1112, where only the 7-tile column fits', () => {
+        const at7 = computeRideOverlayLayout({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        const at8 = computeRideOverlayLayout({ screenWidth: 1112, screenHeight: 834, screenLayout: 'normal', itemCount: 8, mapVisible: true })
+        expect(at7.arrangement).toBe('block-side')
+        expect(at8.arrangement).toBe('t-side')
     })
 })
 
 describe('useRideOverlayLayout - the hook', () => {
     beforeEach(() => {
         jest.useFakeTimers()
-        setDimensions(1280, 800)
+        // 1090 rather than 1280: with the mode chosen for fit, 1280 reaches block-side at BOTH 7 and
+        // 8 tiles, so a Gear-tile flip has nothing to debounce there any more. 1090 is inside the
+        // narrow band where only the 7-tile icon-top column (652) clears the ears and the 8-tile one
+        // (743) misses them even after §8's 24 px relaxation - so the flip is genuinely observable.
+        setDimensions(1090, 834)
     })
 
     afterEach(() => {
@@ -327,7 +363,7 @@ describe('useRideOverlayLayout - the hook', () => {
 
     it('resolves synchronously on first render using the itemCount passed in - no settle delay on mount', () => {
         const { result } = renderHook(() => useRideOverlayLayout({ itemCount: 8, workoutAttached: true, mapVisible: true }))
-        expect(result.current.arrangement).toBe('block-side')
+        expect(result.current.arrangement).toBe('t-side')
     })
 
     it('defaults itemCount to DEFAULT_ROUTE_RIDE_TILE_COUNT when not supplied (§3.2 first-frame value)', () => {
@@ -340,16 +376,16 @@ describe('useRideOverlayLayout - the hook', () => {
             (props: { itemCount: number }) => useRideOverlayLayout({ itemCount: props.itemCount, workoutAttached: true, mapVisible: true }),
             { initialProps: { itemCount: 7 } },
         )
-        expect(result.current.arrangement).toBe('t-side')
+        expect(result.current.arrangement).toBe('block-side')
 
         rerender({ itemCount: 8 })
-        expect(result.current.arrangement).toBe('t-side') // unchanged immediately after the prop flips
+        expect(result.current.arrangement).toBe('block-side') // unchanged immediately after the prop flips
 
         act(() => { jest.advanceTimersByTime(TILE_COUNT_SETTLE_MS - 100) })
-        expect(result.current.arrangement).toBe('t-side') // still not settled
+        expect(result.current.arrangement).toBe('block-side') // still not settled
 
         act(() => { jest.advanceTimersByTime(200) })
-        expect(result.current.arrangement).toBe('block-side') // settled past 2000ms total
+        expect(result.current.arrangement).toBe('t-side') // settled past 2000ms total
     })
 
     it('resets the settle timer on a flappy itemCount change - a brief drop of the Gear tile must not re-flow the screen', () => {
@@ -363,10 +399,10 @@ describe('useRideOverlayLayout - the hook', () => {
         rerender({ itemCount: 7 }) // reverts before settling - timer must restart, not fire the stale 8
 
         act(() => { jest.advanceTimersByTime(1500) })
-        expect(result.current.arrangement).toBe('t-side') // never settled on 8
+        expect(result.current.arrangement).toBe('block-side') // never settled on 8
 
         act(() => { jest.advanceTimersByTime(600) })
-        expect(result.current.arrangement).toBe('t-side') // settling back onto its own starting value is a no-op
+        expect(result.current.arrangement).toBe('block-side') // settling back onto its own starting value is a no-op
     })
 
     it('recomputes immediately on a mapVisible change - no settle window (§8.2)', () => {
@@ -381,8 +417,10 @@ describe('useRideOverlayLayout - the hook', () => {
         expect(result.current.map).toBeNull() // flips on the very next render, no timer advance needed
     })
 
+    // itemCount 8 pins the mode (RideDashboard's own >7 override), so this exercises the resize path
+    // alone rather than the resize plus a mode change.
     it('recomputes immediately on a screen rotation/resize - no settle window', () => {
-        const { result, rerender } = renderHook(() => useRideOverlayLayout({ itemCount: 7, workoutAttached: true, mapVisible: true }), { initialProps: {} })
+        const { result, rerender } = renderHook(() => useRideOverlayLayout({ itemCount: 8, workoutAttached: true, mapVisible: true }), { initialProps: {} })
         expect(result.current.arrangement).toBe('t-side')
 
         act(() => { setDimensions(1400, 900) })
@@ -390,13 +428,17 @@ describe('useRideOverlayLayout - the hook', () => {
         expect(result.current.arrangement).toBe('block-side')
     })
 
+    // itemCount 8 again pins the mode, so the hysteresis cushion is observable on its own. At 7 tiles
+    // it would not be: whenever icon-left drops out of block-side (below 1311.6), icon-top picks the
+    // screen straight back up (its own boundary is 1068), so the arrangement simply never flips and
+    // there is nothing for the cushion to absorb. The mode changes instead - see the note in the
+    // chooser about that boundary having no hysteresis of its own.
     it('applies hysteresis end-to-end: once settled into an arrangement, a small resize does not flip it back out', () => {
-        const { result, rerender } = renderHook(() => useRideOverlayLayout({ itemCount: 7, workoutAttached: true, mapVisible: true }), { initialProps: {} })
+        const { result, rerender } = renderHook(() => useRideOverlayLayout({ itemCount: 8, workoutAttached: true, mapVisible: true }), { initialProps: {} })
         expect(result.current.arrangement).toBe('t-side')
 
-        // Settle a few px past the exact 1311.6 block-side boundary first (a small margin avoids
-        // floating-point noise right at the boundary - 124.8 * 7 does not land on an exact double).
-        const SETTLED_WIDTH = 1311.6 + 4
+        // A few px past the 8-tile block-side boundary (W_rd 743 + 2*(200+8) = 1159).
+        const SETTLED_WIDTH = 1159 + 4
         act(() => { setDimensions(SETTLED_WIDTH, 900) })
         rerender({})
         expect(result.current.arrangement).toBe('block-side')
@@ -453,20 +495,20 @@ describe('computeRideOverlayLayout - workoutAttached: false (one-member column)'
     // meaningful sense: `block-side` - the one arrangement that IS in both cascades - has an
     // identical, unworsened threshold (previous test); column-only is what a one-member column falls
     // to instead of needing a rescue mechanism it structurally cannot have.
-    it('1280x800, N=7: falls to below - there is no WorkoutDashboard to narrow for a t-side rescue', () => {
+    it('1280x800, N=7: rescued to block-side via icon-top - a one-member column has no t-side to fall back on, so the dashboard mode buys the ears instead', () => {
         const combo = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
         const routeOnly = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
 
-        expect(combo.arrangement).toBe('t-side')
-        expect(routeOnly.arrangement).toBe('below')
+        // Both take icon-top here, for different reasons: the combo screen to lift its widgets off
+        // row 2 (t-side) onto row 1, the route-only screen because it has no t-side to fall back on
+        // at all and icon-left would drop the widgets to a row of their own.
+        expect(combo.arrangement).toBe('block-side')
+        expect(combo.dashboardLayout).toBe('icon-top')
+        expect(routeOnly.dashboardLayout).toBe('icon-top')
+        expect(routeOnly.arrangement).toBe('block-side')
         expect(routeOnly.workoutDashboard).toBeNull()
         expect(routeOnly.map).not.toBeNull()
         expect(routeOnly.elevation).not.toBeNull()
-        // Row 2 of the ride-only layout: directly under RideDashboard, no WorkoutDashboard band to clear.
-        expect(routeOnly.elevation!.top).toBeCloseTo(RIDE_DASH_HEIGHT_RATIO * 800 + SLOT_GAP, 5)
-        // RideDashboard itself is never compromised either way - unlike combo's t-side, which narrows
-        // WorkoutDashboard, a one-member column always renders RideDashboard at its own full width.
-        expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
     })
 
     it('640x430, N=7: below, same as the combo case - neither cascade has a side arrangement that fits here', () => {
@@ -638,6 +680,96 @@ describe('layout spec - corner widgets are placed, never dropped', () => {
             })
             expect(result.map).toBeNull()
             expect(result.elevation).not.toBeNull()
+        }
+    })
+})
+
+
+// -----------------------------------------------------------------------------------------------
+// chooseDashboardLayout - the dashboard's own layout mode is picked for fit, not derived from the
+// tile count.
+//
+// This started as a real-device observation: with virtual shifting ON the rider had 8 tiles, was
+// forced into icon-top by RideDashboard's own >7 rule, and the corner widgets fitted beside the
+// dashboard. With shifting OFF they had 7 tiles, icon-left, and the widgets dropped to the row
+// below - the tile count was deciding the layout quality by accident.
+// -----------------------------------------------------------------------------------------------
+
+describe('chooseDashboardLayout', () => {
+    const at = (o: Partial<ComputeRideOverlayLayoutInput> = {}) => chooseDashboardLayout({
+        screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+        itemCount: 7, mapVisible: true, workoutAttached: false, ...o,
+    })
+
+    it('keeps icon-left wherever it already fits the widgets beside the column', () => {
+        expect(at({ screenWidth: 1366, screenHeight: 1024 })).toBe('icon-left')
+        expect(at({ itemCount: 5 })).toBe('icon-left')
+    })
+
+    it('switches to icon-top when icon-left would push the widgets to the row below', () => {
+        // iPad 10 / Air 11, the frame the production bug was reported on.
+        expect(at({ itemCount: 6 })).toBe('icon-top')
+        expect(at({ itemCount: 7 })).toBe('icon-top')
+        expect(computeRideOverlayLayout({
+            screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: false,
+        }).arrangement).toBe('block-side')
+    })
+
+    it('keeps icon-left when neither mode fits - there is nothing to buy, so the default stands', () => {
+        // 1024x768 at 7 tiles: icon-left W_rd 896, icon-top 652, both leave the ear under its floor.
+        expect(at({ screenWidth: 1024, screenHeight: 768, itemCount: 7 })).toBe('icon-left')
+        expect(computeRideOverlayLayout({
+            screenWidth: 1024, screenHeight: 768, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: false,
+        }).arrangement).toBe('below')
+    })
+
+    it('rescues a combo screen off t-side too - t-side is a fallback (widgets on row 2), not a success', () => {
+        expect(at({ screenWidth: 1280, screenHeight: 800, itemCount: 7, workoutAttached: true })).toBe('icon-top')
+
+        const chosen = computeRideOverlayLayout({
+            screenWidth: 1280, screenHeight: 800, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: true,
+        })
+        expect(chosen.arrangement).toBe('block-side')
+        expect(chosen.elevation!.top).toBe(0) // row 1, beside RideDashboard - not row 2
+
+        // The WorkoutDashboard does narrow (864 in the T, 652 beside an icon-top column), but stays
+        // well clear of WORKOUT_DASH_MIN_WIDTH, and now matches RideDashboard's own width exactly.
+        expect(chosen.workoutDashboard!.width).toBe(652)
+        expect(chosen.workoutDashboard!.width).toBeGreaterThan(WORKOUT_DASH_MIN_WIDTH)
+        expect(chosen.workoutDashboard!.width).toBe(chosen.inputs.rideDashboardWidthEffective)
+    })
+
+    it('leaves a combo screen alone when icon-left already reaches block-side', () => {
+        expect(at({ screenWidth: 1366, screenHeight: 1024, itemCount: 7, workoutAttached: true })).toBe('icon-left')
+    })
+
+    it('leaves a combo screen alone when neither mode beats t-side', () => {
+        // 1024x768: icon-top's ear (178) is still under the floor, so both modes reach t-side.
+        expect(at({ screenWidth: 1024, screenHeight: 768, itemCount: 7, workoutAttached: true })).toBe('icon-left')
+    })
+
+    it('mirrors RideDashboard\'s own >7-tile override, so the assumed and rendered widths agree', () => {
+        expect(at({ itemCount: 8 })).toBe('icon-top')
+        expect(at({ itemCount: 9, screenWidth: 1366, screenHeight: 1024 })).toBe('icon-top')
+    })
+
+    it('is a no-op in compact, where RideDashboard stretches to the full screen width anyway', () => {
+        expect(at({ screenLayout: 'compact', screenWidth: 844, screenHeight: 390 })).toBe('icon-left')
+    })
+
+    // The bug this rule removes: with shifting on (8 tiles) the widgets fitted, with it off (7) they
+    // did not, purely because of the forced mode. Both must now land beside the column.
+    it('makes the virtual-shifting Gear tile stop deciding whether the widgets fit', () => {
+        for (const itemCount of [7, 8]) {
+            const l = computeRideOverlayLayout({
+                screenWidth: 1180, screenHeight: 820, screenLayout: 'normal',
+                itemCount, mapVisible: true, workoutAttached: false,
+            })
+            expect(l.dashboardLayout).toBe('icon-top')
+            expect(l.arrangement).toBe('block-side')
         }
     })
 })

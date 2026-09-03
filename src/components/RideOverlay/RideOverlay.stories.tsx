@@ -4,6 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { RideOverlay } from './RideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
+import { MOCK_ROWS as MOCK_NEARBY_ROWS } from '../NearbyRiders/NearbyRiderRow.mock';
 import { colors } from '../../theme';
 
 /**
@@ -96,3 +97,17 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
 });
+
+/**
+ * Combo ride (route + workout) with a group ride in progress, i.e. both list panels populated at
+ * once. WorkoutDashboard is centred and wide enough to reach under BOTH side columns, and in
+ * `block-side` it ends deeper than either corner widget does - so this is the story that shows the
+ * nearby-riders list (left) and previous-rides list (right) clearing it rather than running through
+ * it. View it at a 1180x820 viewport (iPad 10 / Air 11), where the combo ride reaches `block-side`.
+ */
+export const ComboWithNearbyRiders: Story = {
+    args: {
+        prevRides: MOCK_ROWS,
+        nearbyRiders: MOCK_NEARBY_ROWS,
+    },
+};

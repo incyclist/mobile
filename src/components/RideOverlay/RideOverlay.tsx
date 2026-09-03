@@ -329,8 +329,13 @@ export const RideOverlay = (props: RideOverlayProps) => {
     // and height (both `buildSideRects` and `buildBelowRects` build them as a pair), so it is an
     // exact stand-in when the map is absent and the left ear is simply empty.
     const nearbyRidersRowOccupant = map ?? elevation;
+    // Anchored below whichever of the widget row and WorkoutDashboard actually extends further down,
+    // exactly as prevRidesAnchorBottom is on the right - WorkoutDashboard is centred and 652 px wide
+    // at 1180x820/N=7, so it reaches under the left column too, and the two do not end at the same
+    // depth. In block-side the map ends at 164 while WorkoutDashboard ends at 205, so anchoring on
+    // the map alone put this list straight through it.
     const nearbyRidersAnchorBottom = nearbyRidersRowOccupant
-        ? nearbyRidersRowOccupant.top + nearbyRidersRowOccupant.height
+        ? Math.max(nearbyRidersRowOccupant.top + nearbyRidersRowOccupant.height, workoutDashboardBottom)
         : undefined;
     const nearbyRidersFreeBand = nearbyRidersAnchorBottom !== undefined && !cornerSlotIsToggle
         ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - nearbyRidersAnchorBottom - 2 * SLOT_GAP

@@ -4,7 +4,7 @@ import {
     getRideDashboardWidth,
     fitsSideBySide,
     buildSideRects,
-    RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD,
+    chooseDashboardLayout,
     DEFAULT_ROUTE_RIDE_TILE_COUNT,
 } from '../../../hooks/render/useRideOverlayLayout';
 
@@ -15,6 +15,9 @@ interface UseRouteOnlyRideGeometryParams {
     /** Whether the corner map widget would be visible - differs slightly between GPX (also gates
      *  on the main view already being a map) and Video, so it stays a caller input. */
     mapVisible: boolean;
+    /** Feeds the dashboard-mode choice: a workout-attached ride has a second "beside" arrangement
+     *  (t-side) available, so the two modes can rank differently than on a route-only ride. */
+    workoutAttached: boolean;
 }
 
 /**
@@ -25,7 +28,7 @@ interface UseRouteOnlyRideGeometryParams {
  * heuristic - both call sites already carried a comment pointing at "the other file" for the full
  * rationale, which now lives here instead.
  */
-export function useRouteOnlyRideGeometry({ isCompact, mapVisible }: UseRouteOnlyRideGeometryParams) {
+export function useRouteOnlyRideGeometry({ isCompact, mapVisible, workoutAttached }: UseRouteOnlyRideGeometryParams) {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
     const ELEVATION_FULL_HEIGHT = screenHeight * 0.12;
@@ -46,8 +49,17 @@ export function useRouteOnlyRideGeometry({ isCompact, mapVisible }: UseRouteOnly
     const [dashboardItemCount, setDashboardItemCount] = useState<number | undefined>(undefined);
     const onDashboardMetrics = useCallback((m: { itemCount: number }) => setDashboardItemCount(m.itemCount), []);
 
-    const dashboardLayoutMode = (dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT) > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD
-        ? 'icon-top' : 'icon-left';
+    // Chosen for fit, not derived from the tile count - see chooseDashboardLayout(). Shared with
+    // RideOverlay's own useRideOverlayLayout() call so the overlay and non-overlay paths cannot
+    // disagree about how wide RideDashboard is about to render.
+    const dashboardLayoutMode = chooseDashboardLayout({
+        screenWidth,
+        screenHeight,
+        screenLayout: isCompact ? 'compact' : 'normal',
+        itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
+        mapVisible,
+        workoutAttached,
+    });
     const rideDashboardWidthEffective = Math.min(
         getRideDashboardWidth({
             itemCount: dashboardItemCount ?? DEFAULT_ROUTE_RIDE_TILE_COUNT,
@@ -99,6 +111,7 @@ export function useRouteOnlyRideGeometry({ isCompact, mapVisible }: UseRouteOnly
         dashboardItemCount,
         updateDashboardDimensions,
         onDashboardMetrics,
+        dashboardLayoutMode,
         dashboardDynamicStyle,
         elevationPreviewDynamicStyle,
         mapOverlayDynamicStyle,
