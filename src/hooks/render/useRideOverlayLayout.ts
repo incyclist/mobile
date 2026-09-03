@@ -141,26 +141,37 @@ export const FALLBACK_ELEVATION_HEIGHT_RATIO = 0.12
 // -----------------------------------------------------------------------------------------------
 
 /**
- * HLD §5.3 names four arrangements. Session 4.1's prototype replaced both `-below` ones with a
- * single `'column-only'`, in two steps:
+ * HLD §5.3 names four arrangements. Session 4.1 collapsed `block-below`/`t-below` into a single
+ * terminal `'column-only'` that returned `map: null, elevation: null`, on the reasoning that a
+ * full-width row of map + elevation under a full-width dashboard column left the Video/GPX main
+ * view as a sliver, and that the corner widgets - being auxiliary - were better dropped than
+ * relocated.
  *
- *  - `block-below` and `t-below` rendered 10 px apart and were indistinguishable. `-below` is only
- *    reached when no side arrangement fits, i.e.
- *    `screenWidth < 2·(SIDE_WIDGET_MIN_WIDTH + SIDE_GUTTER) + WORKOUT_DASH_MIN_WIDTH`, and in that
- *    whole regime `WorkoutDashboard` takes `W_rd_eff` either way. `WORKOUT_DASH_MAX_ASPECT` - the
- *    only thing that made them differ - is gone with them (see the constant block above).
- *  - Dropping the corner widgets *below* the column was then rejected outright on review
- *    (repo owner, 2026-08-11): on the narrow screens this arrangement occurs on, a full-width row of
- *    map + elevation directly under a full-width dashboard column leaves the Video/GPX main view -
- *    which is the point of a route ride - as a sliver. The corner widgets are auxiliary, so on a
- *    screen with no room for them beside the column they are **dropped, not relocated**. HLD §5.3's
- *    "drop below the block/column, split left/right of the screen" is superseded.
+ * That is wrong, and it is the reason a plain route ride went completely blank (no map, no
+ * elevation preview, no nearby-riders list) on any tablet narrower than `W_rd + 416` px as soon as
+ * a second rider joined the route: `overlayActive` handed rendering to `RideOverlay`, which then
+ * had nothing to place. The corner widgets are **relocated below the dashboard row(s), never
+ * dropped**:
  *
- * `'column-only'` therefore renders the two dashboards over an unobstructed main view. It needs no
- * fit test - it is what is left when nothing else fits - so `'fallback'` is now reached only via
- * compact, which §6.1 already called its dominant path.
+ *   ride only     row 1  RideDashboard    + map & elevation if they fit beside it
+ *                 row 2  map & elevation, if they did not
+ *                 row 3  NearbyRiders & PrevRides
+ *
+ *   ride+workout  row 1  RideDashboard    + map & elevation if they fit beside it
+ *                 row 2  WorkoutDashboard + the remainder of map & elevation if they fit
+ *                 row 3  map & elevation, if they did not
+ *                 row 4  NearbyRiders & PrevRides
+ *
+ * `'below'` is that relocated row - the widgets split the full screen width (map left, elevation
+ * right) beneath the whole column, restoring HLD §5.3's original intent. `block-below`/`t-below`
+ * stay merged into the one name: they only ever differed by `WORKOUT_DASH_MAX_ASPECT`, which is
+ * gone, and §5.6 offered exactly this merge.
+ *
+ * `'column-only'` survives as the genuine terminal case - not enough vertical room for even the
+ * below row - which no tablet reaches in practice. `'fallback'` is still reached only via compact,
+ * which §6.1 already called its dominant path.
  */
-export type RideOverlayArrangement = 'block-side' | 't-side' | 'column-only' | 'fallback'
+export type RideOverlayArrangement = 'block-side' | 't-side' | 'below' | 'column-only' | 'fallback'
 
 export interface Rect {
     top: number
@@ -273,6 +284,33 @@ export const buildSideRects = (
  *  first, unlike the combo screen's t-side candidate). */
 export const fitsSideBySide = (screenWidth: number, screenHeight: number, columnWidth: number): boolean =>
     earWidthOf(screenWidth, columnWidth) >= SIDE_WIDGET_MIN_WIDTH && availableHeight(0, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT
+
+/** §5.4 - the below row's half-screen slot. Unlike an ear, it is not bounded by the column's width:
+ *  the widgets split the full screen beneath the column, so the width test is against half the
+ *  screen rather than the leftover side region. */
+export const belowSlotWidthOf = (screenWidth: number): number => screenWidth / 2 - SIDE_GUTTER
+
+/** Whether the below row fits at the given vertical origin. Reached only once both side candidates
+ *  have failed, so it is deliberately permissive - a tablet never fails it. */
+export const fitsBelow = (screenWidth: number, screenHeight: number, top: number): boolean =>
+    belowSlotWidthOf(screenWidth) >= SIDE_WIDGET_MIN_WIDTH && availableHeight(top, screenHeight) >= SIDE_WIDGET_MIN_HEIGHT
+
+/** The below row's rects - map left, elevation right, both at the same origin and size, exactly as
+ *  `buildSideRects` does for an ear. Sized through the same `sideWidgetSize` the side arrangements
+ *  use, so a widget that relocates below does not also change size beyond what the wider slot
+ *  allows. */
+export const buildBelowRects = (
+    screenWidth: number,
+    screenHeight: number,
+    top: number,
+    mapVisible: boolean,
+): { map: Rect | null; elevation: Rect } => {
+    const { width, height } = sideWidgetSize(screenWidth, screenHeight, belowSlotWidthOf(screenWidth), top)
+    return {
+        map: mapVisible ? { top, left: 0, width, height } : null,
+        elevation: { top, right: 0, width, height },
+    }
+}
 
 // -----------------------------------------------------------------------------------------------
 // §5.5 - the cascade itself
@@ -431,6 +469,22 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
     // place left to land is `column-only` - dropping the ears rather than relocating them, exactly as
     // the combo screen's own column-only does.
     if (!workoutAttached) {
+        // Row 2 of the ride-only layout: the widgets move below RideDashboard rather than being
+        // dropped. The decision uses the estimated dashboard height, the rect the measured one
+        // (invariant 2), exactly as t-side does.
+        if (fitsBelow(screenWidth, screenHeight, hRdEstimate + SLOT_GAP)) {
+            const { map, elevation } = buildBelowRects(screenWidth, screenHeight, hRd + SLOT_GAP, mapVisible)
+            return {
+                arrangement: 'below',
+                rideDashboard: { width: rideDashboardWidth },
+                workoutDashboard: null,
+                map,
+                elevation,
+                cornerSlotIsToggle: false,
+                inputs: { ...baseInputs, earWidth: belowSlotWidthOf(screenWidth) },
+            }
+        }
+
         return {
             arrangement: 'column-only',
             rideDashboard: { width: rideDashboardWidth },
@@ -459,9 +513,23 @@ export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): 
         }
     }
 
-    // 3. column-only - the two dashboards, and nothing else on top of the main view. No fit test:
-    // this is what is left when neither side arrangement fits, and the corner widgets are dropped
-    // rather than relocated (see `RideOverlayArrangement`'s doc comment).
+    // 3. below - row 3 of the ride+workout layout: neither side candidate had room, so the widgets
+    // move beneath the whole column (RideDashboard + WorkoutDashboard) instead of being dropped.
+    if (fitsBelow(screenWidth, screenHeight, hRdEstimate + hWd + SLOT_GAP)) {
+        const { map, elevation } = buildBelowRects(screenWidth, screenHeight, hRd + hWd + SLOT_GAP, mapVisible)
+        return {
+            arrangement: 'below',
+            rideDashboard: { width: rideDashboardWidth },
+            workoutDashboard: buildWorkoutDashboardRect(screenWidth, rideDashboardWidthEffective, hRd, hWd),
+            map,
+            elevation,
+            cornerSlotIsToggle: false,
+            inputs: { ...baseInputs, earWidth: belowSlotWidthOf(screenWidth), workoutDashboardWidth: rideDashboardWidthEffective },
+        }
+    }
+
+    // 4. column-only - the genuine terminal case: not even the below row has vertical room. No fit
+    // test; it is what is left when nothing else fits.
     return {
         arrangement: 'column-only',
         rideDashboard: { width: rideDashboardWidth },
