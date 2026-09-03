@@ -144,11 +144,12 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
         dashboardItemCount,
         updateDashboardDimensions,
         onDashboardMetrics,
+        dashboardLayoutMode,
         dashboardDynamicStyle,
         elevationPreviewDynamicStyle,
         mapOverlayDynamicStyle,
         bottomBarStyle,
-    } = useRouteOnlyRideGeometry({ isCompact, mapVisible });
+    } = useRouteOnlyRideGeometry({ isCompact, mapVisible, workoutAttached: comboActive });
 
     const transformPosition = useCallback((val: any): LatLng | undefined => {
         if (!val) return undefined;
@@ -293,7 +294,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     dashboardDynamicStyle
                 ]}>
                     <View onLayout={updateDashboardDimensions}>
-                        <RideDashboard layout='icon-left' onMetrics={onDashboardMetrics} />
+                        <RideDashboard layout={dashboardLayoutMode} onMetrics={onDashboardMetrics} />
                     </View>
                 </View>
             </View>}

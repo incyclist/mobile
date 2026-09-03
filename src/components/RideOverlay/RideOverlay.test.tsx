@@ -511,6 +511,48 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         expect(topOf(false)).toBe(topOf(true));
     });
 
+    // Combo (route + workout). WorkoutDashboard is centred and, at 1180x820/N=7, 652 px wide - so it
+    // reaches under the left column, and it ends DEEPER than the corner map does (205 vs 164 in
+    // block-side). Anchoring this list on the map alone put it straight through the WorkoutDashboard.
+    // Mirrors the identical Math.max the previous-rides list on the right has always done.
+    it('combo: anchors the nearby-riders list below WorkoutDashboard when that ends deeper than the corner map', () => {
+        setDimensions(1180, 820);
+        const comboProps: RideOverlayProps = {
+            ...nearbyRidersProps,
+            graph: baseProps.graph,
+            steps: baseProps.steps,
+            dashboard: baseProps.dashboard,
+        };
+        const { getByTestId } = render(<RideOverlay {...comboProps} />);
+
+        const flat = (id: string) => Object.assign({}, ...[getByTestId(id).props.style].flat());
+        const list = flat('nearby-riders-tablet-list');
+        const wd = flat('ride-overlay-dashboard');
+        const map = flat('ride-overlay-map');
+
+        // The premise: WorkoutDashboard really does end deeper than the map here.
+        expect(wd.top + wd.maxHeight).toBeGreaterThan(map.top + map.height);
+        // ...so the list must clear it, not the map.
+        expect(list.top).toBeGreaterThanOrEqual(wd.top + wd.maxHeight);
+    });
+
+    it('combo: still anchors on the widget row where that is the deeper of the two', () => {
+        setDimensions(1024, 768); // t-side here - the map sits below RideDashboard and ends deeper
+        const comboProps: RideOverlayProps = {
+            ...nearbyRidersProps,
+            graph: baseProps.graph,
+            steps: baseProps.steps,
+            dashboard: baseProps.dashboard,
+        };
+        const { getByTestId } = render(<RideOverlay {...comboProps} />);
+
+        const flat = (id: string) => Object.assign({}, ...[getByTestId(id).props.style].flat());
+        const list = flat('nearby-riders-tablet-list');
+        const map = flat('ride-overlay-map');
+
+        expect(list.top).toBeCloseTo(map.top + map.height + SLOT_GAP, 5);
+    });
+
     it('below: relocates the nearby-riders list under the column along with the other side-region occupants', () => {
         setDimensions(860, 480);
         const { getByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
