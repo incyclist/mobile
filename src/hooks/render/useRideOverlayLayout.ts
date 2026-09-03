@@ -372,11 +372,12 @@ const buildFallback = (
     }
 }
 
-/** The cascade itself, for one given dashboard layout mode. Not exported: callers go through
+/** The cascade itself, for one given dashboard layout mode. Production callers go through
  *  `computeRideOverlayLayout()`, which picks the mode first (`chooseDashboardLayout()`). Kept
- *  mode-parameterised rather than mode-deriving so the chooser can evaluate both without
- *  recursing into itself. */
-const computeForMode = (input: ComputeRideOverlayLayoutInput, dashboardLayout: DashboardLayoutMode): RideOverlayLayout => {
+ *  mode-parameterised rather than mode-deriving so the chooser can evaluate both without recursing
+ *  into itself - and exported so the cascade's own mechanics (arrangement shapes, §8 hysteresis) can
+ *  be tested per mode, independently of which mode the chooser would pick for a given screen. */
+export const computeRideOverlayLayoutForMode = (input: ComputeRideOverlayLayoutInput, dashboardLayout: DashboardLayoutMode): RideOverlayLayout => {
     const {
         screenWidth,
         screenHeight,
@@ -548,14 +549,28 @@ const computeForMode = (input: ComputeRideOverlayLayoutInput, dashboardLayout: D
     }
 }
 
-/** Whether an arrangement places the corner widgets BESIDE the dashboard column (row 1 for
- *  `block-side`, row 2 alongside WorkoutDashboard for `t-side`) rather than relegating them to a row
- *  of their own. This is the whole test the mode choice turns on - deliberately binary, not a
- *  ranking of the side arrangements against each other: `t-side` already places the widgets beside
- *  the column, so "rescuing" it into `block-side` would buy no fit and would cost WorkoutDashboard
- *  width (at 1280x800/N=7 it is 864 px wide in the T, but only 652 px beside an icon-top column). */
-const placesWidgetsBeside = (arrangement: RideOverlayArrangement): boolean =>
-    arrangement === 'block-side' || arrangement === 't-side'
+/** Preference order over the arrangements, best first - the layout spec's own row preference made
+ *  comparable. Row 1 (`block-side`: widgets beside RideDashboard, from the top of the screen) beats
+ *  row 2 (`t-side`: widgets beside WorkoutDashboard, below RideDashboard), which beats a row of
+ *  their own (`below`), which beats not placing them at all.
+ *
+ *  `t-side` is a FALLBACK, not a success: it is what the cascade reaches when the widgets did not
+ *  fit beside RideDashboard. So a combo ride sitting on `t-side` must still get the icon-top rescue
+ *  - denying it there was a real defect, and left a ride+workout on a 1180 pt tablet stuck on row 2
+ *  when row 1 was reachable. The WorkoutDashboard does narrow as a result (864 -> 652 px at
+ *  1280x800/N=7, where it matches RideDashboard's own width), but `WORKOUT_DASH_MIN_WIDTH` is 480 -
+ *  the width at which both of its rows were tuned to read cleanly - so that is not a cost.
+ *
+ *  `'fallback'` is not meaningfully ranked: it is reached only through `screenLayout === 'compact'`,
+ *  where the mode is irrelevant (RideDashboard is `alignSelf: 'stretch'` and RideDashboardView
+ *  forces `icon-left`), and `chooseDashboardLayout` returns before ever comparing it. */
+const ARRANGEMENT_RANK: Record<RideOverlayArrangement, number> = {
+    'block-side': 0,
+    't-side': 1,
+    'below': 2,
+    'column-only': 3,
+    'fallback': 4,
+}
 
 /**
  * Which layout mode `RideDashboard` should render in.
@@ -568,10 +583,11 @@ const placesWidgetsBeside = (arrangement: RideOverlayArrangement): boolean =>
  * 7 tiles, `'icon-left'`, and the widgets dropped to a row below. The tile count decided the
  * layout quality, which is backwards.
  *
- * So the mode is chosen for fit instead: if `'icon-left'` already places the widgets beside the
- * column, keep it; otherwise switch to `'icon-top'` if THAT places them beside; otherwise keep
- * `'icon-left'` and let them take the row below. The test is binary - "beside or not" - not a
- * ranking of `block-side` against `t-side` (see `placesWidgetsBeside`).
+ * So the mode is chosen for fit instead: run the cascade under both modes and keep whichever
+ * reaches the better-ranked arrangement (`ARRANGEMENT_RANK`), with `'icon-left'` winning ties so it
+ * stays the default wherever it already lays the screen out as well. This applies to ride+workout
+ * exactly as it does to a plain route ride - `t-side` is a fallback, not a success, so a combo ride
+ * that lands there is still a candidate for the rescue.
  *
  * Two constraints bound the choice:
  *  - above `RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD` tiles `RideDashboard` forces `'icon-top'`
@@ -590,12 +606,12 @@ export const chooseDashboardLayout = (input: ComputeRideOverlayLayoutInput): Das
     if (itemCount > RIDE_DASHBOARD_ICON_TOP_TILE_THRESHOLD)
         return 'icon-top'
 
-    // icon-left keeps precedence wherever it already places the widgets beside the column, so
-    // icon-top is only ever reached as a rescue - never as a restyle of a screen that was fine.
-    if (placesWidgetsBeside(computeForMode(input, 'icon-left').arrangement))
-        return 'icon-left'
+    const left = ARRANGEMENT_RANK[computeRideOverlayLayoutForMode(input, 'icon-left').arrangement]
+    const top = ARRANGEMENT_RANK[computeRideOverlayLayoutForMode(input, 'icon-top').arrangement]
 
-    return placesWidgetsBeside(computeForMode(input, 'icon-top').arrangement) ? 'icon-top' : 'icon-left'
+    // Strictly better, or icon-left stands - so icon-top is only ever a rescue, never a restyle of a
+    // screen icon-left already lays out as well.
+    return top < left ? 'icon-top' : 'icon-left'
 }
 
 /**
@@ -606,7 +622,7 @@ export const chooseDashboardLayout = (input: ComputeRideOverlayLayoutInput): Das
  * testable without React rendering machinery.
  */
 export const computeRideOverlayLayout = (input: ComputeRideOverlayLayoutInput): RideOverlayLayout =>
-    computeForMode(input, chooseDashboardLayout(input))
+    computeRideOverlayLayoutForMode(input, chooseDashboardLayout(input))
 
 // -----------------------------------------------------------------------------------------------
 // §9 - the hook
