@@ -98,13 +98,14 @@ describe('RideOverlay', () => {
         expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
     });
 
-    it('column-only: renders the dashboard, drops both corner widgets entirely (not relocated)', () => {
+    it('below: renders the dashboard AND both corner widgets, relocated under the column', () => {
         setDimensions(860, 480);
-        const { getByTestId, queryByTestId } = render(<RideOverlay {...baseProps} />);
+        const { getByTestId } = render(<RideOverlay {...baseProps} />);
 
         expect(getByTestId('ride-overlay-dashboard')).toBeTruthy();
-        expect(queryByTestId('ride-overlay-map')).toBeNull();
-        expect(queryByTestId('ride-overlay-elevation')).toBeNull();
+        // Relocated, not dropped - this is the arrangement that used to return null rects.
+        expect(getByTestId('ride-overlay-map')).toBeTruthy();
+        expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
     });
 
     it('fallback (compact): no WorkoutDashboard, no corner map — the elevation slot becomes a toggle, plus the shoutout line', () => {
@@ -319,15 +320,15 @@ describe('RideOverlay — no workout attached', () => {
         expect(queryByTestId('ride-overlay-prev-rides')).toBeNull();
     });
 
-    it('column-only: drops the side-region occupants and the previous-rides list entirely (no WorkoutDashboard, no crash on the now-optional props)', () => {
+    it('below: relocates the side-region occupants and the previous-rides list under the column (no WorkoutDashboard, no crash on the now-optional props)', () => {
         setDimensions(860, 480);
         expect(() => render(<RideOverlay {...routeOnlyProps} />)).not.toThrow();
 
-        const { queryByTestId } = render(<RideOverlay {...routeOnlyProps} />);
-        expect(queryByTestId('ride-overlay-dashboard')).toBeNull();
-        expect(queryByTestId('ride-overlay-map')).toBeNull();
-        expect(queryByTestId('ride-overlay-elevation')).toBeNull();
-        expect(queryByTestId('ride-overlay-prev-rides')).toBeNull();
+        const { queryByTestId, getByTestId } = render(<RideOverlay {...routeOnlyProps} />);
+        expect(queryByTestId('ride-overlay-dashboard')).toBeNull(); // no workout attached
+        expect(getByTestId('ride-overlay-map')).toBeTruthy();
+        expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
+        expect(getByTestId('ride-overlay-prev-rides')).toBeTruthy();
     });
 
     it('fallback (compact): no WorkoutDashboard, no shoutout line, no Stop-Workout slot, no crash', () => {
@@ -482,24 +483,40 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
     });
 
-    it('does not render the nearby-riders list when the corner map itself is not rendered (mapVisible false) — no reserved left ear without the map', () => {
+    // Design doc §5.2 requires this list to be "an independent, always-visible-when-eligible
+    // sibling", "not derived from the map's geometry". It used to be gated on the corner map's rect,
+    // which is null whenever mapVisible is false — i.e. on every ride whose main view is itself a map
+    // (rideView === 'map'), where the list was therefore unreachable at any screen size.
+    it('renders the nearby-riders list when the corner map is not rendered (mapVisible false) — it anchors to the widget row, not to the map', () => {
         setDimensions(1400, 900);
         const { queryByTestId, getByTestId } = render(
             <RideOverlay {...nearbyRidersProps} mapVisible={false} mapPoints={undefined} />
         );
 
         expect(queryByTestId('ride-overlay-map')).toBeNull();
-        expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
+        expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
         // the right ear (elevation) is unaffected
         expect(getByTestId('ride-overlay-elevation')).toBeTruthy();
     });
 
-    it('column-only: drops the nearby-riders list entirely along with the other side-region occupants', () => {
-        setDimensions(860, 480);
-        const { queryByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
+    it('anchors the nearby-riders list at the same depth whether or not the corner map is rendered', () => {
+        setDimensions(1400, 900);
+        const topOf = (mapVisible: boolean) => {
+            const { getByTestId } = render(
+                <RideOverlay {...nearbyRidersProps} mapVisible={mapVisible} mapPoints={mapVisible ? nearbyRidersProps.mapPoints : undefined} />
+            );
+            return Object.assign({}, ...[getByTestId('nearby-riders-tablet-list').props.style].flat()).top;
+        };
 
-        expect(queryByTestId('ride-overlay-map')).toBeNull();
-        expect(queryByTestId('nearby-riders-tablet-list')).toBeNull();
+        expect(topOf(false)).toBe(topOf(true));
+    });
+
+    it('below: relocates the nearby-riders list under the column along with the other side-region occupants', () => {
+        setDimensions(860, 480);
+        const { getByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
+
+        expect(getByTestId('ride-overlay-map')).toBeTruthy();
+        expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
     });
 
     // Tablet has separate left/right ears (no shared corner slot), so the phone-only "PrevRides

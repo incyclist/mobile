@@ -11,6 +11,9 @@ import {
     ARRANGEMENT_HYSTERESIS_PX,
     DEFAULT_ROUTE_RIDE_TILE_COUNT,
     WORKOUT_DASH_MIN_WIDTH,
+    RIDE_DASH_HEIGHT_RATIO,
+    SLOT_GAP,
+    belowSlotWidthOf,
 } from './useRideOverlayLayout'
 
 // Retuned by session 4.1 (the Wave 4 prototype) - see `RideOverlayPrototype.stories.tsx` and HLD
@@ -19,8 +22,13 @@ import {
 //    WorkoutDashboard height model, and the removal of the aspect ceiling);
 //  - the cascade's shape: the T no longer narrows WorkoutDashboard to its floor to buy ear width.
 //    Ears get their floor first and the dashboard takes the rest, so the T is shallow rather than
-//    narrow, and 'block-below'/'t-below' became a single 'column-only' that drops the corner widgets
-//    instead of relocating them under the column.
+//    narrow, and 'block-below'/'t-below' merged into one arrangement.
+//
+// Session 4.1 also made that merged arrangement DROP the corner widgets ('column-only') rather than
+// relocate them. That was wrong - it blanked map, elevation preview and nearby riders on any tablet
+// under the side-fit threshold - and is reverted: the merged arrangement is 'below', and it places
+// the widgets beneath the column. 'column-only' remains only as the terminal "no vertical room at
+// all" case, which no landscape non-compact frame reaches (see the spec suite at the end).
 
 const mockDimensions = { width: 1280, height: 800 }
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
@@ -135,26 +143,32 @@ describe('computeRideOverlayLayout - the arrangements', () => {
     // Below the 't-side' floor: screenWidth < 2*(200+8) + 480 = 896. Every frame here is landscape
     // (width > height) - the app is orientation-locked to landscape (`Loader.tsx`), so a portrait
     // frame is not a state it can be in and must not be used to justify an arrangement.
-    it('640x430, N=7: column-only - no side arrangement fits, so the corner widgets are dropped', () => {
+    it('640x430, N=7: below - no side arrangement fits, so the widgets relocate under the column', () => {
         const result = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
         expect(result.inputs.rideDashboardWidthEffective).toBe(640) // clamped (§5.7) - raw W_rd (895.6) would overflow
-        expect(result.arrangement).toBe('column-only')
+        expect(result.arrangement).toBe('below')
         expect(result.workoutDashboard?.width).toBe(640) // matches the (clamped) dashboard
-        expect(result.map).toBeNull()
-        expect(result.elevation).toBeNull() // dropped, NOT relocated below the column - the main view keeps the screen
+        // Relocated, NOT dropped: the widgets sit beneath the whole column, splitting the screen.
+        expect(result.map).not.toBeNull()
+        expect(result.elevation).not.toBeNull()
+        expect(result.map?.left).toBe(0)
+        expect(result.elevation?.right).toBe(0)
+        expect(result.elevation?.top).toBeGreaterThan(result.workoutDashboard!.top)
     })
 
-    it('860x480, N=7: column-only as well, just under the t-side floor', () => {
+    it('860x480, N=7: below as well, just under the t-side floor', () => {
         const result = computeRideOverlayLayout({ screenWidth: 860, screenHeight: 480, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        expect(result.arrangement).toBe('column-only')
+        expect(result.arrangement).toBe('below')
         expect(result.workoutDashboard?.width).toBeCloseTo(860, 5)
-        expect(result.elevation).toBeNull()
+        expect(result.elevation).not.toBeNull()
     })
 
-    it('column-only needs no fit test - it is what is left, so it never falls through to fallback', () => {
-        const tiny = computeRideOverlayLayout({ screenWidth: 500, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
-        expect(tiny.arrangement).toBe('column-only')
-        expect(tiny.workoutDashboard).not.toBeNull()
+    it('the below row is bounded by half the screen, not by the leftover side region', () => {
+        const result = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true })
+        // The column is clamped to the full 640, so there is no ear at all - yet the below row still
+        // has room, because it splits the screen rather than the remainder beside the column.
+        expect(result.inputs.earWidth).toBe(belowSlotWidthOf(640))
+        expect(result.elevation!.width).toBeLessThanOrEqual(belowSlotWidthOf(640))
     })
 
     it('844x390 (phone landscape), any N: fallback, because screenLayout is compact', () => {
@@ -276,7 +290,7 @@ describe('computeRideOverlayLayout - hysteresis (design doc §8.2)', () => {
         const warm = computeRideOverlayLayout({
             screenWidth: 870, screenHeight: 600, screenLayout: 'normal', itemCount: 7, mapVisible: true, previousArrangement: 't-side',
         })
-        expect(cold.arrangement).toBe('column-only')
+        expect(cold.arrangement).toBe('below')
         expect(warm.arrangement).toBe('t-side')
         expect(warm.workoutDashboard?.width).toBe(WORKOUT_DASH_MIN_WIDTH + 22) // 870 - 2*(176+8)
     })
@@ -401,11 +415,12 @@ describe('useRideOverlayLayout - the hook', () => {
 })
 
 // Sanity check the arrangement type union stays in sync with what the pure function actually
-// returns. Four values since session 4.1 replaced 'block-below'/'t-below' with 'column-only'.
+// returns. Five values: 'below' restores the relocated row session 4.1 had removed, and
+// 'column-only' stays on as the terminal "not even that fits" case.
 describe('RideOverlayArrangement', () => {
-    it('covers exactly the 4 arrangements the tuned algorithm produces', () => {
-        const all: RideOverlayArrangement[] = ['block-side', 't-side', 'column-only', 'fallback']
-        expect(all).toHaveLength(4)
+    it('covers exactly the 5 arrangements the algorithm produces', () => {
+        const all: RideOverlayArrangement[] = ['block-side', 't-side', 'below', 'column-only', 'fallback']
+        expect(all).toHaveLength(5)
     })
 })
 
@@ -438,29 +453,33 @@ describe('computeRideOverlayLayout - workoutAttached: false (one-member column)'
     // meaningful sense: `block-side` - the one arrangement that IS in both cascades - has an
     // identical, unworsened threshold (previous test); column-only is what a one-member column falls
     // to instead of needing a rescue mechanism it structurally cannot have.
-    it('1280x800, N=7: falls to column-only - there is no WorkoutDashboard to narrow for a t-side rescue', () => {
+    it('1280x800, N=7: falls to below - there is no WorkoutDashboard to narrow for a t-side rescue', () => {
         const combo = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
         const routeOnly = computeRideOverlayLayout({ screenWidth: 1280, screenHeight: 800, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
 
         expect(combo.arrangement).toBe('t-side')
-        expect(routeOnly.arrangement).toBe('column-only')
+        expect(routeOnly.arrangement).toBe('below')
         expect(routeOnly.workoutDashboard).toBeNull()
-        expect(routeOnly.map).toBeNull()
-        expect(routeOnly.elevation).toBeNull()
+        expect(routeOnly.map).not.toBeNull()
+        expect(routeOnly.elevation).not.toBeNull()
+        // Row 2 of the ride-only layout: directly under RideDashboard, no WorkoutDashboard band to clear.
+        expect(routeOnly.elevation!.top).toBeCloseTo(RIDE_DASH_HEIGHT_RATIO * 800 + SLOT_GAP, 5)
         // RideDashboard itself is never compromised either way - unlike combo's t-side, which narrows
         // WorkoutDashboard, a one-member column always renders RideDashboard at its own full width.
         expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
     })
 
-    it('640x430, N=7: column-only, same as the combo case - neither cascade has a side arrangement that fits here', () => {
+    it('640x430, N=7: below, same as the combo case - neither cascade has a side arrangement that fits here', () => {
         const combo = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: true })
         const routeOnly = computeRideOverlayLayout({ screenWidth: 640, screenHeight: 430, screenLayout: 'normal', itemCount: 7, mapVisible: true, workoutAttached: false })
 
-        expect(combo.arrangement).toBe('column-only')
-        expect(routeOnly.arrangement).toBe('column-only') // at least as permissive: identical, not worse
+        expect(combo.arrangement).toBe('below')
+        expect(routeOnly.arrangement).toBe('below') // at least as permissive: identical, not worse
         expect(routeOnly.workoutDashboard).toBeNull()
-        expect(routeOnly.map).toBeNull()
-        expect(routeOnly.elevation).toBeNull()
+        expect(routeOnly.map).not.toBeNull()
+        expect(routeOnly.elevation).not.toBeNull()
+        // The ride-only below row sits higher than the combo one - no WorkoutDashboard band to clear.
+        expect(routeOnly.elevation!.top).toBeLessThan(combo.elevation!.top)
         expect(routeOnly.rideDashboard.width).toBe(combo.rideDashboard.width)
     })
 
@@ -497,5 +516,128 @@ describe('constants', () => {
     it('exposes ARRANGEMENT_HYSTERESIS_PX and SIDE_WIDGET_MIN_WIDTH as tunable named exports', () => {
         expect(typeof ARRANGEMENT_HYSTERESIS_PX).toBe('number')
         expect(typeof SIDE_WIDGET_MIN_WIDTH).toBe('number')
+    })
+})
+
+
+// -----------------------------------------------------------------------------------------------
+// The layout spec itself, as a property sweep rather than as per-size examples.
+//
+// Regression cover for the production bug where riding the same route on a second device blanked
+// every overlay on the iPad: `overlayActive` handed rendering to RideOverlay, whose layout returned
+// null rects, and the page had already unmounted its own standalone map/elevation preview.
+//
+// The invariant is the whole fix: on a landscape, non-compact frame the corner widgets are always
+// PLACED - beside the dashboard where they fit, below it where they don't - and never dropped.
+// -----------------------------------------------------------------------------------------------
+
+const LANDSCAPE_FRAMES = [
+    { name: 'iPad 9.7/10.2',     width: 1024, height: 768 },
+    { name: 'iPad 10.9',         width: 1180, height: 820 },
+    { name: 'iPad Pro 11',       width: 1194, height: 834 },
+    { name: 'iPad Pro 12.9',     width: 1366, height: 1024 },
+    { name: 'Galaxy Tab 1280',   width: 1280, height: 800 },
+    { name: 'Galaxy Tab 1000',   width: 1000, height: 625 },
+    { name: 'small 7in tablet',  width: 960,  height: 600 },
+]
+
+describe('layout spec - corner widgets are placed, never dropped', () => {
+    for (const frame of LANDSCAPE_FRAMES) {
+        for (const itemCount of [5, 6, 7, 8, 9]) {
+            for (const workoutAttached of [false, true]) {
+                const what = `${frame.name} ${frame.width}x${frame.height}, N=${itemCount}, ${workoutAttached ? 'ride+workout' : 'ride only'}`
+
+                it(`${what}: places both widgets`, () => {
+                    const result = computeRideOverlayLayout({
+                        screenWidth: frame.width, screenHeight: frame.height, screenLayout: 'normal',
+                        itemCount, mapVisible: true, workoutAttached,
+                    })
+
+                    expect(result.arrangement).not.toBe('column-only')
+                    expect(result.map).not.toBeNull()
+                    expect(result.elevation).not.toBeNull()
+                    // Readable at the tuned floor, and inside the slot it was placed in.
+                    expect(result.elevation!.width).toBeGreaterThanOrEqual(SIDE_WIDGET_MIN_WIDTH)
+                    expect(result.map!.width + result.elevation!.width).toBeLessThanOrEqual(frame.width)
+                    // Clear of the bottom bar.
+                    expect(result.elevation!.top + result.elevation!.height).toBeLessThanOrEqual(frame.height)
+                })
+            }
+        }
+    }
+
+    // The specific production case: a plain route ride on an iPad, which is what a second rider
+    // joining switches the page into. Before the fix this returned column-only with null rects.
+    it('iPad 1024x768, N=7, ride only: the widgets sit on their own row under RideDashboard', () => {
+        const result = computeRideOverlayLayout({
+            screenWidth: 1024, screenHeight: 768, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: false,
+        })
+
+        expect(result.arrangement).toBe('below')
+        expect(result.map!.left).toBe(0)
+        expect(result.elevation!.right).toBe(0)
+        expect(result.map!.top).toBeCloseTo(RIDE_DASH_HEIGHT_RATIO * 768 + SLOT_GAP, 5)
+        expect(result.map!.top).toBe(result.elevation!.top) // one row, not staggered
+        expect(result.map!.height).toBe(result.elevation!.height)
+    })
+
+    // Ride+workout, row 2: where the narrowed WorkoutDashboard still leaves the widgets room beside
+    // it, they sit BESIDE it on the same row - the spec's "2nd line: WorkoutDashboard + the
+    // remainder of map & elevation" - rather than being pushed onto a row of their own.
+    it('iPad 1024x768, N=7, ride+workout: the widgets share row 2 with WorkoutDashboard', () => {
+        const result = computeRideOverlayLayout({
+            screenWidth: 1024, screenHeight: 768, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: true,
+        })
+
+        expect(result.arrangement).toBe('t-side')
+        const wd = result.workoutDashboard!
+        // Same band as WorkoutDashboard (offset only by SLOT_GAP), not stacked beneath it.
+        expect(result.elevation!.top).toBeLessThan(wd.top + wd.height)
+        expect(result.elevation!.top).toBeCloseTo(wd.top + SLOT_GAP, 5)
+        expect(wd.left! + wd.width).toBeLessThanOrEqual(1024 - result.elevation!.width)
+    })
+
+    // Ride+workout, row 3: only once the widgets no longer fit beside the narrowed WorkoutDashboard
+    // do they move to a row of their own, clearing the whole column.
+    it('860x480, N=7, ride+workout: the below row clears the WorkoutDashboard band', () => {
+        const result = computeRideOverlayLayout({
+            screenWidth: 860, screenHeight: 480, screenLayout: 'normal',
+            itemCount: 7, mapVisible: true, workoutAttached: true,
+        })
+
+        expect(result.arrangement).toBe('below')
+        const wd = result.workoutDashboard!
+        expect(result.elevation!.top).toBeGreaterThanOrEqual(wd.top + wd.height)
+    })
+
+    // The Gear tile (N 7 -> 8) flips RideDashboard to icon-top, which makes it NARROWER. That used to
+    // decide whether the overlays existed at all on a 1280 tablet; now it only decides which row they
+    // land on, which is what made the bug present as "it works with virtual shifting on".
+    it('the 7<->8 tile flip changes the row, never whether the widgets exist', () => {
+        const frames = LANDSCAPE_FRAMES.map((f) => [7, 8].map((itemCount) =>
+            computeRideOverlayLayout({
+                screenWidth: f.width, screenHeight: f.height, screenLayout: 'normal',
+                itemCount, mapVisible: true, workoutAttached: false,
+            })))
+
+        for (const [at7, at8] of frames) {
+            expect(at7.map).not.toBeNull()
+            expect(at8.map).not.toBeNull()
+        }
+    })
+
+    // `mapVisible: false` is the normal state whenever the main view is itself a map. The elevation
+    // preview must still be placed - and the row it defines is what NearbyRiders anchors to.
+    it('mapVisible: false still places the elevation preview, on every frame', () => {
+        for (const frame of LANDSCAPE_FRAMES) {
+            const result = computeRideOverlayLayout({
+                screenWidth: frame.width, screenHeight: frame.height, screenLayout: 'normal',
+                itemCount: 7, mapVisible: false, workoutAttached: false,
+            })
+            expect(result.map).toBeNull()
+            expect(result.elevation).not.toBeNull()
+        }
     })
 })

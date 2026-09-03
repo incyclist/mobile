@@ -318,22 +318,20 @@ export const RideOverlay = (props: RideOverlayProps) => {
         }
     }, [prevRidesTabletVisibleRows, onVisibleRowsChange]);
 
-    // Left ear: NearbyRiders stacks below the corner Map, mirroring PrevRides' own right-ear list
-    // below Elevation (design doc §2.4/§5.2 - "left ear v1 occupant: corner Map... Phase 3 reserve:
-    // NearbyRiders"). Unlike the right ear, there is no always-present left-ear widget to anchor
-    // below when the map itself isn't rendered (`map` is `null` whenever `!mapVisible`, even in a
-    // side arrangement) - `RideOverlayPrototype.stories.tsx`'s own Phase-3 ghost gates identically
-    // on `mapRect` truthiness, so this list is simply not shown in that case rather than reserving
-    // an anchor for it.
-    const nearbyRidersAnchorBottom = map ? map.top + map.height : undefined;
-    // Unlike prevRidesFreeBand above, this feeds a plain CSS `maxHeight` clamp on
-    // NearbyRidersTabletList's `style` prop below, not a separate visibleRows formula — that
-    // component has no internal row-count clamping of its own (design doc §5.2 "Correction 3").
-    // So no TABLET_LIST_HEADER_HEIGHT subtraction here: NearbyRidersTabletList now renders its own
-    // title as a real child inside this same maxHeight-bounded box, which already eats into the
-    // row space exactly once. Subtracting the header height here too would double-count it (title
-    // space reserved both by a smaller maxHeight AND by the title itself), clipping one row more
-    // than intended.
+    // NearbyRiders sits on the row below the map/elevation widgets, left side - the mirror of
+    // PrevRides on the right (nearby-riders-mobile-design.md §5.2: "an independent,
+    // always-visible-when-eligible sibling", "not derived from the map's geometry").
+    //
+    // Anchored to whichever widget actually occupies that row, NOT to the corner map specifically.
+    // `map` is null whenever `mapVisible` is false, which is the case on every ride whose main view
+    // is itself a map (`rideView === 'map'`) - anchoring on it made this list unreachable there at
+    // any screen size. `elevation` is present in every arrangement `map` is, at the identical top
+    // and height (both `buildSideRects` and `buildBelowRects` build them as a pair), so it is an
+    // exact stand-in when the map is absent and the left ear is simply empty.
+    const nearbyRidersRowOccupant = map ?? elevation;
+    const nearbyRidersAnchorBottom = nearbyRidersRowOccupant
+        ? nearbyRidersRowOccupant.top + nearbyRidersRowOccupant.height
+        : undefined;
     const nearbyRidersFreeBand = nearbyRidersAnchorBottom !== undefined && !cornerSlotIsToggle
         ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - nearbyRidersAnchorBottom - 2 * SLOT_GAP
         : undefined;
@@ -393,12 +391,13 @@ export const RideOverlay = (props: RideOverlayProps) => {
                 </View>
             )}
 
-            {/* --- Nearby-riders list: stacked below the corner map, left side — the left-ear
-                    counterpart to the previous-rides list stacked below elevation on the right
-                    (design doc §2.4/§5.2). Only where the map itself is rendered (`map` non-null)
-                    and an actual side column exists (not the fallback toggle slot, which has no
-                    left ear at all — see NearbyRidersCornerPanel below for that case). ---------- */}
-            {map && !cornerSlotIsToggle && nearbyRiders && nearbyRiders.length > 0 && (
+            {/* --- Nearby-riders list: the row below the map/elevation widgets, left side - the
+                    left-hand counterpart to the previous-rides list on the right (design doc
+                    §2.4/§5.2). Shown whenever that row exists and an actual side/below column does
+                    (not the fallback toggle slot, which has no left ear at all - see
+                    NearbyRidersCornerPanel below for that case). Deliberately not gated on the
+                    corner map - see nearbyRidersRowOccupant above. ---------- */}
+            {nearbyRidersAnchorBottom !== undefined && !cornerSlotIsToggle && nearbyRiders && nearbyRiders.length > 0 && (
                 <ErrorBoundary>
                     <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
                         <NearbyRidersTabletList
