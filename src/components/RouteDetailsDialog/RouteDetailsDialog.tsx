@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMonitoring } from 'incyclist-services';
-import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps } from 'incyclist-services';
+import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps } from './types';
@@ -202,6 +202,18 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
 
     const { hasVideo, hasGpx, isLoop, videoFormat, previewUrl, segments } = routeDescr;
     const points = route.details?.points ?? route.points;
+    // The elevation graph draws from the whole route record, not just the point array. The
+    // points can come from the description alone (details not loaded yet, or an older library
+    // entry), so fill them in rather than leaving the graph with nothing to draw.
+    const details: RouteApiDetail | undefined = route.details;
+    const routeData: RouteApiDetail | undefined = points?.length
+        ? {
+            ...details,
+            id: details?.id ?? routeDescr.id ?? '',
+            title: details?.title ?? routeDescr.title ?? '',
+            points,
+        }
+        : undefined;
     const routeType = `${hasVideo ? 'Video' : 'GPX'} - ${isLoop ? 'Loop' : 'Point to Point'}`;
     const isAvi = videoFormat?.toLowerCase() === 'avi';
     const downloadStatus = downloadRow?.status ?? 'none'
@@ -274,6 +286,8 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             hasGpx={hasGpx ?? false}
             points={points}
             previewUrl={previewUrl}
+            routeData={routeData}
+            isOnline={isOnline}
             totalDistance={totalDistance}
             totalElevation={totalElevation}
             routeType={routeType}

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RouteDetailsView } from './RouteDetailsView';
+import { MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS } from './RouteDetailsView.mock';
 import { MainBackground } from '../../components';
 
 const mockRouteProps = (overrides = {}): any => ({
@@ -11,6 +12,8 @@ const mockRouteProps = (overrides = {}): any => ({
     hasGpx: false,
     points: undefined,
     previewUrl: undefined,
+    routeData: undefined,
+    isOnline: true,
     totalDistance: { value: 47.5, unit: 'km' },
     totalElevation: { value: 128, unit: 'm' },
     routeType: 'Video - Loop',
@@ -130,11 +133,52 @@ export const CompactWithMap: Story = {
     args: mockRouteProps({
         compact: true,
         hasGpx: true,
-        points: [
-            { lat: 51.9, lng: 4.5, routeDistance: 0, elevation: 0 },
-            { lat: 51.91, lng: 4.51, routeDistance: 1000, elevation: 5 },
-        ],
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
     }),
+};
+
+// The three surfaces are gated separately: map needs a GPS track and a network, the profile
+// needs points alone, the still fills what is left. These four cover the combinations.
+export const WithMapAndProfile: Story = {
+    args: mockRouteProps({
+        hasGpx: true,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const ProfileWithoutGpsTrack: Story = {
+    args: mockRouteProps({
+        hasGpx: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const ProfileOffline: Story = {
+    args: mockRouteProps({
+        hasGpx: true,
+        isOnline: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const CompactProfileWithoutGpsTrack: Story = {
+    args: mockRouteProps({
+        compact: true,
+        hasGpx: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+    }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
 };
 
 // FIXES_BACKLOG #27 - compact mode's info bar (route type/distance/elevation, plus
@@ -152,10 +196,8 @@ export const CompactWithMap: Story = {
 const tallestCompactFormProps = () => mockRouteProps({
     compact: true,
     hasGpx: true,
-    points: [
-        { lat: 51.9, lng: 4.5, routeDistance: 0, elevation: 0 },
-        { lat: 51.91, lng: 4.51, routeDistance: 1000, elevation: 5 },
-    ],
+    points: MOCK_ROUTE_POINTS,
+    routeData: MOCK_ROUTE_DATA,
     segments: [
         { name: 'Total Trip', start: 0, end: 47500 },
         { name: '1st Climb', start: 5200, end: 12800 },

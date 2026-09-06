@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { RouteDetailsDialog } from './RouteDetailsDialog';
+import { MOCK_ROUTE_POINTS } from './RouteDetailsView.mock';
 
 // workout-combo-service-design.md §3.5.1 "one source per state" - the whole point of this test
 // file is to prove the defect it warns about can't happen: `cardProps.showWorkoutOption` is
@@ -106,6 +107,16 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
 jest.mock('../SecureImage', () => ({
     SecureImage: () => null,
 }));
+
+jest.mock('../FreeMap', () => {
+    const { Text } = require('react-native');
+    return { FreeMap: () => <Text>FreeMap</Text> };
+});
+
+jest.mock('../ElevationGraph', () => {
+    const { Text } = require('react-native');
+    return { ElevationGraph: () => <Text>ElevationGraph</Text> };
+});
 
 jest.mock('../DownloadModal', () => ({
     DownloadModalView: () => null,
@@ -327,5 +338,45 @@ describe('RouteDetailsDialog - settings captured before the route details are lo
         render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
 
         expect(mockRouteListService.getRouteDetails).not.toHaveBeenCalled();
+    });
+});
+
+// The elevation profile is drawn from the card's own route record - no extra service call and no
+// new card prop. The points can come from the details or, for an older library entry, from the
+// description alone, and both have to reach the graph.
+describe('RouteDetailsDialog - elevation profile data', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockCard.openSettings.mockReturnValue(mockCardProps);
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+    });
+
+    afterEach(() => {
+        mockRouteData.details = { points: [] };
+        mockRouteData.points = [];
+        mockRouteData.description.hasGpx = true;
+    });
+
+    it('feeds the graph from the route details', () => {
+        mockRouteData.details = { points: MOCK_ROUTE_POINTS };
+        mockRouteData.points = MOCK_ROUTE_POINTS;
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('ElevationGraph')).toBeTruthy();
+    });
+
+    it('feeds the graph from the route description when there are no details', () => {
+        mockRouteData.details = undefined;
+        mockRouteData.points = MOCK_ROUTE_POINTS;
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('ElevationGraph')).toBeTruthy();
+    });
+
+    it('renders no graph for a route without points', () => {
+        mockRouteData.details = { points: [] };
+        mockRouteData.points = [];
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('ElevationGraph')).toBeNull();
     });
 });

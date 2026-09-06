@@ -1,4 +1,4 @@
-import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps } from 'incyclist-services';
+import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps, RouteApiDetail } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
     routeId: string     
@@ -28,6 +28,16 @@ export interface RouteDetailsViewProps {
     hasGpx: boolean;
     points?: RoutePoint[];
     previewUrl?: string;
+    /**
+     * The route record the elevation profile is drawn from - `points` above only says whether
+     * there is a profile to draw, `ElevationGraph` needs the whole record.
+     */
+    routeData?: RouteApiDetail;
+    /**
+     * Map tiles are fetched on demand, so the map is only offered while there is a network.
+     * Mirrors the map gate on web, where the panel is left empty offline.
+     */
+    isOnline: boolean;
 
     // Info
     totalDistance: { value: number; unit: string };

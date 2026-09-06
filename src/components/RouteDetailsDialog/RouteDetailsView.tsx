@@ -21,12 +21,13 @@ import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
 import { AttachmentChip } from '../AttachmentChip';
+import { ElevationGraph } from '../ElevationGraph';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
-        title, compact, hasGpx, points, previewUrl, totalDistance,
+        title, compact, hasGpx, points, previewUrl, routeData, isOnline, totalDistance,
         totalElevation, routeType, canStart, canNotStartReason,
         showLoopOverwrite, showNextOverwrite, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
@@ -150,21 +151,48 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
 
 
-    const renderMedia = () => {
+    // What each of the three surfaces needs, kept deliberately separate: a route can have a
+    // readable profile and no usable GPS track (so: graph, no map), or a GPS track and no
+    // network (so: profile only, and the map panel is dropped rather than left blank).
+    const hasProfile = !loading && !!points?.length && !!routeData?.points?.length;
+    const showMap = hasProfile && hasGpx && isOnline;
+    // No GPS track: the profile takes the map's place instead of the map slot going empty.
+    const showProfileInMapSlot = hasProfile && !hasGpx;
+    // With a map, the profile sits as a strip under the still, the way it does on web.
+    const showProfileStrip = hasProfile && hasGpx;
+    const showMapPanel = loading || showMap || showProfileInMapSlot;
+
+    const renderMap = () => (
+        <FreeMap
+            points={points ?? []}
+            startPos={0}
+            zoom={12}
+            draggable={true}
+            position={markerPosition}
+            onRoutePositionChanged={handleRoutePositionChanged}
+        />
+    );
+
+    // `showXAxis` is only worth the vertical space when the graph owns a whole panel; in the
+    // strip variant the axis would eat most of it.
+    const renderProfile = (showXAxis: boolean) => (
+        <ElevationGraph
+            routeData={routeData}
+            pctReality={data.realityFactor}
+            showLine={true}
+            showColors={true}
+            showXAxis={showXAxis}
+            showYAxis={false}
+            // The graph sizes itself from its own onLayout, so it needs explicit bounds: the
+            // media panel centres its child, which would otherwise collapse it to zero width.
+            style={styles.profileFill}
+        />
+    );
+
+    const renderMapSlot = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
-        if (hasGpx && points?.length) {
-            return (
-                <FreeMap
-                    points={points}
-                    startPos={0}
-                    zoom={12}
-                    draggable={true}
-                    position={markerPosition}
-                    onRoutePositionChanged={handleRoutePositionChanged}
-                />
-            );
-        }
-        return <Text style={styles.placeholderText}>Map not available</Text>;
+        if (showMap) return renderMap();
+        return renderProfile(true);
     };
 
     const renderPreview = () => {
@@ -305,8 +333,24 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
     ) : null;
 
+    // The single compact panel holds the map with the profile beneath it, or - when there is no
+    // map to show - the profile on its own, falling back to the still.
+    const renderCompactPanel = () => {
+        if (loading) return <ActivityIndicator color={colors.text} />;
+        if (showMap) {
+            return (
+                <>
+                    <View style={styles.compactMapSlot}>{renderMap()}</View>
+                    <View style={styles.compactProfileSlot}>{renderProfile(false)}</View>
+                </>
+            );
+        }
+        if (hasProfile) return renderProfile(true);
+        return renderPreview();
+    };
+
     if (compact) {
-        const showCompactPanel = (hasGpx && !!points?.length) || !!previewUrl;
+        const showCompactPanel = loading || showMap || hasProfile || !!previewUrl;
 
         const infoBar = (
             <View style={styles.infoBar}>
@@ -338,7 +382,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </View>
                     {showCompactPanel && (
                         <View style={styles.compactRight}>
-                            {hasGpx && points?.length ? renderMedia() : renderPreview()}
+                            {renderCompactPanel()}
                         </View>
                     )}
                 </View>
@@ -358,8 +402,17 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         <Dialog title={title} variant="full" buttons={dialogButtons} onOutsideClick={onCancel}>
             {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
             <View style={mediaRowStyle}>
-                <View style={styles.mediaContainer}>{renderMedia()}</View>
-                <View style={styles.mediaContainer}>{renderPreview()}</View>
+                {showMapPanel && (
+                    <View style={styles.mediaContainer}>{renderMapSlot()}</View>
+                )}
+                {showProfileStrip ? (
+                    <View style={styles.mediaColumn}>
+                        <View style={styles.previewSlot}>{renderPreview()}</View>
+                        <View style={styles.profileSlot}>{renderProfile(false)}</View>
+                    </View>
+                ) : (
+                    <View style={styles.mediaContainer}>{renderPreview()}</View>
+                )}
             </View>
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
@@ -396,7 +449,13 @@ const styles = StyleSheet.create({
     chipWrapper: { paddingHorizontal: 15 },
     mediaRow: { flexDirection: 'row', gap: 10, padding: 10 },
     mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+    // Same panel as mediaContainer, but stacking the still above the elevation strip - so the
+    // children own their alignment instead of the panel centring a single child.
+    mediaColumn: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden' },
+    previewSlot: { height: '70%', justifyContent: 'center', alignItems: 'center' },
+    profileSlot: { height: '30%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 6 },
     fullMedia: { width: '100%', height: '100%' },
+    profileFill: { width: '100%', height: '100%' },
     placeholderText: { color: colors.disabled, fontSize: 12 },
     formLoading: { alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 30 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
@@ -424,6 +483,10 @@ const styles = StyleSheet.create({
     compactLeftScroll: { flex: 1 },
     compactLeftScrollContent: { paddingBottom: 4 },
     compactRight: { width: '35%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 6, overflow: 'hidden' },
+    // Phone landscape has room for one panel only, so map and profile share it. Both halves are
+    // small; the alternative - profile on tablets only - is a worse answer to the same shortage.
+    compactMapSlot: { height: '65%' },
+    compactProfileSlot: { height: '35%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 6, paddingVertical: 4 },
     infoBar: {
         paddingHorizontal: 15,
         paddingVertical: 10,

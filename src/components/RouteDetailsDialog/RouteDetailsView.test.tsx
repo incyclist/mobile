@@ -2,12 +2,14 @@ import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { RouteDetailsView } from './RouteDetailsView';
+import { MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS } from './RouteDetailsView.mock';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
 jest.mock('incyclist-services', () => ({
     useUnitConverter: () => ({ convert: (v: number) => v }),
     useRouteList: jest.fn(),
     useActivityList: jest.fn(),
+    getPosition: jest.fn(() => undefined),
 }));
 jest.mock('../../bindings/ui', () => ({}));
 jest.mock('../../hooks', () => ({
@@ -40,6 +42,18 @@ jest.mock('../SecureImage', () => ({
     },
 }));
 
+// Stand-ins so the gate tests below can assert which of the three surfaces is on screen without
+// depending on anything the real map/graph render.
+jest.mock('../FreeMap', () => {
+    const { Text } = require('react-native');
+    return { FreeMap: () => <Text>FreeMap</Text> };
+});
+
+jest.mock('../ElevationGraph', () => {
+    const { Text } = require('react-native');
+    return { ElevationGraph: () => <Text>ElevationGraph</Text> };
+});
+
 const MOCK_SETTINGS = {
     startPos: { value: 0, unit: 'km' },
     realityFactor: 100,
@@ -53,6 +67,8 @@ const MOCK_PROPS = {
     hasGpx: false,
     points: [],
     previewUrl: undefined,
+    routeData: undefined,
+    isOnline: true,
     totalDistance: { value: 50, unit: 'km' },
     totalElevation: { value: 800, unit: 'm' },
     routeType: 'Video - Point to Point',
@@ -195,6 +211,91 @@ describe('RouteDetailsView', () => {
         // Dialog itself renders the ScrollView here (scrollable defaults to true), RouteDetailsView
         // does not add its own on top of it.
         expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
+    });
+
+    // Route details showed no elevation profile at all, on either layout - the component existed
+    // and was already used on the route list, but this screen had no slot for it. The three
+    // surfaces are gated separately, matching web: the map needs a GPS track and a network, the
+    // profile needs points alone (taking the map's place when there is no track), and the still
+    // fills what is left.
+    describe('elevation profile / map / still gates', () => {
+        const withProfile = (overrides = {}) => ({
+            ...MOCK_PROPS,
+            points: MOCK_ROUTE_POINTS,
+            routeData: MOCK_ROUTE_DATA,
+            ...overrides,
+        });
+
+        it('renders the profile in the map slot when there are points but no GPS track (full)', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: false, compact: false })} />
+            );
+            expect(getByText('ElevationGraph')).toBeTruthy();
+            expect(queryByText('FreeMap')).toBeNull();
+        });
+
+        it('renders the profile in the map slot when there are points but no GPS track (compact)', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: false, compact: true })} />
+            );
+            expect(getByText('ElevationGraph')).toBeTruthy();
+            expect(queryByText('FreeMap')).toBeNull();
+        });
+
+        it('renders the profile alongside the map when the route has a GPS track (full)', () => {
+            const { getByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: true, compact: false, previewUrl: 'https://example.com/p.jpg' })} />
+            );
+            expect(getByText('FreeMap')).toBeTruthy();
+            expect(getByText('ElevationGraph')).toBeTruthy();
+        });
+
+        it('renders the profile alongside the map when the route has a GPS track (compact)', () => {
+            const { getByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: true, compact: true })} />
+            );
+            expect(getByText('FreeMap')).toBeTruthy();
+            expect(getByText('ElevationGraph')).toBeTruthy();
+        });
+
+        it('renders no profile and no map when the route has no points', () => {
+            const { queryByText } = render(
+                <RouteDetailsView {...MOCK_PROPS} hasGpx={true} points={[]} routeData={undefined} />
+            );
+            expect(queryByText('ElevationGraph')).toBeNull();
+            expect(queryByText('FreeMap')).toBeNull();
+        });
+
+        // Offline the map has no tiles to fetch, so it is dropped - but the profile is local data
+        // and still renders.
+        it('renders the profile but no map when offline', () => {
+            const { getByText, queryByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: true, isOnline: false })} />
+            );
+            expect(queryByText('FreeMap')).toBeNull();
+            expect(getByText('ElevationGraph')).toBeTruthy();
+        });
+
+        it('renders no profile while the details are still loading', () => {
+            const { queryByText } = render(
+                <RouteDetailsView {...withProfile({ hasGpx: true, loading: true })} />
+            );
+            expect(queryByText('ElevationGraph')).toBeNull();
+        });
+
+        // Unactionable internal state - the map's absence is already visible, and naming it says
+        // nothing the user can act on.
+        it('never shows a "Map not available" placeholder', () => {
+            [
+                { ...MOCK_PROPS },
+                { ...MOCK_PROPS, compact: true },
+                withProfile({ hasGpx: true, isOnline: false }),
+                withProfile({ hasGpx: true, isOnline: false, compact: true }),
+            ].forEach(props => {
+                const { queryByText } = render(<RouteDetailsView {...props} />);
+                expect(queryByText('Map not available')).toBeNull();
+            });
+        });
     });
 
     describe('workout attachment (workout-mobile-hld-phase2.md §4.2)', () => {
