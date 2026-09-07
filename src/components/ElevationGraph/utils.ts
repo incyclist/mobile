@@ -235,8 +235,16 @@ export const computeGraphPoints = (
     const elevationRange = yMax - yMin;
     const epp = height > 0 ? elevationRange / height : elevationRange / 100;
 
+    // 60px of headroom above the highest point clears a position-marker avatar drawn on the line -
+    // fine on a tall ride-overlay graph (a small fraction of its height), but a fixed pixel count
+    // eats a disproportionate share of a short one: on a ~130px route-details preview strip (no
+    // marker at all) it swallowed nearly half the chart, leaving the actual profile compressed
+    // into the bottom sliver with a large flat gap above it. Capped to a fraction of the given
+    // height so it scales down on short graphs instead of dominating them.
+    const topHeadroomPx = Math.min(60, height * 0.2);
+
     yMin = yMin - height * 0.15 * epp;
-    yMax = yMax + 60 * epp;
+    yMax = yMax + topHeadroomPx * epp;
 
     return {
         graphPoints,

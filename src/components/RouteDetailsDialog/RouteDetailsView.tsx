@@ -33,10 +33,11 @@ const SEGMENT_CHIP_THRESHOLD = 5;
 const SMOOTHING_LABEL = 'Terrain Smoothing';
 const SMOOTHING_OFF_OPTION = 'Off';
 const SMOOTHING_MAX_LEVEL_FALLBACK = 5;
-// Wide enough for 'Terrain Smoothing' on one line at normalText, so the label sits beside the
-// chips rather than above them - one row instead of two, which is what the compact layout has
-// room for.
-const SMOOTHING_LABEL_WIDTH = 145;
+// Wide enough for 'Terrain Smoothing' on one line at normalText (16px), so the label sits beside
+// the chips rather than above them - one row instead of two, which is what the compact layout has
+// room for. 145 measured too narrow on-device (the label wrapped, pushing the switch grid below
+// it down far enough to nearly clear the fold) - 180 carries a real margin at this font size.
+const SMOOTHING_LABEL_WIDTH = 180;
 // The chips are the whole interaction here: the user taps through levels repeatedly to compare
 // them against the profile. The default chip is around 32px tall, so this raises it to the 44px
 // touch-target floor - locally, leaving every other ChipSelect in the app as it is.
@@ -254,8 +255,9 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     // The elevation curve itself barely moves under smoothing (a fraction of a pixel on a real
     // track), so the comparison lives on the gradient bands below the chart rather than on a
     // second, redrawn line - see GradientBands for the measurement this is built on.
-    // `showXAxis` is only worth the vertical space when the graph owns a whole panel; in the
-    // strip variant the axis would eat most of it. The bands container is a reserved slot too: it
+    // `showXAxis` is passed by every call site now - live testing showed the strip variants read
+    // as broken without a distance scale, outweighing the vertical cost. The bands container is a
+    // reserved slot too: it
     // mounts whenever the route could be smoothed at all (Off included), so nothing here changes
     // size when the level changes - but at Off there is nothing to compare against, so it is fully
     // invisible (opacity:0 via `active`), not just empty: no label, no band, only the reserved
@@ -487,7 +489,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             return (
                 <>
                     <View style={styles.compactMapSlot}>{renderMap()}</View>
-                    <View style={styles.compactProfileSlot}>{renderProfile(false, BAND_HEIGHT_COMPACT)}</View>
+                    <View style={styles.compactProfileSlot}>{renderProfile(true, BAND_HEIGHT_COMPACT)}</View>
                 </>
             );
         }
@@ -562,7 +564,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     <View style={styles.mediaColumn}>
                         {hasStill && <View style={styles.previewSlot}>{renderPreview()}</View>}
                         <View style={hasStill ? styles.profileSlot : styles.profileSlotFull}>
-                            {renderProfile(!hasStill, BAND_HEIGHT_FULL)}
+                            {renderProfile(true, BAND_HEIGHT_FULL)}
                         </View>
                     </View>
                 ) : (
@@ -615,10 +617,12 @@ const styles = StyleSheet.create({
     // children own their alignment instead of the panel centring a single child.
     mediaColumn: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden' },
     previewSlot: { height: '70%', justifyContent: 'center', alignItems: 'center' },
-    profileSlot: { height: '30%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 6 },
+    // No background of its own - the graph should read as just the graph, not a dark box under
+    // the still. mediaColumn's own tint is enough of a backdrop for whatever the SVG leaves clear.
+    profileSlot: { height: '30%', paddingHorizontal: 8, paddingVertical: 6 },
     // Used only when there is no still to protect (GPX route, no video) - the panel's otherwise-
     // empty space, permanently, in every state including Off.
-    profileSlotFull: { height: '100%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 6 },
+    profileSlotFull: { height: '100%', paddingHorizontal: 8, paddingVertical: 6 },
     fullMedia: { width: '100%', height: '100%' },
     profileFill: { width: '100%', height: '100%' },
     // No spinner: the chip is already selected and the chips stay live, so the dimming is only
@@ -660,7 +664,7 @@ const styles = StyleSheet.create({
     // Phone landscape has room for one panel only, so map and profile share it. Both halves are
     // small; the alternative - profile on tablets only - is a worse answer to the same shortage.
     compactMapSlot: { height: '65%' },
-    compactProfileSlot: { height: '35%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 6, paddingVertical: 4 },
+    compactProfileSlot: { height: '35%', paddingHorizontal: 6, paddingVertical: 4 },
     infoBar: {
         paddingHorizontal: 15,
         paddingVertical: 10,
