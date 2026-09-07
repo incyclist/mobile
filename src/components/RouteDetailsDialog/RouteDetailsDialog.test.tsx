@@ -118,7 +118,10 @@ jest.mock('../FreeMap', () => {
 
 jest.mock('../ElevationGraph', () => {
     const { Text } = require('react-native');
-    return { ElevationGraph: () => <Text>ElevationGraph</Text> };
+    return {
+        ElevationGraph: () => <Text>ElevationGraph</Text>,
+        GradientBands: () => <Text>GradientBands</Text>,
+    };
 });
 
 jest.mock('../DownloadModal', () => ({

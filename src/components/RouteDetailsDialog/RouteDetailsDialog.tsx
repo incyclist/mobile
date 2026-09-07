@@ -214,7 +214,8 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         smoothingAvailable,
         smoothingMaxLevel,
         smoothedPoints,
-        smoothedElevation
+        smoothedElevation,
+        smoothedGradient
     } = cardProps;
 
     const { hasVideo, hasGpx, isLoop, videoFormat, previewUrl, segments } = routeDescr;
@@ -324,6 +325,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             smoothingMaxLevel={smoothingMaxLevel}
             smoothedPoints={smoothedPoints}
             smoothedElevation={smoothedElevation}
+            smoothedGradient={smoothedGradient}
             onStart={(updatedSettings) => {
                 card.changeSettings(updatedSettings);
                 card.start();

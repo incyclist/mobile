@@ -1,6 +1,6 @@
 import type {
     UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps,
-    RouteApiDetail, RoutePoint as ServiceRoutePoint
+    RouteApiDetail, RoutePoint as ServiceRoutePoint, SmoothingGradient
 } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
@@ -24,6 +24,12 @@ export interface RoutePoint {
 export interface SmoothingPreviewProps {
     smoothedPoints?: ServiceRoutePoint[];
     smoothedElevation?: { value: number; unit: string };
+    /**
+     * What this level does to the gradient - the axis the rider actually feels through the
+     * trainer, and the one that carries the signal: a real track's elevation curve barely moves
+     * under smoothing (a fraction of a pixel), while its steepest gradient moves by a factor.
+     */
+    smoothedGradient?: SmoothingGradient;
 }
 
 /**

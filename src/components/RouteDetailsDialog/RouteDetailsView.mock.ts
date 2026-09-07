@@ -37,3 +37,9 @@ export const MOCK_SMOOTHED_POINTS: RoutePoint[] = [
 
 /** what MOCK_SMOOTHED_POINTS add up to, against a route figure of 800 m */
 export const MOCK_SMOOTHED_ELEVATION = { value: 760, unit: 'm' };
+
+/** the steepest gradient before/after the transform above, for the copy's leading figure */
+export const MOCK_SMOOTHED_GRADIENT = { routeSteepest: 20.4, smoothedSteepest: 8.5, hasVisibleEffect: true };
+
+/** a level that barely changes this route - the third copy state, not an error */
+export const MOCK_BARELY_VISIBLE_GRADIENT = { routeSteepest: 5.1, smoothedSteepest: 5.0, hasVisibleEffect: false };
