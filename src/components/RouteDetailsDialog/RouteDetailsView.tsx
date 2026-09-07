@@ -207,7 +207,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
     const MEDIA_ROW_GAP = 10;
     const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
-    const mediaRowHeight = Math.round(containerWidth * (screenHeight / screenWidth));
+    // Uncapped, this resolves to roughly half the screen height on every device (containerWidth is
+    // itself ~W/2, so containerWidth * H/W ~= H/2) - on the `full` layout that starves the settings
+    // form below it regardless of aspect ratio. Capped to 30% of screen height so the form always
+    // has real room; see ux.md §13.8 for the measured budget this is built against.
+    const mediaRowHeight = Math.round(Math.min(containerWidth * (screenHeight / screenWidth), screenHeight * 0.3));
     const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
 
 
@@ -365,43 +369,86 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                         />
                     )
                 )}
-                <View style={styles.inputRow}>
-                    <View style={styles.editNumberWrapper}>
-                        <EditNumber
-                            label='Start'
-                            unit={data.startPos?.unit ?? 'km'}
-                            value={data.startPos?.value ?? 0}
-                            min={0}
-                            max={totalDistance.value}
-                            digits={1}
-                            onValueChange={handleStartPosValueChange}
-                        />
-                    </View>
-                    <View style={styles.editNumberWrapper}>
-                        <EditNumber
-                            label='Reality'
-                            unit='%'
-                            value={data.realityFactor ?? 100}
-                            min={0}
-                            max={100}
-                            digits={0}
-                            onValueChange={handleRealityFactorChange}
-                        />
-                    </View>
-                </View>
+                {compact ? (
+                    <>
+                        <View style={styles.inputRow}>
+                            <View style={styles.editNumberWrapper}>
+                                <EditNumber
+                                    label='Start'
+                                    unit={data.startPos?.unit ?? 'km'}
+                                    value={data.startPos?.value ?? 0}
+                                    min={0}
+                                    max={totalDistance.value}
+                                    digits={1}
+                                    onValueChange={handleStartPosValueChange}
+                                />
+                            </View>
+                            <View style={styles.editNumberWrapper}>
+                                <EditNumber
+                                    label='Reality'
+                                    unit='%'
+                                    value={data.realityFactor ?? 100}
+                                    min={0}
+                                    max={100}
+                                    digits={0}
+                                    onValueChange={handleRealityFactorChange}
+                                />
+                            </View>
+                        </View>
 
-                {data.endPos !== undefined && (
+                        {data.endPos !== undefined && (
+                            <View style={styles.inputRow}>
+                                <View style={styles.editNumberWrapper}>
+                                    <EditNumber
+                                        label='End'
+                                        unit={data.endPos.unit}
+                                        value={data.endPos.value}
+                                        disabled={true}
+                                        digits={1}
+                                    />
+                                </View>
+                                <View style={styles.editNumberWrapper} />
+                            </View>
+                        )}
+                    </>
+                ) : (
+                    // full: Start / End / Reality share one row (ux.md §13.8) - End renders as an
+                    // empty cell rather than being absent when there is no segment, so Reality's
+                    // column never shifts depending on whether a segment is picked.
                     <View style={styles.inputRow}>
                         <View style={styles.editNumberWrapper}>
                             <EditNumber
-                                label='End'
-                                unit={data.endPos.unit}
-                                value={data.endPos.value}
-                                disabled={true}
+                                label='Start'
+                                unit={data.startPos?.unit ?? 'km'}
+                                value={data.startPos?.value ?? 0}
+                                min={0}
+                                max={totalDistance.value}
                                 digits={1}
+                                onValueChange={handleStartPosValueChange}
                             />
                         </View>
-                        <View style={styles.editNumberWrapper} />
+                        <View style={styles.editNumberWrapper}>
+                            {data.endPos !== undefined && (
+                                <EditNumber
+                                    label='End'
+                                    unit={data.endPos.unit}
+                                    value={data.endPos.value}
+                                    disabled={true}
+                                    digits={1}
+                                />
+                            )}
+                        </View>
+                        <View style={styles.editNumberWrapper}>
+                            <EditNumber
+                                label='Reality'
+                                unit='%'
+                                value={data.realityFactor ?? 100}
+                                min={0}
+                                max={100}
+                                digits={0}
+                                onValueChange={handleRealityFactorChange}
+                            />
+                        </View>
                     </View>
                 )}
 
@@ -426,7 +473,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </View>
                 )}
 
-                <View style={styles.switchGrid}>
+                <View style={compact ? styles.switchGrid : styles.switchGridFull}>
                     {showLoopOverwrite && (
                         <BinarySelect
                             label="Stop at end of loop"
@@ -616,10 +663,12 @@ const styles = StyleSheet.create({
     // Same panel as mediaContainer, but stacking the still above the elevation strip - so the
     // children own their alignment instead of the panel centring a single child.
     mediaColumn: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden' },
-    previewSlot: { height: '70%', justifyContent: 'center', alignItems: 'center' },
+    // 60/40 rather than 70/30 (ux.md §13.8) - the profile needs a floor of its own to stay
+    // readable now that the media row itself is capped shorter.
+    previewSlot: { height: '60%', justifyContent: 'center', alignItems: 'center' },
     // No background of its own - the graph should read as just the graph, not a dark box under
     // the still. mediaColumn's own tint is enough of a backdrop for whatever the SVG leaves clear.
-    profileSlot: { height: '30%', paddingHorizontal: 8, paddingVertical: 6 },
+    profileSlot: { height: '40%', paddingHorizontal: 8, paddingVertical: 6 },
     // Used only when there is no still to protect (GPX route, no video) - the panel's otherwise-
     // empty space, permanently, in every state including Off.
     profileSlotFull: { height: '100%', paddingHorizontal: 8, paddingVertical: 6 },
@@ -644,6 +693,10 @@ const styles = StyleSheet.create({
     smoothingCopy: { color: colors.text, fontSize: 12, opacity: 0.8 },
     smoothingCopyMuted: { color: colors.disabled, fontSize: 11, marginTop: 2 },
     switchGrid: { gap: 4 },
+    // full only (ux.md §13.8): each toggle is a full labelled ChipSelect at ~46px, not the ~26px
+    // iOS-style switch the mockups assumed - stacked, three of them cost 138px this form doesn't
+    // have. Wrapping lets 2-3 share a row on any real tablet width instead of stacking or clipping.
+    switchGridFull: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 28, rowGap: 4 },
     // flex: 1 lets compactRoot fill whatever's left of Dialog's definite-height content area
     // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView) after
     // `infoBar` - rendered as a plain sibling before compactRoot, see the compact branch above -
