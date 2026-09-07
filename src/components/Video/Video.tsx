@@ -6,7 +6,7 @@ import {
     OnProgressData, 
     OnBufferData 
 } from 'react-native-video';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
 import { VideoView } from './VideoView';
 import { sleep } from '../../utils/timers';
@@ -43,6 +43,7 @@ export const Video = (props: VideoProps) => {
     const refHidden = useRef(hidden);
     const refBootstrapSeek = useRef(false);
     const refHasGrant = useRef(false)
+    const {logEvent} = useLogging('Video')
 
     const refInfo = useRef({
         loading: false,
@@ -75,13 +76,23 @@ export const Video = (props: VideoProps) => {
     }, []);
 
     const seekTo = useCallback((time: number) => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'seekTo',videoTime:time})
+        }
+
+
         if (time === null || time === undefined || Number.isNaN(time) || !Number.isFinite(time)) {
             return;
         }
         refVideo.current?.seek(time);
-    }, []);
+    }, [logEvent]);
 
     const handleLoad = useCallback((_data: OnLoadData) => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'load event'})
+        }
+
+
         if (!startTime) {
             refBootstrapSeek.current = true;
             seekTo(0.1);
@@ -92,9 +103,15 @@ export const Video = (props: VideoProps) => {
         refInfo.current.loading = true
         refInfo.current.loaded = false
        
-    }, [seekTo, startTime]);
+    }, [seekTo, startTime,logEvent]);
 
     const handleSeek = useCallback((data: OnSeekData) => {
+
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'seek event', seekData:data})
+        }
+
+
         if (refBootstrapSeek.current) {
             refBootstrapSeek.current = false;
             seekTo(0);  // seek back to actual start
@@ -129,9 +146,14 @@ export const Video = (props: VideoProps) => {
         }
 
 
-    }, [onLoaded, seekTo, startTime]);
+    }, [logEvent, onLoaded, seekTo, startTime]);
 
     const handleProgress = useCallback((data: OnProgressData) => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'progress event', progressData:data})
+        }
+
+
         if (refInfo.current.ended) {
             return;
         }
@@ -147,9 +169,14 @@ export const Video = (props: VideoProps) => {
         
         const event: VideoPlaybackEvent = { bufferedTime: bufferedAhead };
         onPlaybackUpdate?.(time, refInfo.current.currentRate, event);
-    }, [onPlaybackUpdate]);
+    }, [logEvent, onPlaybackUpdate]);
 
     const handleBuffer = useCallback((data: OnBufferData) => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'buffer event', bufferData:data})
+        }
+
+
         if (data.isBuffering) {
             if (!refInfo.current.loaded) {
                 return;
@@ -162,9 +189,13 @@ export const Video = (props: VideoProps) => {
                 []
             );
         }
-    }, [onWaiting]);
+    }, [logEvent,onWaiting]);
 
     const handleError = useCallback((error: OnVideoErrorData) => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'error event', errorData:error})
+        }
+
         const hasErrorCode = error?.error?.errorCode !== undefined
         const rawCode = hasErrorCode
             ? Number(error.error.errorCode)
@@ -182,9 +213,14 @@ export const Video = (props: VideoProps) => {
         } else {
             onPlaybackError?.(mediaError);
         }
-    }, [onLoadError, onPlaybackError]);
+    }, [logEvent, onLoadError, onPlaybackError]);
 
     const handleEnd = useCallback(() => {
+        if (!refInfo?.current?.loaded)  {
+            logEvent({message:'end event'})
+        }
+
+
         if (loop) {
             // Video will loop natively via repeat={loop} on RNVideo
             // Reset position tracking but don't stop playback
@@ -200,7 +236,7 @@ export const Video = (props: VideoProps) => {
         setPaused(true);
         setRate(0);
         onEnded?.();
-    }, [loop, onEnded]);
+    }, [logEvent,loop, onEnded]);
 
     useEffect(() => {
         if (refInitialized.current) {
