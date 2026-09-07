@@ -65,17 +65,19 @@ jest.mock('../ElevationGraph', () => {
             mockElevationGraphProps(props);
             return <Text>ElevationGraph</Text>;
         },
-        // Stands in for the Route/Smoothed gradient bands - real column rendering needs a layout
-        // pass jsdom/RN-testing-library doesn't give it, so the gate/prop-wiring tests below assert
-        // on this stub rather than on pixels.
+        // Stands in for the Original/Smoothed gradient bands - real column rendering needs a
+        // layout pass jsdom/RN-testing-library doesn't give it, so the gate/prop-wiring tests
+        // below assert on this stub rather than on pixels. Mirrors the real component: both
+        // labels are gated on `active`, not on data presence - at Off there is nothing to compare
+        // against, so nothing here is visible at all, only its reserved height survives.
         GradientBands: (props: any) => {
             mockGradientBandsProps(props);
-            return (
+            return props.active ? (
                 <>
-                    <Text>Route</Text>
-                    {props.smoothedRouteData && <Text>Smoothed</Text>}
+                    <Text>Original</Text>
+                    <Text>Smoothed</Text>
                 </>
-            );
+            ) : null;
         },
     };
 });
@@ -612,21 +614,24 @@ describe('RouteDetailsView', () => {
 
                 expect(lastGraphProps().routeData.points).toBe(MOCK_SMOOTHED_POINTS);
                 expect(lastGraphProps().comparisonRouteData).toBeUndefined();
-                expect(getByText('Route')).toBeTruthy();
+                expect(getByText('Original')).toBeTruthy();
                 expect(getByText('Smoothed')).toBeTruthy();
                 expect(lastBandsProps().routeData).toBe(MOCK_ROUTE_DATA);
                 expect(lastBandsProps().smoothedRouteData.points).toBe(MOCK_SMOOTHED_POINTS);
+                expect(lastBandsProps().active).toBe(true);
             });
 
             // The bands container mounts (reserving its height) whenever the route is eligible,
-            // Off included - but at Off there is nothing to compare against, so neither band
-            // draws content, only the container's height is reserved.
-            it('both bands are empty at Off, even though the container is mounted', () => {
-                const { getByText, queryByText } = render(<RouteDetailsView {...smoothable()} />);
+            // Off included - but at Off there is nothing to compare against, so the whole thing is
+            // invisible: no "Original" label, no "Smoothed" label, no bands, only the reserved
+            // height survives, exactly as if the feature were unavailable on this screen.
+            it('neither band is visible at Off, even though the container is mounted', () => {
+                const { queryByText } = render(<RouteDetailsView {...smoothable()} />);
                 expect(lastGraphProps().routeData).toBe(MOCK_ROUTE_DATA);
                 expect(lastGraphProps().comparisonRouteData).toBeUndefined();
-                expect(getByText('Route')).toBeTruthy();
+                expect(queryByText('Original')).toBeNull();
                 expect(queryByText('Smoothed')).toBeNull();
+                expect(lastBandsProps().active).toBe(false);
                 expect(lastBandsProps().routeData).toBeUndefined();
                 expect(lastBandsProps().smoothedRouteData).toBeUndefined();
             });
@@ -635,7 +640,7 @@ describe('RouteDetailsView', () => {
                 const { queryByText } = render(
                     <RouteDetailsView {...smoothable({ smoothingAvailable: false })} />
                 );
-                expect(queryByText('Route')).toBeNull();
+                expect(queryByText('Original')).toBeNull();
             });
 
             it('renders a route reopened with a stored level as smoothed straight away', () => {

@@ -257,8 +257,9 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     // `showXAxis` is only worth the vertical space when the graph owns a whole panel; in the
     // strip variant the axis would eat most of it. The bands container is a reserved slot too: it
     // mounts whenever the route could be smoothed at all (Off included), so nothing here changes
-    // size when the level changes - but at Off there is nothing to compare against, so neither
-    // band draws content, only the container's height is reserved.
+    // size when the level changes - but at Off there is nothing to compare against, so it is fully
+    // invisible (opacity:0 via `active`), not just empty: no label, no band, only the reserved
+    // height survives.
     const renderProfile = (showXAxis: boolean, bandHeight: number) => (
         // The graph sizes itself from its own onLayout, so it needs explicit bounds: the media
         // panel centres its child, which would otherwise collapse it to zero width.
@@ -279,6 +280,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     pctReality={data.realityFactor}
                     bandHeight={bandHeight}
                     dimmed={smoothingBusy}
+                    active={smoothingLevel > 0}
                 />
             )}
         </View>

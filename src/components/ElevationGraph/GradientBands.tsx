@@ -5,8 +5,9 @@ import { colors } from '../../theme';
 import { computeGraphPoints } from './utils';
 
 /**
- * Two stacked colour-coded gradient bands, `Route` above `Smoothed`, sharing one x-axis with the
- * elevation profile above them.
+ * Two stacked colour-coded gradient bands, `Original` above `Smoothed`, sharing one x-axis with
+ * the elevation profile above them. Invisible (but still occupying its layout height) unless a
+ * smoothing level is active - see `active` below.
  *
  * Why a second, separate visual rather than a redrawn/second line on the elevation chart: the
  * elevation curve itself barely moves under smoothing (a fraction of a pixel on a real track) - no
@@ -24,12 +25,16 @@ export interface GradientBandsProps {
     pctReality?: number;
     bandHeight?: number;
     dimmed?: boolean;
+    /** false when no smoothing level is active - there is nothing to compare against, so this
+     * component stays invisible (opacity:0) but keeps its layout height, so switching a level in
+     * or out never reflows the panel around it. */
+    active?: boolean;
 }
 
 const BAND_HEIGHT_DEFAULT = 8;
 
 export const GradientBands = (props: GradientBandsProps) => {
-    const { routeData, smoothedRouteData, pctReality, bandHeight = BAND_HEIGHT_DEFAULT, dimmed } = props;
+    const { routeData, smoothedRouteData, pctReality, bandHeight = BAND_HEIGHT_DEFAULT, dimmed, active } = props;
     const [width, setWidth] = useState(0);
 
     const onLayout = useCallback((event: LayoutChangeEvent) => {
@@ -49,9 +54,9 @@ export const GradientBands = (props: GradientBandsProps) => {
     }, [smoothedRouteData, width, pctReality]);
 
     return (
-        <View style={[styles.wrapper, dimmed ? styles.dimmed : undefined]}>
+        <View style={[styles.wrapper, !active ? styles.inactive : undefined, dimmed ? styles.dimmed : undefined]}>
             <View style={styles.row}>
-                <Text style={styles.label}>Route</Text>
+                <Text style={styles.label}>Original</Text>
                 <View style={[styles.track, { height: bandHeight }]} onLayout={onLayout}>
                     {routeColumns.map((c, i) => (
                         <View key={i} style={[styles.column, { backgroundColor: c.color }]} />
@@ -72,6 +77,10 @@ export const GradientBands = (props: GradientBandsProps) => {
 
 const styles = StyleSheet.create({
     wrapper: { width: '100%' },
+    // reserves this component's layout height (unlike a conditional unmount would) while painting
+    // nothing - at Off there is no second series to compare against, so no label or band should
+    // be visible, only its reserved space so toggling a level never reflows the panel
+    inactive: { opacity: 0 },
     dimmed: { opacity: 0.6 },
     row: { flexDirection: 'row', alignItems: 'center', width: '100%' },
     label: { width: 56, color: colors.disabled, fontSize: 9 },
