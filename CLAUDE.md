@@ -3,6 +3,12 @@
 @rules/storybook.md
 @rules/native-code-changes.md
 
+## Local machine-specific setup
+
+`.claude/*.local.md` files under this repo are personal, gitignored, machine-specific notes (e.g.
+build-machine workflows) — not present for every contributor. If one exists, check it for local
+setup context before assuming a generic workflow; if none exists, there's nothing to look for.
+
 ## SonarCloud
 
 SonarCloud only reports findings after a push/PR, so it can't be the first line of defense - before
