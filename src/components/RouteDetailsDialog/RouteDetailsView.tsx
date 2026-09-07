@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import type { UIRouteSettings, RoutePoint } from 'incyclist-services';
 import { useUnitConverter, getPosition } from 'incyclist-services';
-import { RouteDetailsViewProps } from './types';
+import { RouteDetailsViewProps, SmoothingPreviewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
@@ -25,6 +25,26 @@ import { ElevationGraph } from '../ElevationGraph';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
+const SMOOTHING_LABEL = 'Terrain Smoothing';
+const SMOOTHING_OFF_OPTION = 'Off';
+const SMOOTHING_MAX_LEVEL_FALLBACK = 5;
+// Wide enough for 'Terrain Smoothing' on one line at normalText, so the label sits beside the
+// chips rather than above them - one row instead of two, which is what the compact layout has
+// room for.
+const SMOOTHING_LABEL_WIDTH = 145;
+// The chips are the whole interaction here: the user taps through levels repeatedly to compare
+// them against the profile. The default chip is around 32px tall, so this raises it to the 44px
+// touch-target floor - locally, leaving every other ChipSelect in the app as it is.
+const SMOOTHING_CHIP_MIN_HEIGHT = 44;
+
+const SMOOTHING_COPY_OFF = 'Softens sharp gradient changes for steadier trainer resistance.';
+const SMOOTHING_COPY_ON = 'Riding a smoothed profile. Your saved route is unchanged.';
+
+const MINUS = '−';
+
+const getSmoothingLevel = (settings: { smoothingLevel?: number }): number =>
+    Number.isFinite(settings.smoothingLevel) ? Math.max(0, Math.round(settings.smoothingLevel as number)) : 0;
+
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
         title, compact, hasGpx, points, previewUrl, routeData, isOnline, totalDistance,
@@ -33,6 +53,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
         downloadButtonPrimary,
         attachedWorkout,
+        smoothingAvailable, smoothingMaxLevel, smoothedPoints, smoothedElevation,
         onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
@@ -41,6 +62,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const { logEvent } = useLogging('RouteDetailsView');
     const [data, setData] = useState<UIRouteSettings>(initialSettings);
+    // Kept out of `data` on purpose: `data` is the settings the user is about to start with, and
+    // the preview is a derived read, not a setting. Seeded from the props so a route with a level
+    // already stored shows its smoothed profile on open, before the control is touched.
+    const [preview, setPreview] = useState<SmoothingPreviewProps>({ smoothedPoints, smoothedElevation });
+    const [smoothingBusy, setSmoothingBusy] = useState(false);
     const refMounted = useRef(true);
     useUnmountEffect(() => { refMounted.current = false; });
 
@@ -51,11 +77,20 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         setData(prev => ({ ...prev, prevRides, showPrev: initialShowPrev }));
     }, [prevRides, initialShowPrev]);
 
+    // The route details load after the dialog opens, so a stored level's preview can arrive late.
+    useEffect(() => {
+        setPreview({ smoothedPoints, smoothedElevation });
+    }, [smoothedPoints, smoothedElevation]);
+
     const handleApplySettings = useCallback(async (updated: UIRouteSettings) => {
         setData(updated); // Optimistic update
         const result = await onSettingsChanged(updated);
         if (refMounted.current && result) {
-            setData(prev => ({ ...prev, ...result })); // Merge service adjustments
+            // The preview is derived data rather than a setting, so it is split back out here
+            // instead of being merged into the settings that Start will be given.
+            const { smoothedPoints: previewPoints, smoothedElevation: previewElevation, ...settings } = result;
+            setData(prev => ({ ...prev, ...settings })); // Merge service adjustments
+            setPreview({ smoothedPoints: previewPoints, smoothedElevation: previewElevation });
         }
     }, [onSettingsChanged]);
 
@@ -114,6 +149,25 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         setData(prev => ({ ...prev, showPrev: v }));
     }, []);
 
+    const smoothingLevel = getSmoothingLevel(data);
+
+    // The chip takes effect at once and the profile catches up; while it does, the chart and the
+    // figures dim rather than being replaced by a spinner, so the user can keep tapping through
+    // levels without the screen jumping.
+    const handleSmoothingSelect = useCallback((option: string) => {
+        const level = option === SMOOTHING_OFF_OPTION ? 0 : Number(option);
+        if (!Number.isFinite(level) || level === smoothingLevel) return;
+
+        setSmoothingBusy(true);
+        handleApplySettings({ ...data, smoothingLevel: level })
+            .finally(() => { if (refMounted.current) setSmoothingBusy(false); });
+    }, [data, smoothingLevel, handleApplySettings]);
+
+    const smoothingOptions = useMemo(() => {
+        const max = Math.max(1, Math.round(smoothingMaxLevel ?? SMOOTHING_MAX_LEVEL_FALLBACK));
+        return [SMOOTHING_OFF_OPTION, ...Array.from({ length: max }, (_, i) => String(i + 1))];
+    }, [smoothingMaxLevel]);
+
 
     const markerPosition = useMemo(() => {
         if (!points?.length || data.startPos === undefined) return undefined;
@@ -162,6 +216,19 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const showProfileStrip = hasProfile && hasGpx;
     const showMapPanel = loading || showMap || showProfileInMapSlot;
 
+    const smoothedFigure = smoothingLevel > 0 ? preview.smoothedElevation : undefined;
+    // The comparison is only worth the space when there is a second curve to draw; the strip is
+    // too small to read one in, so whenever it is on, the profile takes the whole panel.
+    const smoothingActive = smoothingLevel > 0 && hasProfile && !!preview.smoothedPoints?.length;
+
+    // The graph draws from a whole route record, so the smoothed curve is spliced into a copy of
+    // the one already in hand rather than being plumbed through as bare points.
+    const smoothedRouteData = useMemo(() => (
+        smoothingActive && routeData
+            ? { ...routeData, points: preview.smoothedPoints }
+            : undefined
+    ), [smoothingActive, routeData, preview.smoothedPoints]);
+
     const renderMap = () => (
         <FreeMap
             points={points ?? []}
@@ -173,20 +240,45 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         />
     );
 
+    // Both curves are named, because the whole point of drawing two is that the user can see what
+    // the levels trade away. Too small for axis labels, so a legend is all there is room for.
+    const renderProfileLegend = () => (
+        <View style={styles.legend}>
+            <View style={styles.legendItem}>
+                <View style={styles.legendDash}>
+                    <View style={styles.legendDashSegment} />
+                    <View style={styles.legendDashSegment} />
+                    <View style={styles.legendDashSegment} />
+                </View>
+                <Text style={styles.legendText}>Route</Text>
+            </View>
+            <View style={styles.legendItem}>
+                <View style={styles.legendSolid} />
+                <Text style={styles.legendText}>Smoothed</Text>
+            </View>
+        </View>
+    );
+
     // `showXAxis` is only worth the vertical space when the graph owns a whole panel; in the
     // strip variant the axis would eat most of it.
     const renderProfile = (showXAxis: boolean) => (
-        <ElevationGraph
-            routeData={routeData}
-            pctReality={data.realityFactor}
-            showLine={true}
-            showColors={true}
-            showXAxis={showXAxis}
-            showYAxis={false}
-            // The graph sizes itself from its own onLayout, so it needs explicit bounds: the
-            // media panel centres its child, which would otherwise collapse it to zero width.
-            style={styles.profileFill}
-        />
+        // The graph sizes itself from its own onLayout, so it needs explicit bounds: the media
+        // panel centres its child, which would otherwise collapse it to zero width.
+        <View style={styles.profileFill}>
+            {smoothingActive && renderProfileLegend()}
+            <ElevationGraph
+                routeData={smoothedRouteData ?? routeData}
+                // Drawn behind the smoothed curve on a shared scale: the peaks being given up
+                // stay on screen next to the number that moved.
+                comparisonRouteData={smoothedRouteData ? routeData : undefined}
+                pctReality={data.realityFactor}
+                showLine={true}
+                showColors={true}
+                showXAxis={showXAxis}
+                showYAxis={false}
+                style={smoothingBusy ? styles.recomputing : undefined}
+            />
+        </View>
     );
 
     const renderMapSlot = () => {
@@ -207,6 +299,15 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     // long as those are still loading.
     const formatStat = (stat: { value: number, unit: string }, separator = ' ') =>
         loading ? '—' : `${stat.value}${separator}${stat.unit}`;
+
+    // The route's own figure keeps its place and its weight; this is added beside it, never in
+    // place of it. A level that changes nothing reads as a zero delta rather than as a warning -
+    // the two curves on the chart have already said so.
+    const formatSmoothedDelta = (stat: { value: number, unit: string }, separator = ' ') => {
+        const delta = Math.round(stat.value - totalElevation.value);
+        const sign = delta > 0 ? '+' : MINUS;
+        return `${sign}${Math.abs(delta)}${separator}${totalElevation.unit}`;
+    };
 
     const renderForm = () => {
         if (loading) {
@@ -280,6 +381,27 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     </View>
                 )}
 
+                {smoothingAvailable && (
+                    <View style={styles.smoothingRow}>
+                        <ChipSelect
+                            label={SMOOTHING_LABEL}
+                            labelWidth={SMOOTHING_LABEL_WIDTH}
+                            chipMinHeight={SMOOTHING_CHIP_MIN_HEIGHT}
+                            options={smoothingOptions}
+                            selected={smoothingLevel > 0 ? String(smoothingLevel) : SMOOTHING_OFF_OPTION}
+                            onValueChange={handleSmoothingSelect}
+                        />
+                        <Text style={styles.smoothingCopy}>
+                            {smoothingLevel > 0 ? SMOOTHING_COPY_ON : SMOOTHING_COPY_OFF}
+                        </Text>
+                        {!!smoothedFigure && (
+                            <Text style={styles.smoothingCopyMuted}>
+                                {`This ride records ${formatStat(smoothedFigure)} elevation gain instead of ${formatStat(totalElevation)}.`}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
                 <View style={styles.switchGrid}>
                     {showLoopOverwrite && (
                         <BinarySelect
@@ -334,10 +456,12 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     ) : null;
 
     // The single compact panel holds the map with the profile beneath it, or - when there is no
-    // map to show - the profile on its own, falling back to the still.
+    // map to show - the profile on its own, falling back to the still. While a level is selected
+    // the profile takes the whole panel and the map yields: it is not in use at that moment, and
+    // it comes straight back at Off.
     const renderCompactPanel = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
-        if (showMap) {
+        if (showMap && !smoothingActive) {
             return (
                 <>
                     <View style={styles.compactMapSlot}>{renderMap()}</View>
@@ -354,8 +478,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
         const infoBar = (
             <View style={styles.infoBar}>
-                <Text style={styles.infoBarText}>
+                <Text style={[styles.infoBarText, smoothingBusy && styles.recomputing]}>
                     {routeType} • {formatStat(totalDistance, '')} • {formatStat(totalElevation, '')}
+                    {/* The only place a second figure fits on this layout, so it is appended to
+                        the route's own rather than replacing it. */}
+                    {!!smoothedFigure && ` (smoothed ${formatStat(smoothedFigure, '')})`}
                 </Text>
                 {!!canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
             </View>
@@ -406,9 +533,14 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     <View style={styles.mediaContainer}>{renderMapSlot()}</View>
                 )}
                 {showProfileStrip ? (
+                    // While a level is selected the comparison chart takes the whole panel and the
+                    // still gives way - the still is not what the decision is being made on, and
+                    // the strip is too small to read two curves in. Both return at Off.
                     <View style={styles.mediaColumn}>
-                        <View style={styles.previewSlot}>{renderPreview()}</View>
-                        <View style={styles.profileSlot}>{renderProfile(false)}</View>
+                        {!smoothingActive && <View style={styles.previewSlot}>{renderPreview()}</View>}
+                        <View style={smoothingActive ? styles.profileSlotExpanded : styles.profileSlot}>
+                            {renderProfile(smoothingActive)}
+                        </View>
                     </View>
                 ) : (
                     <View style={styles.mediaContainer}>{renderPreview()}</View>
@@ -421,7 +553,14 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 </View>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Elevation</Text>
-                    <Text style={styles.statValue}>{formatStat(totalElevation)}</Text>
+                    <Text style={[styles.statValue, smoothingBusy && styles.recomputing]}>
+                        {formatStat(totalElevation)}
+                    </Text>
+                    {!!smoothedFigure && (
+                        <Text style={[styles.statSmoothed, smoothingBusy && styles.recomputing]}>
+                            {`smoothed ${formatStat(smoothedFigure)} (${formatSmoothedDelta(smoothedFigure)})`}
+                        </Text>
+                    )}
                 </View>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>Type</Text>
@@ -454,17 +593,33 @@ const styles = StyleSheet.create({
     mediaColumn: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden' },
     previewSlot: { height: '70%', justifyContent: 'center', alignItems: 'center' },
     profileSlot: { height: '30%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 6 },
+    profileSlotExpanded: { height: '100%', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 6 },
     fullMedia: { width: '100%', height: '100%' },
     profileFill: { width: '100%', height: '100%' },
+    // No spinner: the chip is already selected and the chips stay live, so the dimming is only
+    // there to say the curve and the figures are one beat behind the tap.
+    recomputing: { opacity: 0.6 },
+    legend: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingBottom: 2 },
+    legendItem: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+    legendDash: { flexDirection: 'row', gap: 2, alignItems: 'center', width: 16 },
+    legendDashSegment: { width: 4, height: 2, backgroundColor: colors.disabled },
+    legendSolid: { width: 16, height: 2, backgroundColor: colors.elevationPreviewColor },
+    legendText: { color: colors.disabled, fontSize: 10 },
     placeholderText: { color: colors.disabled, fontSize: 12 },
     formLoading: { alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 30 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
     statBox: { flex: 1, alignItems: 'center' },
     statLabel: { color: colors.disabled, fontSize: 10, textTransform: 'uppercase' },
     statValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    // Subordinate to the route's own figure above it, and never struck through it: the route
+    // keeps its number, this ride has a different one.
+    statSmoothed: { color: colors.disabled, fontSize: 11, marginTop: 2 },
     settingsArea: { padding: 15 },
     inputRow: { flexDirection: 'row', gap: 20, marginBottom: 15 },
     editNumberWrapper: { flex: 1 },
+    smoothingRow: { marginBottom: 15 },
+    smoothingCopy: { color: colors.text, fontSize: 12, opacity: 0.8 },
+    smoothingCopyMuted: { color: colors.disabled, fontSize: 11, marginTop: 2 },
     switchGrid: { gap: 4 },
     // flex: 1 lets compactRoot fill whatever's left of Dialog's definite-height content area
     // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView) after

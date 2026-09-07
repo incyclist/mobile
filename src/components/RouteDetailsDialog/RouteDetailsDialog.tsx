@@ -4,7 +4,7 @@ import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMon
 import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
-import { RouteDetailsDialogProps } from './types';
+import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';
 import { navigate } from '../../services';
 
 /**
@@ -89,6 +89,19 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         setShowPrev(hasPrev);
         return { prevRides: hasPrev ? prev : undefined, showPrev: hasPrev };
     }, [card, activities]);
+
+    /**
+     * One round-trip for everything a settings change implies: which past activities are
+     * comparable at the new position, and what the profile looks like at the level now selected.
+     *
+     * The preview is a query only - the level is written to the route's stored settings on Start
+     * or Add Workout, never here, so comparing levels does not touch the user's settings file.
+     */
+    const applySettings = useCallback(async (settings: UIRouteSettings): Promise<RouteSettingsChangeResult> => {
+        const prev = await refreshPrevRides(settings);
+        const preview = card?.getSmoothingPreview(settings.smoothingLevel) ?? {};
+        return { ...prev, ...preview };
+    }, [card, refreshPrevRides]);
 
     useEffect(() => {
         if (!card || refInitialized.current) return;
@@ -197,7 +210,11 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         showNextOverwrite,
         canStart: cardCanStart,
         updateStartPos,
-        settings
+        settings,
+        smoothingAvailable,
+        smoothingMaxLevel,
+        smoothedPoints,
+        smoothedElevation
     } = cardProps;
 
     const { hasVideo, hasGpx, isLoop, videoFormat, previewUrl, segments } = routeDescr;
@@ -303,6 +320,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             initialSettings={settings as UIRouteSettings}
             prevRides={prevRides ?? undefined}
             attachedWorkout={routeDetailsProps.attachedWorkout}
+            smoothingAvailable={smoothingAvailable}
+            smoothingMaxLevel={smoothingMaxLevel}
+            smoothedPoints={smoothedPoints}
+            smoothedElevation={smoothedElevation}
             onStart={(updatedSettings) => {
                 card.changeSettings(updatedSettings);
                 card.start();
@@ -317,7 +338,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
                 navigate('workouts');
             }}
             onClearWorkout={onClearWorkout}
-            onSettingsChanged={refreshPrevRides}
+            onSettingsChanged={applySettings}
             onUpdateStartPos={(value) => {
                 if (!updateStartPos) return null;
                 const result = updateStartPos(value);

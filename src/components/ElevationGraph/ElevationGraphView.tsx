@@ -14,6 +14,7 @@ export const ElevationGraphView = memo((props: ElevationGraphViewProps) => {
         width,
         height,
         graphPoints,
+        comparisonPoints,
         domain,
         showXAxis = false,
         showYAxis = false,
@@ -40,6 +41,8 @@ export const ElevationGraphView = memo((props: ElevationGraphViewProps) => {
         return showColors ? 'transparent' : previewColor??colors.elevationPreviewColor;
     }, [showLine, showColors,previewColor]);
 
+    const hasComparison = !!comparisonPoints?.length;
+
     if (width <= 0 || height <= 0 || !graphPoints || !domain) return null;
 
     return (
@@ -57,6 +60,22 @@ export const ElevationGraphView = memo((props: ElevationGraphViewProps) => {
                     />
                 )}
                 
+                {/* Drawn first so the main series sits on top of it. Unfilled, so it reads as a
+                    reference rather than as a second area competing with the main one. */}
+                {hasComparison && (
+                    <ElevationGraphLine
+                        graphPoints={comparisonPoints}
+                        domain={domain}
+                        margins={margins}
+                        plotWidth={plotWidth}
+                        plotHeight={plotHeight}
+                        fillColor="transparent"
+                        lineColor={colors.disabled}
+                        showStroke={true}
+                        dashed={true}
+                    />
+                )}
+
                 <ElevationGraphLine
                     graphPoints={graphPoints}
                     domain={domain}
@@ -64,7 +83,8 @@ export const ElevationGraphView = memo((props: ElevationGraphViewProps) => {
                     plotWidth={plotWidth}
                     plotHeight={plotHeight}
                     fillColor={lineFill}
-                    showStroke={showLine}
+                    lineColor={hasComparison ? colors.elevationPreviewColor : undefined}
+                    showStroke={showLine || hasComparison}
                 />
                 
                 <ElevationGraphAxes

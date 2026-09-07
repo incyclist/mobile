@@ -3,7 +3,9 @@ import { View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RouteDetailsView } from './RouteDetailsView';
-import { MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS } from './RouteDetailsView.mock';
+import {
+    MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
+} from './RouteDetailsView.mock';
 import { MainBackground } from '../../components';
 
 const mockRouteProps = (overrides = {}): any => ({
@@ -308,4 +310,57 @@ export const DownloadModalOpen: Story = {
         onDownloadRetry: fn(),
         onDownloadDelete: fn(),
     }),
+};
+// Terrain Smoothing. The row is present only for a route the transform can work on, sits between
+// the position inputs and the switches, and - while a level is selected - the comparison chart
+// takes the whole panel, pushing out the still on the wide layout and the map on the narrow one.
+// The narrow variants are the ones worth looking at: the label and six chips have to stay on one
+// row there, and the panel is small to begin with.
+const smoothableProps = (overrides = {}) => mockRouteProps({
+    hasGpx: true,
+    points: MOCK_ROUTE_POINTS,
+    routeData: MOCK_ROUTE_DATA,
+    previewUrl: 'https://incyclist.com/preview.jpg',
+    totalElevation: { value: 1240, unit: 'm' },
+    smoothingAvailable: true,
+    smoothingMaxLevel: 5,
+    onSettingsChanged: fn().mockResolvedValue({
+        smoothedPoints: MOCK_SMOOTHED_POINTS,
+        smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+    }),
+    ...overrides,
+});
+
+const smoothedArgs = (overrides = {}) => smoothableProps({
+    initialSettings: { startPos: { value: 0, unit: 'km' }, realityFactor: 100, smoothingLevel: 3 },
+    smoothedPoints: MOCK_SMOOTHED_POINTS,
+    smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+    ...overrides,
+});
+
+export const SmoothingOff: Story = {
+    args: smoothableProps(),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const SmoothingOn: Story = {
+    args: smoothedArgs(),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const CompactSmoothingOff: Story = {
+    args: smoothableProps({ compact: true }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
+};
+
+export const CompactSmoothingOn: Story = {
+    args: smoothedArgs({ compact: true }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
+};
+
+// A route the transform has nothing to work from: the row is gone, and the form reads exactly as
+// it did before this feature - the profile is gated separately and still shows.
+export const SmoothingUnavailable: Story = {
+    args: smoothableProps({ smoothingAvailable: false }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
 };

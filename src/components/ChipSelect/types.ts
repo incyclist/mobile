@@ -11,22 +11,28 @@ export type NormalizedChipOption = {
  */
 export type ChipOption = string | NormalizedChipOption;
 
-export type ChipSelectSingleProps = {
+type ChipSelectCommonProps = {
     label: string;
     options: Array<ChipOption>;
-    selected?: string;
     labelWidth?: number;
     disabled?: boolean;
+    /**
+     * Minimum height of a single chip, in px. Opt-in and unset by default, so the chip keeps
+     * its compact padding-derived height everywhere it is not asked for. Set it where the
+     * control is meant to be tapped repeatedly rather than picked once — the default height is
+     * below the 44px touch-target floor, which only matters when tapping is the interaction.
+     */
+    chipMinHeight?: number;
+};
+
+export type ChipSelectSingleProps = ChipSelectCommonProps & {
+    selected?: string;
     multi?: false;
     onValueChange?: (value: string) => void;
 };
 
-export type ChipSelectMultiProps = {
-    label: string;
-    options: Array<ChipOption>;
+export type ChipSelectMultiProps = ChipSelectCommonProps & {
     selectedValues?: string[];
-    labelWidth?: number;
-    disabled?: boolean;
     multi: true;
     onValueChange?: (values: string[]) => void;
 };

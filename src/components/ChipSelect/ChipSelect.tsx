@@ -18,7 +18,7 @@ const LABEL_MARGIN = 8;
  * cannot be selected, and shows its message as a caption below the chip.
  */
 export const ChipSelect = (props: ChipSelectProps) => {
-    const { label, options, labelWidth = 100, disabled = false } = props;
+    const { label, options, labelWidth = 100, disabled = false, chipMinHeight } = props;
     const { logEvent } = useLogging('ChipSelect');
 
     const [selectedValue, setSelectedValue] = useState<string | undefined>(
@@ -72,6 +72,9 @@ export const ChipSelect = (props: ChipSelectProps) => {
     };
 
     const labelStyle = { width: labelWidth };
+    // The chip centres its label, so a minimum height grows the tappable box symmetrically
+    // without moving the text off-centre.
+    const chipSizeStyle = chipMinHeight !== undefined ? { minHeight: chipMinHeight } : undefined;
 
     return (
         <View style={[styles.container, disabled && styles.disabled]}>
@@ -94,6 +97,7 @@ export const ChipSelect = (props: ChipSelectProps) => {
                                 <TouchableOpacity
                                     style={[
                                         styles.chip,
+                                        chipSizeStyle,
                                         isSelected && styles.chipActive,
                                         normalized.disabled && styles.chipDisabled,
                                     ]}

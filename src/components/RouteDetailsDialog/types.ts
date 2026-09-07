@@ -1,4 +1,7 @@
-import type { UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps, RouteApiDetail } from 'incyclist-services';
+import type {
+    UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps,
+    RouteApiDetail, RoutePoint as ServiceRoutePoint
+} from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
     routeId: string     
@@ -13,13 +16,37 @@ export interface RoutePoint {
     slope?: number;
 }
 
+/**
+ * The recomputed profile for a smoothing level: the curve to draw and the elevation gain it adds
+ * up to. Both are absent whenever there is nothing to show - level 0, a route that cannot be
+ * smoothed, or a transform that could not be computed.
+ */
+export interface SmoothingPreviewProps {
+    smoothedPoints?: ServiceRoutePoint[];
+    smoothedElevation?: { value: number; unit: string };
+}
+
+/**
+ * What a settings round-trip gives back. `prevRides`/`showPrev` are the past-activity lookup
+ * that has always been here; the smoothed pair is the preview for the level now selected.
+ *
+ * Both halves come back from the same call because both are derived from the same settings -
+ * the caller applies one set of settings and gets everything that follows from it. Querying the
+ * preview is deliberately not the same thing as storing the level: the choice is only written
+ * when the ride is actually started.
+ */
+export interface RouteSettingsChangeResult extends SmoothingPreviewProps {
+    prevRides?: Array<any>;
+    showPrev?: boolean;
+}
+
 export interface Segment {
     name: string;
     start: number | string;
     end: number | string;
 }
 
-export interface RouteDetailsViewProps {
+export interface RouteDetailsViewProps extends SmoothingPreviewProps {
     // Header
     title: string;
     compact: boolean;
@@ -61,6 +88,21 @@ export interface RouteDetailsViewProps {
      */
     attachedWorkout: AttachedWorkoutProps | null;
 
+    /**
+     * Whether this route may be smoothed at all. False omits the control entirely - there is
+     * nothing the user could do about a route the transform has no usable elevation track to
+     * work from, so a disabled control would only name internal state. Deliberately separate
+     * from the map and profile gates above: a route can be graphable and still not smoothable.
+     */
+    smoothingAvailable?: boolean;
+    /** highest selectable level, so the range is not hardcoded here */
+    smoothingMaxLevel?: number;
+    /**
+     * `smoothedPoints`/`smoothedElevation` (inherited above) carry the preview for the level
+     * already stored on the route, so reopening a route that has one shows the smoothed curve
+     * and figure straight away rather than only after the first tap.
+     */
+
     // Settings
     initialSettings: UIRouteSettings;
     prevRides?: Array<any>;
@@ -70,10 +112,7 @@ export interface RouteDetailsViewProps {
     onCancel: () => void;
     onAddWorkout: (settings: UIRouteSettings) => void;
     onClearWorkout: () => void;
-    onSettingsChanged: (settings: UIRouteSettings) => Promise<{
-        prevRides?: Array<any>;
-        showPrev?: boolean;
-    }>;
+    onSettingsChanged: (settings: UIRouteSettings) => Promise<RouteSettingsChangeResult>;
     onUpdateStartPos: (value: number) => UIStartSettings | null;
 
     // Download props

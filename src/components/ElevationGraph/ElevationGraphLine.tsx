@@ -12,6 +12,8 @@ interface Props {
     lineColor?: string;
     fillColor?: string;
     showStroke?: boolean;
+    /** draws the stroke dashed - used for a comparison series behind the main one */
+    dashed?: boolean;
 }
 
 export const ElevationGraphLine = ({
@@ -23,6 +25,7 @@ export const ElevationGraphLine = ({
     lineColor = 'white',
     fillColor = 'rgba(255,255,255,0.15)',
     showStroke = true,
+    dashed = false,
 }: Props) => {
     if (graphPoints.length < 2) return null;
 
@@ -54,6 +57,7 @@ export const ElevationGraphLine = ({
                     fill="none"
                     stroke={lineColor}
                     strokeWidth={1.5}
+                    strokeDasharray={dashed ? '4,3' : undefined}
                 />
             )}
         </G>
