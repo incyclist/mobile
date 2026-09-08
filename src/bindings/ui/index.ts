@@ -2,12 +2,33 @@ import { INativeUI, SelectDirectoryResult, TakeScreenshotProps } from "incyclist
 import { navigate } from "../../services";
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
-import { BackHandler, Linking, NativeModules, Platform } from "react-native";
+import { BackHandler, Dimensions, Linking, NativeModules, PixelRatio, Platform } from "react-native";
 import {pickDirectory} from '@react-native-documents/picker';
 import { activateKeepAwake, deactivateKeepAwake } from '@sayem314/react-native-keep-awake';
 import { captureScreen } from 'react-native-view-shot';
 import { EventLogger } from "gd-eventlog";
 import {getLocales} from 'react-native-localize'
+
+// Ride-summary screenshot is neither displayed nor shared above this size today - cap the
+// captured bitmap's longer edge here rather than allocating at full native resolution and
+// only compressing afterward (Android Vitals "bitmap downsampling", FIXES_BACKLOG #76).
+const MAX_SCREENSHOT_DIMENSION = 1600;
+
+// captureScreen's width/height resize the final bitmap in native pixels - scale from the
+// device's actual pixel dimensions, not its dp size, and never upscale a smaller screen.
+function getCaptureSize(): { width: number, height: number } {
+    const { width: dpWidth, height: dpHeight } = Dimensions.get('screen');
+    const pixelRatio = PixelRatio.get();
+    const nativeWidth = dpWidth * pixelRatio;
+    const nativeHeight = dpHeight * pixelRatio;
+
+    const scale = Math.min(1, MAX_SCREENSHOT_DIMENSION / Math.max(nativeWidth, nativeHeight));
+
+    return {
+        width: Math.round(nativeWidth * scale),
+        height: Math.round(nativeHeight * scale),
+    };
+}
 
 export class UIBinding implements INativeUI {
 
@@ -53,10 +74,13 @@ export class UIBinding implements INativeUI {
             }  
 
             // Captures the screen and returns a local URI
+            const { width, height } = getCaptureSize();
             const tempUri = await captureScreen({
                 format: 'jpg',
                 quality: 0.7,
-                result: 'tmpfile'
+                result: 'tmpfile',
+                width,
+                height,
             });
 
             // Clean URI strings for RNFS (remove file:// prefix)
