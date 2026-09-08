@@ -11,7 +11,7 @@ import {getLocales} from 'react-native-localize'
 
 // Ride-summary screenshot is neither displayed nor shared above this size today - cap the
 // captured bitmap's longer edge here rather than allocating at full native resolution and
-// only compressing afterward (Android Vitals "bitmap downsampling", FIXES_BACKLOG #76).
+// only compressing afterward.
 const MAX_SCREENSHOT_DIMENSION = 1600;
 
 // captureScreen's width/height resize the final bitmap in native pixels - scale from the
