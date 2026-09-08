@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import type { UIRouteSettings, RoutePoint } from 'incyclist-services';
 import { useUnitConverter, getPosition } from 'incyclist-services';
-import { RouteDetailsViewProps, SmoothingPreviewProps } from './types';
+import { RouteDetailsViewProps, Segment, SmoothingPreviewProps } from './types';
 import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { colors } from '../../theme';
@@ -45,6 +45,303 @@ const MINUS = '−';
 
 const getSmoothingLevel = (settings: { smoothingLevel?: number }): number =>
     Number.isFinite(settings.smoothingLevel) ? Math.max(0, Math.round(settings.smoothingLevel as number)) : 0;
+
+type MediaLayoutInputs = {
+    loading: boolean;
+    points?: RoutePoint[];
+    routeData?: RouteDetailsViewProps['routeData'];
+    hasGpx: boolean;
+    isOnline: boolean;
+    previewUrl?: string;
+    screenWidth: number;
+    screenHeight: number;
+};
+
+type MediaLayout = {
+    hasProfile: boolean;
+    showMap: boolean;
+    showMapPanel: boolean;
+    showProfileStrip: boolean;
+    showPreviewColumn: boolean;
+    mediaRowStyle: { height: number };
+    mediaBoxSize: { width: number; height: number };
+    graphColumnSize: { width: number; height: number };
+};
+
+// Below this, the chart stops being legible - the point at which the row shrinks further rather
+// than squeezing the graph column past it.
+const GRAPH_COLUMN_MIN_WIDTH = 80;
+const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
+const MEDIA_ROW_GAP = 10;
+
+/**
+ * What each of the three media surfaces needs, and how much screen they get.
+ *
+ * A route can have a readable profile and no usable GPS track (so: graph, no map), or a GPS
+ * track and no network (so: profile only, and the map panel is dropped rather than left blank).
+ * The map and the still are boxed at the screen's own aspect ratio (mobile is landscape-locked,
+ * so this is the same shape a ride fills full-screen) rather than stretched to whatever the row's
+ * height cap leaves. Uncapped, containerWidth*(H/W) resolves to roughly half the screen height on
+ * every device - on the `full` layout that starves the settings form below it regardless of
+ * aspect ratio, so it's capped to 30% of screen height first (ux.md §13.8's measured budget), and
+ * each box is then fitted within that cap, never driving it.
+ *
+ * The graph reads as a chart, not a full-screen surface, so it doesn't need that same aspect
+ * ratio - it takes whatever width is left over once the map/still boxes are placed, which is
+ * usually real slack: the height cap above nearly always makes those boxes narrower than their
+ * column. If there genuinely isn't enough left over, the row shrinks a little further (and the
+ * boxes with it) to make room, rather than letting the three of them overflow the screen width.
+ */
+const computeMediaLayout = (inputs: MediaLayoutInputs): MediaLayout => {
+    const { loading, points, routeData, hasGpx, isOnline, previewUrl, screenWidth, screenHeight } = inputs;
+
+    const hasProfile = !loading && !!points?.length && !!routeData?.points?.length;
+    const showMap = hasProfile && hasGpx && isOnline;
+    // No GPS track: the profile takes the map's place instead of the map slot going empty.
+    const showProfileInMapSlot = hasProfile && !hasGpx;
+    // With a map, the profile gets its own column alongside the still - a peer, not an overlay.
+    const showProfileStrip = hasProfile && hasGpx;
+    const showMapPanel = loading || showMap || showProfileInMapSlot;
+    const hasStill = !!previewUrl;
+    // The still column shows whenever there is one, and also as the graph-less fallback (loading
+    // spinner or "No preview available") whenever the graph isn't taking its place instead.
+    const showPreviewColumn = hasStill || !showProfileStrip;
+
+    const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
+    const screenAspectRatio = screenWidth / screenHeight;
+    const computeBoxWidth = (rowHeight: number) => Math.min(containerWidth, Math.round(rowHeight * screenAspectRatio));
+
+    let mediaRowHeight = Math.round(Math.min(containerWidth * (screenHeight / screenWidth), screenHeight * 0.3));
+    let mediaBoxWidth = computeBoxWidth(mediaRowHeight);
+
+    const numBoxedColumns = (showMapPanel ? 1 : 0) + (hasStill ? 1 : 0);
+    const numColumns = numBoxedColumns + (showProfileStrip ? 1 : 0);
+    const totalContentWidth = screenWidth - MEDIA_ROW_PADDING - Math.max(0, numColumns - 1) * MEDIA_ROW_GAP;
+    let graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
+
+    const notEnoughRoomForGraph = showProfileStrip && numBoxedColumns > 0 && graphColumnWidth < GRAPH_COLUMN_MIN_WIDTH;
+    if (notEnoughRoomForGraph) {
+        const maxBoxWidth = (totalContentWidth - GRAPH_COLUMN_MIN_WIDTH) / numBoxedColumns;
+        mediaRowHeight = Math.max(1, Math.min(mediaRowHeight, Math.round(maxBoxWidth / screenAspectRatio)));
+        mediaBoxWidth = computeBoxWidth(mediaRowHeight);
+        graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
+    }
+
+    const mediaBoxHeight = Math.min(mediaRowHeight, Math.round(containerWidth / screenAspectRatio));
+
+    return {
+        hasProfile,
+        showMap,
+        showMapPanel,
+        showProfileStrip,
+        showPreviewColumn,
+        mediaRowStyle: { ...styles.mediaRow, height: mediaRowHeight },
+        mediaBoxSize: { width: mediaBoxWidth, height: mediaBoxHeight },
+        graphColumnSize: { width: Math.max(0, Math.round(graphColumnWidth)), height: mediaRowHeight },
+    };
+};
+
+type SettingsFormProps = {
+    loading: boolean;
+    compact: boolean;
+    segments?: Segment[];
+    data: UIRouteSettings;
+    totalDistance: { value: number; unit: string };
+    smoothingAvailable?: boolean;
+    smoothingOptions: string[];
+    smoothingLevel: number;
+    smoothingDetailText?: string;
+    showLoopOverwrite: boolean;
+    showNextOverwrite: boolean;
+    onSegmentSelect: (segName: string) => void;
+    onStartPosValueChange: (value?: number) => void;
+    onRealityFactorChange: (value?: number) => void;
+    onSmoothingSelect: (option: string) => void;
+    onLoopOverwriteChange: (v: boolean) => void;
+    onNextOverwriteChange: (v: boolean) => void;
+    onShowPrevChange: (v: boolean) => void;
+};
+
+/**
+ * The Segment / Start / End / Reality / Terrain Smoothing / switches block - identical content on
+ * both layouts, just placed differently by the caller (inside a ScrollView on compact, in
+ * `settingsArea` on full). A separate component, not a closure, specifically so its own branching
+ * (segment picker shape, compact vs full field layout, the optional smoothing row, three optional
+ * switches) is scored on its own rather than folded into RouteDetailsView's.
+ */
+const RouteDetailsSettingsForm = (props: SettingsFormProps) => {
+    const {
+        loading, compact, segments, data, totalDistance,
+        smoothingAvailable, smoothingOptions, smoothingLevel, smoothingDetailText,
+        showLoopOverwrite, showNextOverwrite,
+        onSegmentSelect, onStartPosValueChange, onRealityFactorChange, onSmoothingSelect,
+        onLoopOverwriteChange, onNextOverwriteChange, onShowPrevChange,
+    } = props;
+
+    if (loading) {
+        return (
+            <View style={styles.formLoading}>
+                <ActivityIndicator color={colors.text} />
+                <Text style={styles.placeholderText}>Loading route details…</Text>
+            </View>
+        );
+    }
+
+    const useChips = !compact && (segments?.length ?? 0) <= SEGMENT_CHIP_THRESHOLD;
+
+    return (
+        <>
+            {segments && segments.length > 0 && (
+                useChips ? (
+                    <ChipSelect
+                        label=''
+                        labelWidth={0}
+                        options={['All', ...segments.map(s => s.name)]}
+                        selected={data.segment ?? 'All'}
+                        onValueChange={onSegmentSelect}
+                    />
+                ) : (
+                    <SingleSelect
+                        label='Segment'
+                        options={['All', ...segments.map(s => s.name)]}
+                        selected={data.segment ?? 'All'}
+                        onValueChange={onSegmentSelect}
+                    />
+                )
+            )}
+            {compact ? (
+                <>
+                    <View style={styles.inputRow}>
+                        <View style={styles.editNumberWrapper}>
+                            <EditNumber
+                                label='Start'
+                                unit={data.startPos?.unit ?? 'km'}
+                                value={data.startPos?.value ?? 0}
+                                min={0}
+                                max={totalDistance.value}
+                                digits={1}
+                                onValueChange={onStartPosValueChange}
+                            />
+                        </View>
+                        <View style={styles.editNumberWrapper}>
+                            <EditNumber
+                                label='Reality'
+                                unit='%'
+                                value={data.realityFactor ?? 100}
+                                min={0}
+                                max={100}
+                                digits={0}
+                                onValueChange={onRealityFactorChange}
+                            />
+                        </View>
+                    </View>
+
+                    {data.endPos !== undefined && (
+                        <View style={styles.inputRow}>
+                            <View style={styles.editNumberWrapper}>
+                                <EditNumber
+                                    label='End'
+                                    unit={data.endPos.unit}
+                                    value={data.endPos.value}
+                                    disabled={true}
+                                    digits={1}
+                                />
+                            </View>
+                            <View style={styles.editNumberWrapper} />
+                        </View>
+                    )}
+                </>
+            ) : (
+                // full: Start / End / Reality share one row (ux.md §13.8) - End renders as an
+                // empty cell rather than being absent when there is no segment, so Reality's
+                // column never shifts depending on whether a segment is picked.
+                <View style={styles.inputRow}>
+                    <View style={styles.editNumberWrapper}>
+                        <EditNumber
+                            label='Start'
+                            unit={data.startPos?.unit ?? 'km'}
+                            value={data.startPos?.value ?? 0}
+                            min={0}
+                            max={totalDistance.value}
+                            digits={1}
+                            onValueChange={onStartPosValueChange}
+                        />
+                    </View>
+                    <View style={styles.editNumberWrapper}>
+                        {data.endPos !== undefined && (
+                            <EditNumber
+                                label='End'
+                                unit={data.endPos.unit}
+                                value={data.endPos.value}
+                                disabled={true}
+                                digits={1}
+                            />
+                        )}
+                    </View>
+                    <View style={styles.editNumberWrapper}>
+                        <EditNumber
+                            label='Reality'
+                            unit='%'
+                            value={data.realityFactor ?? 100}
+                            min={0}
+                            max={100}
+                            digits={0}
+                            onValueChange={onRealityFactorChange}
+                        />
+                    </View>
+                </View>
+            )}
+
+            {smoothingAvailable && (
+                <View style={styles.smoothingRow}>
+                    <ChipSelect
+                        label={SMOOTHING_LABEL}
+                        labelWidth={SMOOTHING_LABEL_WIDTH}
+                        chipMinHeight={SMOOTHING_CHIP_MIN_HEIGHT}
+                        options={smoothingOptions}
+                        selected={smoothingLevel > 0 ? String(smoothingLevel) : SMOOTHING_OFF_OPTION}
+                        onValueChange={onSmoothingSelect}
+                    />
+                    <Text style={styles.smoothingCopy}>
+                        {smoothingLevel > 0 ? SMOOTHING_COPY_ON : SMOOTHING_COPY_OFF}
+                    </Text>
+                    {!!smoothingDetailText && (
+                        <Text style={styles.smoothingCopyMuted}>
+                            {smoothingDetailText}
+                        </Text>
+                    )}
+                </View>
+            )}
+
+            <View style={compact ? styles.switchGrid : styles.switchGridFull}>
+                {showLoopOverwrite && (
+                    <BinarySelect
+                        label="Stop at end of loop"
+                        labelPosition="before"
+                        value={data.loopOverwrite ?? false}
+                        onValueChange={onLoopOverwriteChange}
+                    />
+                )}
+                {showNextOverwrite && (
+                    <BinarySelect
+                        label="Stop at end of movie"
+                        labelPosition="before"
+                        value={data.nextOverwrite ?? false}
+                        onValueChange={onNextOverwriteChange}
+                    />
+                )}
+                {data.prevRides && (
+                    <BinarySelect
+                        label="Compare prev rides"
+                        labelPosition="before"
+                        value={data.showPrev ?? false}
+                        onValueChange={onShowPrevChange}
+                    />
+                )}
+            </View>
+        </>
+    );
+};
 
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
@@ -199,61 +496,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         }
     }, [converter, data, onUpdateStartPos, handleApplySettings]);
 
-    // What each of the three surfaces needs, kept deliberately separate: a route can have a
-    // readable profile and no usable GPS track (so: graph, no map), or a GPS track and no
-    // network (so: profile only, and the map panel is dropped rather than left blank).
-    const hasProfile = !loading && !!points?.length && !!routeData?.points?.length;
-    const showMap = hasProfile && hasGpx && isOnline;
-    // No GPS track: the profile takes the map's place instead of the map slot going empty.
-    const showProfileInMapSlot = hasProfile && !hasGpx;
-    // With a map, the profile gets its own column alongside the still - a peer, not an overlay.
-    const showProfileStrip = hasProfile && hasGpx;
-    const showMapPanel = loading || showMap || showProfileInMapSlot;
-    // Structural, not state-dependent: whether there is a still to show at all.
-    const hasStill = !!previewUrl;
-    // The still column shows whenever there is one, and also as the graph-less fallback (loading
-    // spinner or "No preview available") whenever the graph isn't taking its place instead.
-    const showPreviewColumn = hasStill || !showProfileStrip;
-
-    const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
-    const MEDIA_ROW_GAP = 10;
-    // Below this, the chart stops being legible - the point at which the row shrinks further
-    // rather than squeezing the graph column past it.
-    const GRAPH_COLUMN_MIN_WIDTH = 80;
-    const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
-    const screenAspectRatio = screenWidth / screenHeight;
-    const computeBoxWidth = (rowHeight: number) => Math.min(containerWidth, Math.round(rowHeight * screenAspectRatio));
-
-    // The map and the still are boxed at the screen's own aspect ratio (mobile is landscape-locked,
-    // so this is the same shape a ride fills full-screen) rather than stretched to whatever the
-    // row's height cap leaves. Uncapped, containerWidth*(H/W) resolves to roughly half the screen
-    // height on every device - on the `full` layout that starves the settings form below it
-    // regardless of aspect ratio, so it's capped to 30% of screen height first (ux.md §13.8's
-    // measured budget), and each box is then fitted within that cap, never driving it.
-    let mediaRowHeight = Math.round(Math.min(containerWidth * (screenHeight / screenWidth), screenHeight * 0.3));
-    let mediaBoxWidth = computeBoxWidth(mediaRowHeight);
-
-    // The graph reads as a chart, not a full-screen surface, so it doesn't need that same aspect
-    // ratio - it takes whatever width is left over once the map/still boxes are placed, which is
-    // usually real slack: the height cap above nearly always makes those boxes narrower than their
-    // column. If there genuinely isn't enough left over, the row shrinks a little further (and the
-    // boxes with it) to make room, rather than letting the three of them overflow the screen width.
-    const numBoxedColumns = (showMapPanel ? 1 : 0) + (hasStill ? 1 : 0);
-    const numColumns = numBoxedColumns + (showProfileStrip ? 1 : 0);
-    const totalContentWidth = screenWidth - MEDIA_ROW_PADDING - Math.max(0, numColumns - 1) * MEDIA_ROW_GAP;
-    let graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
-
-    if (showProfileStrip && numBoxedColumns > 0 && graphColumnWidth < GRAPH_COLUMN_MIN_WIDTH) {
-        const maxBoxWidth = (totalContentWidth - GRAPH_COLUMN_MIN_WIDTH) / numBoxedColumns;
-        mediaRowHeight = Math.max(1, Math.min(mediaRowHeight, Math.round(maxBoxWidth / screenAspectRatio)));
-        mediaBoxWidth = computeBoxWidth(mediaRowHeight);
-        graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
-    }
-
-    const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
-    const mediaBoxHeight = Math.min(mediaRowHeight, Math.round(containerWidth / screenAspectRatio));
-    const mediaBoxSize = { width: mediaBoxWidth, height: mediaBoxHeight };
-    const graphColumnSize = { width: Math.max(0, Math.round(graphColumnWidth)), height: mediaRowHeight };
+    const {
+        hasProfile, showMap, showMapPanel, showProfileStrip, showPreviewColumn,
+        mediaRowStyle, mediaBoxSize, graphColumnSize,
+    } = computeMediaLayout({ loading, points, routeData, hasGpx, isOnline, previewUrl, screenWidth, screenHeight });
 
     const smoothedFigure = smoothingLevel > 0 ? preview.smoothedElevation : undefined;
     const smoothingActive = smoothingLevel > 0 && hasProfile && !!preview.smoothedPoints?.length;
@@ -343,172 +589,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         return `${sign}${Math.abs(delta)}${separator}${totalElevation.unit}`;
     };
 
-    const renderForm = () => {
-        if (loading) {
-            return (
-                <View style={styles.formLoading}>
-                    <ActivityIndicator color={colors.text} />
-                    <Text style={styles.placeholderText}>Loading route details…</Text>
-                </View>
-            );
-        }
-
-        const useChips = !compact && (segments?.length ?? 0) <= SEGMENT_CHIP_THRESHOLD;
-
-        return (
-            <>
-                {segments && segments.length > 0 && (
-                    useChips ? (
-                        <ChipSelect
-                            label=''
-                            labelWidth={0}
-                            options={['All', ...segments.map(s => s.name)]}
-                            selected={data.segment ?? 'All'}
-                            onValueChange={handleSegmentSelect}
-                        />
-                    ) : (
-                        <SingleSelect
-                            label='Segment'
-                            options={['All', ...segments.map(s => s.name)]}
-                            selected={data.segment ?? 'All'}
-                            onValueChange={handleSegmentSelect}
-                        />
-                    )
-                )}
-                {compact ? (
-                    <>
-                        <View style={styles.inputRow}>
-                            <View style={styles.editNumberWrapper}>
-                                <EditNumber
-                                    label='Start'
-                                    unit={data.startPos?.unit ?? 'km'}
-                                    value={data.startPos?.value ?? 0}
-                                    min={0}
-                                    max={totalDistance.value}
-                                    digits={1}
-                                    onValueChange={handleStartPosValueChange}
-                                />
-                            </View>
-                            <View style={styles.editNumberWrapper}>
-                                <EditNumber
-                                    label='Reality'
-                                    unit='%'
-                                    value={data.realityFactor ?? 100}
-                                    min={0}
-                                    max={100}
-                                    digits={0}
-                                    onValueChange={handleRealityFactorChange}
-                                />
-                            </View>
-                        </View>
-
-                        {data.endPos !== undefined && (
-                            <View style={styles.inputRow}>
-                                <View style={styles.editNumberWrapper}>
-                                    <EditNumber
-                                        label='End'
-                                        unit={data.endPos.unit}
-                                        value={data.endPos.value}
-                                        disabled={true}
-                                        digits={1}
-                                    />
-                                </View>
-                                <View style={styles.editNumberWrapper} />
-                            </View>
-                        )}
-                    </>
-                ) : (
-                    // full: Start / End / Reality share one row (ux.md §13.8) - End renders as an
-                    // empty cell rather than being absent when there is no segment, so Reality's
-                    // column never shifts depending on whether a segment is picked.
-                    <View style={styles.inputRow}>
-                        <View style={styles.editNumberWrapper}>
-                            <EditNumber
-                                label='Start'
-                                unit={data.startPos?.unit ?? 'km'}
-                                value={data.startPos?.value ?? 0}
-                                min={0}
-                                max={totalDistance.value}
-                                digits={1}
-                                onValueChange={handleStartPosValueChange}
-                            />
-                        </View>
-                        <View style={styles.editNumberWrapper}>
-                            {data.endPos !== undefined && (
-                                <EditNumber
-                                    label='End'
-                                    unit={data.endPos.unit}
-                                    value={data.endPos.value}
-                                    disabled={true}
-                                    digits={1}
-                                />
-                            )}
-                        </View>
-                        <View style={styles.editNumberWrapper}>
-                            <EditNumber
-                                label='Reality'
-                                unit='%'
-                                value={data.realityFactor ?? 100}
-                                min={0}
-                                max={100}
-                                digits={0}
-                                onValueChange={handleRealityFactorChange}
-                            />
-                        </View>
-                    </View>
-                )}
-
-                {smoothingAvailable && (
-                    <View style={styles.smoothingRow}>
-                        <ChipSelect
-                            label={SMOOTHING_LABEL}
-                            labelWidth={SMOOTHING_LABEL_WIDTH}
-                            chipMinHeight={SMOOTHING_CHIP_MIN_HEIGHT}
-                            options={smoothingOptions}
-                            selected={smoothingLevel > 0 ? String(smoothingLevel) : SMOOTHING_OFF_OPTION}
-                            onValueChange={handleSmoothingSelect}
-                        />
-                        <Text style={styles.smoothingCopy}>
-                            {smoothingLevel > 0 ? SMOOTHING_COPY_ON : SMOOTHING_COPY_OFF}
-                        </Text>
-                        {!!smoothingDetailText && (
-                            <Text style={styles.smoothingCopyMuted}>
-                                {smoothingDetailText}
-                            </Text>
-                        )}
-                    </View>
-                )}
-
-                <View style={compact ? styles.switchGrid : styles.switchGridFull}>
-                    {showLoopOverwrite && (
-                        <BinarySelect
-                            label="Stop at end of loop"
-                            labelPosition="before"
-                            value={data.loopOverwrite ?? false}
-                            onValueChange={handleLoopOverwriteChange}
-                        />
-                    )}
-                    {showNextOverwrite && (
-                        <BinarySelect
-                            label="Stop at end of movie"
-                            labelPosition="before"
-                            value={data.nextOverwrite ?? false}
-                            onValueChange={handleNextOverwriteChange}
-                        />
-                    )}
-                    {data.prevRides && (
-                        <BinarySelect
-                            label="Compare prev rides"
-                            labelPosition="before"
-                            value={data.showPrev ?? false}
-                            onValueChange={handleShowPrevChange}
-                        />
-                    )}
-                </View>
-            </>
-        );
-    };
-
     const cancelButton = { label: 'Cancel', onClick: onCancel }
 
     const showAddWorkoutButton = !attachedWorkout;
@@ -581,7 +661,26 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             style={styles.compactLeftScroll}
                             contentContainerStyle={styles.compactLeftScrollContent}
                         >
-                            {renderForm()}
+                            <RouteDetailsSettingsForm
+                                loading={loading}
+                                compact={compact}
+                                segments={segments}
+                                data={data}
+                                totalDistance={totalDistance}
+                                smoothingAvailable={smoothingAvailable}
+                                smoothingOptions={smoothingOptions}
+                                smoothingLevel={smoothingLevel}
+                                smoothingDetailText={smoothingDetailText}
+                                showLoopOverwrite={showLoopOverwrite}
+                                showNextOverwrite={showNextOverwrite}
+                                onSegmentSelect={handleSegmentSelect}
+                                onStartPosValueChange={handleStartPosValueChange}
+                                onRealityFactorChange={handleRealityFactorChange}
+                                onSmoothingSelect={handleSmoothingSelect}
+                                onLoopOverwriteChange={handleLoopOverwriteChange}
+                                onNextOverwriteChange={handleNextOverwriteChange}
+                                onShowPrevChange={handleShowPrevChange}
+                            />
                         </ScrollView>
                     </View>
                     {showCompactPanel && (
@@ -654,7 +753,26 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 </View>
             </View>
             <View style={styles.settingsArea}>
-                {renderForm()}
+                <RouteDetailsSettingsForm
+                    loading={loading}
+                    compact={compact}
+                    segments={segments}
+                    data={data}
+                    totalDistance={totalDistance}
+                    smoothingAvailable={smoothingAvailable}
+                    smoothingOptions={smoothingOptions}
+                    smoothingLevel={smoothingLevel}
+                    smoothingDetailText={smoothingDetailText}
+                    showLoopOverwrite={showLoopOverwrite}
+                    showNextOverwrite={showNextOverwrite}
+                    onSegmentSelect={handleSegmentSelect}
+                    onStartPosValueChange={handleStartPosValueChange}
+                    onRealityFactorChange={handleRealityFactorChange}
+                    onSmoothingSelect={handleSmoothingSelect}
+                    onLoopOverwriteChange={handleLoopOverwriteChange}
+                    onNextOverwriteChange={handleNextOverwriteChange}
+                    onShowPrevChange={handleShowPrevChange}
+                />
                 {!!canNotStartReason && <Text style={styles.fullErrorText}>{canNotStartReason}</Text>}
             </View>
             <DownloadModalView
