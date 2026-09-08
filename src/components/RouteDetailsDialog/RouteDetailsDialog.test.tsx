@@ -65,6 +65,16 @@ const mockCard: any = {
     getCurrentDownload: jest.fn(() => null),
     changeSettings: jest.fn(),
     getSmoothingPreview: jest.fn(() => ({})),
+    // real behaviour mocked here, not re-tested: RouteCardSmoothing.unit.test.ts (services) covers
+    // the actual prediction rule (architecture.md §9.6.3). Reads openSettings() at call time, not
+    // at mock-definition time, so it respects whatever a test has reconfigured it to return.
+    getPrevRidesFilter: jest.fn((settings: any) => ({
+        routeHash: mockRouteData.description?.routeHash,
+        startPos: settings?.startPos,
+        endPos: settings?.endPos,
+        realityFactor: settings?.realityFactor,
+        smoothingLevel: mockCard.openSettings()?.smoothingAvailable ? (settings?.smoothingLevel ?? 0) : 0,
+    })),
     start: jest.fn(),
     cancel: jest.fn(),
     addWorkout: jest.fn(),
