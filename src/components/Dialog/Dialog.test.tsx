@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as SafeAreaContext from 'react-native-safe-area-context';
 import { Dialog } from './Dialog';
 import { ButtonBar } from '../ButtonBar';
 
@@ -108,6 +109,55 @@ describe('Dialog', () => {
             const after = footerOf(UNSAFE_root);
             expect(after).toBeTruthy();
             expect(after).not.toBe(before);
+        });
+    });
+
+    // App is landscape-locked, so the notch sits on left/right (whichever edge the current
+    // rotation puts it on) and the home indicator sits at the bottom, not top.
+    describe('safe-area insets', () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('pads the dialog surface for the notch (left/right) and home indicator (bottom)', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 10, left: 24, right: 0, bottom: 34 });
+
+            const { UNSAFE_root } = render(
+                <Dialog title="Test Dialog">
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            const container = UNSAFE_root.findAllByType(View).find((v: any) => {
+                const flat = StyleSheet.flatten(v.props.style);
+                return flat?.overflow === 'hidden';
+            });
+
+            expect(container).toBeTruthy();
+            const flat = StyleSheet.flatten(container!.props.style);
+            expect(flat.paddingLeft).toBe(24);
+            expect(flat.paddingRight).toBe(0);
+            expect(flat.paddingBottom).toBe(34);
+        });
+
+        it('pads the full-variant content area for the notch/home indicator too', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 0, right: 28, bottom: 21 });
+
+            const { UNSAFE_root } = render(
+                <Dialog title="Test Dialog" variant="full">
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            const fullContentArea = UNSAFE_root.findAllByType(View).find((v: any) => {
+                const flat = StyleSheet.flatten(v.props.style);
+                return flat?.maxHeight === '100%' && flat?.borderRadius === 0;
+            });
+
+            expect(fullContentArea).toBeTruthy();
+            const flat = StyleSheet.flatten(fullContentArea!.props.style);
+            expect(flat.paddingRight).toBe(28);
+            expect(flat.paddingBottom).toBe(21);
         });
     });
 });

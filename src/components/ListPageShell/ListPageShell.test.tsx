@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import * as SafeAreaContext from 'react-native-safe-area-context';
 import { ListPageShell } from './ListPageShell';
 
 const mockNavigationBar = jest.fn();
@@ -81,5 +82,31 @@ describe('ListPageShell', () => {
             </ListPageShell>
         );
         expect(mockNavigationBar).toHaveBeenCalledWith(expect.objectContaining({ compact: true }));
+    });
+
+    // App is landscape-locked, so the notch sits on left/right (whichever edge the current
+    // rotation puts it on) and the home indicator sits at the bottom.
+    it('pads the shell for the notch and home indicator on all four edges', () => {
+        jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 5, left: 24, right: 0, bottom: 34 });
+
+        const { UNSAFE_root } = render(
+            <ListPageShell {...baseProps}>
+                <Text>list-content</Text>
+            </ListPageShell>
+        );
+
+        const container = UNSAFE_root.findAllByType(View).find((v: any) => {
+            const flat = StyleSheet.flatten(v.props.style);
+            return typeof flat?.paddingTop === 'number';
+        });
+
+        expect(container).toBeTruthy();
+        const flat = StyleSheet.flatten(container!.props.style);
+        expect(flat.paddingTop).toBe(5);
+        expect(flat.paddingLeft).toBe(24);
+        expect(flat.paddingRight).toBe(0);
+        expect(flat.paddingBottom).toBe(34);
+
+        jest.restoreAllMocks();
     });
 });

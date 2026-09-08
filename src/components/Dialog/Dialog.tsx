@@ -105,7 +105,10 @@ export const Dialog = ({
     const refInitialized = useRef<boolean>(false);
     const layout = useScreenLayout();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-    const { top: safeAreaTop } = useSafeAreaInsets();
+    // App is landscape-locked, so left/right (the notch) and bottom (home indicator) are the
+    // edges that actually get obscured - not top. useSafeAreaInsets() already reports these
+    // relative to the current rotation, so no extra per-rotation logic is needed here.
+    const { top: safeAreaTop, left: safeAreaLeft, right: safeAreaRight, bottom: safeAreaBottom } = useSafeAreaInsets();
 
     const [isModalActive, setIsModalActive] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -183,7 +186,7 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight,nested });
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaLeft, safeAreaRight, safeAreaBottom, nested });
 
     // FIXES_BACKLOG #52 — workaround for a React Native new-architecture defect on iOS: when a
     // child view is added to an already-mounted subtree inside a <Modal>, Fabric calls
@@ -299,9 +302,9 @@ type StyleProps = {
     nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaLeft, safeAreaRight, safeAreaBottom, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaLeft: number, safeAreaRight: number, safeAreaBottom: number }) => {
     const isInfoVariant = variant === 'info';
-    
+
     return StyleSheet.create({
         overlay: {
             flex: 1,
@@ -318,6 +321,11 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             borderRadius: variant === 'full' ? 0 : 12,
             overflow: 'hidden',
             color: colors.text,
+            // Keep content clear of the notch (left/right in this landscape-locked app) and the
+            // home indicator (bottom).
+            paddingLeft: safeAreaLeft,
+            paddingRight: safeAreaRight,
+            paddingBottom: safeAreaBottom,
             // Shadow and thin white frame for info variant only
             ...( (isInfoVariant||nested) && {
                 borderWidth: 1,
@@ -369,6 +377,9 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             height: isCompact ? undefined : '100%',
             borderRadius: 0,
             maxHeight: '100%',
+            paddingLeft: safeAreaLeft,
+            paddingRight: safeAreaRight,
+            paddingBottom: safeAreaBottom,
         },
     });
 };
