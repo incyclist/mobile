@@ -68,27 +68,13 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         return null
     });
 
+    // The criteria (including the smoothing-level eligibility prediction) are built by the card,
+    // not re-derived here - see RouteCard.getPrevRidesFilter().
     const refreshPrevRides = useCallback(async (settings: UIRouteSettings) => {
         if (!card) return { prevRides: undefined, showPrev: false };
-        const data = card.getData();
-        const routeHash = data.description.routeHash;
-        const rId = !routeHash ? data.description.id : undefined;
 
-        // a prediction, not yet a fact: no ride copy exists before Start, so this mirrors what
-        // buildRideRoute() would actually apply - unsmoothed unless the route is genuinely
-        // eligible. Read fresh from the card rather than component state, matching getData()
-        // above. See design/features/route-smoothing/architecture.md §9.5.
-        const smoothingAvailable = card.openSettings()?.smoothingAvailable;
-        const smoothingLevel = smoothingAvailable ? (settings.smoothingLevel ?? 0) : 0;
-
-        const prev = await activities.getPastActivitiesWithDetails({
-            routeHash,
-            routeId: rId,
-            startPos: settings.startPos?.value,
-            endPos: settings.endPos?.value,
-            realityFactor: settings.realityFactor,
-            smoothingLevel
-        });
+        const filter = card.getPrevRidesFilter(settings);
+        const prev = await activities.getPastActivitiesWithDetails(filter);
 
         if (!refMounted.current) return { prevRides: undefined, showPrev: false };
 
