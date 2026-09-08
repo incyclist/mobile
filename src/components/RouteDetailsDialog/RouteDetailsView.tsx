@@ -83,8 +83,9 @@ const MEDIA_ROW_GAP = 10;
  * so this is the same shape a ride fills full-screen) rather than stretched to whatever the row's
  * height cap leaves. Uncapped, containerWidth*(H/W) resolves to roughly half the screen height on
  * every device - on the `full` layout that starves the settings form below it regardless of
- * aspect ratio, so it's capped to 30% of screen height first (ux.md §13.8's measured budget), and
- * each box is then fitted within that cap, never driving it.
+ * aspect ratio, so it's capped to 30% of screen height first (a budget measured against real
+ * on-device layouts so the form below always has room), and each box is then fitted within that
+ * cap, never driving it.
  *
  * The graph reads as a chart, not a full-screen surface, so it doesn't need that same aspect
  * ratio - it takes whatever width is left over once the map/still boxes are placed, which is
@@ -252,9 +253,9 @@ const RouteDetailsSettingsForm = (props: SettingsFormProps) => {
                     )}
                 </>
             ) : (
-                // full: Start / End / Reality share one row (ux.md §13.8) - End renders as an
-                // empty cell rather than being absent when there is no segment, so Reality's
-                // column never shifts depending on whether a segment is picked.
+                // full: Start / End / Reality share one row - End renders as an empty cell rather
+                // than being absent when there is no segment, so Reality's column never shifts
+                // depending on whether a segment is picked.
                 <View style={styles.inputRow}>
                     <View style={styles.editNumberWrapper}>
                         <EditNumber
@@ -823,9 +824,9 @@ const styles = StyleSheet.create({
     smoothingCopy: { color: colors.text, fontSize: 12, opacity: 0.8 },
     smoothingCopyMuted: { color: colors.disabled, fontSize: 11, marginTop: 2 },
     switchGrid: { gap: 4 },
-    // full only (ux.md §13.8): each toggle is a full labelled ChipSelect at ~46px, not the ~26px
-    // iOS-style switch the mockups assumed - stacked, three of them cost 138px this form doesn't
-    // have. Wrapping lets 2-3 share a row on any real tablet width instead of stacking or clipping.
+    // full only: each toggle is a full labelled ChipSelect at ~46px, not the ~26px iOS-style
+    // switch the mockups assumed - stacked, three of them cost 138px this form doesn't have.
+    // Wrapping lets 2-3 share a row on any real tablet width instead of stacking or clipping.
     switchGridFull: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 28, rowGap: 4 },
     // flex: 1 lets compactRoot fill whatever's left of Dialog's definite-height content area
     // (scrollable=false -> View with flexGrow: 1, instead of a height-agnostic ScrollView) after

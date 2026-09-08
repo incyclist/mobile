@@ -65,9 +65,9 @@ const mockCard: any = {
     getCurrentDownload: jest.fn(() => null),
     changeSettings: jest.fn(),
     getSmoothingPreview: jest.fn(() => ({})),
-    // real behaviour mocked here, not re-tested: RouteCardSmoothing.unit.test.ts (services) covers
-    // the actual prediction rule (architecture.md §9.6.3). Reads openSettings() at call time, not
-    // at mock-definition time, so it respects whatever a test has reconfigured it to return.
+    // real behaviour mocked here, not re-tested: `services` covers the actual prediction rule for
+    // this. Reads openSettings() at call time, not at mock-definition time, so it respects
+    // whatever a test has reconfigured it to return.
     getPrevRidesFilter: jest.fn((settings: any) => ({
         routeHash: mockRouteData.description?.routeHash,
         startPos: settings?.startPos,
@@ -507,8 +507,8 @@ describe('RouteDetailsDialog - Terrain Smoothing', () => {
         expect(mockActivityListService.getPastActivitiesWithDetails).toHaveBeenCalledTimes(1);
     });
 
-    // architecture.md §9.5: the pre-ride prev-rides count is a prediction of the level
-    // buildRideRoute() would actually apply - the tapped level for an eligible route.
+    // the pre-ride prev-rides count is a prediction of the level buildRideRoute() would actually
+    // apply - the tapped level for an eligible route.
     it('predicts the tapped level when refreshing past activities', async () => {
         const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
         mockActivityListService.getPastActivitiesWithDetails.mockClear();
