@@ -21,12 +21,7 @@ import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
 import { AttachmentChip } from '../AttachmentChip';
-import { ElevationGraph, GradientBands } from '../ElevationGraph';
-
-// gradient bands are ~8px tall on the full layout, ~6px in compact - both well under the space a
-// second line of text would cost, so adding them never has to fight the invariant below for room
-const BAND_HEIGHT_FULL = 8;
-const BAND_HEIGHT_COMPACT = 6;
+import { ElevationGraph } from '../ElevationGraph';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -204,17 +199,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         }
     }, [converter, data, onUpdateStartPos, handleApplySettings]);
 
-    const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
-    const MEDIA_ROW_GAP = 10;
-    const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
-    // Uncapped, this resolves to roughly half the screen height on every device (containerWidth is
-    // itself ~W/2, so containerWidth * H/W ~= H/2) - on the `full` layout that starves the settings
-    // form below it regardless of aspect ratio. Capped to 30% of screen height so the form always
-    // has real room; see ux.md §13.8 for the measured budget this is built against.
-    const mediaRowHeight = Math.round(Math.min(containerWidth * (screenHeight / screenWidth), screenHeight * 0.3));
-    const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
-
-
     // What each of the three surfaces needs, kept deliberately separate: a route can have a
     // readable profile and no usable GPS track (so: graph, no map), or a GPS track and no
     // network (so: profile only, and the map panel is dropped rather than left blank).
@@ -222,11 +206,54 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const showMap = hasProfile && hasGpx && isOnline;
     // No GPS track: the profile takes the map's place instead of the map slot going empty.
     const showProfileInMapSlot = hasProfile && !hasGpx;
-    // With a map, the profile sits as a strip under the still, the way it does on web.
+    // With a map, the profile gets its own column alongside the still - a peer, not an overlay.
     const showProfileStrip = hasProfile && hasGpx;
     const showMapPanel = loading || showMap || showProfileInMapSlot;
-    // Structural, not state-dependent: whether the strip's panel has a still to protect at all.
+    // Structural, not state-dependent: whether there is a still to show at all.
     const hasStill = !!previewUrl;
+    // The still column shows whenever there is one, and also as the graph-less fallback (loading
+    // spinner or "No preview available") whenever the graph isn't taking its place instead.
+    const showPreviewColumn = hasStill || !showProfileStrip;
+
+    const MEDIA_ROW_PADDING = 20; // 10px each side from styles.mediaRow padding
+    const MEDIA_ROW_GAP = 10;
+    // Below this, the chart stops being legible - the point at which the row shrinks further
+    // rather than squeezing the graph column past it.
+    const GRAPH_COLUMN_MIN_WIDTH = 80;
+    const containerWidth = (screenWidth - MEDIA_ROW_PADDING - MEDIA_ROW_GAP) / 2;
+    const screenAspectRatio = screenWidth / screenHeight;
+    const computeBoxWidth = (rowHeight: number) => Math.min(containerWidth, Math.round(rowHeight * screenAspectRatio));
+
+    // The map and the still are boxed at the screen's own aspect ratio (mobile is landscape-locked,
+    // so this is the same shape a ride fills full-screen) rather than stretched to whatever the
+    // row's height cap leaves. Uncapped, containerWidth*(H/W) resolves to roughly half the screen
+    // height on every device - on the `full` layout that starves the settings form below it
+    // regardless of aspect ratio, so it's capped to 30% of screen height first (ux.md §13.8's
+    // measured budget), and each box is then fitted within that cap, never driving it.
+    let mediaRowHeight = Math.round(Math.min(containerWidth * (screenHeight / screenWidth), screenHeight * 0.3));
+    let mediaBoxWidth = computeBoxWidth(mediaRowHeight);
+
+    // The graph reads as a chart, not a full-screen surface, so it doesn't need that same aspect
+    // ratio - it takes whatever width is left over once the map/still boxes are placed, which is
+    // usually real slack: the height cap above nearly always makes those boxes narrower than their
+    // column. If there genuinely isn't enough left over, the row shrinks a little further (and the
+    // boxes with it) to make room, rather than letting the three of them overflow the screen width.
+    const numBoxedColumns = (showMapPanel ? 1 : 0) + (hasStill ? 1 : 0);
+    const numColumns = numBoxedColumns + (showProfileStrip ? 1 : 0);
+    const totalContentWidth = screenWidth - MEDIA_ROW_PADDING - Math.max(0, numColumns - 1) * MEDIA_ROW_GAP;
+    let graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
+
+    if (showProfileStrip && numBoxedColumns > 0 && graphColumnWidth < GRAPH_COLUMN_MIN_WIDTH) {
+        const maxBoxWidth = (totalContentWidth - GRAPH_COLUMN_MIN_WIDTH) / numBoxedColumns;
+        mediaRowHeight = Math.max(1, Math.min(mediaRowHeight, Math.round(maxBoxWidth / screenAspectRatio)));
+        mediaBoxWidth = computeBoxWidth(mediaRowHeight);
+        graphColumnWidth = totalContentWidth - numBoxedColumns * mediaBoxWidth;
+    }
+
+    const mediaRowStyle = { ...styles.mediaRow, height: mediaRowHeight };
+    const mediaBoxHeight = Math.min(mediaRowHeight, Math.round(containerWidth / screenAspectRatio));
+    const mediaBoxSize = { width: mediaBoxWidth, height: mediaBoxHeight };
+    const graphColumnSize = { width: Math.max(0, Math.round(graphColumnWidth)), height: mediaRowHeight };
 
     const smoothedFigure = smoothingLevel > 0 ? preview.smoothedElevation : undefined;
     const smoothingActive = smoothingLevel > 0 && hasProfile && !!preview.smoothedPoints?.length;
@@ -239,9 +266,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             : undefined
     ), [smoothingActive, routeData, preview.smoothedPoints]);
 
-    // The elevation curve itself barely moves under smoothing (a fraction of a pixel on a real
-    // track) - the comparison that actually reads lives on the gradient bands (below the chart),
-    // not on a second line drawn over it. See GradientBands for the "why".
     const gradient = smoothingLevel > 0 ? preview.smoothedGradient : undefined;
     const smoothingBarelyVisible = gradient?.hasVisibleEffect === false;
 
@@ -256,17 +280,9 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         />
     );
 
-    // The elevation curve itself barely moves under smoothing (a fraction of a pixel on a real
-    // track), so the comparison lives on the gradient bands below the chart rather than on a
-    // second, redrawn line - see GradientBands for the measurement this is built on.
     // `showXAxis` is passed by every call site now - live testing showed the strip variants read
-    // as broken without a distance scale, outweighing the vertical cost. The bands container is a
-    // reserved slot too: it
-    // mounts whenever the route could be smoothed at all (Off included), so nothing here changes
-    // size when the level changes - but at Off there is nothing to compare against, so it is fully
-    // invisible (opacity:0 via `active`), not just empty: no label, no band, only the reserved
-    // height survives.
-    const renderProfile = (showXAxis: boolean, bandHeight: number) => (
+    // as broken without a distance scale, outweighing the vertical cost.
+    const renderProfile = (showXAxis: boolean) => (
         // The graph sizes itself from its own onLayout, so it needs explicit bounds: the media
         // panel centres its child, which would otherwise collapse it to zero width.
         <View style={styles.profileFill}>
@@ -279,23 +295,13 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 showYAxis={false}
                 style={smoothingBusy ? styles.recomputing : undefined}
             />
-            {smoothingAvailable && (
-                <GradientBands
-                    routeData={smoothingLevel > 0 ? routeData : undefined}
-                    smoothedRouteData={smoothedRouteData}
-                    pctReality={data.realityFactor}
-                    bandHeight={bandHeight}
-                    dimmed={smoothingBusy}
-                    active={smoothingLevel > 0}
-                />
-            )}
         </View>
     );
 
     const renderMapSlot = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (showMap) return renderMap();
-        return renderProfile(true, BAND_HEIGHT_FULL);
+        return renderProfile(true);
     };
 
     const renderPreview = () => {
@@ -536,12 +542,12 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             return (
                 <>
                     <View style={styles.compactMapSlot}>{renderMap()}</View>
-                    <View style={styles.compactProfileSlot}>{renderProfile(true, BAND_HEIGHT_COMPACT)}</View>
+                    <View style={styles.compactProfileSlot}>{renderProfile(true)}</View>
                 </>
             );
         }
-        if (hasProfile) return renderProfile(true, BAND_HEIGHT_COMPACT);
-        return renderPreview();
+        if (hasProfile) return renderProfile(true);
+        return <View style={styles.compactPreviewFallback}>{renderPreview()}</View>;
     };
 
     if (compact) {
@@ -601,21 +607,29 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
             <View style={mediaRowStyle}>
                 {showMapPanel && (
-                    <View style={styles.mediaContainer}>{renderMapSlot()}</View>
-                )}
-                {showProfileStrip ? (
-                    // Fixed permanently by whether there is a still to protect, never by the
-                    // smoothing level: a route with a still keeps it and keeps the strip at its
-                    // current height; a route with nothing there gets the panel's otherwise-empty
-                    // space instead, in every state, Off included.
-                    <View style={styles.mediaColumn}>
-                        {hasStill && <View style={styles.previewSlot}>{renderPreview()}</View>}
-                        <View style={hasStill ? styles.profileSlot : styles.profileSlotFull}>
-                            {renderProfile(true, BAND_HEIGHT_FULL)}
+                    // Each box is held to the screen's own aspect ratio and centred in its column,
+                    // rather than stretched to the column's shape.
+                    <View style={styles.mediaColumnWrapper}>
+                        {/* The map (or its loading state) keeps the dark backdrop; a route with no
+                            GPX falls back to showing the graph here instead, which stays transparent. */}
+                        <View style={[styles.mediaContainer, mediaBoxSize, !showMap && !loading && styles.noBackground]}>
+                            {renderMapSlot()}
                         </View>
                     </View>
-                ) : (
-                    <View style={styles.mediaContainer}>{renderPreview()}</View>
+                )}
+                {showPreviewColumn && (
+                    <View style={styles.mediaColumnWrapper}>
+                        <View style={[styles.mediaContainer, mediaBoxSize]}>{renderPreview()}</View>
+                    </View>
+                )}
+                {showProfileStrip && (
+                    // A peer column, not an overlay on the still: sized to whatever width is left
+                    // once the map/still boxes are placed (graphColumnSize), full row height, no
+                    // aspect-ratio constraint of its own - it's a chart, not something the rider
+                    // will see full-screen the way the map/still are.
+                    <View style={[styles.graphColumn, graphColumnSize]}>
+                        {renderProfile(true)}
+                    </View>
                 )}
             </View>
             <View style={styles.statsRow}>
@@ -659,21 +673,19 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 const styles = StyleSheet.create({
     chipWrapper: { paddingHorizontal: 15 },
     mediaRow: { flexDirection: 'row', gap: 10, padding: 10 },
-    mediaContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
-    // Same panel as mediaContainer, but stacking the still above the elevation strip - so the
-    // children own their alignment instead of the panel centring a single child.
-    mediaColumn: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden' },
-    // 60/40 rather than 70/30 (ux.md §13.8) - the profile needs a floor of its own to stay
-    // readable now that the media row itself is capped shorter.
-    previewSlot: { height: '60%', justifyContent: 'center', alignItems: 'center' },
-    // No background of its own - the graph should read as just the graph, not a dark box under
-    // the still. mediaColumn's own tint is enough of a backdrop for whatever the SVG leaves clear.
-    profileSlot: { height: '40%', paddingHorizontal: 8, paddingVertical: 6 },
-    // Used only when there is no still to protect (GPX route, no video) - the panel's otherwise-
-    // empty space, permanently, in every state including Off.
-    profileSlotFull: { height: '100%', paddingHorizontal: 8, paddingVertical: 6 },
+    // The evenly-split half of the row each media box centres in - sized by flex, not by the box
+    // itself, so the box inside can be smaller than its column without the column collapsing.
+    mediaColumnWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    // Sized explicitly per-instance (see mediaBoxSize) to the screen's own aspect ratio, so it
+    // never stretches to whatever shape mediaColumnWrapper/mediaRowHeight happen to leave.
+    mediaContainer: { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+    // A peer of mediaColumnWrapper, not nested in it: sized explicitly per-instance (see
+    // graphColumnSize) to whatever width is left over, full row height. No background of its own -
+    // the graph should read as just the graph, not a dark box next to the map/still.
+    graphColumn: { paddingHorizontal: 8, paddingVertical: 6 },
     fullMedia: { width: '100%', height: '100%' },
-    profileFill: { width: '100%', height: '100%' },
+    profileFill: { width: '100%', height: '100%',backgroundColor: 'rgba(255,255,255,0.0)'},
+    noBackground: { backgroundColor: 'transparent' },
     // No spinner: the chip is already selected and the chips stay live, so the dimming is only
     // there to say the curve and the figures are one beat behind the tap.
     recomputing: { opacity: 0.6 },
@@ -713,11 +725,16 @@ const styles = StyleSheet.create({
     compactLeft: { flex: 1, minHeight: 0, overflow: 'hidden' },
     compactLeftScroll: { flex: 1 },
     compactLeftScrollContent: { paddingBottom: 4 },
-    compactRight: { width: '35%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 6, overflow: 'hidden' },
+    // No background of its own - see compactMapSlot/compactPreviewFallback, which carry it only
+    // when there is a map or still to frame; a lone profile leaves this fully transparent.
+    compactRight: { width: '35%', borderRadius: 6, overflow: 'hidden' },
     // Phone landscape has room for one panel only, so map and profile share it. Both halves are
     // small; the alternative - profile on tablets only - is a worse answer to the same shortage.
-    compactMapSlot: { height: '65%' },
+    compactMapSlot: { height: '65%', backgroundColor: 'rgba(0,0,0,0.3)' },
     compactProfileSlot: { height: '35%', paddingHorizontal: 6, paddingVertical: 4 },
+    // Used only when the compact panel falls back to the still alone (no map, no profile) - the
+    // one case here where compactRight itself needs a backdrop.
+    compactPreviewFallback: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
     infoBar: {
         paddingHorizontal: 15,
         paddingVertical: 10,

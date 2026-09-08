@@ -74,12 +74,20 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         const routeHash = data.description.routeHash;
         const rId = !routeHash ? data.description.id : undefined;
 
+        // a prediction, not yet a fact: no ride copy exists before Start, so this mirrors what
+        // buildRideRoute() would actually apply - unsmoothed unless the route is genuinely
+        // eligible. Read fresh from the card rather than component state, matching getData()
+        // above. See design/features/route-smoothing/architecture.md §9.5.
+        const smoothingAvailable = card.openSettings()?.smoothingAvailable;
+        const smoothingLevel = smoothingAvailable ? (settings.smoothingLevel ?? 0) : 0;
+
         const prev = await activities.getPastActivitiesWithDetails({
             routeHash,
             routeId: rId,
             startPos: settings.startPos?.value,
             endPos: settings.endPos?.value,
-            realityFactor: settings.realityFactor
+            realityFactor: settings.realityFactor,
+            smoothingLevel
         });
 
         if (!refMounted.current) return { prevRides: undefined, showPrev: false };

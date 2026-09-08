@@ -56,7 +56,6 @@ jest.mock('../FreeMap', () => {
 // Records what the graph was actually asked to draw. Prefixed `mock` so jest allows the factory
 // to close over it.
 const mockElevationGraphProps = jest.fn();
-const mockGradientBandsProps = jest.fn();
 
 jest.mock('../ElevationGraph', () => {
     const { Text } = require('react-native');
@@ -64,20 +63,6 @@ jest.mock('../ElevationGraph', () => {
         ElevationGraph: (props: any) => {
             mockElevationGraphProps(props);
             return <Text>ElevationGraph</Text>;
-        },
-        // Stands in for the Original/Smoothed gradient bands - real column rendering needs a
-        // layout pass jsdom/RN-testing-library doesn't give it, so the gate/prop-wiring tests
-        // below assert on this stub rather than on pixels. Mirrors the real component: both
-        // labels are gated on `active`, not on data presence - at Off there is nothing to compare
-        // against, so nothing here is visible at all, only its reserved height survives.
-        GradientBands: (props: any) => {
-            mockGradientBandsProps(props);
-            return props.active ? (
-                <>
-                    <Text>Original</Text>
-                    <Text>Smoothed</Text>
-                </>
-            ) : null;
         },
     };
 });
@@ -442,7 +427,6 @@ describe('RouteDetailsView', () => {
 
         beforeEach(() => {
             mockElevationGraphProps.mockClear();
-            mockGradientBandsProps.mockClear();
         });
 
         describe('when the route cannot be smoothed', () => {
@@ -603,50 +587,32 @@ describe('RouteDetailsView', () => {
 
         describe('the preview', () => {
             const lastGraphProps = () => mockElevationGraphProps.mock.calls.at(-1)?.[0];
-            const lastBandsProps = () => mockGradientBandsProps.mock.calls.at(-1)?.[0];
 
-            // The elevation curve itself barely moves under smoothing - the chart draws a single
-            // line, from whichever points are in effect; the comparison lives on the gradient
-            // bands instead (see GradientBands for the measurement this is built on).
+            // The elevation curve itself barely moves under smoothing - the chart still draws a
+            // single line, from whichever points are in effect. There is no second visual (e.g.
+            // gradient bands) surfacing the comparison: the user reads it from the chip row and
+            // the gradient/elevation copy instead.
             it('draws a single line, from the smoothed points, once a level is active', async () => {
                 const { getByText } = render(<RouteDetailsView {...smoothable()} />);
                 await selectLevel(getByText, '3');
 
                 expect(lastGraphProps().routeData.points).toBe(MOCK_SMOOTHED_POINTS);
                 expect(lastGraphProps().comparisonRouteData).toBeUndefined();
-                expect(getByText('Original')).toBeTruthy();
-                expect(getByText('Smoothed')).toBeTruthy();
-                expect(lastBandsProps().routeData).toBe(MOCK_ROUTE_DATA);
-                expect(lastBandsProps().smoothedRouteData.points).toBe(MOCK_SMOOTHED_POINTS);
-                expect(lastBandsProps().active).toBe(true);
             });
 
-            // The bands container mounts (reserving its height) whenever the route is eligible,
-            // Off included - but at Off there is nothing to compare against, so the whole thing is
-            // invisible: no "Original" label, no "Smoothed" label, no bands, only the reserved
-            // height survives, exactly as if the feature were unavailable on this screen.
-            it('neither band is visible at Off, even though the container is mounted', () => {
+            // At Off, the preview must render exactly as it would if smoothing were unavailable on
+            // this route - no reserved space, no leftover visual footprint from the feature.
+            it('draws the unsmoothed route at Off', () => {
                 const { queryByText } = render(<RouteDetailsView {...smoothable()} />);
                 expect(lastGraphProps().routeData).toBe(MOCK_ROUTE_DATA);
                 expect(lastGraphProps().comparisonRouteData).toBeUndefined();
                 expect(queryByText('Original')).toBeNull();
                 expect(queryByText('Smoothed')).toBeNull();
-                expect(lastBandsProps().active).toBe(false);
-                expect(lastBandsProps().routeData).toBeUndefined();
-                expect(lastBandsProps().smoothedRouteData).toBeUndefined();
-            });
-
-            it('the bands are absent entirely when the route is not eligible', () => {
-                const { queryByText } = render(
-                    <RouteDetailsView {...smoothable({ smoothingAvailable: false })} />
-                );
-                expect(queryByText('Original')).toBeNull();
             });
 
             it('renders a route reopened with a stored level as smoothed straight away', () => {
                 const { getByText } = render(<RouteDetailsView {...smoothed()} />);
                 expect(lastGraphProps().routeData.points).toBe(MOCK_SMOOTHED_POINTS);
-                expect(lastBandsProps().smoothedRouteData.points).toBe(MOCK_SMOOTHED_POINTS);
                 expect(getByText('smoothed 760 m (−40 m)')).toBeTruthy();
                 expect(getByText('Riding a smoothed profile. Your saved route is unchanged.')).toBeTruthy();
             });

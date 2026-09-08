@@ -120,7 +120,6 @@ jest.mock('../ElevationGraph', () => {
     const { Text } = require('react-native');
     return {
         ElevationGraph: () => <Text>ElevationGraph</Text>,
-        GradientBands: () => <Text>GradientBands</Text>,
     };
 });
 
@@ -497,4 +496,18 @@ describe('RouteDetailsDialog - Terrain Smoothing', () => {
 
         expect(mockActivityListService.getPastActivitiesWithDetails).toHaveBeenCalledTimes(1);
     });
+
+    // architecture.md §9.5: the pre-ride prev-rides count is a prediction of the level
+    // buildRideRoute() would actually apply - the tapped level for an eligible route.
+    it('predicts the tapped level when refreshing past activities', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        mockActivityListService.getPastActivitiesWithDetails.mockClear();
+
+        await selectLevel(getByText, '2');
+
+        expect(mockActivityListService.getPastActivitiesWithDetails).toHaveBeenCalledWith(
+            expect.objectContaining({ smoothingLevel: 2 })
+        );
+    });
+
 });
