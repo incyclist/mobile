@@ -27,14 +27,14 @@ export const ListPageShell = ({
 }: ListPageShellProps) => {
     // App is landscape-locked, so the notch sits on left/right (whichever edge the current
     // rotation puts it on) and the home indicator sits at the bottom.
-    const { top, left, right, bottom } = useSafeAreaInsets();
+    const { left, right } = useSafeAreaInsets();
 
     return (
     <MainBackground>
         <View style={[
             styles.container,
             compact && styles.containerCompact,
-            { paddingTop: top, paddingLeft: left, paddingRight: right, paddingBottom: bottom },
+            { paddingLeft: left, paddingRight: right},
         ]}>
             <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
                 <NavigationBar

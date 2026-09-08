@@ -108,14 +108,14 @@ export const Dialog = ({
     // App is landscape-locked, so left/right (the notch) and bottom (home indicator) are the
     // edges that actually get obscured - not top. useSafeAreaInsets() already reports these
     // relative to the current rotation, so no extra per-rotation logic is needed here.
-    const { top: safeAreaTop, left: safeAreaLeft, right: safeAreaRight, bottom: safeAreaBottom } = useSafeAreaInsets();
+    const { left: safeAreaLeft, right: safeAreaRight } = useSafeAreaInsets();
 
     const [isModalActive, setIsModalActive] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
 
     const isCompact = layout === 'compact';
     const NAV_BAR_HEIGHT = 56;
-    const stripHeight = NAV_BAR_HEIGHT + safeAreaTop;
+    const stripHeight = NAV_BAR_HEIGHT;
 
     const defaultSlideFrom = 'left';
     const actualSlideFrom = variant === 'full' ? (slideFrom || defaultSlideFrom) : undefined;
@@ -186,7 +186,7 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaLeft, safeAreaRight, safeAreaBottom, nested });
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaLeft, safeAreaRight,  nested });
 
     // FIXES_BACKLOG #52 — workaround for a React Native new-architecture defect on iOS: when a
     // child view is added to an already-mounted subtree inside a <Modal>, Fabric calls
@@ -302,7 +302,7 @@ type StyleProps = {
     nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaLeft, safeAreaRight, safeAreaBottom, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaLeft: number, safeAreaRight: number, safeAreaBottom: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaLeft, safeAreaRight, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaLeft: number, safeAreaRight: number }) => {
     const isInfoVariant = variant === 'info';
 
     return StyleSheet.create({
@@ -325,7 +325,6 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             // home indicator (bottom).
             paddingLeft: safeAreaLeft,
             paddingRight: safeAreaRight,
-            paddingBottom: safeAreaBottom,
             // Shadow and thin white frame for info variant only
             ...( (isInfoVariant||nested) && {
                 borderWidth: 1,
@@ -379,7 +378,6 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             maxHeight: '100%',
             paddingLeft: safeAreaLeft,
             paddingRight: safeAreaRight,
-            paddingBottom: safeAreaBottom,
         },
     });
 };

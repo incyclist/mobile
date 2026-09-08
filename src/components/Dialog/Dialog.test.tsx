@@ -137,7 +137,6 @@ describe('Dialog', () => {
             const flat = StyleSheet.flatten(container!.props.style);
             expect(flat.paddingLeft).toBe(24);
             expect(flat.paddingRight).toBe(0);
-            expect(flat.paddingBottom).toBe(34);
         });
 
         it('pads the full-variant content area for the notch/home indicator too', () => {
@@ -157,7 +156,6 @@ describe('Dialog', () => {
             expect(fullContentArea).toBeTruthy();
             const flat = StyleSheet.flatten(fullContentArea!.props.style);
             expect(flat.paddingRight).toBe(28);
-            expect(flat.paddingBottom).toBe(21);
         });
     });
 });
