@@ -3,6 +3,9 @@ import { View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RouteDetailsView } from './RouteDetailsView';
+import {
+    MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
+} from './RouteDetailsView.mock';
 import { MainBackground } from '../../components';
 
 const mockRouteProps = (overrides = {}): any => ({
@@ -11,6 +14,8 @@ const mockRouteProps = (overrides = {}): any => ({
     hasGpx: false,
     points: undefined,
     previewUrl: undefined,
+    routeData: undefined,
+    isOnline: true,
     totalDistance: { value: 47.5, unit: 'km' },
     totalElevation: { value: 128, unit: 'm' },
     routeType: 'Video - Loop',
@@ -130,11 +135,52 @@ export const CompactWithMap: Story = {
     args: mockRouteProps({
         compact: true,
         hasGpx: true,
-        points: [
-            { lat: 51.9, lng: 4.5, routeDistance: 0, elevation: 0 },
-            { lat: 51.91, lng: 4.51, routeDistance: 1000, elevation: 5 },
-        ],
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
     }),
+};
+
+// The three surfaces are gated separately: map needs a GPS track and a network, the profile
+// needs points alone, the still fills what is left. These four cover the combinations.
+export const WithMapAndProfile: Story = {
+    args: mockRouteProps({
+        hasGpx: true,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const ProfileWithoutGpsTrack: Story = {
+    args: mockRouteProps({
+        hasGpx: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const ProfileOffline: Story = {
+    args: mockRouteProps({
+        hasGpx: true,
+        isOnline: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+        previewUrl: 'https://incyclist.com/preview.jpg',
+    }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const CompactProfileWithoutGpsTrack: Story = {
+    args: mockRouteProps({
+        compact: true,
+        hasGpx: false,
+        points: MOCK_ROUTE_POINTS,
+        routeData: MOCK_ROUTE_DATA,
+    }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
 };
 
 // FIXES_BACKLOG #27 - compact mode's info bar (route type/distance/elevation, plus
@@ -152,10 +198,8 @@ export const CompactWithMap: Story = {
 const tallestCompactFormProps = () => mockRouteProps({
     compact: true,
     hasGpx: true,
-    points: [
-        { lat: 51.9, lng: 4.5, routeDistance: 0, elevation: 0 },
-        { lat: 51.91, lng: 4.51, routeDistance: 1000, elevation: 5 },
-    ],
+    points: MOCK_ROUTE_POINTS,
+    routeData: MOCK_ROUTE_DATA,
     segments: [
         { name: 'Total Trip', start: 0, end: 47500 },
         { name: '1st Climb', start: 5200, end: 12800 },
@@ -266,4 +310,57 @@ export const DownloadModalOpen: Story = {
         onDownloadRetry: fn(),
         onDownloadDelete: fn(),
     }),
+};
+// Terrain Smoothing. The row is present only for a route the transform can work on, sits between
+// the position inputs and the switches, and - while a level is selected - the comparison chart
+// takes the whole panel, pushing out the still on the wide layout and the map on the narrow one.
+// The narrow variants are the ones worth looking at: the label and six chips have to stay on one
+// row there, and the panel is small to begin with.
+const smoothableProps = (overrides = {}) => mockRouteProps({
+    hasGpx: true,
+    points: MOCK_ROUTE_POINTS,
+    routeData: MOCK_ROUTE_DATA,
+    previewUrl: 'https://incyclist.com/preview.jpg',
+    totalElevation: { value: 1240, unit: 'm' },
+    smoothingAvailable: true,
+    smoothingMaxLevel: 5,
+    onSettingsChanged: fn().mockResolvedValue({
+        smoothedPoints: MOCK_SMOOTHED_POINTS,
+        smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+    }),
+    ...overrides,
+});
+
+const smoothedArgs = (overrides = {}) => smoothableProps({
+    initialSettings: { startPos: { value: 0, unit: 'km' }, realityFactor: 100, smoothingLevel: 3 },
+    smoothedPoints: MOCK_SMOOTHED_POINTS,
+    smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+    ...overrides,
+});
+
+export const SmoothingOff: Story = {
+    args: smoothableProps(),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const SmoothingOn: Story = {
+    args: smoothedArgs(),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const CompactSmoothingOff: Story = {
+    args: smoothableProps({ compact: true }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
+};
+
+export const CompactSmoothingOn: Story = {
+    args: smoothedArgs({ compact: true }),
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' }, layout: 'fullscreen' },
+};
+
+// A route the transform has nothing to work from: the row is gone, and the form reads exactly as
+// it did before this feature - the profile is gated separately and still shows.
+export const SmoothingUnavailable: Story = {
+    args: smoothableProps({ smoothingAvailable: false }),
+    parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
 };

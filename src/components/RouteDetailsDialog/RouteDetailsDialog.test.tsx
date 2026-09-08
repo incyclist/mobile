@@ -1,6 +1,9 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { RouteDetailsDialog } from './RouteDetailsDialog';
+import {
+    MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
+} from './RouteDetailsView.mock';
 
 // workout-combo-service-design.md §3.5.1 "one source per state" - the whole point of this test
 // file is to prove the defect it warns about can't happen: `cardProps.showWorkoutOption` is
@@ -61,6 +64,7 @@ const mockCard: any = {
     getData: jest.fn(() => mockRouteData),
     getCurrentDownload: jest.fn(() => null),
     changeSettings: jest.fn(),
+    getSmoothingPreview: jest.fn(() => ({})),
     start: jest.fn(),
     cancel: jest.fn(),
     addWorkout: jest.fn(),
@@ -106,6 +110,18 @@ jest.mock('@maplibre/maplibre-react-native', () => ({
 jest.mock('../SecureImage', () => ({
     SecureImage: () => null,
 }));
+
+jest.mock('../FreeMap', () => {
+    const { Text } = require('react-native');
+    return { FreeMap: () => <Text>FreeMap</Text> };
+});
+
+jest.mock('../ElevationGraph', () => {
+    const { Text } = require('react-native');
+    return {
+        ElevationGraph: () => <Text>ElevationGraph</Text>,
+    };
+});
 
 jest.mock('../DownloadModal', () => ({
     DownloadModalView: () => null,
@@ -328,4 +344,170 @@ describe('RouteDetailsDialog - settings captured before the route details are lo
 
         expect(mockRouteListService.getRouteDetails).not.toHaveBeenCalled();
     });
+});
+
+// The elevation profile is drawn from the card's own route record - no extra service call and no
+// new card prop. The points can come from the details or, for an older library entry, from the
+// description alone, and both have to reach the graph.
+describe('RouteDetailsDialog - elevation profile data', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockCard.openSettings.mockReturnValue(mockCardProps);
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+    });
+
+    afterEach(() => {
+        mockRouteData.details = { points: [] };
+        mockRouteData.points = [];
+        mockRouteData.description.hasGpx = true;
+    });
+
+    it('feeds the graph from the route details', () => {
+        mockRouteData.details = { points: MOCK_ROUTE_POINTS };
+        mockRouteData.points = MOCK_ROUTE_POINTS;
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('ElevationGraph')).toBeTruthy();
+    });
+
+    it('feeds the graph from the route description when there are no details', () => {
+        mockRouteData.details = undefined;
+        mockRouteData.points = MOCK_ROUTE_POINTS;
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('ElevationGraph')).toBeTruthy();
+    });
+
+    it('renders no graph for a route without points', () => {
+        mockRouteData.details = { points: [] };
+        mockRouteData.points = [];
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('ElevationGraph')).toBeNull();
+    });
+});
+
+// The level the user is comparing and the level stored on the route are two different things:
+// the chips query a preview, and only Start / Add Workout write the choice. Writing on every tap
+// would rewrite the settings file each time the user compared two levels.
+describe('RouteDetailsDialog - Terrain Smoothing', () => {
+    const smoothableProps = {
+        ...mockCardProps,
+        smoothingAvailable: true,
+        smoothingMaxLevel: 5,
+    };
+
+    const selectLevel = async (getByText: any, level: string) => {
+        await act(async () => { fireEvent.press(getByText(level)); });
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+        mockRouteData.details = { points: MOCK_ROUTE_POINTS };
+        mockRouteData.points = MOCK_ROUTE_POINTS;
+        mockCard.openSettings.mockReturnValue(smoothableProps);
+        mockCard.getSmoothingPreview.mockReturnValue({
+            smoothedPoints: MOCK_SMOOTHED_POINTS,
+            smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+        });
+    });
+
+    afterEach(() => {
+        mockRouteData.details = { points: [] };
+        mockRouteData.points = [];
+        mockCard.getSmoothingPreview.mockReturnValue({});
+    });
+
+    it('omits the control when the card reports the route cannot be smoothed', () => {
+        mockCard.openSettings.mockReturnValue({ ...mockCardProps, smoothingAvailable: false });
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('Terrain Smoothing')).toBeNull();
+    });
+
+    it('renders the control when the card reports the route can be smoothed', () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('Terrain Smoothing')).toBeTruthy();
+    });
+
+    it('queries the preview for the tapped level and writes nothing', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        await selectLevel(getByText, '3');
+
+        expect(mockCard.getSmoothingPreview).toHaveBeenCalledWith(3);
+        expect(mockCard.changeSettings).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing while the user compares several levels', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        await selectLevel(getByText, '1');
+        await selectLevel(getByText, '4');
+        await selectLevel(getByText, '2');
+
+        expect(mockCard.getSmoothingPreview).toHaveBeenCalledTimes(3);
+        expect(mockCard.changeSettings).not.toHaveBeenCalled();
+    });
+
+    it('persists the chosen level on Start', async () => {
+        const { getByText, getAllByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        await selectLevel(getByText, '3');
+        getAllByText('Start').forEach(el => fireEvent.press(el));
+
+        expect(mockCard.changeSettings).toHaveBeenCalledWith(
+            expect.objectContaining({ smoothingLevel: 3 })
+        );
+        expect(mockCard.start).toHaveBeenCalled();
+    });
+
+    it('persists the chosen level on Add Workout', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        await selectLevel(getByText, '5');
+        fireEvent.press(getByText('Add Workout'));
+
+        expect(mockCard.changeSettings).toHaveBeenCalledWith(
+            expect.objectContaining({ smoothingLevel: 5 })
+        );
+        expect(mockCard.addWorkout).toHaveBeenCalled();
+    });
+
+    // Showing the original profile while a stored level says otherwise would mean pressing Start
+    // and getting terrain the screen never showed.
+    it('renders a route with a stored level as smoothed on open, without a preview query', () => {
+        mockCard.openSettings.mockReturnValue({
+            ...smoothableProps,
+            settings: { ...mockCardProps.settings, smoothingLevel: 3 },
+            smoothedPoints: MOCK_SMOOTHED_POINTS,
+            smoothedElevation: MOCK_SMOOTHED_ELEVATION,
+        });
+
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('Riding a smoothed profile. Your saved route is unchanged.')).toBeTruthy();
+        expect(getByText('smoothed 760 m (−40 m)')).toBeTruthy();
+        expect(mockCard.getSmoothingPreview).not.toHaveBeenCalled();
+    });
+
+    // The past-activity lookup shares the round-trip with the preview, so it has to survive it.
+    it('keeps refreshing the past-activity comparison alongside the preview', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        mockActivityListService.getPastActivitiesWithDetails.mockClear();
+
+        await selectLevel(getByText, '2');
+
+        expect(mockActivityListService.getPastActivitiesWithDetails).toHaveBeenCalledTimes(1);
+    });
+
+    // architecture.md §9.5: the pre-ride prev-rides count is a prediction of the level
+    // buildRideRoute() would actually apply - the tapped level for an eligible route.
+    it('predicts the tapped level when refreshing past activities', async () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        mockActivityListService.getPastActivitiesWithDetails.mockClear();
+
+        await selectLevel(getByText, '2');
+
+        expect(mockActivityListService.getPastActivitiesWithDetails).toHaveBeenCalledWith(
+            expect.objectContaining({ smoothingLevel: 2 })
+        );
+    });
+
 });

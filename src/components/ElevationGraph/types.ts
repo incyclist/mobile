@@ -51,6 +51,12 @@ export interface GraphMargins {
 
 export interface ElevationGraphProps {
     routeData?: RouteApiDetail;
+    /**
+     * A second series drawn behind `routeData`, dashed and muted, on a shared y-domain so the
+     * two curves are directly comparable. Optional and unset by default - the graph is a single
+     * line everywhere it is not asked for.
+     */
+    comparisonRouteData?: RouteApiDetail;
     initialPosition?: number;
     markers?: RiderMarker[];
     range?: number;
@@ -80,4 +86,6 @@ export interface ElevationGraphViewProps extends ElevationGraphProps {
     height: number;
     graphPoints: GraphPoint[];
     domain: GraphDomain;
+    /** already projected onto `domain`, so it lines up with `graphPoints` */
+    comparisonPoints?: GraphPoint[];
 }

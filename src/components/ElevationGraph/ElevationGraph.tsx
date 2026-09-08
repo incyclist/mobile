@@ -9,6 +9,7 @@ import { RoutePoint } from 'incyclist-services';
 export const ElevationGraph = (props: ElevationGraphProps) => {
     const {
         routeData,
+        comparisonRouteData,
         initialPosition = 0,
         range,
         lapMode,
@@ -109,15 +110,63 @@ export const ElevationGraph = (props: ElevationGraphProps) => {
         minElevationRange,
     ]);
 
+    // Computed with exactly the same options as the main series, so the only thing that can
+    // differ between the two curves is the elevation itself.
+    const comparisonData = useMemo(() => {
+        if (dimensions.width === 0 || dimensions.height === 0 || !comparisonRouteData) {
+            return null;
+        }
+
+        return computeGraphPoints(comparisonRouteData, dimensions.width, dimensions.height, {
+            range,
+            position: windowPosition,
+            lapMode,
+            pctReality,
+            xScale,
+            yScale,
+            minElevationRange,
+        });
+    }, [
+        comparisonRouteData,
+        dimensions.width,
+        dimensions.height,
+        range,
+        windowPosition,
+        lapMode,
+        pctReality,
+        xScale,
+        yScale,
+        minElevationRange,
+    ]);
+
+    // Two curves only read as a comparison on one shared y-domain - each series scaled to its own
+    // extent would hide the very difference the second line is there to show.
+    const domain = useMemo(() => {
+        if (!graphData) return undefined;
+        // An empty series carries a placeholder all-zero domain, which would drag the shared one
+        // down to include 0 - so only merge when both actually have points.
+        if (!graphData.graphPoints.length || !comparisonData?.graphPoints.length) return graphData.domain;
+
+        const a = graphData.domain;
+        const b = comparisonData.domain;
+        return {
+            xMin: Math.min(a.xMin, b.xMin),
+            xMax: Math.max(a.xMax, b.xMax),
+            yMin: Math.min(a.yMin, b.yMin),
+            yMax: Math.max(a.yMax, b.yMax),
+        };
+    }, [graphData, comparisonData]);
+
     return (
         <View style={[styles.container, style]} onLayout={onLayout}>
-            {graphData && dimensions.width > 0 && (
+            {graphData && domain && dimensions.width > 0 && (
                 <ElevationGraphView
                     {...props}
                     width={dimensions.width}
                     height={dimensions.height}
                     graphPoints={graphData.graphPoints}
-                    domain={graphData.domain}
+                    comparisonPoints={comparisonData?.graphPoints}
+                    domain={domain}
                     markerPosition={markerPosition}
                 />
             )}
