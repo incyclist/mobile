@@ -50,10 +50,6 @@ export const useFilePicker = (): UseFilePickerResult => {
                 type: [types.allFiles],
                 allowMultiSelection: false,
             }
-            if (Platform.OS === 'ios') {
-                props.mode = 'open'
-                props.requestLongTermAccess= false
-            }
 
             if (extensions?.length) {
                 props.types = []
@@ -78,19 +74,9 @@ export const useFilePicker = (): UseFilePickerResult => {
                 return null;
             }
 
-            // const info = getPathBinding().parse(result.name)
-            // return buildFileInfo(result.name,info.base)
             const fileName = result.name
 
-            if (Platform.OS === 'ios') {
-                const cleaned = decodeURIComponent(result.uri).replace('file://', '');
-                logEvent({ message:'File picked', fileName, uri: cleaned})  
-                return  buildFileInfo(cleaned,fileName)
-
-            }
-            else {
-                logEvent({ message:'File picked', fileName, uri: result.uri })  
-            }
+            logEvent({ message:'File picked', fileName, uri: result.uri })
 
             const [localCopy] = await keepLocalCopy({
                 files: [{ uri: result.uri, fileName: fileName }],

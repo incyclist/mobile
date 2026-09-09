@@ -299,22 +299,31 @@ describe('useFilePicker', () => {
         )
     })
 
-    it('handles ios platform with decodeURIComponent', async () => {
+    it('on iOS, goes through keepLocalCopy like Android instead of requesting open-mode access', async () => {
+        // 'open' mode requires startAccessingSecurityScopedResource() to succeed, which fails
+        // silently-from-the-app's-perspective for files vended by some third-party File Provider
+        // extensions (seen in production: a permission error on a file picked from a custom
+        // iCloud folder). Import mode + keepLocalCopy sidesteps that entirely, matching Android.
         Platform.OS = 'ios'
 
         mockPick.mockResolvedValueOnce([
             { name: 'test.gpx', uri: 'file:///path/to/test.gpx' },
         ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/test.gpx', copyError: null },
+        ])
 
         const { result } = renderHook(() => useFilePicker())
         await result.current.pickFile()
 
-        // On iOS, it returns early after decoding the URI without calling keepLocalCopy
-        expect(mockKeepLocalCopy).not.toHaveBeenCalled()
+        expect(mockKeepLocalCopy).toHaveBeenCalledWith({
+            files: [{ uri: 'file:///path/to/test.gpx', fileName: 'test.gpx' }],
+            destination: 'cachesDirectory',
+        })
         expect(mockPick).toHaveBeenCalledWith(
-            expect.objectContaining({
-                mode: 'open',
-                requestLongTermAccess: false,
+            expect.not.objectContaining({
+                mode: expect.anything(),
+                requestLongTermAccess: expect.anything(),
             })
         )
     })
