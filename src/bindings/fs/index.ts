@@ -175,11 +175,93 @@ export class FileSystemBinding implements IFileSystem {
 
     private async listLocalEntries(path: string): Promise<ReadDirResult[]> {
         const fsEntries = await RNFS.readDir(path);
+
+        // [DEBUG-smb1] An empty listing of a volume outside the app sandbox is the SMB/NAS
+        // symptom - run the strategy comparison so the log says which enumeration works.
+        if (Platform.OS === 'ios' && fsEntries.length === 0 && this.isOutsideAppSandbox(path)) {
+            await this.probeIosListing(path);
+        }
+
         return fsEntries.map(e => ({
             name: e.name,
             uri: `file://${e.path}`,
             isDirectory: e.isDirectory(),
         }));
+    }
+
+    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is known
+    private isOutsideAppSandbox(path: string): boolean {
+        const plain = path.replace('file://', '');
+        const sandboxRoots = [
+            RNFS.DocumentDirectoryPath,
+            RNFS.CachesDirectoryPath,
+            RNFS.TemporaryDirectoryPath,
+            RNFS.LibraryDirectoryPath,
+        ].filter(Boolean);
+        return !sandboxRoots.some(root => plain.startsWith(root));
+    }
+
+    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is known
+    private async probeIosListing(path: string): Promise<void> {
+        const probe = (variant: string, data: Record<string, unknown>) => {
+            this.logger.logEvent({ message: '[DEBUG-smb1] probe', variant, ...data });
+        };
+        const failed = (variant: string, err: unknown) => {
+            probe(variant, { error: err instanceof Error ? err.message : String(err) });
+        };
+        const names = (entries: { name: string; isDirectory?: boolean }[]) =>
+            entries.slice(0, 5).map(e => `${e.name}${e.isDirectory ? '/' : ''}`).join('|');
+
+        const readViaRnfs = async (variant: string, target: string) => {
+            try {
+                const entries = await RNFS.readDir(target);
+                probe(variant, {
+                    count: entries.length,
+                    names: names(entries.map(e => ({ name: e.name, isDirectory: e.isDirectory() }))),
+                });
+            } catch (err) {
+                failed(variant, err);
+            }
+        };
+
+        probe('start', { path });
+
+        const decoded = decodeURIComponent(path);
+        if (decoded !== path) {
+            await readViaRnfs('rnfs-decoded', decoded);
+        }
+
+        // Does a plain RNFS listing work once we explicitly hold a security-scoped grant?
+        try {
+            const granted = await requireFolderAccess().requestAccess(path);
+            probe('request-access', { granted });
+            await readViaRnfs('rnfs-with-access', path);
+            await requireFolderAccess().releaseAccess(path);
+        } catch (err) {
+            failed('rnfs-with-access', err);
+        }
+
+        // Native opendir()/readdir() inside a security scope - never reached on iOS today,
+        // because readdir() routes file:// URIs to RNFS and only content:// URIs here.
+        try {
+            const entries = await requireFolderAccess().listFiles(path);
+            probe('folder-access-listfiles', { count: entries.length, names: names(entries) });
+        } catch (err) {
+            failed('folder-access-listfiles', err);
+        }
+
+        try {
+            probe('folder-access-exists', { exists: await requireFolderAccess().exists(path) });
+        } catch (err) {
+            failed('folder-access-exists', err);
+        }
+
+        try {
+            const stat = await RNFS.stat(path);
+            probe('rnfs-stat', { isDirectory: stat.isDirectory(), size: stat.size });
+        } catch (err) {
+            failed('rnfs-stat', err);
+        }
     }
 
     // New helper method to encapsulate entry listing and error handling
