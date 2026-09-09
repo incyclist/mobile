@@ -214,20 +214,23 @@ export class FileSystemBinding implements IFileSystem {
 
         probe('start', { path });
 
-        // The native side tags each entry with the strategy that produced it - that tag is the
-        // only way the winning strategy reaches the app log rather than just the device console.
-        type TaggedEntry = ReadDirResult & { strategy?: string };
+        // The native side tags each entry with the strategy that produced it and whether the
+        // security scope was held - those tags are how that detail reaches the app log rather
+        // than only the device console. When no strategy finds anything it rejects instead,
+        // and the per-strategy breakdown rides along in the error message.
+        type TaggedEntry = ReadDirResult & { strategy?: string; scope?: boolean };
         let entries: TaggedEntry[];
         try {
             entries = (await requireFolderAccess().listFiles(path)) as TaggedEntry[];
         } catch (err) {
-            probe('native-list', { error: reason(err) });
+            probe('native-list', { code: (err as { code?: string })?.code ?? '-', error: reason(err) });
             return [];
         }
 
         probe('native-list', {
             count: entries.length,
             strategy: entries[0]?.strategy ?? '-',
+            scope: entries[0]?.scope ?? '-',
             names: entries.slice(0, 5).map(e => `${e.name}${e.isDirectory ? '/' : ''}`).join('|'),
         });
 

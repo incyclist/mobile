@@ -184,50 +184,61 @@ class FolderAccessModule: NSObject {
             )
 
             var result: [[String: Any]] = []
-            var lastError: String?
+            // Per-strategy detail only reaches the device console via NSLog, which the app's
+            // own event log never sees - so it travels back to JS too, tagged onto the entries
+            // when there are any and carried by the rejection when there are none.
+            var attempts: [String] = []
 
             for strategy in ListStrategy.ladder {
                 let started = Date()
                 let outcome = self.list(url, using: strategy)
                 let elapsedMs = Int(Date().timeIntervalSince(started) * 1000)
 
-                NSLog(
-                    "[FolderAccess] listFiles: strategy=%@ count=%d ms=%d error=%@",
-                    strategy.rawValue,
-                    outcome.entries.count,
-                    elapsedMs,
-                    outcome.error ?? "-"
-                )
-
+                var attempt = "\(strategy.rawValue) count=\(outcome.entries.count) ms=\(elapsedMs)"
                 if let err = outcome.error {
-                    lastError = err
+                    attempt += " error=\(err)"
                 }
+                attempts.append(attempt)
+
+                NSLog("[FolderAccess] listFiles: %@", attempt)
 
                 if !outcome.entries.isEmpty {
-                    // Tag the winning strategy onto each entry - the JS side reads it off the
-                    // first entry and logs it, which is the only way this reaches the app log.
+                    // Tag the winning strategy and the scope state onto each entry - the JS side
+                    // reads them off the first entry so they reach the app log.
                     result = outcome.entries.map { entry in
                         var tagged = entry
                         tagged["strategy"] = strategy.rawValue
+                        tagged["scope"] = accessing
                         return tagged
                     }
                     break
                 }
             }
 
+            let summary = attempts.joined(separator: "; ")
+
             lock.lock()
             let alreadySettled = settled
             settled = true
             lock.unlock()
 
-            if !alreadySettled {
-                NSLog(
-                    "[FolderAccess] listFiles: complete, %d entries (lastError=%@)",
-                    result.count,
-                    lastError ?? "-"
+            guard !alreadySettled else { return }
+
+            if result.isEmpty {
+                // Every strategy came back empty. That is a listing failure worth reporting
+                // rather than an empty folder: the caller only reaches this module after a
+                // plain listing already returned nothing.
+                NSLog("[FolderAccess] listFiles: no strategy returned entries")
+                reject(
+                    "ERR_LIST_EMPTY",
+                    "No strategy returned entries for '\(uri)' (scope=\(accessing)): \(summary)",
+                    nil
                 )
-                resolve(result)
+                return
             }
+
+            NSLog("[FolderAccess] listFiles: complete, %d entries", result.count)
+            resolve(result)
         }
 
         DispatchQueue.global().asyncAfter(deadline: .now() + LIST_TIMEOUT_SECONDS) { [weak self] in
