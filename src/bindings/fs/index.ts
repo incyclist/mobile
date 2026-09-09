@@ -177,9 +177,13 @@ export class FileSystemBinding implements IFileSystem {
         const fsEntries = await RNFS.readDir(path);
 
         // [DEBUG-smb1] An empty listing of a volume outside the app sandbox is the SMB/NAS
-        // symptom - run the strategy comparison so the log says which enumeration works.
+        // symptom - RNFS cannot see the contents of a File Provider mount. Fall back to the
+        // native ladder, which tries coordinated enumeration first.
         if (Platform.OS === 'ios' && fsEntries.length === 0 && this.isOutsideAppSandbox(path)) {
-            await this.probeIosListing(path);
+            const recovered = await this.listViaNativeLadder(path);
+            if (recovered.length > 0) {
+                return recovered;
+            }
         }
 
         return fsEntries.map(e => ({
@@ -201,66 +205,60 @@ export class FileSystemBinding implements IFileSystem {
         return !sandboxRoots.some(root => plain.startsWith(root));
     }
 
-    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is known
-    private async probeIosListing(path: string): Promise<void> {
+    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is settled
+    private async listViaNativeLadder(path: string): Promise<ReadDirResult[]> {
         const probe = (variant: string, data: Record<string, unknown>) => {
             this.logger.logEvent({ message: '[DEBUG-smb1] probe', variant, ...data });
         };
-        const failed = (variant: string, err: unknown) => {
-            probe(variant, { error: err instanceof Error ? err.message : String(err) });
-        };
-        const names = (entries: { name: string; isDirectory?: boolean }[]) =>
-            entries.slice(0, 5).map(e => `${e.name}${e.isDirectory ? '/' : ''}`).join('|');
-
-        const readViaRnfs = async (variant: string, target: string) => {
-            try {
-                const entries = await RNFS.readDir(target);
-                probe(variant, {
-                    count: entries.length,
-                    names: names(entries.map(e => ({ name: e.name, isDirectory: e.isDirectory() }))),
-                });
-            } catch (err) {
-                failed(variant, err);
-            }
-        };
+        const reason = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
         probe('start', { path });
 
-        const decoded = decodeURIComponent(path);
-        if (decoded !== path) {
-            await readViaRnfs('rnfs-decoded', decoded);
+        // The native side tags each entry with the strategy that produced it - that tag is the
+        // only way the winning strategy reaches the app log rather than just the device console.
+        type TaggedEntry = ReadDirResult & { strategy?: string };
+        let entries: TaggedEntry[];
+        try {
+            entries = (await requireFolderAccess().listFiles(path)) as TaggedEntry[];
+        } catch (err) {
+            probe('native-list', { error: reason(err) });
+            return [];
         }
 
-        // Does a plain RNFS listing work once we explicitly hold a security-scoped grant?
-        try {
-            const granted = await requireFolderAccess().requestAccess(path);
-            probe('request-access', { granted });
-            await readViaRnfs('rnfs-with-access', path);
-            await requireFolderAccess().releaseAccess(path);
-        } catch (err) {
-            failed('rnfs-with-access', err);
+        probe('native-list', {
+            count: entries.length,
+            strategy: entries[0]?.strategy ?? '-',
+            names: entries.slice(0, 5).map(e => `${e.name}${e.isDirectory ? '/' : ''}`).join('|'),
+        });
+
+        const results = entries.map(e => ({
+            name: e.name,
+            uri: this.decodeUri(e.uri),
+            isDirectory: e.isDirectory,
+        }));
+
+        // Listing is only half the job - confirm a read off the same mount works before the
+        // parser tries it, so one run also tells us whether reads need coordinating too.
+        const firstFile = results.find(e => !e.isDirectory);
+        if (firstFile) {
+            try {
+                const head = await RNFS.read(firstFile.uri, 64, 0, 'base64');
+                probe('native-list-read', { file: firstFile.name, bytes: head?.length ?? 0 });
+            } catch (err) {
+                probe('native-list-read', { file: firstFile.name, error: reason(err) });
+            }
         }
 
-        // Native opendir()/readdir() inside a security scope - never reached on iOS today,
-        // because readdir() routes file:// URIs to RNFS and only content:// URIs here.
-        try {
-            const entries = await requireFolderAccess().listFiles(path);
-            probe('folder-access-listfiles', { count: entries.length, names: names(entries) });
-        } catch (err) {
-            failed('folder-access-listfiles', err);
-        }
+        return results;
+    }
 
+    // [DEBUG-smb1] native URIs are percent-encoded absoluteStrings, while the rest of the
+    // pipeline works with decoded file:// URIs on iOS (see UIBinding.selectDirectory).
+    private decodeUri(uri: string): string {
         try {
-            probe('folder-access-exists', { exists: await requireFolderAccess().exists(path) });
-        } catch (err) {
-            failed('folder-access-exists', err);
-        }
-
-        try {
-            const stat = await RNFS.stat(path);
-            probe('rnfs-stat', { isDirectory: stat.isDirectory(), size: stat.size });
-        } catch (err) {
-            failed('rnfs-stat', err);
+            return decodeURIComponent(uri);
+        } catch {
+            return uri;
         }
     }
 
