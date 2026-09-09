@@ -261,6 +261,24 @@ describe('useFilePicker', () => {
         expect(mockKeepLocalCopy).not.toHaveBeenCalled()
     })
 
+    it('logs the picker result when name is missing, surfacing any per-file error', async () => {
+        mockPick.mockResolvedValueOnce([
+            { name: null, uri: 'file:///path/to/test.gpx', error: 'sourceAccessError', nativeType: 'public.item' },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        await result.current.pickFile()
+
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'file picker returned no name',
+                uri: 'file:///path/to/test.gpx',
+                error: 'sourceAccessError',
+                nativeType: 'public.item',
+            })
+        )
+    })
+
     it('returns null when local copy fails', async () => {
         mockPick.mockResolvedValueOnce([
             { name: 'test.gpx', uri: 'file:///path/to/test.gpx' },

@@ -69,8 +69,14 @@ export const useFilePicker = (): UseFilePickerResult => {
 
             const [result] = await pick(props)
 
-            if (!result.name)
+            if (!result) {
+                logEvent({ message:'file picker returned no result' })
                 return null;
+            }
+            if (!result.name) {
+                logEvent({ message:'file picker returned no name', uri: result.uri, error: result.error, nativeType: result.nativeType })
+                return null;
+            }
 
             // const info = getPathBinding().parse(result.name)
             // return buildFileInfo(result.name,info.base)
