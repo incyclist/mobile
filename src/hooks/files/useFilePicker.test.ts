@@ -249,9 +249,40 @@ describe('useFilePicker', () => {
         expect(mockPick).toHaveBeenCalledTimes(1)
     })
 
-    it('returns null when result has no name', async () => {
+    it('falls back to a uri-derived name and still attempts the copy when metadata has no name', async () => {
+        // Seen in production: the picker's metadata query intermittently fails (empty name,
+        // permission-flavored error) for files that keepLocalCopy can read moments later - the
+        // metadata query and the actual copy are separate native operations, so a failure in one
+        // shouldn't be treated as proof the file itself is unreadable.
         mockPick.mockResolvedValueOnce([
-            { name: undefined, uri: 'file:///path/to/test.gpx' },
+            { name: null, uri: 'file:///path/to/BarcelonaBike.gpx', error: 'permission error', nativeType: 'dyn.xyz' },
+        ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/BarcelonaBike.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        const fileInfo = await result.current.pickFile()
+
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'file picker returned no name, falling back to uri-derived name',
+                uri: 'file:///path/to/BarcelonaBike.gpx',
+                fileName: 'BarcelonaBike.gpx',
+                error: 'permission error',
+                nativeType: 'dyn.xyz',
+            })
+        )
+        expect(mockKeepLocalCopy).toHaveBeenCalledWith({
+            files: [{ uri: 'file:///path/to/BarcelonaBike.gpx', fileName: 'BarcelonaBike.gpx' }],
+            destination: 'cachesDirectory',
+        })
+        expect(fileInfo).not.toBeNull()
+    })
+
+    it('returns null when name is missing and no filename can be derived from the uri either', async () => {
+        mockPick.mockResolvedValueOnce([
+            { name: undefined, uri: 'file:///' },
         ])
 
         const { result } = renderHook(() => useFilePicker())
@@ -259,22 +290,9 @@ describe('useFilePicker', () => {
 
         expect(fileInfo).toBeNull()
         expect(mockKeepLocalCopy).not.toHaveBeenCalled()
-    })
-
-    it('logs the picker result when name is missing, surfacing any per-file error', async () => {
-        mockPick.mockResolvedValueOnce([
-            { name: null, uri: 'file:///path/to/test.gpx', error: 'sourceAccessError', nativeType: 'public.item' },
-        ])
-
-        const { result } = renderHook(() => useFilePicker())
-        await result.current.pickFile()
-
         expect(mockLogEvent).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: 'file picker returned no name',
-                uri: 'file:///path/to/test.gpx',
-                error: 'sourceAccessError',
-                nativeType: 'public.item',
+                message: 'could not derive filename from uri either, giving up',
             })
         )
     })

@@ -69,12 +69,20 @@ export const useFilePicker = (): UseFilePickerResult => {
                 logEvent({ message:'file picker returned no result' })
                 return null;
             }
-            if (!result.name) {
-                logEvent({ message:'file picker returned no name', uri: result.uri, error: result.error, nativeType: result.nativeType })
-                return null;
+            // The picker's metadata query (name/size/type) and the actual file copy below are
+            // separate native operations. The metadata query intermittently fails (empty name,
+            // permission-flavored error) for files that are perfectly readable moments later via
+            // keepLocalCopy - so fall back to a URI-derived name and still attempt the copy,
+            // rather than giving up on a file we may well be able to read.
+            let fileName = result.name
+            if (!fileName) {
+                fileName = decodeURIComponent(result.uri).split('/').pop() || ''
+                logEvent({ message:'file picker returned no name, falling back to uri-derived name', uri: result.uri, fileName, error: result.error, nativeType: result.nativeType })
+                if (!fileName) {
+                    logEvent({ message:'could not derive filename from uri either, giving up', uri: result.uri })
+                    return null
+                }
             }
-
-            const fileName = result.name
 
             logEvent({ message:'File picked', fileName, uri: result.uri })
 
