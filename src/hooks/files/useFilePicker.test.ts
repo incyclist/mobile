@@ -249,9 +249,40 @@ describe('useFilePicker', () => {
         expect(mockPick).toHaveBeenCalledTimes(1)
     })
 
-    it('returns null when result has no name', async () => {
+    it('falls back to a uri-derived name and still attempts the copy when metadata has no name', async () => {
+        // Seen in production: the picker's metadata query intermittently fails (empty name,
+        // permission-flavored error) for files that keepLocalCopy can read moments later - the
+        // metadata query and the actual copy are separate native operations, so a failure in one
+        // shouldn't be treated as proof the file itself is unreadable.
         mockPick.mockResolvedValueOnce([
-            { name: undefined, uri: 'file:///path/to/test.gpx' },
+            { name: null, uri: 'file:///path/to/BarcelonaBike.gpx', error: 'permission error', nativeType: 'dyn.xyz' },
+        ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/BarcelonaBike.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        const fileInfo = await result.current.pickFile()
+
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'file picker returned no name, falling back to uri-derived name',
+                uri: 'file:///path/to/BarcelonaBike.gpx',
+                fileName: 'BarcelonaBike.gpx',
+                error: 'permission error',
+                nativeType: 'dyn.xyz',
+            })
+        )
+        expect(mockKeepLocalCopy).toHaveBeenCalledWith({
+            files: [{ uri: 'file:///path/to/BarcelonaBike.gpx', fileName: 'BarcelonaBike.gpx' }],
+            destination: 'cachesDirectory',
+        })
+        expect(fileInfo).not.toBeNull()
+    })
+
+    it('returns null when name is missing and no filename can be derived from the uri either', async () => {
+        mockPick.mockResolvedValueOnce([
+            { name: undefined, uri: 'file:///' },
         ])
 
         const { result } = renderHook(() => useFilePicker())
@@ -259,6 +290,11 @@ describe('useFilePicker', () => {
 
         expect(fileInfo).toBeNull()
         expect(mockKeepLocalCopy).not.toHaveBeenCalled()
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'could not derive filename from uri either, giving up',
+            })
+        )
     })
 
     it('returns null when local copy fails', async () => {
@@ -281,22 +317,31 @@ describe('useFilePicker', () => {
         )
     })
 
-    it('handles ios platform with decodeURIComponent', async () => {
+    it('on iOS, goes through keepLocalCopy like Android instead of requesting open-mode access', async () => {
+        // 'open' mode requires startAccessingSecurityScopedResource() to succeed, which fails
+        // silently-from-the-app's-perspective for files vended by some third-party File Provider
+        // extensions (seen in production: a permission error on a file picked from a custom
+        // iCloud folder). Import mode + keepLocalCopy sidesteps that entirely, matching Android.
         Platform.OS = 'ios'
 
         mockPick.mockResolvedValueOnce([
             { name: 'test.gpx', uri: 'file:///path/to/test.gpx' },
         ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/test.gpx', copyError: null },
+        ])
 
         const { result } = renderHook(() => useFilePicker())
         await result.current.pickFile()
 
-        // On iOS, it returns early after decoding the URI without calling keepLocalCopy
-        expect(mockKeepLocalCopy).not.toHaveBeenCalled()
+        expect(mockKeepLocalCopy).toHaveBeenCalledWith({
+            files: [{ uri: 'file:///path/to/test.gpx', fileName: 'test.gpx' }],
+            destination: 'cachesDirectory',
+        })
         expect(mockPick).toHaveBeenCalledWith(
-            expect.objectContaining({
-                mode: 'open',
-                requestLongTermAccess: false,
+            expect.not.objectContaining({
+                mode: expect.anything(),
+                requestLongTermAccess: expect.anything(),
             })
         )
     })

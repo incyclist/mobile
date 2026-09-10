@@ -1,3 +1,5 @@
+import { StyleProp, ViewStyle } from 'react-native';
+
 export type TNavigationItem =
     | 'user'
     | 'settings'
@@ -30,4 +32,8 @@ export interface NavigationBarViewCompactProps {
     disabled?: boolean;
     onClick: (item: TNavigationItem) => void;
     showExit: boolean;
+    // Lets a caller with a definite-height container (e.g. ListPageShell's navColumnCompact box)
+    // stretch this bar to fill it (style={{flex:1}}) instead of it sizing to its own intrinsic
+    // content - left undefined, standalone/Storybook usage keeps its natural size unchanged.
+    style?: StyleProp<ViewStyle>;
 }

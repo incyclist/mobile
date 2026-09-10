@@ -175,11 +175,85 @@ export class FileSystemBinding implements IFileSystem {
 
     private async listLocalEntries(path: string): Promise<ReadDirResult[]> {
         const fsEntries = await RNFS.readDir(path);
+
+        // react-native-fs lists a directory with plain, uncoordinated calls, and drops any
+        // entry whose attributes it cannot read. Neither suits a File Provider volume, so an
+        // empty listing outside the app sandbox gets a second attempt natively - coordinated,
+        // and keeping entries whose metadata will not read.
+        if (Platform.OS === 'ios' && fsEntries.length === 0 && this.isOutsideAppSandbox(path)) {
+            const recovered = await this.listViaFileProvider(path);
+            if (recovered.length > 0) {
+                return recovered;
+            }
+        }
+
         return fsEntries.map(e => ({
             name: e.name,
             uri: `file://${e.path}`,
             isDirectory: e.isDirectory(),
         }));
+    }
+
+    /** True for volumes the app does not own - iCloud Drive, a NAS share, another provider. */
+    private isOutsideAppSandbox(path: string): boolean {
+        const plain = path.replace('file://', '');
+        const sandboxRoots = [
+            RNFS.DocumentDirectoryPath,
+            RNFS.CachesDirectoryPath,
+            RNFS.TemporaryDirectoryPath,
+            RNFS.LibraryDirectoryPath,
+        ].filter(Boolean);
+        return !sandboxRoots.some(root => plain.startsWith(root));
+    }
+
+    /**
+     * Second attempt at listing a directory on a volume the app does not own, using the
+     * native coordinated read.
+     *
+     * Returns an empty list rather than throwing when the volume will not enumerate: an SMB
+     * share on a QNAP or Synology NAS reports every folder as empty to a third-party app,
+     * which is Apple's FB8902970 and not fixable here. The rejection carries what each
+     * strategy saw, which is worth logging when a user reports an empty-looking folder.
+     */
+    private async listViaFileProvider(path: string): Promise<ReadDirResult[]> {
+        type TaggedEntry = ReadDirResult & { strategy?: string; scope?: boolean };
+        let entries: TaggedEntry[];
+
+        try {
+            entries = (await requireFolderAccess().listFiles(path)) as TaggedEntry[];
+        } catch (err) {
+            this.logger.logEvent({
+                message: 'directory will not enumerate',
+                path,
+                code: (err as { code?: string })?.code ?? '-',
+                error: err instanceof Error ? err.message : String(err),
+            });
+            return [];
+        }
+
+        this.logger.logEvent({
+            message: 'directory listed natively',
+            path,
+            count: entries.length,
+            strategy: entries[0]?.strategy ?? '-',
+            scope: entries[0]?.scope ?? '-',
+        });
+
+        return entries.map(e => ({
+            name: e.name,
+            uri: this.decodeUri(e.uri),
+            isDirectory: e.isDirectory,
+        }));
+    }
+
+    // Native URIs are percent-encoded absoluteStrings, while the rest of the pipeline works
+    // with decoded file:// URIs on iOS (see UIBinding.selectDirectory).
+    private decodeUri(uri: string): string {
+        try {
+            return decodeURIComponent(uri);
+        } catch {
+            return uri;
+        }
     }
 
     // New helper method to encapsulate entry listing and error handling

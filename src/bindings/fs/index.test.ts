@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { TurboModuleRegistry } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
 import { FileSystemBinding } from './index';
 
 jest.mock('react-native-fs', () => ({
@@ -12,6 +12,10 @@ jest.mock('react-native-fs', () => ({
         mkdir: jest.fn(),
         unlink: jest.fn(),
         appendFile: jest.fn(),
+        DocumentDirectoryPath: '/app/Documents',
+        CachesDirectoryPath: '/app/Library/Caches',
+        TemporaryDirectoryPath: '/app/tmp',
+        LibraryDirectoryPath: '/app/Library',
     },
 }));
 
@@ -256,6 +260,64 @@ describe('FileSystemBinding', () => {
             folderAccess.listFiles.mockResolvedValue(folderAccessEntries);
             const result = await fs.readdir('content://root', { extended: true });
             expect(result).toEqual(folderAccessEntries);
+        });
+
+        describe('iOS volume outside the app sandbox', () => {
+            const externalPath =
+                'file:///private/var/mobile/Library/LiveFiles/com.apple.filesystems.smbclientd/share/routes';
+
+            beforeEach(() => {
+                Platform.OS = 'ios';
+            });
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('empty RNFS listing → retries natively and returns its entries, uri-decoded', async () => {
+                rnfs.readDir.mockResolvedValue([]);
+                folderAccess.listFiles.mockResolvedValue([
+                    {
+                        name: 'Col du Galibier.xml',
+                        uri: `${externalPath}/Col%20du%20Galibier.xml`,
+                        isDirectory: false,
+                        strategy: 'coordinated-contents',
+                    },
+                ]);
+
+                const result = await fs.readdir(externalPath, { extended: true });
+
+                expect(folderAccess.listFiles).toHaveBeenCalledWith(externalPath);
+                expect(result).toEqual([
+                    {
+                        name: 'Col du Galibier.xml',
+                        uri: `${externalPath}/Col du Galibier.xml`,
+                        isDirectory: false,
+                    },
+                ]);
+            });
+
+            it('volume that will not enumerate → resolves empty instead of throwing', async () => {
+                // A QNAP/Synology SMB share reports every folder as empty (Apple FB8902970);
+                // the native side rejects so the reason can be logged, but a failed listing
+                // must not take down the scan.
+                rnfs.readDir.mockResolvedValue([]);
+                const err = Object.assign(new Error('No strategy returned entries'), {
+                    code: 'ERR_LIST_EMPTY',
+                });
+                folderAccess.listFiles.mockRejectedValue(err);
+
+                await expect(fs.readdir(externalPath, { extended: true })).resolves.toEqual([]);
+            });
+
+            it('path inside the app sandbox → stays on RNFS', async () => {
+                rnfs.readDir.mockResolvedValue([]);
+
+                const result = await fs.readdir('/app/Documents/routes', { extended: true });
+
+                expect(folderAccess.listFiles).not.toHaveBeenCalled();
+                expect(result).toEqual([]);
+            });
         });
 
         it('error on root path → re-throws', async () => {

@@ -36,7 +36,7 @@ export const RideSettingsView = ({
     return (
         <Dialog
             title="Ride View"
-            variant="details"
+            variant="full"
             onOutsideClick={onClose}
             buttons={[{ label: 'Close', primary: true, onClick: onClose }]}
         >

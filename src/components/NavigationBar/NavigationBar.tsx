@@ -104,6 +104,10 @@ export const NavigationBar = (props: NavigationBarProps) => {
                     onClick={handleOnClick}
                     showExit={showExitIcon}
                     disabled={disabled}
+                    // ListPageShell's navColumnCompact wrapper gives this a definite height -
+                    // stretch to fill it rather than sizing to intrinsic content, which used to
+                    // leave unfilled transparent space below the visible bar.
+                    style={{ flex: 1 }}
                 />
             ) : (
                 <NavigationBarView

@@ -12,7 +12,13 @@ import {
     ExitIcon,
 } from '../../assets/icons';
 
-export const COMPACT_NAV_HEIGHT = textSizes.smallText + 16;
+// Measured (onLayout, real device) content height of this bar - `textSizes.smallText + 16` looks
+// like the obvious formula but undercounts the icon+label row's real height once line-height is
+// included (28 vs the real 45.33), and was never actually wired up to anything until now. Anyone
+// consuming this (ListPageShell's navColumnCompact box, SettingsSlideIn's peek-through strip)
+// needs the real number, not a derivation that looks right but isn't - re-measure via onLayout
+// if this row's content ever changes rather than adjusting the formula blind.
+export const COMPACT_NAV_HEIGHT = 45.33;
 
 // Helper for rendering icons based on the TNavigationItem
 const renderIcon = (item: TNavigationItem, isSelected: boolean, disabled:boolean=false) => {
@@ -72,12 +78,12 @@ const leftItems: { item: TNavigationItem; label: string }[] = [
 
 
 export const NavigationBarViewCompact = (props: NavigationBarViewCompactProps) => {
-    const { selected, disabled=false, showExit, onClick } = props;
+    const { selected, disabled=false, showExit, onClick, style } = props;
 
     const rightItems: TNavigationItem[] = showExit ? ['exit','settings', 'user' ] : ['settings', 'user' ];
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             <View style={styles.leftItemsContainer}>
                 {leftItems.map(({ item, label }) => (
                     <CompactNavItem
