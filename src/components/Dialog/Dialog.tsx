@@ -376,6 +376,8 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             height: isCompact ? undefined : '100%',
             borderRadius: 0,
             maxHeight: '100%',
+            paddingLeft: safeAreaLeft,
+            paddingRight: safeAreaRight,
         },
     });
 };
