@@ -21,17 +21,24 @@ import Foundation
  *    then left to finish on its own, rather than having its directory handle
  *    closed from the timeout thread while the reader is still walking it.
  *
- * 3. Listing walks a ladder of enumeration strategies (see ListStrategy) and
- *    returns the first non-empty result, tagging each entry with the strategy
- *    that produced it so the caller can log which one worked.
+ * 3. Listing walks a short ladder of enumeration strategies (see ListStrategy)
+ *    and returns the first non-empty result, tagging each entry with the
+ *    strategy that produced it so the caller can log which one worked.
  *
- * 4. NSFileCoordinator IS used, and comes first in the ladder. An earlier
- *    version of this file asserted the opposite — that coordination adds
- *    nothing for network-backed file:// paths. A device probe against an SMB
- *    share disproved that: opendir() and contentsOfDirectory both report the
- *    folder as empty, while the document picker — which reads the very same
- *    folder through NSFileCoordinator — sees its contents. An uncoordinated
- *    read does not make the provider populate the directory.
+ * 4. NSFileCoordinator IS used, and comes first. An earlier version of this
+ *    file asserted the opposite — that coordination adds nothing for
+ *    network-backed file:// paths — while itself using opendir(). Coordination
+ *    is what a File Provider expects, so it leads.
+ *
+ *    It does not, however, rescue an SMB share on a QNAP (or Synology) NAS.
+ *    iOS cannot enumerate a non-empty folder on those servers from a
+ *    third-party app at all: coordinated reads, an enumerator and raw
+ *    opendir() alike return zero entries with no error, while the Files app
+ *    browses the same share and per-file access works. That is Apple's
+ *    FB8902970, open since 2020 — an automount-level server fault below these
+ *    APIs, with no known workaround. Nothing here can fix it; the empty
+ *    listing is reported as ERR_LIST_EMPTY so the caller can say something
+ *    truthful rather than "folder is empty".
  *
  * 5. Operations run on a background queue — the main thread is never blocked.
  *
@@ -267,19 +274,16 @@ class FolderAccessModule: NSObject {
 
     private enum ListStrategy: String {
         case coordinatedContents = "coordinated-contents"
-        case coordinatedEnumerator = "coordinated-enumerator"
         case contentsOfDirectory = "contents-of-directory"
-        case posixOpendir = "posix-opendir"
 
-        /// Coordinated reads first: those are the ones a File Provider answers.
-        /// The uncoordinated pair stays behind them as a cheap local-path fast path
-        /// and as evidence, since both are known to come back empty on SMB.
-        static let ladder: [ListStrategy] = [
-            .coordinatedContents,
-            .coordinatedEnumerator,
-            .contentsOfDirectory,
-            .posixOpendir
-        ]
+        /// Coordinated first - that is what a File Provider expects, and it costs nothing
+        /// on a local path. The uncoordinated read stays behind it in case coordination
+        /// itself fails.
+        ///
+        /// A coordinated enumerator and a raw opendir()/readdir() were both tried here as
+        /// well. Neither made any difference on the case this exists for (see listFiles),
+        /// so neither is worth the code.
+        static let ladder: [ListStrategy] = [.coordinatedContents, .contentsOfDirectory]
     }
 
     private struct ListOutcome {
@@ -291,12 +295,8 @@ class FolderAccessModule: NSObject {
         switch strategy {
         case .coordinatedContents:
             return coordinated(url) { self.listViaContentsOfDirectory($0) }
-        case .coordinatedEnumerator:
-            return coordinated(url) { self.listViaEnumerator($0) }
         case .contentsOfDirectory:
             return listViaContentsOfDirectory(url)
-        case .posixOpendir:
-            return listViaPosix(url)
         }
     }
 
@@ -333,47 +333,6 @@ class FolderAccessModule: NSObject {
         } catch {
             return ListOutcome(entries: [], error: error.localizedDescription)
         }
-    }
-
-    private func listViaEnumerator(_ url: URL) -> ListOutcome {
-        guard let enumerator = FileManager.default.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsSubdirectoryDescendants],
-            errorHandler: nil
-        ) else {
-            return ListOutcome(entries: [], error: "enumerator could not be created")
-        }
-
-        var entries: [[String: Any]] = []
-        for case let child as URL in enumerator {
-            entries.append(self.describe(child))
-        }
-        return ListOutcome(entries: entries, error: nil)
-    }
-
-    private func listViaPosix(_ url: URL) -> ListOutcome {
-        guard let dir = opendir(url.path) else {
-            return ListOutcome(entries: [], error: "opendir: \(String(cString: strerror(errno)))")
-        }
-        defer { closedir(dir) }
-
-        var entries: [[String: Any]] = []
-        while let entry = readdir(dir) {
-            let name = withUnsafeBytes(of: entry.pointee.d_name) { ptr -> String in
-                let buf = ptr.bindMemory(to: CChar.self)
-                return String(cString: buf.baseAddress!)
-            }
-
-            if name == "." || name == ".." { continue }
-
-            entries.append([
-                "name": name,
-                "uri": url.appendingPathComponent(name).absoluteString,
-                "isDirectory": entry.pointee.d_type == DT_DIR
-            ])
-        }
-        return ListOutcome(entries: entries, error: nil)
     }
 
     /**

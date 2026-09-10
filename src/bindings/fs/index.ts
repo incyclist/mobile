@@ -176,11 +176,12 @@ export class FileSystemBinding implements IFileSystem {
     private async listLocalEntries(path: string): Promise<ReadDirResult[]> {
         const fsEntries = await RNFS.readDir(path);
 
-        // [DEBUG-smb1] An empty listing of a volume outside the app sandbox is the SMB/NAS
-        // symptom - RNFS cannot see the contents of a File Provider mount. Fall back to the
-        // native ladder, which tries coordinated enumeration first.
+        // react-native-fs lists a directory with plain, uncoordinated calls, and drops any
+        // entry whose attributes it cannot read. Neither suits a File Provider volume, so an
+        // empty listing outside the app sandbox gets a second attempt natively - coordinated,
+        // and keeping entries whose metadata will not read.
         if (Platform.OS === 'ios' && fsEntries.length === 0 && this.isOutsideAppSandbox(path)) {
-            const recovered = await this.listViaNativeLadder(path);
+            const recovered = await this.listViaFileProvider(path);
             if (recovered.length > 0) {
                 return recovered;
             }
@@ -193,7 +194,7 @@ export class FileSystemBinding implements IFileSystem {
         }));
     }
 
-    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is known
+    /** True for volumes the app does not own - iCloud Drive, a NAS share, another provider. */
     private isOutsideAppSandbox(path: string): boolean {
         const plain = path.replace('file://', '');
         const sandboxRoots = [
@@ -205,58 +206,48 @@ export class FileSystemBinding implements IFileSystem {
         return !sandboxRoots.some(root => plain.startsWith(root));
     }
 
-    // [DEBUG-smb1] temporary diagnostic - remove once the SMB enumeration cause is settled
-    private async listViaNativeLadder(path: string): Promise<ReadDirResult[]> {
-        const probe = (variant: string, data: Record<string, unknown>) => {
-            this.logger.logEvent({ message: '[DEBUG-smb1] probe', variant, ...data });
-        };
-        const reason = (err: unknown) => (err instanceof Error ? err.message : String(err));
-
-        probe('start', { path });
-
-        // The native side tags each entry with the strategy that produced it and whether the
-        // security scope was held - those tags are how that detail reaches the app log rather
-        // than only the device console. When no strategy finds anything it rejects instead,
-        // and the per-strategy breakdown rides along in the error message.
+    /**
+     * Second attempt at listing a directory on a volume the app does not own, using the
+     * native coordinated read.
+     *
+     * Returns an empty list rather than throwing when the volume will not enumerate: an SMB
+     * share on a QNAP or Synology NAS reports every folder as empty to a third-party app,
+     * which is Apple's FB8902970 and not fixable here. The rejection carries what each
+     * strategy saw, which is worth logging when a user reports an empty-looking folder.
+     */
+    private async listViaFileProvider(path: string): Promise<ReadDirResult[]> {
         type TaggedEntry = ReadDirResult & { strategy?: string; scope?: boolean };
         let entries: TaggedEntry[];
+
         try {
             entries = (await requireFolderAccess().listFiles(path)) as TaggedEntry[];
         } catch (err) {
-            probe('native-list', { code: (err as { code?: string })?.code ?? '-', error: reason(err) });
+            this.logger.logEvent({
+                message: 'directory will not enumerate',
+                path,
+                code: (err as { code?: string })?.code ?? '-',
+                error: err instanceof Error ? err.message : String(err),
+            });
             return [];
         }
 
-        probe('native-list', {
+        this.logger.logEvent({
+            message: 'directory listed natively',
+            path,
             count: entries.length,
             strategy: entries[0]?.strategy ?? '-',
             scope: entries[0]?.scope ?? '-',
-            names: entries.slice(0, 5).map(e => `${e.name}${e.isDirectory ? '/' : ''}`).join('|'),
         });
 
-        const results = entries.map(e => ({
+        return entries.map(e => ({
             name: e.name,
             uri: this.decodeUri(e.uri),
             isDirectory: e.isDirectory,
         }));
-
-        // Listing is only half the job - confirm a read off the same mount works before the
-        // parser tries it, so one run also tells us whether reads need coordinating too.
-        const firstFile = results.find(e => !e.isDirectory);
-        if (firstFile) {
-            try {
-                const head = await RNFS.read(firstFile.uri, 64, 0, 'base64');
-                probe('native-list-read', { file: firstFile.name, bytes: head?.length ?? 0 });
-            } catch (err) {
-                probe('native-list-read', { file: firstFile.name, error: reason(err) });
-            }
-        }
-
-        return results;
     }
 
-    // [DEBUG-smb1] native URIs are percent-encoded absoluteStrings, while the rest of the
-    // pipeline works with decoded file:// URIs on iOS (see UIBinding.selectDirectory).
+    // Native URIs are percent-encoded absoluteStrings, while the rest of the pipeline works
+    // with decoded file:// URIs on iOS (see UIBinding.selectDirectory).
     private decodeUri(uri: string): string {
         try {
             return decodeURIComponent(uri);
