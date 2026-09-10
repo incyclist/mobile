@@ -186,7 +186,14 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaLeft, safeAreaRight,  nested });
+    // Symmetric, not directional: the header title and the (centered) footer button bar would
+    // look optically off-balance if only the cutout side were padded. The dialog's own
+    // background always runs to the physical edge (see statusBarTranslucent/
+    // navigationBarTranslucent on the Modals below) - only this content-side padding keeps text
+    // and controls clear of the cutout.
+    const safeAreaPad = variant === 'full' ? Math.max(safeAreaLeft, safeAreaRight) : 0;
+
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaPad, nested });
 
     // FIXES_BACKLOG #52 — workaround for a React Native new-architecture defect on iOS: when a
     // child view is added to an already-mounted subtree inside a <Modal>, Fabric calls
@@ -219,10 +226,12 @@ export const Dialog = ({
             <Modal
                 transparent={true}
                 visible={isModalActive}
-                supportedOrientations={['landscape']} 
+                supportedOrientations={['landscape']}
                 animationType="none"
-                presentationStyle="overFullScreen"                              
+                presentationStyle="overFullScreen"
                 onRequestClose={onOutsideClick}
+                statusBarTranslucent
+                navigationBarTranslucent
             >
                 <GestureHandlerRootView style={styles.fullScreenWrapper}>
                     <Animated.View style={[
@@ -263,8 +272,10 @@ export const Dialog = ({
             visible={isModalActive}
             animationType="fade"
             onRequestClose={onOutsideClick}
-            presentationStyle="overFullScreen"              
+            presentationStyle="overFullScreen"
             supportedOrientations={['landscape']}
+            statusBarTranslucent
+            navigationBarTranslucent
         >
             <GestureHandlerRootView style={styles.fullScreenWrapper}>
                 <TouchableWithoutFeedback onPress={onOutsideClick}>
@@ -302,7 +313,7 @@ type StyleProps = {
     nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaLeft, safeAreaRight, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaLeft: number, safeAreaRight: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaPad, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaPad: number }) => {
     const isInfoVariant = variant === 'info';
 
     return StyleSheet.create({
@@ -321,10 +332,13 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             borderRadius: variant === 'full' ? 0 : 12,
             overflow: 'hidden',
             color: colors.text,
-            // Keep content clear of the notch (left/right in this landscape-locked app) and the
-            // home indicator (bottom).
-            paddingLeft: safeAreaLeft,
-            paddingRight: safeAreaRight,
+            // The dialog's own gradient/background always runs to the physical screen edge
+            // (statusBarTranslucent/navigationBarTranslucent on the Modals below let the window
+            // draw under the notch/cutout) - this padding only keeps the *content* (header,
+            // buttons) clear of it. Content-only, so it's on `container` (the element
+            // DialogContent's children sit inside), not on the background surface itself.
+            paddingLeft: safeAreaPad,
+            paddingRight: safeAreaPad,
             // Shadow and thin white frame for info variant only
             ...( (isInfoVariant||nested) && {
                 borderWidth: 1,

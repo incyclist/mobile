@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainBackground } from '../MainBackground';
 import { NavigationBar } from '../NavigationBar';
+import { COMPACT_NAV_HEIGHT } from '../NavigationBar/NavigationBarViewCompact';
 import { colors, textSizes } from '../../theme';
 import { ListPageShellProps } from './types';
 
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
         width: 150,
     },
     navColumnCompact: {
-        height: 56,
+        height: COMPACT_NAV_HEIGHT,
         width: '100%',
     },
     contentColumn: {

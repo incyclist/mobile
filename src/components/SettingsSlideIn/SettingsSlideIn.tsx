@@ -8,11 +8,13 @@ import {
     useWindowDimensions,
     Platform,
     Text,
-    DimensionValue
+    DimensionValue,
+    Dimensions
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SettingsSlideInProps } from './types';
 import { colors, textSizes } from '../../theme';
+import { COMPACT_NAV_HEIGHT } from '../NavigationBar/NavigationBarViewCompact';
 import { useLogging, useScreenLayout } from '../../hooks';
 
 const gradientColors = colors.dialogBackground;
@@ -27,16 +29,19 @@ export const SettingsSlideIn = ({
     onClose,
     onSectionPress
 }: SettingsSlideInProps) => {
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const { width: screenWidth } = useWindowDimensions();
     const { logEvent } = useLogging('SettingsSlideIn');
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
-    const NAV_BAR_HEIGHT = 56;
-
     // Layout calculations
-    const stripSize = isCompact ? NAV_BAR_HEIGHT : 150;
+    const stripSize = isCompact ? COMPACT_NAV_HEIGHT : 150;
     const panelWidth = screenWidth * 0.35;
-    const totalSize = isCompact ? screenHeight : (stripSize + panelWidth);
+    // Dimensions.get('screen'), not useWindowDimensions() - confirmed on-device that the window
+    // height under-reports the true screen by ~15dp (the gesture-bar inset), even though the app
+    // actually renders behind it. Using the window value here left the compact panel short of
+    // the real bottom edge by exactly that amount.
+    const rawScreenHeight = Dimensions.get('screen').height;
+    const totalSize = isCompact ? rawScreenHeight : (stripSize + panelWidth);
     
     // Start off-screen
     const animPos = useRef(new Animated.Value(-totalSize)).current;
@@ -85,8 +90,8 @@ export const SettingsSlideIn = ({
     const backdropPointerEvents = visible ? 'auto' : 'none';
     const backdropOpacity = visible ? 1 : 0;
 
-    const dynamicContainerStyle = isCompact 
-        ? { height: totalSize, width: screenWidth, flexDirection: 'column' as const } 
+    const dynamicContainerStyle = isCompact
+        ? { height: totalSize, width: screenWidth, flexDirection: 'column' as const }
         : { width: totalSize, flexDirection: 'row' as const };
 
     const dynamicTransform = isCompact 
@@ -97,13 +102,13 @@ export const SettingsSlideIn = ({
         ? { height: stripSize, width: '100%' as DimensionValue } 
         : { width: stripSize, height: '100%' as DimensionValue };
 
-    const dynamicPanelStyle = isCompact 
-        ? { flex: 1, width: '100%' as DimensionValue } 
+    const dynamicPanelStyle = isCompact
+        ? { flex: 1, width: '100%' as DimensionValue }
         : { width: panelWidth, height: '100%' as DimensionValue };
 
     return (
-        <View 
-            style={StyleSheet.absoluteFill} 
+        <View
+            style={StyleSheet.absoluteFill}
             pointerEvents={visible || isAnimating ? 'box-none' : 'none'}
             testID="settings-slide-in"
         >
@@ -138,9 +143,9 @@ export const SettingsSlideIn = ({
                 >
                     <View style={styles.content}>
                         {sections.map((section) => (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 key={section.label}
-                                style={styles.row} 
+                                style={styles.row}
                                 onPress={() => handleSectionPress(section.label)}
                                 testID={`section-${section.label}`}
                             >
@@ -179,6 +184,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 20,
+        // No safe-area inset here: this panel is nested inside ListPageShell's own tree, which
+        // already shifts everything (including where this mounts) clear of the notch/cutout via
+        // its own paddingLeft/paddingRight - adding it again here doubled the inset.
         paddingHorizontal: 20,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.15)',

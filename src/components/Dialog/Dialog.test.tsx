@@ -1,7 +1,8 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as SafeAreaContext from 'react-native-safe-area-context';
+import { EventLogger } from 'gd-eventlog';
 import { Dialog } from './Dialog';
 import { ButtonBar } from '../ButtonBar';
 
@@ -113,13 +114,60 @@ describe('Dialog', () => {
     });
 
     // App is landscape-locked, so the notch sits on left/right (whichever edge the current
-    // rotation puts it on) and the home indicator sits at the bottom, not top.
+    // rotation puts it on). Design intent (UX-reviewed): decorative pixels (the dialog's own
+    // gradient/background) always run to the physical screen edge - the Modal is told to draw
+    // under the cutout (statusBarTranslucent/navigationBarTranslucent) rather than let Android
+    // auto-inset the window - and only the *content* (header, buttons) is padded away from it.
+    // Padding is symmetric (max(left,right)), not directional: the header title and the
+    // (centered) footer button bar would look optically off-balance if only the cutout side
+    // were padded. An earlier version of this fix padded content AND let the OS auto-inset the
+    // window, which doubled the inset - hence asserting both halves here, not just one.
     describe('safe-area insets', () => {
         afterEach(() => {
             jest.restoreAllMocks();
         });
 
-        it('pads the dialog surface for the notch (left/right) and home indicator (bottom)', () => {
+        it('lets the Modal window draw under the notch (no OS-level auto-inset) for both variants', () => {
+            const { UNSAFE_root: fullRoot } = render(
+                <Dialog title="Test Dialog" variant="full">
+                    <Text>content</Text>
+                </Dialog>
+            );
+            const fullModal = fullRoot.findByType(Modal);
+            expect(fullModal.props.statusBarTranslucent).toBe(true);
+            expect(fullModal.props.navigationBarTranslucent).toBe(true);
+
+            const { UNSAFE_root: detailsRoot } = render(
+                <Dialog title="Test Dialog" variant="details">
+                    <Text>content</Text>
+                </Dialog>
+            );
+            const detailsModal = detailsRoot.findByType(Modal);
+            expect(detailsModal.props.statusBarTranslucent).toBe(true);
+            expect(detailsModal.props.navigationBarTranslucent).toBe(true);
+        });
+
+        it('pads dialog content symmetrically by the larger of left/right, not directionally', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 10, left: 24, right: 0, bottom: 34 });
+
+            const { UNSAFE_root } = render(
+                <Dialog title="Test Dialog" variant="full">
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            const container = UNSAFE_root.findAllByType(View).find((v: any) => {
+                const flat = StyleSheet.flatten(v.props.style);
+                return flat?.overflow === 'hidden';
+            });
+
+            expect(container).toBeTruthy();
+            const flat = StyleSheet.flatten(container!.props.style);
+            expect(flat.paddingLeft).toBe(24);
+            expect(flat.paddingRight).toBe(24);
+        });
+
+        it('does not pad dialog if its not full', () => {
             jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 10, left: 24, right: 0, bottom: 34 });
 
             const { UNSAFE_root } = render(
@@ -135,11 +183,11 @@ describe('Dialog', () => {
 
             expect(container).toBeTruthy();
             const flat = StyleSheet.flatten(container!.props.style);
-            expect(flat.paddingLeft).toBe(24);
+            expect(flat.paddingLeft).toBe(0);
             expect(flat.paddingRight).toBe(0);
         });
 
-        it('pads the full-variant content area for the notch/home indicator too', () => {
+        it('pads the full-variant content area symmetrically too', () => {
             jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 0, right: 28, bottom: 21 });
 
             const { UNSAFE_root } = render(
@@ -155,7 +203,25 @@ describe('Dialog', () => {
 
             expect(fullContentArea).toBeTruthy();
             const flat = StyleSheet.flatten(fullContentArea!.props.style);
+            expect(flat.paddingLeft).toBe(28);
             expect(flat.paddingRight).toBe(28);
+        });
+
+        it('still surfaces the raw insets on the dialog-shown log event, for on-device diagnosis', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 24, right: 0, bottom: 0 });
+            const logSpy = jest.spyOn(EventLogger.prototype, 'logEvent');
+
+            render(
+                <Dialog title="Test Dialog">
+                    <Text>content</Text>
+                </Dialog>
+            );
+
+            expect(logSpy).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'dialog shown',
+                safeAreaLeft: 24,
+                safeAreaRight: 0,
+            }));
         });
     });
 });

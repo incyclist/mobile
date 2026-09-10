@@ -1,5 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import * as SafeAreaContext from 'react-native-safe-area-context';
 import { SettingsSlideIn } from './SettingsSlideIn';
 import { SettingsSectionItem } from './types';
 
@@ -67,5 +69,31 @@ describe('SettingsSlideIn', () => {
 
         fireEvent.press(getByTestId('settings-backdrop'));
         expect(onClose).toHaveBeenCalled();
+    });
+
+    // This panel is always mounted inside ListPageShell's own tree (via NavigationBar), which
+    // already shifts everything clear of the notch/cutout via its own paddingLeft/paddingRight -
+    // adding a second safe-area inset here doubled it. Row padding is the fixed baseline only.
+    describe('safe-area insets', () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('does not add its own safe-area inset on top of the baseline row padding', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 30, right: 0, bottom: 0 });
+
+            const { getByTestId } = render(
+                <SettingsSlideIn
+                    visible={true}
+                    sections={MOCK_SECTIONS}
+                    onClose={jest.fn()}
+                    onSectionPress={jest.fn()}
+                />
+            );
+
+            const row = getByTestId('section-Gear');
+            const flat = StyleSheet.flatten(row.props.style);
+            expect(flat.paddingHorizontal).toBe(20);
+        });
     });
 });
