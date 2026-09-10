@@ -91,7 +91,7 @@ export const SettingsSlideIn = ({
     const backdropOpacity = visible ? 1 : 0;
 
     const dynamicContainerStyle = isCompact
-        ? { height: totalSize, width: screenWidth, flexDirection: 'column' as const }
+        ? { height: totalSize, width: '100%' as DimensionValue , flexDirection: 'column' as const }
         : { width: totalSize, flexDirection: 'row' as const };
 
     const dynamicTransform = isCompact 
