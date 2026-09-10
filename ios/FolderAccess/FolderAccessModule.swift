@@ -54,7 +54,7 @@ class FolderAccessModule: NSObject {
     private let TIMEOUT_SECONDS: Double = 10.0
 
     /** Listing walks several strategies, and a coordinated read of a network share is slow. */
-    private let LIST_TIMEOUT_SECONDS: Double = 20.0
+    private let listTimeoutSeconds: Double = 20.0
 
     // ── Access registry ────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ class FolderAccessModule: NSObject {
             resolve(result)
         }
 
-        DispatchQueue.global().asyncAfter(deadline: .now() + LIST_TIMEOUT_SECONDS) { [weak self] in
+        DispatchQueue.global().asyncAfter(deadline: .now() + listTimeoutSeconds) { [weak self] in
             guard let self = self else { return }
             lock.lock()
             let alreadySettled = settled
@@ -256,11 +256,11 @@ class FolderAccessModule: NSObject {
             lock.unlock()
 
             if !alreadySettled {
-                NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.LIST_TIMEOUT_SECONDS)
+                NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.listTimeoutSeconds)
                 workItem.cancel()
                 reject(
                     "ERR_TIMEOUT",
-                    "listFiles timed out after \(Int(self.LIST_TIMEOUT_SECONDS))s for '\(uri)'. " +
+                    "listFiles timed out after \(Int(self.listTimeoutSeconds))s for '\(uri)'. " +
                     "Check the NAS is reachable and the folder permission is still valid.",
                     nil
                 )
