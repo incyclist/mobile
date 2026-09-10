@@ -11,6 +11,7 @@ import {
     ScrollView,
     LayoutChangeEvent
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RideMenuViewProps } from './types';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useIsTablet, useLogging } from '../../hooks';
@@ -93,6 +94,14 @@ export const RideMenuView = ({
     // tablet-width screen is not compact, so this only changes anything for typical tablets.
     const useSingleColumnRows = isTablet && !isCompact;
     const { logEvent } = useLogging('RideMenu');
+    // Not a Modal, so there's no OS-level window inset to lean on (same reasoning as
+    // SettingsSlideIn) - this opaque, left-anchored panel is the only thing keeping the header/
+    // close button and every row/footer button clear of the notch/cutout. Applied once here on
+    // the panel itself (not on each row style) so header/content/footer all inherit it via
+    // normal nested-padding stacking, on top of whatever paddingHorizontal each already has.
+    // Right is never read - this panel is always left-anchored, so its right edge sits mid-screen
+    // rather than at a physical edge a cutout could ever be on.
+    const { left: safeAreaLeft } = useSafeAreaInsets();
 
     const maxPanelWidth = isTablet ? TABLET_MAX_PANEL_WIDTH : PHONE_MAX_PANEL_WIDTH;
     const panelWidth = isCompact
@@ -290,14 +299,26 @@ export const RideMenuView = ({
         pointerEvents: panelPointerEvents as 'box-none' | 'none',
     };
 
+    // Left-anchored panel, so safeAreaRight never applies - the right edge sits mid-screen, not
+    // at a physical edge. When there's nothing to clear (safeAreaLeft=0, the common case), add no
+    // padding at all. Otherwise the inset is added as extra width, not carved out of the existing
+    // panelWidth, so the usable content area stays the same size and just shifts right by the pad.
     const panelDynamicLayout = {
-        width: panelWidth,
+        width: panelWidth + safeAreaLeft,
         transform: [{ translateY: animTranslateY }],
+        paddingLeft: safeAreaLeft,
     };
 
     return (
         <View
-            style={StyleSheet.absoluteFill}
+            // `panel`'s own zIndex:1000 below only ranks it against its sibling within this
+            // subtree (backdrop) - it has no effect on RideDashboard, which is a sibling of THIS
+            // root view several levels up (GPX/View.tsx), with its own zIndex:10. Without a
+            // zIndex here too, this whole subtree rendered underneath the dashboard on Android,
+            // making the menu's top rows unreachable. elevation is the Android-specific
+            // equivalent RN needs alongside zIndex - same pairing GPX/View.tsx's own
+            // `mapOverlay` style already uses for the same reason.
+            style={[StyleSheet.absoluteFill, styles.root]}
             pointerEvents={rootContainerPointerEvents}
         >
             <TouchableWithoutFeedback
@@ -399,6 +420,9 @@ export const RideMenuView = ({
 };
 
 const styles = StyleSheet.create({
+    root: {
+        zIndex: 1000,
+    },
     backdrop: {
         ...StyleSheet.absoluteFill,
         backgroundColor: 'rgba(0,0,0,0.4)',

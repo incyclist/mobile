@@ -16,18 +16,29 @@ import Foundation
  *    timeout, preventing dangling OS-level resource locks that survive app
  *    restart.
  *
- * 2. All I/O runs on a background DispatchWorkItem that can be cancelled.
- *    A separate timeout DispatchWorkItem cancels the I/O work item and
- *    rejects the promise if the deadline is exceeded.
+ * 2. All I/O runs on a background DispatchWorkItem. A separate timeout work
+ *    item rejects the promise once the deadline passes; the listing itself is
+ *    then left to finish on its own, rather than having its directory handle
+ *    closed from the timeout thread while the reader is still walking it.
  *
- * 3. FileManager.enumerator is used instead of contentsOfDirectory.
- *    The enumerator is lazy and yields entries one at a time, so it can be
- *    interrupted between entries when the work item is cancelled — unlike
- *    contentsOfDirectory which blocks until the full listing returns.
+ * 3. Listing walks a short ladder of enumeration strategies (see ListStrategy)
+ *    and returns the first non-empty result, tagging each entry with the
+ *    strategy that produced it so the caller can log which one worked.
  *
- * 4. NSFileCoordinator is NOT used. It wraps FileManager internally and
- *    provides no additional benefit for network-backed file:// paths while
- *    adding complexity that interferes with cancellation.
+ * 4. NSFileCoordinator IS used, and comes first. An earlier version of this
+ *    file asserted the opposite — that coordination adds nothing for
+ *    network-backed file:// paths — while itself using opendir(). Coordination
+ *    is what a File Provider expects, so it leads.
+ *
+ *    It does not, however, rescue an SMB share on a QNAP (or Synology) NAS.
+ *    iOS cannot enumerate a non-empty folder on those servers from a
+ *    third-party app at all: coordinated reads, an enumerator and raw
+ *    opendir() alike return zero entries with no error, while the Files app
+ *    browses the same share and per-file access works. That is Apple's
+ *    FB8902970, open since 2020 — an automount-level server fault below these
+ *    APIs, with no known workaround. Nothing here can fix it; the empty
+ *    listing is reported as ERR_LIST_EMPTY so the caller can say something
+ *    truthful rather than "folder is empty".
  *
  * 5. Operations run on a background queue — the main thread is never blocked.
  *
@@ -41,6 +52,9 @@ import Foundation
 class FolderAccessModule: NSObject {
 
     private let TIMEOUT_SECONDS: Double = 10.0
+
+    /** Listing walks several strategies, and a coordinated read of a network share is slow. */
+    private let listTimeoutSeconds: Double = 20.0
 
     // ── Access registry ────────────────────────────────────────────────────
 
@@ -158,8 +172,6 @@ class FolderAccessModule: NSObject {
 
         var settled = false
         let lock = NSLock()
-        var dirHandle: UnsafeMutablePointer<DIR>? = nil
-        let dirHandleLock = NSLock()
 
         let workItem = DispatchWorkItem {
             // Security scope must be started and stopped inside the work item
@@ -172,67 +184,71 @@ class FolderAccessModule: NSObject {
                 }
             }
 
-            let path = url.path
-            NSLog("[FolderAccess] listFiles: opening dir %@", path)
-
-            dirHandleLock.lock()
-            dirHandle = opendir(path)
-            dirHandleLock.unlock()
-
-            guard let dir = dirHandle else {
-                let errMsg = String(cString: strerror(errno))
-                NSLog("[FolderAccess] listFiles: opendir failed: %@", errMsg)
-                lock.lock()
-                let alreadySettled = settled
-                settled = true
-                lock.unlock()
-                if !alreadySettled {
-                    reject("ERR_LIST", "Cannot open directory '\(uri)': \(errMsg)", nil)
-                }
-                return
-            }
-
-            NSLog("[FolderAccess] listFiles: dir opened, reading entries")
+            NSLog(
+                "[FolderAccess] listFiles: scope acquired=%d, listing %@",
+                accessing ? 1 : 0,
+                url.path
+            )
 
             var result: [[String: Any]] = []
+            // Per-strategy detail only reaches the device console via NSLog, which the app's
+            // own event log never sees - so it travels back to JS too, tagged onto the entries
+            // when there are any and carried by the rejection when there are none.
+            var attempts: [String] = []
 
-            while let entry = readdir(dir) {
-                if Thread.current.isCancelled { break }
+            for strategy in ListStrategy.ladder {
+                let started = Date()
+                let outcome = self.list(url, using: strategy)
+                let elapsedMs = Int(Date().timeIntervalSince(started) * 1000)
 
-                let name = withUnsafeBytes(of: entry.pointee.d_name) { ptr -> String in
-                    let buf = ptr.bindMemory(to: CChar.self)
-                    return String(cString: buf.baseAddress!)
+                var attempt = "\(strategy.rawValue) count=\(outcome.entries.count) ms=\(elapsedMs)"
+                if let err = outcome.error {
+                    attempt += " error=\(err)"
                 }
+                attempts.append(attempt)
 
-                if name == "." || name == ".." { continue }
+                NSLog("[FolderAccess] listFiles: %@", attempt)
 
-                let childUrl = url.appendingPathComponent(name)
-                let isDir = entry.pointee.d_type == DT_DIR
-                result.append([
-                    "name": name,
-                    "uri": childUrl.absoluteString,
-                    "isDirectory": isDir
-                ])
-                NSLog("[FolderAccess] listFiles: found '%@' isDir=%d", name, isDir ? 1 : 0)
+                if !outcome.entries.isEmpty {
+                    // Tag the winning strategy and the scope state onto each entry - the JS side
+                    // reads them off the first entry so they reach the app log.
+                    result = outcome.entries.map { entry in
+                        var tagged = entry
+                        tagged["strategy"] = strategy.rawValue
+                        tagged["scope"] = accessing
+                        return tagged
+                    }
+                    break
+                }
             }
 
-            dirHandleLock.lock()
-            closedir(dir)
-            dirHandle = nil
-            dirHandleLock.unlock()
+            let summary = attempts.joined(separator: "; ")
 
             lock.lock()
             let alreadySettled = settled
             settled = true
             lock.unlock()
 
-            if !alreadySettled {
-                NSLog("[FolderAccess] listFiles: complete, %d entries", result.count)
-                resolve(result)
+            guard !alreadySettled else { return }
+
+            if result.isEmpty {
+                // Every strategy came back empty. That is a listing failure worth reporting
+                // rather than an empty folder: the caller only reaches this module after a
+                // plain listing already returned nothing.
+                NSLog("[FolderAccess] listFiles: no strategy returned entries")
+                reject(
+                    "ERR_LIST_EMPTY",
+                    "No strategy returned entries for '\(uri)' (scope=\(accessing)): \(summary)",
+                    nil
+                )
+                return
             }
+
+            NSLog("[FolderAccess] listFiles: complete, %d entries", result.count)
+            resolve(result)
         }
 
-        DispatchQueue.global().asyncAfter(deadline: .now() + TIMEOUT_SECONDS) { [weak self] in
+        DispatchQueue.global().asyncAfter(deadline: .now() + listTimeoutSeconds) { [weak self] in
             guard let self = self else { return }
             lock.lock()
             let alreadySettled = settled
@@ -240,17 +256,11 @@ class FolderAccessModule: NSObject {
             lock.unlock()
 
             if !alreadySettled {
-                NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.TIMEOUT_SECONDS)
-                dirHandleLock.lock()
-                if let dir = dirHandle {
-                    closedir(dir)
-                    dirHandle = nil
-                }
-                dirHandleLock.unlock()
+                NSLog("[FolderAccess] listFiles: TIMEOUT after %gs", self.listTimeoutSeconds)
                 workItem.cancel()
                 reject(
                     "ERR_TIMEOUT",
-                    "listFiles timed out after \(Int(self.TIMEOUT_SECONDS))s for '\(uri)'. " +
+                    "listFiles timed out after \(Int(self.listTimeoutSeconds))s for '\(uri)'. " +
                     "Check the NAS is reachable and the folder permission is still valid.",
                     nil
                 )
@@ -258,6 +268,86 @@ class FolderAccessModule: NSObject {
         }
 
         DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
+    }
+
+    // ── Enumeration strategies ─────────────────────────────────────────────
+
+    private enum ListStrategy: String {
+        case coordinatedContents = "coordinated-contents"
+        case contentsOfDirectory = "contents-of-directory"
+
+        /// Coordinated first - that is what a File Provider expects, and it costs nothing
+        /// on a local path. The uncoordinated read stays behind it in case coordination
+        /// itself fails.
+        ///
+        /// A coordinated enumerator and a raw opendir()/readdir() were both tried here as
+        /// well. Neither made any difference on the case this exists for (see listFiles),
+        /// so neither is worth the code.
+        static let ladder: [ListStrategy] = [.coordinatedContents, .contentsOfDirectory]
+    }
+
+    private struct ListOutcome {
+        var entries: [[String: Any]]
+        var error: String?
+    }
+
+    private func list(_ url: URL, using strategy: ListStrategy) -> ListOutcome {
+        switch strategy {
+        case .coordinatedContents:
+            return coordinated(url) { self.listViaContentsOfDirectory($0) }
+        case .contentsOfDirectory:
+            return listViaContentsOfDirectory(url)
+        }
+    }
+
+    /**
+     * Runs an enumeration inside an NSFileCoordinator read - the same access
+     * pattern the document picker uses successfully on these URLs.
+     */
+    private func coordinated(_ url: URL, _ enumerate: (URL) -> ListOutcome) -> ListOutcome {
+        var coordinationError: NSError?
+        var outcome = ListOutcome(entries: [], error: "accessor never ran")
+
+        NSFileCoordinator().coordinate(
+            readingItemAt: url,
+            options: [],
+            error: &coordinationError
+        ) { coordinatedUrl in
+            outcome = enumerate(coordinatedUrl)
+        }
+
+        if let err = coordinationError {
+            return ListOutcome(entries: [], error: "coordination failed: \(err.localizedDescription)")
+        }
+        return outcome
+    }
+
+    private func listViaContentsOfDirectory(_ url: URL) -> ListOutcome {
+        do {
+            let children = try FileManager.default.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: [.isDirectoryKey, .nameKey],
+                options: []
+            )
+            return ListOutcome(entries: children.map { self.describe($0) }, error: nil)
+        } catch {
+            return ListOutcome(entries: [], error: error.localizedDescription)
+        }
+    }
+
+    /**
+     * Never drops an entry whose metadata cannot be read - a missing isDirectory
+     * flag is worth far less than knowing the entry is there at all. (react-native-fs
+     * drops such entries silently, which is how this folder came back empty with
+     * no error in the first place.)
+     */
+    private func describe(_ url: URL) -> [String: Any] {
+        let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
+        return [
+            "name": url.lastPathComponent,
+            "uri": url.absoluteString,
+            "isDirectory": values?.isDirectory ?? false
+        ]
     }
 
     // ── readFile ───────────────────────────────────────────────────────────

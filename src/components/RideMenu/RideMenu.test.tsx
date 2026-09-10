@@ -1,5 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import { StyleSheet, View } from 'react-native';
+import * as SafeAreaContext from 'react-native-safe-area-context';
 import { RideMenuView } from './RideMenuView'; // Target the View component
 import { ActiveDialog } from './types'; // Import ActiveDialog type for clarity
 import { useIsTablet, useScreenLayout } from '../../hooks';
@@ -122,6 +124,47 @@ describe('RideMenuView', () => {
 
     it('renders with Step Forward disabled (last step)', () => {
         render(<RideMenuView {...workoutProps} visible={true} activeDialog={null} canStepForward={false} />);
+    });
+
+    // Not a Modal, so there's no OS-level window inset to lean on - this opaque, left-anchored
+    // panel is the only thing keeping the header/close button and every row clear of the
+    // notch/cutout. Applied once on the panel itself so header/content/footer inherit it via
+    // normal nested-padding stacking. Left-anchored, so safeAreaRight is never read - the right
+    // edge always sits mid-screen, never at a physical edge. The inset is added as extra width
+    // (not carved out of the existing panel width), so the usable content area doesn't shrink.
+    describe('safe-area insets', () => {
+        const findPanel = (root: ReturnType<typeof render>['UNSAFE_root']) =>
+            root.findAllByType(View).find((v: any) => {
+                const flat = StyleSheet.flatten(v.props.style);
+                return flat?.backgroundColor === 'rgba(0, 0, 0, 0.88)';
+            });
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('adds no padding or extra width when there is nothing to clear (safeAreaLeft=0)', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 0, right: 40, bottom: 0 });
+
+            const { UNSAFE_root } = render(<RideMenuView {...mockProps} visible={true} activeDialog={null} />);
+
+            const flat = StyleSheet.flatten(findPanel(UNSAFE_root)!.props.style);
+            expect(flat.paddingLeft).toBe(0);
+        });
+
+        it('pads the content and widens the panel by the left inset, ignoring the right inset entirely', () => {
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 0, right: 0, bottom: 0 });
+            const { UNSAFE_root: noInsetRoot } = render(<RideMenuView {...mockProps} visible={true} activeDialog={null} />);
+            const noInsetWidth = StyleSheet.flatten(findPanel(noInsetRoot)!.props.style).width;
+
+            jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 0, left: 32, right: 99, bottom: 0 });
+            const { UNSAFE_root } = render(<RideMenuView {...mockProps} visible={true} activeDialog={null} />);
+
+            const flat = StyleSheet.flatten(findPanel(UNSAFE_root)!.props.style);
+            expect(flat.paddingLeft).toBe(32);
+            expect(flat.paddingRight).toBeUndefined();
+            expect(flat.width).toBe(noInsetWidth + 32);
+        });
     });
 
     it('calls onEndRide when End Ride is pressed', () => {

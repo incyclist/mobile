@@ -108,14 +108,14 @@ export const Dialog = ({
     // App is landscape-locked, so left/right (the notch) and bottom (home indicator) are the
     // edges that actually get obscured - not top. useSafeAreaInsets() already reports these
     // relative to the current rotation, so no extra per-rotation logic is needed here.
-    const { top: safeAreaTop, left: safeAreaLeft, right: safeAreaRight, bottom: safeAreaBottom } = useSafeAreaInsets();
+    const { left: safeAreaLeft, right: safeAreaRight } = useSafeAreaInsets();
 
     const [isModalActive, setIsModalActive] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
 
     const isCompact = layout === 'compact';
     const NAV_BAR_HEIGHT = 56;
-    const stripHeight = NAV_BAR_HEIGHT + safeAreaTop;
+    const stripHeight = NAV_BAR_HEIGHT;
 
     const defaultSlideFrom = 'left';
     const actualSlideFrom = variant === 'full' ? (slideFrom || defaultSlideFrom) : undefined;
@@ -133,7 +133,7 @@ export const Dialog = ({
 
             if (visible && !refInitialized.current) {
                 refInitialized.current = true;
-                logEvent({ message: 'dialog shown', dialog: title });
+                logEvent({ message: 'dialog shown', dialog: title, variant, safeAreaLeft, safeAreaRight });
                 EventLogger.setGlobalConfig('dialog', title);
             } else if (!visible && refInitialized.current) {
                 refInitialized.current = false;
@@ -156,7 +156,7 @@ export const Dialog = ({
                 setIsAnimating(false);
                 if (!refInitialized.current) {
                     refInitialized.current = true;
-                    logEvent({ message: 'dialog shown', dialog: title });
+                    logEvent({ message: 'dialog shown', dialog: title, variant, safeAreaLeft, safeAreaRight });
                     EventLogger.setGlobalConfig('dialog', title);
                 }
             });
@@ -176,7 +176,7 @@ export const Dialog = ({
                 }
             });
         }
-    }, [visible, isModalActive, animPos, initialPos, variant, logEvent, title]);
+    }, [visible, isModalActive, animPos, initialPos, variant, logEvent, title, safeAreaLeft, safeAreaRight]);
 
     useUnmountEffect(() => {
         if (refInitialized.current) {
@@ -186,7 +186,14 @@ export const Dialog = ({
         }
     });
 
-    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaLeft, safeAreaRight, safeAreaBottom, nested });
+    // Symmetric, not directional: the header title and the (centered) footer button bar would
+    // look optically off-balance if only the cutout side were padded. The dialog's own
+    // background always runs to the physical edge (see statusBarTranslucent/
+    // navigationBarTranslucent on the Modals below) - only this content-side padding keeps text
+    // and controls clear of the cutout.
+    const safeAreaPad = variant === 'full' ? Math.max(safeAreaLeft, safeAreaRight) : 0;
+
+    const styles = getStyles({ width, height, minWidth, minHeight, variant, isCompact, stripHeight, safeAreaPad, nested });
 
     // FIXES_BACKLOG #52 — workaround for a React Native new-architecture defect on iOS: when a
     // child view is added to an already-mounted subtree inside a <Modal>, Fabric calls
@@ -219,10 +226,12 @@ export const Dialog = ({
             <Modal
                 transparent={true}
                 visible={isModalActive}
-                supportedOrientations={['landscape']} 
+                supportedOrientations={['landscape']}
                 animationType="none"
-                presentationStyle="overFullScreen"                              
+                presentationStyle="overFullScreen"
                 onRequestClose={onOutsideClick}
+                statusBarTranslucent
+                navigationBarTranslucent
             >
                 <GestureHandlerRootView style={styles.fullScreenWrapper}>
                     <Animated.View style={[
@@ -263,8 +272,10 @@ export const Dialog = ({
             visible={isModalActive}
             animationType="fade"
             onRequestClose={onOutsideClick}
-            presentationStyle="overFullScreen"              
+            presentationStyle="overFullScreen"
             supportedOrientations={['landscape']}
+            statusBarTranslucent
+            navigationBarTranslucent
         >
             <GestureHandlerRootView style={styles.fullScreenWrapper}>
                 <TouchableWithoutFeedback onPress={onOutsideClick}>
@@ -302,7 +313,7 @@ type StyleProps = {
     nested?: boolean
 }
 
-const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaLeft, safeAreaRight, safeAreaBottom, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaLeft: number, safeAreaRight: number, safeAreaBottom: number }) => {
+const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', isCompact, safeAreaPad, nested=false }: StyleProps & { isCompact: boolean, stripHeight: number, safeAreaPad: number }) => {
     const isInfoVariant = variant === 'info';
 
     return StyleSheet.create({
@@ -321,11 +332,13 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             borderRadius: variant === 'full' ? 0 : 12,
             overflow: 'hidden',
             color: colors.text,
-            // Keep content clear of the notch (left/right in this landscape-locked app) and the
-            // home indicator (bottom).
-            paddingLeft: safeAreaLeft,
-            paddingRight: safeAreaRight,
-            paddingBottom: safeAreaBottom,
+            // The dialog's own gradient/background always runs to the physical screen edge
+            // (statusBarTranslucent/navigationBarTranslucent on the Modals below let the window
+            // draw under the notch/cutout) - this padding only keeps the *content* (header,
+            // buttons) clear of it. Content-only, so it's on `container` (the element
+            // DialogContent's children sit inside), not on the background surface itself.
+            paddingLeft: safeAreaPad,
+            paddingRight: safeAreaPad,
             // Shadow and thin white frame for info variant only
             ...( (isInfoVariant||nested) && {
                 borderWidth: 1,
@@ -372,14 +385,14 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             height: isCompact ? 0 : '100%',
             width: isCompact ? '100%' : 0,
         },
+        // Left/right safe-area padding for the 'full' variant is already carried by `container`
+        // above - both land on the same BackgroundContainer element via the style array, and RN
+        // overrides rather than adds within one array, so declaring it here too was dead code.
         fullContentArea: {
             flex: 1,
             height: isCompact ? undefined : '100%',
             borderRadius: 0,
             maxHeight: '100%',
-            paddingLeft: safeAreaLeft,
-            paddingRight: safeAreaRight,
-            paddingBottom: safeAreaBottom,
         },
     });
 };

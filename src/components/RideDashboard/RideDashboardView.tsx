@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWindowDimensions, View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Icon, IconName } from '../Icon';
 import { colors, textSizes } from '../../theme';
 import { METRIC_ICON, RideDashboardViewProps, getValueColor, ActivityDashboardItem, WorkoutDashboardLine } from './types';
@@ -8,7 +8,7 @@ const SEPARATOR_WIDTH = 1; // styles.separator's own width, below
 const CONTAINER_H_PADDING = 8; // styles.container's own paddingHorizontal, below — applies on both sides
 
 export const RideDashboardView = ({ items, layout = 'icon-top', compact = false, workoutShoutout = null }: RideDashboardViewProps) => {
-    const { width } = useWindowDimensions();
+    const {width} = Dimensions.get('screen')
     const showWorkoutShoutout = !!workoutShoutout;
 
     const minColWidth = 70; // Minimum column width for calculation in compact mode
@@ -60,9 +60,9 @@ export const RideDashboardView = ({ items, layout = 'icon-top', compact = false,
         // Determine effective layout
         const effectiveLayout = compact ? 'icon-left' : (layout ?? 'icon-top');
         
-        const currentColWidth = 
-            compact 
-                ? width / visibleItems.length 
+        const currentColWidth =
+            compact
+                ? width / visibleItems.length
                 : (effectiveLayout === 'icon-left' ? colWidthLeft : colWidthBase);
         const currentIconSize = (effectiveLayout === 'icon-left' && !compact) ? iconSizeLeft : iconSizeTop;
         

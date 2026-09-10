@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainBackground } from '../MainBackground';
 import { NavigationBar } from '../NavigationBar';
+import { COMPACT_NAV_HEIGHT } from '../NavigationBar/NavigationBarViewCompact';
 import { colors, textSizes } from '../../theme';
 import { ListPageShellProps } from './types';
 
@@ -27,14 +28,14 @@ export const ListPageShell = ({
 }: ListPageShellProps) => {
     // App is landscape-locked, so the notch sits on left/right (whichever edge the current
     // rotation puts it on) and the home indicator sits at the bottom.
-    const { top, left, right, bottom } = useSafeAreaInsets();
+    const { left, right } = useSafeAreaInsets();
 
     return (
     <MainBackground>
         <View style={[
             styles.container,
             compact && styles.containerCompact,
-            { paddingTop: top, paddingLeft: left, paddingRight: right, paddingBottom: bottom },
+            { paddingLeft: left, paddingRight: right},
         ]}>
             <View style={[styles.navColumn, compact ? styles.navColumnCompact : styles.navColumnNormal]}>
                 <NavigationBar
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
         width: 150,
     },
     navColumnCompact: {
-        height: 56,
+        height: COMPACT_NAV_HEIGHT,
         width: '100%',
     },
     contentColumn: {

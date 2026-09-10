@@ -86,7 +86,7 @@ describe('ListPageShell', () => {
 
     // App is landscape-locked, so the notch sits on left/right (whichever edge the current
     // rotation puts it on) and the home indicator sits at the bottom.
-    it('pads the shell for the notch and home indicator on all four edges', () => {
+    it('pads the shell for the notch and home indicator on let and right edges', () => {
         jest.spyOn(SafeAreaContext, 'useSafeAreaInsets').mockReturnValue({ top: 5, left: 24, right: 0, bottom: 34 });
 
         const { UNSAFE_root } = render(
@@ -97,15 +97,13 @@ describe('ListPageShell', () => {
 
         const container = UNSAFE_root.findAllByType(View).find((v: any) => {
             const flat = StyleSheet.flatten(v.props.style);
-            return typeof flat?.paddingTop === 'number';
+            return typeof flat?.paddingLeft === 'number';
         });
 
         expect(container).toBeTruthy();
         const flat = StyleSheet.flatten(container!.props.style);
-        expect(flat.paddingTop).toBe(5);
         expect(flat.paddingLeft).toBe(24);
         expect(flat.paddingRight).toBe(0);
-        expect(flat.paddingBottom).toBe(34);
 
         jest.restoreAllMocks();
     });
