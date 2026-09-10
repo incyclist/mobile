@@ -133,7 +133,7 @@ export const Dialog = ({
 
             if (visible && !refInitialized.current) {
                 refInitialized.current = true;
-                logEvent({ message: 'dialog shown', dialog: title });
+                logEvent({ message: 'dialog shown', dialog: title, variant, safeAreaLeft, safeAreaRight });
                 EventLogger.setGlobalConfig('dialog', title);
             } else if (!visible && refInitialized.current) {
                 refInitialized.current = false;
@@ -156,7 +156,7 @@ export const Dialog = ({
                 setIsAnimating(false);
                 if (!refInitialized.current) {
                     refInitialized.current = true;
-                    logEvent({ message: 'dialog shown', dialog: title });
+                    logEvent({ message: 'dialog shown', dialog: title, variant, safeAreaLeft, safeAreaRight });
                     EventLogger.setGlobalConfig('dialog', title);
                 }
             });
@@ -176,7 +176,7 @@ export const Dialog = ({
                 }
             });
         }
-    }, [visible, isModalActive, animPos, initialPos, variant, logEvent, title]);
+    }, [visible, isModalActive, animPos, initialPos, variant, logEvent, title, safeAreaLeft, safeAreaRight]);
 
     useUnmountEffect(() => {
         if (refInitialized.current) {
@@ -371,13 +371,14 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             height: isCompact ? 0 : '100%',
             width: isCompact ? '100%' : 0,
         },
+        // Left/right safe-area padding for the 'full' variant is already carried by `container`
+        // above - both land on the same BackgroundContainer element via the style array, and RN
+        // overrides rather than adds within one array, so declaring it here too was dead code.
         fullContentArea: {
             flex: 1,
             height: isCompact ? undefined : '100%',
             borderRadius: 0,
             maxHeight: '100%',
-            paddingLeft: safeAreaLeft,
-            paddingRight: safeAreaRight,
         },
     });
 };
