@@ -1,18 +1,18 @@
 import { EventLogger } from "gd-eventlog"
-import { useRef } from "react"
+import { useCallback, useRef } from "react"
 
 
 export const useLogging =  ( name:string)=> {
     const refLogger = useRef<EventLogger>( new EventLogger( name) )
-
     
-    const logEvent = (event:any) => {
+    const logEvent = useCallback((event:any) => {
         refLogger.current?.logEvent(event)
-    }
+    },[])
 
-    const logError = (err:any,fn:string)=> {
+    const logError = useCallback((err:any,fn:string)=> {
         refLogger.current?.logEvent( {message:'error', fn, error:err.message, stack:err.stack})
-    }
+    },[])
+
 
     return {logEvent,logError}
 
