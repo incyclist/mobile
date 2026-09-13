@@ -58,11 +58,16 @@ export const RidePage = ({ simulate = false }: RidePageProps) => {
     }, [service] );
     
     const onCancelStart = useCallback(() => {
+        // Must run before setClosePageRequested(true) below. That state update unmounts the
+        // active ride-type page synchronously in the same commit, which tears down (and, via
+        // getRideModeService()'s lazy-create, immediately re-creates as a fresh/uninitialized
+        // instance) the ride-mode display service. service.onCancelStart() logs the Cancel event
+        // against the *current* display-service snapshot synchronously (before its own first
+        // await), so calling it first captures the real videoState/rideState at the moment the
+        // user clicked Cancel, instead of a fabricated one from a display service that was just
+        // torn down and replaced.
+        service.onCancelStart()
         setClosePageRequested(true)
-        setTimeout(() => {
-            if (!refMounted.current) return
-            service.onCancelStart()
-        }, 0)
     }, [service])
 
     const onRefreshSecrets = useCallback(async () => {
