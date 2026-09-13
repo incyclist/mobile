@@ -3,6 +3,7 @@ import { FileInfo } from 'incyclist-services'
 import { useLogging } from '../logging'
 import { Platform } from 'react-native'
 import { buildFileInfo } from '../../utils/file'
+import { sleep } from '../../utils/timers'
 
 // Module-level re-entrancy guard to prevent concurrent pick() calls
 let inFlightPick = false
@@ -15,7 +16,6 @@ let inFlightPick = false
 // surfacing an error for what is, from the user's perspective, a normal button tap.
 const NULL_PRESENTER_RETRY_DELAYS_MS = [200, 500]
 
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 const pickWithRetry = async (props: any, logEvent: (event: any) => void) => {
     for (let attempt = 0; ; attempt++) {
@@ -26,7 +26,7 @@ const pickWithRetry = async (props: any, logEvent: (event: any) => void) => {
                 throw err
             }
             logEvent({ message: 'file picker presenter not ready, retrying', attempt })
-            await delay(NULL_PRESENTER_RETRY_DELAYS_MS[attempt])
+            await sleep(NULL_PRESENTER_RETRY_DELAYS_MS[attempt])
         }
     }
 }
