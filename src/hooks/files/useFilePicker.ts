@@ -3,9 +3,33 @@ import { FileInfo } from 'incyclist-services'
 import { useLogging } from '../logging'
 import { Platform } from 'react-native'
 import { buildFileInfo } from '../../utils/file'
+import { sleep } from '../../utils/timers'
 
 // Module-level re-entrancy guard to prevent concurrent pick() calls
 let inFlightPick = false
+
+// iOS-only: @react-native-documents/picker rejects with code 'NULL_PRESENTER' when
+// RCTPresentedViewController() finds no key window at the exact moment it tries to present -
+// a narrow, transient timing gap (e.g. a system interruption - call, notification, Control
+// Center - still settling) rather than a persistent condition. Seen in production as several
+// consecutive failures within a few seconds. A short retry rides out that window instead of
+// surfacing an error for what is, from the user's perspective, a normal button tap.
+const NULL_PRESENTER_RETRY_DELAYS_MS = [200, 500]
+
+
+const pickWithRetry = async (props: any, logEvent: (event: any) => void) => {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await pick(props)
+        } catch (err: any) {
+            if (err?.code !== 'NULL_PRESENTER' || attempt >= NULL_PRESENTER_RETRY_DELAYS_MS.length) {
+                throw err
+            }
+            logEvent({ message: 'file picker presenter not ready, retrying', attempt })
+            await sleep(NULL_PRESENTER_RETRY_DELAYS_MS[attempt])
+        }
+    }
+}
 
 export interface FilePickerProps {
     extensions?:Array<string>
@@ -63,7 +87,7 @@ export const useFilePicker = (): UseFilePickerResult => {
                 })
             }
 
-            const [result] = await pick(props)
+            const [result] = await pickWithRetry(props, logEvent)
 
             if (!result) {
                 logEvent({ message:'file picker returned no result' })

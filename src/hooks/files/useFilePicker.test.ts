@@ -346,6 +346,56 @@ describe('useFilePicker', () => {
         )
     })
 
+    it('retries after a NULL_PRESENTER rejection and succeeds', async () => {
+        jest.useFakeTimers()
+
+        mockPick
+            .mockRejectedValueOnce({ code: 'NULL_PRESENTER' })
+            .mockResolvedValueOnce([{ name: 'test.gpx', uri: 'file:///path/to/test.gpx' }])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/test.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        const pickPromise = result.current.pickFile()
+
+        await jest.runAllTimersAsync()
+        const fileInfo = await pickPromise
+
+        expect(mockPick).toHaveBeenCalledTimes(2)
+        expect(fileInfo).not.toBeNull()
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'file picker presenter not ready, retrying',
+                attempt: 0,
+            })
+        )
+
+        jest.useRealTimers()
+    })
+
+    it('gives up after exhausting NULL_PRESENTER retries and rethrows', async () => {
+        jest.useFakeTimers()
+
+        mockPick.mockRejectedValue({ code: 'NULL_PRESENTER' })
+
+        const { result } = renderHook(() => useFilePicker())
+        const pickPromise = result.current.pickFile()
+        // Swallow the eventual rejection so it isn't reported as an unhandled rejection
+        // while the fake timers below are still advancing.
+        pickPromise.catch(() => {})
+
+        await jest.runAllTimersAsync()
+
+        await expect(pickPromise).rejects.toEqual(
+            expect.objectContaining({ code: 'NULL_PRESENTER' })
+        )
+        // Initial attempt + one retry per configured delay
+        expect(mockPick).toHaveBeenCalledTimes(3)
+
+        jest.useRealTimers()
+    })
+
     it('filters pick types when extensions are provided', async () => {
         mockPick.mockResolvedValueOnce([
             { name: 'test.gpx', uri: 'file:///path/to/test.gpx' },
