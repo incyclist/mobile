@@ -14,6 +14,7 @@ import { Platform } from 'react-native';
 import { getFileSystemBinding } from '../../bindings/fs';
 import { mapAndroidErrorCode } from './mapAndroidErrorCode';
 import { resolveNativeVideoSrc } from './resolveNativeVideoSrc';
+import { encodeUriIdempotent } from './encodeUriIdempotent';
 
 export const Video = (props: VideoProps) => {
     const {
@@ -303,7 +304,7 @@ export const Video = (props: VideoProps) => {
     }
 
     const nativeSrc = resolveNativeVideoSrc(src)
-    const cleanSrc =  Platform.OS==='ios' ? encodeURI(nativeSrc) : nativeSrc
+    const cleanSrc =  Platform.OS==='ios' ? encodeUriIdempotent(nativeSrc) : nativeSrc
 
     return (
         <VideoView
