@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { RidePage } from './RidePage';
 
 /**
@@ -71,6 +71,11 @@ let closePageCallCount = 0;
 let realStartCount = 0; // increments only on a genuine (non-transition) start
 let realStopCount = 0; // increments only on a genuine (non-transition) stop
 
+// Records the relative order in which the mock service's onCancelStart()/closePage() are
+// invoked - used by the Cancel-race regression tests below. Reset in the top-level beforeEach
+// so it never leaks between tests.
+let callOrder: string[] = [];
+
 const basePageProps = () => ({
     rideState: 'Active',
     startOverlayProps: null,
@@ -100,6 +105,7 @@ const mockService = {
     }),
     closePage: jest.fn(() => {
         closePageCallCount++;
+        callOrder.push('closePage');
         if (viewTransition) {
             return; // §4.5.1: closePage() swallows the teardown during a view transition
         }
@@ -116,7 +122,7 @@ const mockService = {
     onToggleCornerWidget: jest.fn(),
     onGestureHintDismissed: jest.fn(),
     onEndRide: jest.fn(),
-    onCancelStart: jest.fn(),
+    onCancelStart: jest.fn(() => { callOrder.push('onCancelStart'); }),
     onRefreshSecrets: jest.fn(),
     onContinueAnyway: jest.fn(),
     pausePage: jest.fn(),
@@ -169,8 +175,15 @@ jest.mock('../../components', () => {
 });
 
 jest.mock('./Video/View', () => {
-    const { Text } = require('react-native');
-    return { VideoRidePageView: () => <Text>video-ride-page-view</Text> };
+    const { Text, Pressable } = require('react-native');
+    return {
+        VideoRidePageView: (props: any) => (
+            <>
+                <Text>video-ride-page-view</Text>
+                <Pressable testID="video-cancel-start" onPress={props.onCancelStart} />
+            </>
+        ),
+    };
 });
 jest.mock('./GPX/View', () => {
     const { Text } = require('react-native');
@@ -179,6 +192,10 @@ jest.mock('./GPX/View', () => {
 jest.mock('./Workout/View', () => {
     const { Text } = require('react-native');
     return { WorkoutRidePageView: () => <Text>workout-ride-page-view</Text> };
+});
+
+beforeEach(() => {
+    callOrder = [];
 });
 
 describe('RidePage — route-ends-first ride-type transition', () => {
@@ -288,5 +305,60 @@ describe('RidePage — the same transition starting from a GPX ride', () => {
         expect(queryByText('gpx-tour-page-view')).toBeNull();
         expect(realStopCount).toBe(0);
         expect(pageObserver.listenerCount('ride-type-update')).toBe(1);
+    });
+});
+
+describe('RidePage — Cancel during pairing/loading logs against real state', () => {
+    /**
+     * Root cause: clicking Cancel used to call setClosePageRequested(true) BEFORE the page
+     * service's own onCancelStart() (which was deferred to a setTimeout(0)). That state update
+     * unmounts the active ride-type page synchronously in the same commit, and the page's
+     * unmount effect calls the page service's closePage() - which tears down the ride-mode
+     * display service - before the deferred onCancelStart() ever ran. onCancelStart()'s Cancel
+     * logging then always saw a freshly (re)created, uninitialized display service instead of
+     * the real one, corrupting the logged snapshot (e.g. always 'Starting'/'Closing').
+     *
+     * The fix makes onCancelStart() run synchronously, before setClosePageRequested(true), so
+     * the service's real snapshot is captured before the unmount-driven teardown. These tests
+     * assert that ordering directly against the mock service.
+     */
+    beforeEach(() => {
+        jest.clearAllMocks();
+        currentRideType = 'Video';
+        viewTransition = false;
+        openPageCallCount = 0;
+        closePageCallCount = 0;
+        realStartCount = 0;
+        realStopCount = 0;
+        pageObserver = new FakeObserver();
+        rideObserver = new FakeObserver();
+    });
+
+    it('calls the page service\'s onCancelStart() before the unmount-triggered closePage()', async () => {
+        const { getByText, getByTestId } = render(<RidePage />);
+        await waitFor(() => expect(getByText('video-ride-page-view')).toBeTruthy());
+
+        act(() => {
+            fireEvent.press(getByTestId('video-cancel-start'));
+        });
+
+        // Both must have happened (closePage() is still called - by the unmount effect, same as
+        // before)...
+        expect(mockService.onCancelStart).toHaveBeenCalledTimes(1);
+        expect(mockService.closePage).toHaveBeenCalledTimes(1);
+        // ...but onCancelStart() - which logs the Cancel event's state snapshot - must have run
+        // first, while the real display service (and its real state) still existed.
+        expect(callOrder).toEqual(['onCancelStart', 'closePage']);
+    });
+
+    it('unmounts the active ride page (replacing it with the page transition) after cancelling', async () => {
+        const { getByText, getByTestId, queryByText } = render(<RidePage />);
+        await waitFor(() => expect(getByText('video-ride-page-view')).toBeTruthy());
+
+        act(() => {
+            fireEvent.press(getByTestId('video-cancel-start'));
+        });
+
+        expect(queryByText('video-ride-page-view')).toBeNull();
     });
 });
