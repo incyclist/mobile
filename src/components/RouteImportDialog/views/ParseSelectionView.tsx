@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { RouteDisplayItem } from 'incyclist-services';
 import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
@@ -108,11 +108,12 @@ const RouteRow = ({
                         </View>
                     )}
                 </View>
-                {!isImportable && item.errorReason && (
+                {!isImportable && item.parseState==='parsed' && item.errorReason && (
                     <Text style={styles.errorText}>{friendlyError(item.errorReason)}</Text>
                 )}
             </TouchableOpacity>
-            {!isImportable && <WarningIndicator />}
+            {!isImportable && item.parseState==='parsed' && <WarningIndicator />}
+            {!isImportable && item.parseState==='parsing' &&  <ActivityIndicator size="small" />}
         </View>
     );
 };

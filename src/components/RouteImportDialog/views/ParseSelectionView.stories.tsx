@@ -10,6 +10,7 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'gpx', 
         distance: { value: 42.5, unit: 'km' as any }, 
         importable: true, 
+        parseState: 'parsed',
         alreadyImported:false,
         observer: new Observer(),
     },
@@ -19,6 +20,7 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'fit', 
         distance: { value: 120.2, unit: 'km' as any }, 
         importable: true, 
+        parseState: 'parsed',
         alreadyImported: false ,
         observer: new Observer(),
     },
@@ -28,6 +30,7 @@ const mockRoutes: RouteDisplayItem[] = [
         format: 'txt', 
         distance: { value: 0, unit: 'km' as any }, 
         importable: false, 
+        parseState: 'parsed',
         alreadyImported: false, 
         errorReason: 'Unsupported format' ,
         observer: new Observer(),
@@ -38,11 +41,35 @@ const mockRoutes: RouteDisplayItem[] = [
         label: 'Already In Library', 
         format: 'gpx', 
         distance: { value: 15.0, unit: 'km' as any }, 
+        parseState: 'parsed',
         importable: true, 
         alreadyImported: true,
         observer: new Observer(),
 
     },
+    { 
+        id: '5', 
+        label: 'Currently Parsing', 
+        format: 'gpx', 
+        distance: { value: 15.0, unit: 'km' as any }, 
+        parseState: 'parsing',
+        importable: false, 
+        alreadyImported: false,
+        observer: new Observer(),
+
+    },
+    { 
+        id: '6', 
+        label: 'Waiting', 
+        format: 'gpx', 
+        distance: { value: 15.0, unit: 'km' as any }, 
+        parseState: 'waiting',
+        importable: false, 
+        alreadyImported: false,
+        observer: new Observer(),
+
+    },
+
 ];
 
 const meta: Meta<typeof ParseSelectionView> = {
