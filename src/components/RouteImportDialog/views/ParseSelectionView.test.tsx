@@ -25,6 +25,7 @@ const mockRoutes: RouteDisplayItem[] = [
         distance: { value: 10, unit: 'km' as any },
         importable: true,
         alreadyImported: false,
+        parseState: "parsed",
         observer: mockObserver as any,
     },
     {
@@ -34,6 +35,7 @@ const mockRoutes: RouteDisplayItem[] = [
         distance: { value: 15, unit: 'km' as any },
         importable: false,
         alreadyImported: false,
+        parseState: "parsed",
         errorReason: 'Invalid file',
         observer: mockObserver as any,
     },
