@@ -1,6 +1,7 @@
 import { Dimensions, PixelRatio } from 'react-native';
 import RNFS from 'react-native-fs';
 import { captureScreen } from 'react-native-view-shot';
+import { pickDirectory } from '@react-native-documents/picker';
 import { UIBinding } from './index';
 
 jest.mock('react-native-fs', () => ({
@@ -72,5 +73,89 @@ describe('UIBinding.takeScreenshot', () => {
             width: 1280,
             height: 720,
         }));
+    });
+});
+
+describe('UIBinding.selectDirectory', () => {
+    let ui: UIBinding;
+
+    beforeEach(() => {
+        ui = new UIBinding();
+        jest.clearAllMocks();
+    });
+
+    it('passes requestLongTermAccess and no initialDirectoryUri when none is given', async () => {
+        (pickDirectory as jest.Mock).mockResolvedValue({
+            uri: 'file:///picked/folder',
+            bookmarkStatus: 'success',
+            bookmark: 'bookmark-data',
+        });
+
+        await ui.selectDirectory();
+
+        expect(pickDirectory).toHaveBeenCalledWith({ requestLongTermAccess: true });
+    });
+
+    it('forwards options.initialDirectory as initialDirectoryUri', async () => {
+        (pickDirectory as jest.Mock).mockResolvedValue({
+            uri: 'file:///picked/folder',
+            bookmarkStatus: 'success',
+            bookmark: 'bookmark-data',
+        });
+
+        await ui.selectDirectory({ initialDirectory: 'file:///start/here' });
+
+        expect(pickDirectory).toHaveBeenCalledWith({
+            requestLongTermAccess: true,
+            initialDirectoryUri: 'file:///start/here',
+        });
+    });
+
+    it('returns grant from a successful bookmark', async () => {
+        (pickDirectory as jest.Mock).mockResolvedValue({
+            uri: 'file:///picked/folder',
+            bookmarkStatus: 'success',
+            bookmark: 'bookmark-data',
+        });
+
+        const result = await ui.selectDirectory();
+
+        expect(result.canceled).toBe(false);
+        expect(result.grant).toBe('bookmark-data');
+        expect(result.grantError).toBeUndefined();
+    });
+
+    it('returns grantError when bookmarking fails, without a grant', async () => {
+        (pickDirectory as jest.Mock).mockResolvedValue({
+            uri: 'file:///picked/folder',
+            bookmarkStatus: 'error',
+            bookmarkError: 'could not create bookmark',
+        });
+
+        const result = await ui.selectDirectory();
+
+        expect(result.grant).toBeUndefined();
+        expect(result.grantError).toBe('could not create bookmark');
+    });
+
+    it('derives selected/displayName from the picked uri as before', async () => {
+        (pickDirectory as jest.Mock).mockResolvedValue({
+            uri: 'file:///picked/My%20Routes',
+            bookmarkStatus: 'success',
+            bookmark: 'bookmark-data',
+        });
+
+        const result = await ui.selectDirectory();
+
+        expect(result.selected).toBe('file:///picked/My Routes');
+        expect(result.displayName).toBe('My Routes');
+    });
+
+    it('cancellation → { canceled: true }', async () => {
+        (pickDirectory as jest.Mock).mockRejectedValue(new Error('cancelled'));
+
+        const result = await ui.selectDirectory();
+
+        expect(result).toEqual({ canceled: true });
     });
 });

@@ -1,9 +1,13 @@
-import { INativeUI, SelectDirectoryResult, TakeScreenshotProps } from "incyclist-services";
+import { INativeUI, SelectDirectoryOptions, SelectDirectoryResult, TakeScreenshotProps } from "incyclist-services";
 import { navigate } from "../../services";
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { BackHandler, Dimensions, Linking, NativeModules, PixelRatio, Platform } from "react-native";
-import {pickDirectory} from '@react-native-documents/picker';
+import {pickDirectory, type DirectoryPickerOptionsLongTerm, type DirectoryPickerResponseLongTerm} from '@react-native-documents/picker';
+
+// The native iOS picker preselects a folder via `initialDirectoryUri` (PickerOptions.swift:43,68),
+// but the published option type doesn't declare it yet - pass it through with a typed cast.
+type PickDirectoryOptions = DirectoryPickerOptionsLongTerm & { initialDirectoryUri?: string };
 import { activateKeepAwake, deactivateKeepAwake } from '@sayem314/react-native-keep-awake';
 import { captureScreen } from 'react-native-view-shot';
 import { EventLogger } from "gd-eventlog";
@@ -120,25 +124,32 @@ export class UIBinding implements INativeUI {
     }
 
     // open a dialog that allows user to select a directory (to e.g. define where files should be downloaded)
-    async selectDirectory(): Promise<SelectDirectoryResult> {
+    async selectDirectory(options?: SelectDirectoryOptions): Promise<SelectDirectoryResult> {
         try {
+            const pickOptions: PickDirectoryOptions = {
+                requestLongTermAccess: true,
+                ...(options?.initialDirectory ? { initialDirectoryUri: options.initialDirectory } : {}),
+            };
+
             // Uses system picker to let user define a target location
-            const result = await pickDirectory({requestLongTermAccess: true});
+            const result = await pickDirectory(pickOptions) as DirectoryPickerResponseLongTerm;
             const uri = result.uri;
-            
+
             // Derive displayName from result.uri by extracting the last path segment, URL-decoded
             const decodedUri = decodeURIComponent(uri);
             const segments = decodedUri.split('/')
-            const displayName = segments.filter((s: string) => s.length > 0).pop() ?? 'Folder'            
+            const displayName = segments.filter((s: string) => s.length > 0).pop() ?? 'Folder'
 
             // Android content:// URI must not be decoded, IOS file:// must be decoded
             //
             const selected = uri.startsWith('content:') ? uri : decodedUri
-            
+
             return {
                 canceled: false,
                 selected,
                 displayName,
+                grant: result.bookmarkStatus === 'success' ? result.bookmark : undefined,
+                grantError: result.bookmarkStatus === 'error' ? result.bookmarkError : undefined,
             };
         } catch  {
             return { canceled: true };

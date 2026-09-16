@@ -1,5 +1,6 @@
 import RNFS from 'react-native-fs';
 import { Platform, TurboModuleRegistry } from 'react-native';
+import { getBindings } from 'incyclist-services';
 import { FileSystemBinding } from './index';
 
 jest.mock('react-native-fs', () => ({
@@ -24,6 +25,8 @@ jest.mock('react-native', () => {
         readFile: jest.fn(),
         exists: jest.fn(),
         listFiles: jest.fn(),
+        requestAccess: jest.fn(),
+        releaseAccess: jest.fn(),
     };
     return {
         TurboModule: {},
@@ -127,6 +130,66 @@ describe('FileSystemBinding', () => {
                 expect(rnfs.readFile).not.toHaveBeenCalled();
                 expect(Buffer.isBuffer(result)).toBe(true);
                 expect(result.toString()).toBe(original)
+            });
+        });
+
+        describe('on iOS, releases access only after the read has been awaited', () => {
+            // A sandbox path so requestAccess resolves true on its fast path, without touching
+            // any native module - these tests isolate the release-ordering fix.
+            const path = '/app/Documents/routes/route.xml';
+
+            beforeEach(() => {
+                Platform.OS = 'ios';
+            });
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('utf8/base64 branch → releases after the read resolves', async () => {
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return 'hello'; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path);
+
+                expect(result).toBe('hello');
+                expect(order).toEqual(['read', 'release']);
+                expect(folderAccess.releaseAccess).toHaveBeenCalledWith(path);
+            });
+
+            it("ascii branch → releases too (previously never released on this branch)", async () => {
+                const base64 = Buffer.from('hello', 'ascii').toString('base64');
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return base64; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path, 'ascii');
+
+                expect(result).toBe('hello');
+                expect(order).toEqual(['read', 'release']);
+                expect(folderAccess.releaseAccess).toHaveBeenCalledWith(path);
+            });
+
+            it('binary branch → releases after producing the Buffer', async () => {
+                const base64 = Buffer.from('hello', 'binary').toString('base64');
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return base64; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path, 'binary');
+
+                expect(Buffer.isBuffer(result)).toBe(true);
+                expect(order).toEqual(['read', 'release']);
+            });
+
+            it('a read error still releases access before the rejection propagates', async () => {
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); throw new Error('disk error'); });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                await expect(fs.readFile(path)).rejects.toThrow('disk error');
+                expect(order).toEqual(['read', 'release']);
             });
         });
     });
@@ -335,6 +398,82 @@ describe('FileSystemBinding', () => {
                 .mockRejectedValueOnce(new Error('no access'));
             const result = await fs.readdir('/root', { recursive: true });
             expect(result).toEqual(['good.txt', 'baddir']);
+        });
+    });
+
+    // ─── requestAccess ─────────────────────────────────────────────────────────
+
+    describe('requestAccess', () => {
+        afterEach(() => {
+            Platform.OS = 'android';
+            getBindings().fileAccess = undefined;
+        });
+
+        it('app-sandbox path → true, no native call at all', async () => {
+            const result = await fs.requestAccess('/app/Documents/routes/route.xml');
+            expect(result).toBe(true);
+            expect(folderAccess.requestAccess).not.toHaveBeenCalled();
+        });
+
+        describe('Android, external path', () => {
+            it('delegates to FolderAccess.requestAccess and returns its result', async () => {
+                folderAccess.requestAccess.mockResolvedValue(true);
+                const result = await fs.requestAccess('content://some/uri');
+                expect(folderAccess.requestAccess).toHaveBeenCalledWith('content://some/uri');
+                expect(result).toBe(true);
+            });
+
+            it('propagates a false result', async () => {
+                folderAccess.requestAccess.mockResolvedValue(false);
+                const result = await fs.requestAccess('content://some/uri');
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('iOS, external path', () => {
+            const externalPath = 'file:///private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/route.mp4';
+
+            beforeEach(() => {
+                Platform.OS = 'ios';
+            });
+
+            it('fileAccess binding absent → false, without calling the old FolderAccess.requestAccess', async () => {
+                const result = await fs.requestAccess(externalPath);
+                expect(result).toBe(false);
+                expect(folderAccess.requestAccess).not.toHaveBeenCalled();
+            });
+
+            it('fileAccess unsupported → false', async () => {
+                getBindings().fileAccess = { isSupported: () => false } as any;
+                const result = await fs.requestAccess(externalPath);
+                expect(result).toBe(false);
+            });
+
+            it('fileAccess reports readable → true', async () => {
+                const checkAccess = jest.fn().mockResolvedValue({ state: 'readable' });
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                const result = await fs.requestAccess(externalPath);
+
+                expect(checkAccess).toHaveBeenCalledWith(externalPath);
+                expect(result).toBe(true);
+            });
+
+            it('fileAccess reports denied → false (this is the Bug A fix: no longer always true)', async () => {
+                const checkAccess = jest.fn().mockResolvedValue({ state: 'denied', errno: 13 });
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                const result = await fs.requestAccess(externalPath);
+
+                expect(result).toBe(false);
+            });
+
+            it('checkAccess rejecting → false, does not throw', async () => {
+                const checkAccess = jest.fn().mockRejectedValue(new Error('probe failed'));
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                await expect(fs.requestAccess(externalPath)).resolves.toBe(false);
+            });
         });
     });
 });
