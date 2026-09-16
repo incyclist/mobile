@@ -13,6 +13,14 @@ const DOWNLOAD_POLL_SECONDS = 120
 
 const joinPath = (folder: string, name: string) => `${folder.replace(/\/$/, '')}/${name}`
 
+// A not-yet-downloaded file directly under the raw iCloud Drive container path
+// (Mobile Documents/com~apple~CloudDocs/...) is listed by a plain readdir() under a
+// dot-prefixed placeholder name (`.Route.mp4.icloud`), not its real name - the real name
+// reappears once the file is downloaded. Probing the placeholder path itself returns that
+// tiny marker file's own metadata, not the real file's, so recover the real name here.
+const ICLOUD_PLACEHOLDER_PATTERN = /^\.(.+)\.icloud$/
+const normalizePickedFileName = (name: string): string => name.match(ICLOUD_PLACEHOLDER_PATTERN)?.[1] ?? name
+
 /**
  * Activates a stored bookmark and logs the `grant resolved=...` line (§2.3). Persists a
  * renewed bookmark back through `onRenewed`, since a stale grant is re-signed on resolution.
@@ -94,7 +102,12 @@ export const DebugICloudSection = () => {
             let files: string[] = []
             try {
                 const entries = await RNFS.readDir(folder)
-                files = entries.filter(e => e.isFile()).map(e => e.name)
+                const rawNames = entries.filter(e => e.isFile()).map(e => e.name)
+                files = rawNames.map(normalizePickedFileName)
+                const placeholders = rawNames.filter((name, i) => name !== files[i])
+                if (placeholders.length) {
+                    logEvent({ message: `[DEBUG-ICLD] pick notDownloaded=${placeholders.length} of ${files.length}` })
+                }
             } catch (err: any) {
                 logEvent({ message: `[DEBUG-ICLD] pick readdir failed error=${err?.message}` })
             }

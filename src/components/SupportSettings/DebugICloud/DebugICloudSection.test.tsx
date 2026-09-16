@@ -109,6 +109,32 @@ describe('DebugICloudSection', () => {
         expect(lastMessage()).toBe('[DEBUG-ICLD] pick uri=file:///Route%20A bookmarkStatus=success grantLength=11');
     });
 
+    it('pick folder: normalizes not-downloaded iCloud placeholder filenames back to their real name', async () => {
+        // A not-yet-downloaded file directly under the raw iCloud container path is listed by
+        // readdir() as `.Route.mp4.icloud`, not `Route.mp4` - the real name reappears once
+        // downloaded. Probing the placeholder path returns that marker file's own metadata.
+        mockPickDirectory.mockResolvedValueOnce({
+            uri: 'file:///Route%20A',
+            bookmarkStatus: 'success',
+            bookmark: 'BOOKMARK123',
+        });
+        mockReadDir.mockResolvedValueOnce([
+            { name: 'preview.png', isFile: () => true },
+            { name: '.Route.mp4.icloud', isFile: () => true },
+            { name: '.Route.xml.icloud', isFile: () => true },
+        ]);
+
+        const { getByText } = render(<DebugICloudSection />);
+        await act(async () => fireEvent.press(getByText('Pick folder')));
+
+        expect(mockSavePick).toHaveBeenCalledWith({
+            folder: 'file:///Route A',
+            files: ['preview.png', 'Route.mp4', 'Route.xml'],
+            bookmark: 'BOOKMARK123',
+        });
+        expect(messages()).toContain('[DEBUG-ICLD] pick notDownloaded=2 of 3');
+    });
+
     it('pick folder: logs cancellation without storing anything', async () => {
         mockPickDirectory.mockRejectedValueOnce({ code: 'DOCUMENT_PICKER_CANCELED' });
 
