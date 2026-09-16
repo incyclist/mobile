@@ -57,6 +57,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Default packages input is 'tools platform-tools'; Google removed the
+          # legacy 'tools' package from the SDK repository manifest on 2026-09-15,
+          # which makes sdkmanager exit 1 and crashes the action. Request only
+          # what still exists.
+          packages: 'platform-tools'
 
       - name: Decode upload keystore
         env: 
