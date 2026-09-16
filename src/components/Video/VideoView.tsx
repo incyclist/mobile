@@ -20,6 +20,7 @@ export const VideoView = memo((props: VideoViewProps) => {
         onProgress,
         onEnd,
         onBuffer,
+        onLoadStart,
     } = props;
     
     return (
@@ -38,6 +39,7 @@ export const VideoView = memo((props: VideoViewProps) => {
                 progressUpdateInterval={250}
                 preventsDisplaySleepDuringVideoPlayback={true}
                 onLoad={onLoad}
+                onLoadStart={onLoadStart}
                 onSeek={onSeek}
                 onError={onError}
                 onProgress={onProgress}

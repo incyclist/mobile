@@ -1,10 +1,11 @@
 import { IObserver } from 'incyclist-services';
-import { 
-    OnLoadData, 
-    OnSeekData, 
-    OnVideoErrorData, 
-    OnProgressData, 
-    OnBufferData 
+import {
+    OnLoadData,
+    OnSeekData,
+    OnVideoErrorData,
+    OnProgressData,
+    OnBufferData,
+    OnLoadStartData
 } from 'react-native-video';
 
 export interface VideoMediaError {
@@ -55,4 +56,5 @@ export interface VideoViewProps {
     onProgress: (data: OnProgressData) => void;
     onEnd: () => void;
     onBuffer: (data: OnBufferData) => void;
+    onLoadStart: (data: OnLoadStartData) => void;
 }

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { 
-    OnLoadData, 
-    OnSeekData, 
-    OnVideoErrorData, 
-    OnProgressData, 
-    OnBufferData 
+import {
+    OnLoadData,
+    OnSeekData,
+    OnVideoErrorData,
+    OnProgressData,
+    OnBufferData,
+    OnLoadStartData
 } from 'react-native-video';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { VideoProps, VideoPlaybackEvent, VideoMediaError } from './types';
@@ -86,6 +87,13 @@ export const Video = (props: VideoProps) => {
             return;
         }
         refVideo.current?.seek(time);
+    }, [logEvent]);
+
+    const handleLoadStart = useCallback((data: OnLoadStartData) => {
+        // Diagnostic only: tells us whether the native player ever attempted to load the source
+        // at all (vs. never firing anything), and isNetwork/uri catch a source resolving to a
+        // network DataSource when a local file was intended.
+        logEvent({message:'load start event', isNetwork:data.isNetwork, type:data.type, uri:data.uri})
     }, [logEvent]);
 
     const handleLoad = useCallback((_data: OnLoadData) => {
@@ -318,6 +326,7 @@ export const Video = (props: VideoProps) => {
             height={height}
             videoRef={refVideo}
             onLoad={handleLoad}
+            onLoadStart={handleLoadStart}
             onSeek={handleSeek}
             onError={handleError}
             onProgress={handleProgress}
