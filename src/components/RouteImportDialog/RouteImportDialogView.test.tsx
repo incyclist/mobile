@@ -7,6 +7,7 @@ const defaultProps: RouteImportDialogViewProps = {
     compact: false,
     displayProps: {
         phase: 'landing',
+        hasICloudDownloadFailures: false,
         routes: [],
     } as ExtendedImportDisplayProps,
     selectedIds: [],
