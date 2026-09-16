@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { IFileSystem, ReadDirResult } from 'incyclist-services';
+import { getBindings, IFileSystem, ReadDirResult } from 'incyclist-services';
 import FolderAccess from '../../specs/NativeFolderAccess';
 import { EventLogger } from 'gd-eventlog';
 import { Platform } from 'react-native';
@@ -32,10 +32,8 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
+        let accessRequested = false
         try {
-            //this.logger.logEvent({mesage:'readFile', path,encoding})
-            let accessRequested = false
-    
             const readRaw = path.startsWith('content://')
                 ? (enc: string) => requireFolderAccess().readFile(path, enc)
                 : (enc: string) => RNFS.readFile(path, enc)
@@ -48,23 +46,22 @@ export class FileSystemBinding implements IFileSystem {
             if (encoding === 'ascii' || encoding === 'binary' || encoding === 'latin1') {
                 const base64 = await readRaw('base64')
                 const buffer = Buffer.from(base64, 'base64')
-                if (encoding==='binary') {
-                    return buffer
-                }
-                return buffer.toString(encoding as BufferEncoding)
+                return encoding === 'binary' ? buffer : buffer.toString(encoding as BufferEncoding)
             }
 
-
-            const res = readRaw(encoding === 'base64' ? 'base64' : 'utf8')
-            if (accessRequested) {
-                await this.releaseAccess(path)
-            }
-            return res
+            return await readRaw(encoding === 'base64' ? 'base64' : 'utf8')
         }
         catch(err:any) {
             this.logger.logEvent({message:'could not read file',file:path, reason:err.message})
             throw err
 
+        }
+        finally {
+            // Release must happen after the read is awaited, on every branch - success,
+            // ascii/binary, or a thrown error - never before.
+            if (accessRequested) {
+                await this.releaseAccess(path)
+            }
         }
     }
 
@@ -133,29 +130,38 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async requestAccess(uri: string): Promise<boolean> {
-        try {
-            this.logger.logEvent({message:'request access', uri})
+        // A path already inside the app sandbox is always readable - no native call needed.
+        if (!this.isOutsideAppSandbox(uri)) {
+            return true
+        }
 
-            let res = await requireFolderAccess().requestAccess(uri);
-            if (!res) {
-                try {
-                    const decoded = decodeURIComponent(uri)
-                    this.logger.logEvent({message:'request access: check decoded', uri:decoded})
-                    res = await requireFolderAccess().requestAccess(decoded);
-                    if (!res) {
-                        const path = decoded.replace('file:///','')
-                        this.logger.logEvent({message:'request access: check path', uri:path})
-                        res = await requireFolderAccess().requestAccess(decoded);
-                    }
-                }
-                catch {}
-            }
-            
-            
-            
-            const message = res ? 'access granted' : 'access not granted'
-            this.logger.logEvent({message, uri})
+        if (Platform.OS === 'ios') {
+            return await this.probeExternalAccess(uri)
+        }
+
+        try {
+            const res = await requireFolderAccess().requestAccess(uri);
+            this.logger.logEvent({message: res ? 'access granted' : 'access not granted', uri})
             return res
+        }
+        catch(err:any) {
+            this.logger.logEvent({message:'error', fn:'requestAccess', error:err.message, stack:err.stack})
+            return false
+        }
+    }
+
+    // iOS: FolderAccess.requestAccess() always resolves true and cannot be trusted as a
+    // real answer - use the fileAccess binding's metadata-only probe instead, when present.
+    private async probeExternalAccess(uri: string): Promise<boolean> {
+        const fileAccess = getBindings().fileAccess
+        if (!fileAccess?.isSupported()) {
+            return false
+        }
+        try {
+            const probe = await fileAccess.checkAccess(uri)
+            const granted = probe.state === 'readable'
+            this.logger.logEvent({message: granted ? 'access granted' : 'access not granted', uri})
+            return granted
         }
         catch(err:any) {
             this.logger.logEvent({message:'error', fn:'requestAccess', error:err.message, stack:err.stack})
