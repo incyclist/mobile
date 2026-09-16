@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 jest.mock('incyclist-services', () => ({
     getBindings: jest.fn(() => ({})),
+    withExternalFileAccess: jest.fn((inner) => ({ wrapped: true, inner })),
 }));
 
 jest.mock('./logging', () => ({ getLogBinding: jest.fn(() => ({ logging: true })) }));
@@ -30,28 +31,34 @@ describe('bindings/factory initBindings', () => {
         jest.clearAllMocks();
     });
 
-    it('on iOS, registers the fileAccess binding', async () => {
+    it('on iOS, registers the fileAccess binding and wraps the loader', async () => {
         Platform.OS = 'ios';
 
         const { initBindings } = require('./factory');
         const { getFileAccessBinding } = require('./fileAccess');
+        const { withExternalFileAccess } = require('incyclist-services');
 
         const bindings = await initBindings();
 
         expect(getFileAccessBinding).toHaveBeenCalled();
         expect(bindings.fileAccess).toBeDefined();
+        expect(withExternalFileAccess).toHaveBeenCalledWith({ loader: true });
+        expect(bindings.loader).toEqual({ wrapped: true, inner: { loader: true } });
     });
 
-    it('on Android, does not register the fileAccess binding (no-op)', async () => {
+    it('on Android, does not register the fileAccess binding and leaves the loader unwrapped (no-op)', async () => {
         Platform.OS = 'android';
 
         const { initBindings } = require('./factory');
         const { getFileAccessBinding } = require('./fileAccess');
+        const { withExternalFileAccess } = require('incyclist-services');
 
         const bindings = await initBindings();
 
         expect(getFileAccessBinding).not.toHaveBeenCalled();
         expect(bindings.fileAccess).toBeUndefined();
+        expect(withExternalFileAccess).not.toHaveBeenCalled();
+        expect(bindings.loader).toEqual({ loader: true });
     });
 
     it('still wires up every other binding regardless of platform', async () => {
