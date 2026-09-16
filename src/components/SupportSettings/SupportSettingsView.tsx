@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { colors, textSizes } from '../../theme';
 import { SupportSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
+import { isDevVariant } from '../../bindings/appInfo';
+import { DebugICloudSection } from './DebugICloud/DebugICloudSection';
 
 export const SupportSettingsView = ({
     displayProps,
@@ -71,9 +73,16 @@ export const SupportSettingsView = ({
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.disclaimer}>
-                        Donation is 100% voluntarily. In case you donate, you will not have any benefit within the App. I.e. Incyclist remains to be a 100% free app, regardless if you donate or not. 
+                        Donation is 100% voluntarily. In case you donate, you will not have any benefit within the App. I.e. Incyclist remains to be a 100% free app, regardless if you donate or not.
                     I am also not planning to introduce a freemium model, where certain functionality is only available for paying users.
                     </Text>
+
+                    {/* Temporary, dev-variant-only spike harness for the iOS iCloud video access
+                        feature (session-plan.md §2.3/§3.1). iOS-only: the native module it drives
+                        has no Android counterpart. Remove this line (and the DebugICloud folder)
+                        once the feature ships. */}
+                    {isDevVariant && Platform.OS === 'ios' && <DebugICloudSection />}
+
                     <View style={styles.footerSpacer} />
                 </>
             )}

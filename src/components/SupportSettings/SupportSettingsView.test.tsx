@@ -1,7 +1,18 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import { SupportSettingsView } from './SupportSettingsView';
 import { SupportSettingsDisplayProps } from 'incyclist-services';
+
+jest.mock('./DebugICloud/DebugICloudSection', () => {
+    const { Text } = require('react-native');
+    return { DebugICloudSection: () => <Text>Debug iCloud Section</Text> };
+});
+
+let mockIsDevVariant = true;
+jest.mock('../../bindings/appInfo', () => ({
+    get isDevVariant() { return mockIsDevVariant; },
+}));
 
 const MOCK_DISPLAY_PROPS: SupportSettingsDisplayProps = {
     uuid: '1b4ff3d2-f602-4cc5-9d7b-a9f9444e5797',
@@ -58,5 +69,35 @@ describe('SupportSettingsView', () => {
         const { getByText } = render(<SupportSettingsView {...defaultProps} />);
         fireEvent.press(getByText('Privacy Policy'));
         expect(defaultProps.onOpenUrl).toHaveBeenCalledWith(MOCK_DISPLAY_PROPS.privacyUrl);
+    });
+
+    describe('Debug iCloud section (dev-variant, iOS-only)', () => {
+        const originalOS = Platform.OS;
+
+        afterEach(() => {
+            mockIsDevVariant = true;
+            Platform.OS = originalOS;
+        });
+
+        it('renders on a dev-variant iOS build', () => {
+            mockIsDevVariant = true;
+            Platform.OS = 'ios';
+            const { getByText } = render(<SupportSettingsView {...defaultProps} />);
+            expect(getByText('Debug iCloud Section')).toBeTruthy();
+        });
+
+        it('does not render on a dev-variant Android build', () => {
+            mockIsDevVariant = true;
+            Platform.OS = 'android';
+            const { queryByText } = render(<SupportSettingsView {...defaultProps} />);
+            expect(queryByText('Debug iCloud Section')).toBeNull();
+        });
+
+        it('does not render on a non-dev-variant iOS build', () => {
+            mockIsDevVariant = false;
+            Platform.OS = 'ios';
+            const { queryByText } = render(<SupportSettingsView {...defaultProps} />);
+            expect(queryByText('Debug iCloud Section')).toBeNull();
+        });
     });
 });
