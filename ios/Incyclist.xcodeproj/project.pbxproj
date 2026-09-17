@@ -14,6 +14,8 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BCC41758932FA2AB91CC0385 /* libPods-Incyclist.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */; };
 		C77663009711C6FF7AC08B15 /* AudioCueModule.m in Sources */ = {isa = PBXBuildFile; fileRef = B5293BF9E5AA85750B7B7B26 /* AudioCueModule.m */; };
+		DF1E4355305B3A6800590588 /* ExternalFileAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF1E4352305B3A6800590588 /* ExternalFileAccessModule.m */; };
+		DF1E4356305B3A6800590588 /* ExternalFileAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1E4353305B3A6800590588 /* ExternalFileAccessModule.swift */; };
 		DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */; };
 		DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */; };
 		DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */; };
@@ -35,6 +37,8 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Incyclist/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Incyclist/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B5293BF9E5AA85750B7B7B26 /* AudioCueModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AudioCueModule.m; sourceTree = "<group>"; };
+		DF1E4352305B3A6800590588 /* ExternalFileAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExternalFileAccessModule.m; sourceTree = "<group>"; };
+		DF1E4353305B3A6800590588 /* ExternalFileAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalFileAccessModule.swift; sourceTree = "<group>"; };
 		DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FullScreenViewController.swift; path = Incyclist/FullScreenViewController.swift; sourceTree = "<group>"; };
 		DF2F0E612FA9F4D700340FFD /* FolderAccessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FolderAccessModule.m; sourceTree = "<group>"; };
 		DF2F0E622FA9F4D700340FFD /* FolderAccessModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderAccessModule.swift; sourceTree = "<group>"; };
@@ -66,6 +70,7 @@
 		13B07FAE1A68108700A75B9A /* Incyclist */ = {
 			isa = PBXGroup;
 			children = (
+				DF1E4354305B3A6800590588 /* ExternalFileAccess */,
 				DF295F9B2FB26ABD008468D0 /* FullScreenViewController.swift */,
 				DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */,
 				DF6FB3E32F76CE4400067D3E /* incyclist--Bridging-Header.h */,
@@ -138,6 +143,15 @@
 				40F10BB29ECFA3E83275BD6E /* Pods-Incyclist.dev.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		DF1E4354305B3A6800590588 /* ExternalFileAccess */ = {
+			isa = PBXGroup;
+			children = (
+				DF1E4352305B3A6800590588 /* ExternalFileAccessModule.m */,
+				DF1E4353305B3A6800590588 /* ExternalFileAccessModule.swift */,
+			);
+			path = ExternalFileAccess;
 			sourceTree = "<group>";
 		};
 		DF2F0E632FA9F4D700340FFD /* FolderAccess */ = {
@@ -379,6 +393,8 @@
 			files = (
 				DF2F0E642FA9F4D700340FFD /* FolderAccessModule.swift in Sources */,
 				DF2F0E652FA9F4D700340FFD /* FolderAccessModule.m in Sources */,
+				DF1E4355305B3A6800590588 /* ExternalFileAccessModule.m in Sources */,
+				DF1E4356305B3A6800590588 /* ExternalFileAccessModule.swift in Sources */,
 				23C55DBB81501447054C2570 /* AudioCueModule.swift in Sources */,
 				C77663009711C6FF7AC08B15 /* AudioCueModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
