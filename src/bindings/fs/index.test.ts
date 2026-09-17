@@ -268,6 +268,47 @@ describe('FileSystemBinding', () => {
             const result = await fs.existsFile('content://some/uri');
             expect(result).toBe(false);
         });
+
+        describe('iCloud placeholder sibling', () => {
+            const path = '/icloud/routes/preview.png';
+            const placeholder = '/icloud/routes/.preview.png.icloud';
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('iOS, only the placeholder present → true', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockImplementation(async (p: string) => p === placeholder);
+
+                await expect(fs.existsFile(path)).resolves.toBe(true);
+                expect(rnfs.exists).toHaveBeenCalledWith(path);
+                expect(rnfs.exists).toHaveBeenCalledWith(placeholder);
+            });
+
+            it('iOS, file itself present → true without probing the placeholder', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockImplementation(async (p: string) => p === path);
+
+                await expect(fs.existsFile(path)).resolves.toBe(true);
+                expect(rnfs.exists).not.toHaveBeenCalledWith(placeholder);
+            });
+
+            it('iOS, neither present → false', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockResolvedValue(false);
+
+                await expect(fs.existsFile(path)).resolves.toBe(false);
+            });
+
+            it('Android → no placeholder probe, result unchanged', async () => {
+                rnfs.exists.mockImplementation(async (p: string) => p === placeholder);
+
+                await expect(fs.existsFile(path)).resolves.toBe(false);
+                expect(rnfs.exists).toHaveBeenCalledTimes(1);
+                expect(rnfs.exists).toHaveBeenCalledWith(path);
+            });
+        });
     });
 
     // ─── readdir ───────────────────────────────────────────────────────────────
@@ -380,6 +421,125 @@ describe('FileSystemBinding', () => {
 
                 expect(folderAccess.listFiles).not.toHaveBeenCalled();
                 expect(result).toEqual([]);
+            });
+        });
+
+        describe('iCloud placeholder names', () => {
+            const folder = '/icloud/routes';
+            const entry = (name: string, isDirectory = false) =>
+                ({ name, path: `${folder}/${name}`, isDirectory: () => isDirectory });
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('iOS → placeholder resolved to the real name and the canonical uri', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.xml'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: 'Ofenpass.mp4', uri: `file://${folder}/Ofenpass.mp4`, isDirectory: false },
+                    { name: 'Ofenpass.xml', uri: `file://${folder}/Ofenpass.xml`, isDirectory: false },
+                ]);
+            });
+
+            it('iOS → ordinary names and ordinary dot-files are left alone', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.DS_Store'),
+                    entry('.icloud'),
+                    entry('route.icloud.mp4'),
+                    entry('videos', true),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result.map(e => e.name)).toEqual([
+                    '.DS_Store',
+                    '.icloud',
+                    'route.icloud.mp4',
+                    'videos',
+                ]);
+                expect(result.map(e => e.uri)).toEqual([
+                    `file://${folder}/.DS_Store`,
+                    `file://${folder}/.icloud`,
+                    `file://${folder}/route.icloud.mp4`,
+                    `file://${folder}/videos`,
+                ]);
+            });
+
+            it('iOS → both representations listed: the real entry wins, whichever comes first', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.mp4'),
+                    entry('Umbrail.mp4'),
+                    entry('.Umbrail.mp4.icloud'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: 'Ofenpass.mp4', uri: `file://${folder}/Ofenpass.mp4`, isDirectory: false },
+                    { name: 'Umbrail.mp4', uri: `file://${folder}/Umbrail.mp4`, isDirectory: false },
+                ]);
+            });
+
+            it('iOS → the native File Provider listing is normalized too', async () => {
+                Platform.OS = 'ios';
+                const externalFolder =
+                    'file:///private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/routes';
+                rnfs.readDir.mockResolvedValue([]);
+                folderAccess.listFiles.mockResolvedValue([
+                    {
+                        name: '.Col du Galibier.mp4.icloud',
+                        uri: `${externalFolder}/.Col%20du%20Galibier.mp4.icloud`,
+                        isDirectory: false,
+                        strategy: 'coordinated-contents',
+                    },
+                ]);
+
+                const result = await fs.readdir(externalFolder, { extended: true });
+
+                expect(result).toEqual([
+                    {
+                        name: 'Col du Galibier.mp4',
+                        uri: `${externalFolder}/Col du Galibier.mp4`,
+                        isDirectory: false,
+                    },
+                ]);
+            });
+
+            it('Android → listing is unchanged, placeholder names included as-is', async () => {
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.xml'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: '.Ofenpass.mp4.icloud', uri: `file://${folder}/.Ofenpass.mp4.icloud`, isDirectory: false },
+                    { name: 'Ofenpass.xml', uri: `file://${folder}/Ofenpass.xml`, isDirectory: false },
+                ]);
+            });
+
+            it('Android → the SAF listing is byte-identical to today', async () => {
+                const safEntries = [
+                    { name: '.Ofenpass.mp4.icloud', uri: 'content://root/.Ofenpass.mp4.icloud', isDirectory: false },
+                    { name: 'Ofenpass.mp4', uri: 'content://root/Ofenpass.mp4', isDirectory: false },
+                ];
+                folderAccess.listFiles.mockResolvedValue(safEntries);
+
+                const result = await fs.readdir('content://root', { extended: true });
+
+                expect(result).toEqual(safEntries);
+                expect(rnfs.readDir).not.toHaveBeenCalled();
             });
         });
 

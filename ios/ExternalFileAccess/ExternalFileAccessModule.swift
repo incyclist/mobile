@@ -27,8 +27,10 @@ import Foundation
  * - the scope registry is owned by one serial queue, so it needs no locks and blocks
  *   no caller.
  *
- * `checkAccess` is deliberately metadata-only (`access(2)`): probing must never open a
- * file, because opening an evicted iCloud file is exactly the call that blocks.
+ * `checkAccess` is deliberately metadata-only (`access(2)` plus, where that is not
+ * conclusive, a resource-value lookup): probing must never open a file, because opening
+ * an evicted iCloud file is exactly the call that blocks or fails. It reports permission,
+ * not whether the bytes are on the device — see `probe`.
  */
 
 private let defaultTimeoutSeconds: Double = 10.0
@@ -191,7 +193,7 @@ class ExternalFileAccessModule: NSObject {
             }
 
             self.debugLog(
-                "checkAccess state=\(probe.state) errno=\(probe.errorNumber) " +
+                "checkAccess state=\(probe.state) errno=\(probe.errorNumber) step=\(probe.step) " +
                 "scopeStarted=\(started) file=\(url.lastPathComponent)"
             )
             gate.fulfill(result)
@@ -591,22 +593,87 @@ class ExternalFileAccessModule: NSObject {
     }
 
     /**
-     * Metadata-only readability probe. `access(2)` asks the kernel about permissions and
-     * existence without opening anything, so it cannot block on an evicted iCloud file.
+     * Metadata-only readability probe, layered.
+     *
+     * The probe answers "may this process read this item", not "are its bytes on this
+     * device" — that is `getAvailability`'s question. It never opens the file: opening a
+     * dataless iCloud file either blocks for seconds while the OS materializes it or
+     * fails outright, depending on the iOS version.
+     *
+     * `access(2)` alone is not enough, because a not-yet-downloaded iCloud file does not
+     * exist under its real name at all — only a `.<name>.icloud` placeholder does — so
+     * every POSIX call on the canonical path fails with `ENOENT` for a file the app can
+     * perfectly well use. On an `ENOENT`/`ENOTDIR` the placeholder sibling is probed with
+     * the same `access(2)` call (so the readable/denied behaviour is identical), and only
+     * if that is inconclusive does a resource-value lookup decide whether the item is an
+     * iCloud item at all.
+     *
+     * The errno reported is always the one from the canonical path, so a caller still
+     * sees why the plain probe failed. `step` records which layer decided.
      */
-    private func probe(_ url: URL) -> (state: String, errorNumber: Int32) {
-        let (result, errorNumber) = url.path.withCString { (pointer: UnsafePointer<Int8>) -> (Int32, Int32) in
-            let outcome = access(pointer, R_OK)
-            return (outcome, errno)
-        }
+    private func probe(_ url: URL) -> (state: String, errorNumber: Int32, step: String) {
+        let errorNumber = accessErrorNumber(for: url.path)
 
-        if result == 0 {
-            return ("readable", 0)
+        if errorNumber == 0 {
+            return ("readable", 0, "access")
+        }
+        if errorNumber == EACCES || errorNumber == EPERM {
+            return ("denied", errorNumber, "access")
         }
         if errorNumber == ENOENT || errorNumber == ENOTDIR {
-            return ("not-found", errorNumber)
+            return probeCloudPlaceholder(url, canonicalErrorNumber: errorNumber)
         }
-        return ("denied", errorNumber)
+        return ("denied", errorNumber, "access-errno")
+    }
+
+    /**
+     * Second and third layer: the dot-prefixed placeholder a dataless iCloud item is
+     * actually stored under, then the item's ubiquity flag.
+     */
+    private func probeCloudPlaceholder(
+        _ url: URL,
+        canonicalErrorNumber: Int32
+    ) -> (state: String, errorNumber: Int32, step: String) {
+        let placeholder = url
+            .deletingLastPathComponent()
+            .appendingPathComponent(".\(url.lastPathComponent).icloud")
+
+        let placeholderErrorNumber = accessErrorNumber(for: placeholder.path)
+        if placeholderErrorNumber == 0 {
+            return ("readable", canonicalErrorNumber, "placeholder")
+        }
+        if placeholderErrorNumber == EACCES || placeholderErrorNumber == EPERM {
+            return ("denied", canonicalErrorNumber, "placeholder")
+        }
+
+        if isUbiquitousItem(url) {
+            return ("readable", canonicalErrorNumber, "ubiquitous")
+        }
+        return ("not-found", canonicalErrorNumber, "missing")
+    }
+
+    /** `access(2)` for read permission: 0 when readable, otherwise the errno. */
+    private func accessErrorNumber(for path: String) -> Int32 {
+        return path.withCString { (pointer: UnsafePointer<Int8>) -> Int32 in
+            if access(pointer, R_OK) == 0 {
+                return 0
+            }
+            return errno
+        }
+    }
+
+    /**
+     * Whether Foundation resolves this path as an iCloud item. Resource values resolve a
+     * dataless item correctly where POSIX calls report `ENOENT`, and the lookup reads
+     * metadata only — it neither coordinates nor downloads.
+     */
+    private func isUbiquitousItem(_ url: URL) -> Bool {
+        var probeURL = url
+        probeURL.removeAllCachedResourceValues()
+        guard let values = try? probeURL.resourceValues(forKeys: [.isUbiquitousItemKey]) else {
+            return false
+        }
+        return values.isUbiquitousItem ?? false
     }
 
     /** Reads availability metadata. Runs inside a coordinated, metadata-only read. */

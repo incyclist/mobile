@@ -11,6 +11,26 @@ const requireFolderAccess = () => {
     return FolderAccess;
 };
 
+// A not-yet-downloaded iCloud file exists on disk only under a dot-prefixed placeholder
+// name - "Ofenpass.mp4" is listed as ".Ofenpass.mp4.icloud" - and the real name appears
+// only once the file has been downloaded. Callers expect the real name, so the iOS
+// storage representation is resolved here rather than by every reader of a listing.
+const ICLOUD_PLACEHOLDER = /^\.(.+)\.icloud$/;
+
+/** The real name behind a placeholder entry, or undefined for an ordinary name. */
+const placeholderRealName = (name: string): string | undefined =>
+    ICLOUD_PLACEHOLDER.exec(name)?.[1];
+
+/** Replaces the last segment of a uri or path, keeping scheme and directory intact. */
+const withLastSegment = (uriOrPath: string, name: string): string => {
+    const cut = uriOrPath.lastIndexOf('/');
+    return `${uriOrPath.slice(0, cut + 1)}${name}`;
+};
+
+/** The placeholder sibling of a canonical path: /dir/a.mp4 -> /dir/.a.mp4.icloud */
+const placeholderPath = (path: string): string =>
+    withLastSegment(path, `.${path.slice(path.lastIndexOf('/') + 1)}.icloud`);
+
 export class FileSystemBinding implements IFileSystem {
 
     protected logger = new EventLogger('FS')
@@ -111,7 +131,17 @@ export class FileSystemBinding implements IFileSystem {
         if (path.startsWith('content://')) {
             return await requireFolderAccess().exists(path);
         }
-        return await RNFS.exists(path);
+        if (await RNFS.exists(path)) {
+            return true;
+        }
+        // On iOS a file that has not been downloaded from iCloud yet exists only under its
+        // placeholder name, so the canonical path reports absent while the file is there.
+        // Callers construct canonical names (e.g. "<folder>/preview.png"), so without this
+        // such a file would count as missing.
+        if (Platform.OS !== 'ios') {
+            return false;
+        }
+        return await RNFS.exists(placeholderPath(path));
     }
 
     async existsDir(path: string): Promise<boolean> {
@@ -189,15 +219,47 @@ export class FileSystemBinding implements IFileSystem {
         if (Platform.OS === 'ios' && fsEntries.length === 0 && this.isOutsideAppSandbox(path)) {
             const recovered = await this.listViaFileProvider(path);
             if (recovered.length > 0) {
-                return recovered;
+                return this.canonicalizeNames(recovered);
             }
         }
 
-        return fsEntries.map(e => ({
+        return this.canonicalizeNames(fsEntries.map(e => ({
             name: e.name,
             uri: `file://${e.path}`,
             isDirectory: e.isDirectory(),
-        }));
+        })));
+    }
+
+    /**
+     * Resolves iCloud placeholder entries to the item's real name and canonical uri, so a
+     * listing always reports the names callers work with. Both are rewritten together:
+     * the uri is handed on as the route's video path, and a real name pointing at a
+     * placeholder uri would be worse than no fix at all.
+     *
+     * When both representations are listed - a download completing mid-listing - the real
+     * entry wins. Android (and the SAF listing, which never gets here) is untouched.
+     */
+    private canonicalizeNames(entries: ReadDirResult[]): ReadDirResult[] {
+        if (Platform.OS !== 'ios') {
+            return entries;
+        }
+
+        const realNames = new Set(
+            entries.filter(e => !placeholderRealName(e.name)).map(e => e.name)
+        );
+        const resolved = new Set<string>();
+
+        return entries.reduce<ReadDirResult[]>((list, entry) => {
+            const realName = placeholderRealName(entry.name);
+            if (!realName) {
+                list.push(entry);
+            }
+            else if (!realNames.has(realName) && !resolved.has(realName)) {
+                resolved.add(realName);
+                list.push({ ...entry, name: realName, uri: withLastSegment(entry.uri, realName) });
+            }
+            return list;
+        }, []);
     }
 
     /** True for volumes the app does not own - iCloud Drive, a NAS share, another provider. */
