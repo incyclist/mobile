@@ -384,8 +384,6 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         onSelectFolder,
     ]);
 
-    logEvent({ message: 'render RouteImportDialog', displayProps });
-
     return (
         <ErrorBoundary>
             <RouteImportDialogView

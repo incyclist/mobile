@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getRoutesPageService, RouteDetailUIItem, useRouteList } from 'incyclist-services';
 import { RouteItemView } from './RouteItemView';
 import { useLogging } from '../../hooks';
@@ -15,10 +15,13 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     const [details, setDetails] = useState<RouteDetailUIItem | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
     const [deleted,setDeleted] = useState(false)
-    
+    const [updated,setUpdated] = useState<RouteItemDisplayProps|null>(null)
     const service = useRouteList();
     const page = getRoutesPageService()
     const { logError,logEvent } = useLogging('RouteItem');
+
+    const refInitialized = useRef(false)
+    
 
     // Re-sync from cache when id changes (FlashList recycling)
     useEffect(() => {
@@ -30,6 +33,15 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
             setDetails(undefined);
         }
     }, [id]);
+
+    useEffect( ()=>{
+        if (refInitialized.current)
+            return;
+        refInitialized.current = true
+        props.observer?.on('update',(update:RouteItemDisplayProps) =>{
+            setUpdated(update)
+        })
+    })
 
     useEffect(() => {
         // Guard: don't fetch if already have details, currently loading, props say it's loaded,
@@ -70,7 +82,15 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     const points = details?.points ?? props.points;
     const previewUrl = details?.previewUrl ?? props.previewUrl;
     
-    const displayProps = {
+    const displayProps = updated? 
+    {
+        ...updated,
+        points: updated.points??details?.points??props.points,
+        loaded: loaded || !!points || !!previewUrl,
+        outsideFold,
+    }
+    :
+    {
         ...props,
         points,
         previewUrl,
