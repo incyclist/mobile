@@ -252,8 +252,8 @@ const notEnoughStorageNotice: NoticeBuilder = (video, ctx) => {
         : storageHint(deviceWord, shortfall, compact)
 
     return {
-        tone: 'warning',
-        icon: '⚠',
+        tone: 'error',
+        icon: '✕',
         headline: `Not enough free space on this ${deviceWord}`,
         body: sentences(facts, hint),
     }

@@ -104,7 +104,7 @@ describe('getVideoNotice', () => {
 
     it('states the shortfall and where to free it up before a download starts', () => {
         const notice = getVideoNotice(MOCK_VIDEO_STATES.notEnoughStorage, tablet)
-        expect(notice?.tone).toBe('warning')
+        expect(notice?.tone).toBe('error')
         expect(notice?.body).toContain('This video needs 4.7 GB of free space, but only 1.3 GB is free.')
         expect(notice?.body).toContain('Free up at least 3.4 GB')
     })
