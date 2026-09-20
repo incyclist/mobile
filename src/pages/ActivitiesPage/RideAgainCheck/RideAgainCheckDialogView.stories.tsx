@@ -16,7 +16,7 @@ import {
 } from './RideAgainCheckDialogView.mock';
 
 const meta: Meta<typeof RideAgainCheckDialogView> = {
-    title: 'Components/ActivitiesPage/RideAgainCheckDialog',
+    title: 'Components/RideAgainCheckDialog',
     component: RideAgainCheckDialogView,
     args: {
         downloadedWhileOpen: false,

@@ -66,7 +66,7 @@ const videoRouteProps = (video: RouteVideoDisplayProps, overrides = {}): any => 
 })
 
 const meta: Meta<typeof RouteDetailsView> = {
-    title: 'Components/RouteDetailsDialog/Video',
+    title: 'Components/RouteDetailsVideo',
     component: RouteDetailsView,
     decorators: [
         (Story) => (
