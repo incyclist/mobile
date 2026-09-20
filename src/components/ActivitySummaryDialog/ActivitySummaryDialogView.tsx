@@ -70,6 +70,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         onDeleteCancel,
         onShareFile,
         compact,
+        videoRemoval,
+        onVideoKeepInstead,
     } = props;
 
     const layout = useScreenLayout();
@@ -186,6 +188,25 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         );
     };
 
+    // "The video for this route is removed..." / "...is kept..." - only when a "for this ride"
+    // download is pending removal (or was just kept instead) on leaving. `pending` and `kept` are
+    // never both false when `videoRemoval` is set at all (RidePageService.buildVideoRemoval only
+    // ever returns undefined otherwise), so `kept` alone decides which line applies.
+    const VideoRemovalLine = videoRemoval ? (
+        <View style={styles.videoRemovalRow}>
+            <Text style={styles.videoRemovalText}>
+                {videoRemoval.kept
+                    ? `The video is kept on this ${isCompact ? 'iPhone' : 'iPad'} for your next rides.`
+                    : `The video for this route is removed from this ${isCompact ? 'iPhone' : 'iPad'} when you leave the ride.`}
+            </Text>
+            {!videoRemoval.kept && onVideoKeepInstead && (
+                <TouchableOpacity onPress={onVideoKeepInstead} accessibilityLabel="Keep it instead" style={styles.videoRemovalLinkHitArea}>
+                    <Text style={styles.videoRemovalLink}>Keep it instead</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    ) : null;
+
     const mapPoints = (activity.logs?.filter(l => l.lat != null && l.lng != null && l.lat !== undefined && l.lng !== undefined) ?? []).map(l => ({
         lat: l.lat as number,
         lng: l.lng as number,
@@ -205,6 +226,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             </View>
 
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
+
+            {VideoRemovalLine}
 
             <View style={styles.keyFactsSection}>
                 {renderKeyFact('Distance', activity.distance, 'distance')}
@@ -379,6 +402,26 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         color: colors.disabled,
         marginBottom: 12,
+    },
+    videoRemovalRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 12,
+        gap: 8,
+    },
+    videoRemovalText: {
+        fontSize: textSizes.smallText,
+        color: colors.text,
+    },
+    videoRemovalLinkHitArea: {
+        minHeight: 44,
+        justifyContent: 'center',
+    },
+    videoRemovalLink: {
+        fontSize: textSizes.smallText,
+        color: colors.tileIdle,
+        fontWeight: '600',
     },
     keyFactsSection: {
         flexDirection: 'row',

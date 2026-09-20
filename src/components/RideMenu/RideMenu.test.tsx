@@ -42,7 +42,17 @@ jest.mock('../SettingsPlaceholder', () => ({
 }));
 
 jest.mock('../ActivitySummaryDialog', () => ({
-    ActivitySummaryDialog: () => null,
+    // Captures videoRemoval/onVideoKeepInstead so the "pass-through only" contract (RideMenu ->
+    // RideMenuView -> ActivitySummaryDialog) is testable without rendering the real dialog.
+    ActivitySummaryDialog: ({ videoRemoval, onVideoKeepInstead }: any) => {
+        const { Text, TouchableOpacity } = require('react-native');
+        if (!videoRemoval) return null;
+        return (
+            <TouchableOpacity onPress={onVideoKeepInstead}>
+                <Text>videoRemoval:{JSON.stringify(videoRemoval)}</Text>
+            </TouchableOpacity>
+        );
+    },
 }));
 
 jest.mock('../WorkoutSettingsDialog', () => ({
@@ -104,6 +114,39 @@ describe('RideMenuView', () => {
 
     it('renders with Activity Summary dialog active', () => {
         render(<RideMenuView {...mockProps} visible={true} activeDialog='activitySummary' />);
+    });
+
+    // menuProps.videoRemoval / onVideoKeepInstead (RidePageService) - this view only forwards
+    // them into the default ActivitySummaryDialog it renders, no rendering or logic of its own.
+    describe('videoRemoval pass-through to ActivitySummaryDialog', () => {
+        it('forwards videoRemoval when set', () => {
+            const { getByText } = render(
+                <RideMenuView {...mockProps} visible={true} activeDialog='activitySummary' videoRemoval={{ pending: true, kept: false }} />
+            );
+            expect(getByText('videoRemoval:{"pending":true,"kept":false}')).toBeTruthy();
+        });
+
+        it('forwards onVideoKeepInstead so pressing it in the summary calls straight through', () => {
+            const onVideoKeepInstead = jest.fn();
+            const { getByText } = render(
+                <RideMenuView
+                    {...mockProps}
+                    visible={true}
+                    activeDialog='activitySummary'
+                    videoRemoval={{ pending: true, kept: false }}
+                    onVideoKeepInstead={onVideoKeepInstead}
+                />
+            );
+            fireEvent.press(getByText('videoRemoval:{"pending":true,"kept":false}'));
+            expect(onVideoKeepInstead).toHaveBeenCalledTimes(1);
+        });
+
+        it('renders the summary dialog without a videoRemoval prop when absent (the normal case)', () => {
+            const { queryByText } = render(
+                <RideMenuView {...mockProps} visible={true} activeDialog='activitySummary' />
+            );
+            expect(queryByText(/^videoRemoval:/)).toBeNull();
+        });
     });
 
     it('renders with Resume button visible', () => {

@@ -1,8 +1,17 @@
 import { ActivityDetailsUI, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
 
+/** Whether this ride's video was downloaded just for this ride and is due to be removed again
+ *  when the rider leaves - forwarded from RidePageService.menuProps.videoRemoval via RideMenu. */
+export interface VideoRemovalNotice {
+    pending: boolean;
+    kept: boolean;
+}
+
 export interface ActivitySummaryDialogProps {
     onClose: () => void;   // dismiss -> back to RideMenu (caller's responsibility)
     onExit: () => void;    // navigate away (caller's responsibility)
+    videoRemoval?: VideoRemovalNotice;
+    onVideoKeepInstead?: () => void;
 }
 
 export interface ActivityWorkoutSummaryGraph {
@@ -33,4 +42,6 @@ export interface ActivitySummaryDialogViewProps {
     onDeleteCancel: () => void;
     onShareFile: (path: string) => void;
     compact?: boolean;
+    videoRemoval?: VideoRemovalNotice;
+    onVideoKeepInstead?: () => void;
 }

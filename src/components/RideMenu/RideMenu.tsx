@@ -39,6 +39,9 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
     // Ride Settings (Ride View selector) applies to any ride with a route - false only for a
     // route-less Workout-only ride. Defaults to true (show) if menuProps hasn't resolved yet.
     const showRideSettings = menuProps?.showRideSettings ?? true;
+    // Pass-through only, per menuProps.videoRemoval - the ride summary decides what to render
+    // with these, this component just forwards them (and the action) to it.
+    const videoRemoval = menuProps?.videoRemoval;
 
     // Handles closing the menu, considering if a dialog is active
     const handleCloseMenu = useCallback(() => {
@@ -64,6 +67,10 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
         setActiveDialog(null);
         onCloseRidePage();
     }, [onCloseRidePage]);
+
+    const handleVideoKeepInstead = useCallback(() => {
+        service.onVideoKeepInstead();
+    }, [service]);
 
     const handleGearSettings = useCallback(() => {
         setActiveDialog('gearSettings');
@@ -135,6 +142,8 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
             canStepForward={canStepForward}
             loadControl={loadControl}
             showRideSettings={showRideSettings}
+            videoRemoval={videoRemoval}
+            onVideoKeepInstead={handleVideoKeepInstead}
             onClose={handleCloseMenu} // Pass the smart component's close handler
             onPause={handlePauseResume}
             onResume={handlePauseResume}

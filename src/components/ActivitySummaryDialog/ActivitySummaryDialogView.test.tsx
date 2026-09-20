@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ActivitySummaryDialogView } from './ActivitySummaryDialogView';
 import { ActivitySummaryDialogViewProps } from './types';
 import { ActivityDetailsUI } from 'incyclist-services';
@@ -154,6 +154,40 @@ describe('ActivitySummaryDialogView', () => {
             } as unknown as ActivityDetailsUI,
         };
         expect(() => render(<ActivitySummaryDialogView {...props} />)).not.toThrow();
+    });
+
+    describe('video removal notice', () => {
+        it('shows nothing when videoRemoval is absent (the normal case, no iCloud video involved)', () => {
+            const { queryByText } = render(<ActivitySummaryDialogView {...MOCK_PROPS} />);
+            expect(queryByText(/removed from this/)).toBeNull();
+            expect(queryByText(/kept on this/)).toBeNull();
+            expect(queryByText('Keep it instead')).toBeNull();
+        });
+
+        it('shows the removal line with a "Keep it instead" link while pending', () => {
+            const onVideoKeepInstead = jest.fn();
+            const { getByText } = render(
+                <ActivitySummaryDialogView {...MOCK_PROPS} videoRemoval={{ pending: true, kept: false }} onVideoKeepInstead={onVideoKeepInstead} />
+            );
+            expect(getByText(/removed from this iPad when you leave the ride/)).toBeTruthy();
+            fireEvent.press(getByText('Keep it instead'));
+            expect(onVideoKeepInstead).toHaveBeenCalledTimes(1);
+        });
+
+        it('reads "iPhone" in compact layout', () => {
+            const { getByText } = render(
+                <ActivitySummaryDialogView {...MOCK_PROPS} compact videoRemoval={{ pending: true, kept: false }} onVideoKeepInstead={jest.fn()} />
+            );
+            expect(getByText(/removed from this iPhone when you leave the ride/)).toBeTruthy();
+        });
+
+        it('switches to the "kept" line, without the link, once the video was kept instead', () => {
+            const { getByText, queryByText } = render(
+                <ActivitySummaryDialogView {...MOCK_PROPS} videoRemoval={{ pending: false, kept: true }} onVideoKeepInstead={jest.fn()} />
+            );
+            expect(getByText(/kept on this iPad for your next rides/)).toBeTruthy();
+            expect(queryByText('Keep it instead')).toBeNull();
+        });
     });
 
     describe('route-less workout summary', () => {

@@ -8,7 +8,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { createMMKV } from 'react-native-mmkv';
 import RNFS from 'react-native-fs';
 
-export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialogProps) => {
+export const ActivitySummaryDialog = ({ onClose, onExit, videoRemoval, onVideoKeepInstead }: ActivitySummaryDialogProps) => {
     const service = useActivityRide();
     const { logError, logEvent } = useLogging('ActivitySummaryDialog');
 
@@ -141,6 +141,8 @@ export const ActivitySummaryDialog = ({ onClose, onExit }: ActivitySummaryDialog
                     onDeleteConfirm={handleDeleteConfirm}
                     onDeleteCancel={handleDeleteCancel}
                     onShareFile={handleShareFile}
+                    videoRemoval={videoRemoval}
+                    onVideoKeepInstead={onVideoKeepInstead}
                 />
             </ErrorBoundary>
         );
