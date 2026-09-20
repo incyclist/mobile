@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMonitoring } from 'incyclist-services';
 import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail } from 'incyclist-services';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import type { VideoKeepChoice } from 'incyclist-services';
+import { useLogging, useUnmountEffect, useIsTablet } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';
 import { navigate } from '../../services';
@@ -24,9 +25,17 @@ const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnli
     return undefined;
 };
 
+/**
+ * The word for the user's own device in the video copy. It follows the hardware, not the layout:
+ * a large phone renders the `full` layout but is still an iPhone, and telling that user their
+ * video is "not on this iPad" would be plainly wrong.
+ */
+const useDeviceWord = (): string => (useIsTablet() ? 'iPad' : 'iPhone');
+
 export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps) => {
     const { height } = useWindowDimensions();
     const compact = height < 420;
+    const deviceWord = useDeviceWord();
 
     const service = useRouteList();
     const activities = useActivityList();
@@ -179,17 +188,50 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // the in-dialog '[x]' below already re-emits 'page-update' when it clears the selection.
     useEffect(() => {
         const refresh = () => setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+        // The video state changes on its own - a download progresses, iOS frees a file, the app
+        // comes back to the foreground - so this dialog is told about its own route separately
+        // from the page-wide update above. Other routes' updates are ignored.
+        const refreshRoute = (updatedRouteId?: string) => {
+            if (!updatedRouteId || updatedRouteId === routeId)
+                refresh();
+        };
         const observer = pageService.getPageObserver();
 
         observer?.on('page-update', refresh);
+        observer?.on('route-details-update', refreshRoute);
         return () => {
             observer?.off('page-update', refresh);
+            observer?.off('route-details-update', refreshRoute);
         };
     }, [pageService, routeId]);
 
     const onClearWorkout = useCallback(() => {
         pageService.onClearWorkoutSelection();
     }, [pageService]);
+
+    /**
+     * Every video action is a straight hand-off to the page service, which owns the decision and
+     * emits 'route-details-update' when it has taken effect. Nothing is applied optimistically
+     * here: a local guess would be a second source of truth for the same state.
+     */
+    const videoActions = useMemo(() => ({
+        onVideoDownloadPressed: () => pageService.onVideoDownloadPressed(routeId),
+        onVideoDownloadConfirmed: (choice: VideoKeepChoice) => pageService.onVideoDownloadConfirmed(routeId, choice),
+        onVideoDownloadDismissed: () => pageService.onVideoDownloadDismissed(routeId),
+        onVideoRetry: () => pageService.onVideoRetry(routeId),
+        onVideoStop: () => pageService.onVideoStop(routeId),
+        onVideoKeepInstead: () => pageService.onVideoKeepInstead(routeId),
+        onVideoRemovePressed: () => pageService.onVideoRemovePressed(routeId),
+        onVideoRemoveConfirmed: () => pageService.onVideoRemoveConfirmed(routeId),
+        onVideoRemoveDismissed: () => pageService.onVideoRemoveDismissed(routeId),
+        // The only one that resolves later: it opens the iOS picker and settles when the user
+        // has picked (or cancelled). The outcome arrives through the observer like everything
+        // else, so there is nothing to do with the promise here but let a failure go to the log.
+        onVideoConfirmAccess: () => {
+            pageService.onConfirmAccess(routeId)
+                ?.catch((err: Error) => logEvent({ message: 'error', fn: 'onConfirmAccess', error: err.message }));
+        },
+    }), [pageService, routeId, logEvent]);
 
     useUnmountEffect(() => {
         refMounted.current = false;
@@ -353,6 +395,9 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             onDownloadStop={onDownloadStop}
             onDownloadRetry={onDownloadRetry}
             onDownloadDelete={onDownloadDelete}
+            video={routeDetailsProps.video}
+            deviceWord={deviceWord}
+            {...videoActions}
         />
     );
 };

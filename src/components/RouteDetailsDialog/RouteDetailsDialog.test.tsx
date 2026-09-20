@@ -105,6 +105,7 @@ jest.mock('../../hooks', () => ({
     useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
     useUnmountEffect: jest.fn(),
     useScreenLayout: () => 'normal',
+    useIsTablet: () => true,
 }));
 
 jest.mock('@maplibre/maplibre-react-native', () => ({
