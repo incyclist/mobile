@@ -160,7 +160,6 @@ export const ActivitiesPage = () => {
             )}
             {rideAgainCheck && (
                 <RideAgainCheckDialogView
-                    routeTitle={rideAgainCheck.routeTitle}
                     video={rideAgainCheck.video}
                     downloadedWhileOpen={rideAgainCheck.downloadedWhileOpen}
                     onClose={handleRideAgainCheckClose}

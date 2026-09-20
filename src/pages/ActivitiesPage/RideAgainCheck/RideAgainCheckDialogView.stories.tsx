@@ -19,7 +19,6 @@ const meta: Meta<typeof RideAgainCheckDialogView> = {
     title: 'Components/ActivitiesPage/RideAgainCheckDialog',
     component: RideAgainCheckDialogView,
     args: {
-        routeTitle: 'Col de Pennes',
         downloadedWhileOpen: false,
         onClose: fn(),
         onStart: fn(),

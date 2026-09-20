@@ -17,7 +17,6 @@ jest.mock('../../../hooks', () => ({
 }));
 
 const baseProps = {
-    routeTitle: 'Col de Pennes',
     downloadedWhileOpen: false,
     compact: false,
     onClose: jest.fn(),
@@ -84,6 +83,18 @@ describe('RideAgainCheckDialogView', () => {
         expect(baseProps.onKeepInstead).toHaveBeenCalledTimes(1);
     });
 
+    it('shows a one-off "Video downloaded" line when it finished while the panel was open', () => {
+        const readyKept = { ...MOCK_VIDEO_READY_THIS_RIDE, status: { ...MOCK_VIDEO_READY_THIS_RIDE.status, thisRide: false, choice: undefined } };
+        const { getByText } = render(<RideAgainCheckDialogView {...baseProps} video={readyKept} downloadedWhileOpen />);
+        expect(getByText('✓ Video downloaded')).toBeTruthy();
+    });
+
+    it('does not show the "Video downloaded" line for a video that was already ready', () => {
+        const readyKept = { ...MOCK_VIDEO_READY_THIS_RIDE, status: { ...MOCK_VIDEO_READY_THIS_RIDE.status, thisRide: false, choice: undefined } };
+        const { queryByText } = render(<RideAgainCheckDialogView {...baseProps} video={readyKept} downloadedWhileOpen={false} />);
+        expect(queryByText('✓ Video downloaded')).toBeNull();
+    });
+
     it('shows the download confirmation and forwards the keep-choice buttons', () => {
         const { getByText } = render(<RideAgainCheckDialogView {...baseProps} video={MOCK_VIDEO_WITH_CONFIRMATION} />);
         expect(getByText('Download this video?')).toBeTruthy();
@@ -98,10 +109,9 @@ describe('RideAgainCheckDialogView', () => {
         expect(baseProps.onDownloadDismissed).toHaveBeenCalledTimes(1);
     });
 
-    // ButtonBar's Button does not currently read `disabled` at all (pre-existing gap in that
-    // shared component, outside this task's ownership) - so this only asserts what this view
-    // controls: the reason is visible and the button is still labelled "Download". The disabled
-    // flag itself is covered directly in videoNoticeContent.test.ts (isPrimaryActionDisabled).
+    // The disabled flag itself is covered directly in primaryAction.test.ts (isPrimaryActionDisabled);
+    // this only asserts what this view controls: the reason is visible and the button is still
+    // labelled "Download".
     it('still shows Download (with its reason visible) when the state is not-enough-storage', () => {
         const notEnoughStorage = {
             ...MOCK_VIDEO_NOT_DOWNLOADED,

@@ -51,6 +51,16 @@ describe('Button', () => {
 
         expect(onClick).toHaveBeenCalled();
     });
+
+    it('does not fire onClick when disabled', () => {
+        (useScreenLayout as jest.Mock).mockReturnValue('normal');
+        const onClick = jest.fn();
+
+        const { getByText } = render(<Button id="a" label="OK" onClick={onClick} disabled />);
+        fireEvent.press(getByText('OK'));
+
+        expect(onClick).not.toHaveBeenCalled();
+    });
 });
 
 describe('ButtonBar', () => {

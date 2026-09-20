@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import type { RouteVideoDisplayProps, VideoKeepChoice } from 'incyclist-services';
 import { Dialog } from '../../../components/Dialog';
 import { useScreenLayout } from '../../../hooks';
-import { VideoNoticeView } from './VideoNoticeView';
-import { DownloadConfirmationView } from './DownloadConfirmationView';
-import { buildAccessOutcomeContent, buildVideoNotice, getPrimaryAction, isPrimaryActionDisabled, PRIMARY_ACTION_LABEL } from './videoNoticeContent';
+import { VideoNoticeView } from '../../../components/RouteDetailsDialog/video/VideoNoticeView';
+import { VideoDownloadConfirmView } from '../../../components/RouteDetailsDialog/video/VideoDownloadConfirmView';
+import { colors } from '../../../theme';
+import { getPrimaryAction, isPrimaryActionDisabled, PRIMARY_ACTION_LABEL } from './primaryAction';
 
 export interface RideAgainCheckDialogViewProps {
-    routeTitle: string;
     video: RouteVideoDisplayProps;
     downloadedWhileOpen: boolean;
     compact?: boolean;
@@ -27,12 +27,13 @@ export interface RideAgainCheckDialogViewProps {
 
 /**
  * "Before you ride" - shown instead of navigating straight to the ride when Ride Again's video
- * pre-check finds the route's video isn't playable yet. Renders the same states route details
- * shows for a route's video, plus its own download confirmation when one is pending.
+ * pre-check finds the route's video isn't playable yet. Renders the same notice and download
+ * confirmation route details shows for a route's video, plus a one-off confirmation line when the
+ * download finished while this dialog was already open.
  */
 export const RideAgainCheckDialogView = (props: RideAgainCheckDialogViewProps) => {
     const {
-        routeTitle, video, downloadedWhileOpen, compact,
+        video, downloadedWhileOpen, compact,
         onClose, onStart,
         onDownloadPress, onDownloadConfirmed, onDownloadDismissed,
         onStop, onRetry, onKeepInstead, onConfirmAccess,
@@ -40,10 +41,12 @@ export const RideAgainCheckDialogView = (props: RideAgainCheckDialogViewProps) =
 
     const layout = useScreenLayout();
     const isCompact = compact ?? layout === 'compact';
-    const device = isCompact ? 'iPhone' : 'iPad';
+    const deviceWord = isCompact ? 'iPhone' : 'iPad';
 
-    const notice = buildVideoNotice({ video, routeTitle, device, downloadedWhileOpen });
-    const outcome = video.access?.lastResult ? buildAccessOutcomeContent(video.access.lastResult.outcome) : undefined;
+    // The shared notice stays silent for a plain 'ready' state (route details has no use for a
+    // "just downloaded" line), so that one case is layered on top here instead. thisRide takes
+    // priority, matching the shared notice's own precedence for that state.
+    const justDownloaded = downloadedWhileOpen && video.status.state === 'ready' && !video.status.thisRide;
 
     const primaryKind = getPrimaryAction(video);
     const primaryHandlers: Record<string, () => void> = {
@@ -73,17 +76,27 @@ export const RideAgainCheckDialogView = (props: RideAgainCheckDialogViewProps) =
                 buttons={buttons}
                 onOutsideClick={onClose}
             >
-                {outcome && <VideoNoticeView notice={outcome} />}
-                {notice && <VideoNoticeView notice={notice} onKeepInsteadPress={onKeepInstead} />}
+                {justDownloaded && (
+                    <View style={styles.downloadedLine}>
+                        <Text style={styles.downloadedText}>✓ Video downloaded</Text>
+                    </View>
+                )}
+                <VideoNoticeView
+                    video={video}
+                    deviceWord={deviceWord}
+                    compact={isCompact}
+                    onKeepInstead={onKeepInstead}
+                />
             </Dialog>
 
             {video.confirmation && (
-                <DownloadConfirmationView
+                <VideoDownloadConfirmView
                     confirmation={video.confirmation}
-                    device={device}
-                    onNotNow={onDownloadDismissed}
-                    onDownloadForThisRide={() => onDownloadConfirmed('this-ride')}
-                    onDownloadAndKeep={() => onDownloadConfirmed('keep')}
+                    downloadEnabled={video.actions.downloadEnabled}
+                    deviceWord={deviceWord}
+                    compact={isCompact}
+                    onConfirm={onDownloadConfirmed}
+                    onDismiss={onDownloadDismissed}
                 />
             )}
         </View>
@@ -95,4 +108,6 @@ const styles = StyleSheet.create({
         // Dialog renders its own Modal, so the confirmation below stacks as a sibling Modal
         // rather than a nested view - this wrapper only groups them for a single mount point.
     },
+    downloadedLine: { paddingHorizontal: 15, paddingVertical: 6 },
+    downloadedText: { color: colors.success, fontSize: 13 },
 });
