@@ -35,6 +35,7 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onDownloadStop: (routeId: string) => void;
     onDownloadRetry: (routeId: string) => void;
     onDownloadDelete: (routeId: string) => void;
+    onDownloadKeepInstead: (routeId: string) => void;
     downloadObserver?: IObserver;
 }
 
@@ -57,6 +58,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         onDownloadStop,
         onDownloadRetry,
         onDownloadDelete,
+        onDownloadKeepInstead,
         downloadObserver,
     } = props;
 
@@ -110,9 +112,11 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                                 <DownloadModalView
                                     rows={[]}
                                     visible={showDownloadModal}
+                                    compact={compact}
                                     onStop={onDownloadStop}
                                     onRetry={onDownloadRetry}
                                     onDelete={onDownloadDelete}
+                                    onKeepInstead={onDownloadKeepInstead}
                                     onClose={onDownloadModalClose}
                                     nested={false}
                                 />

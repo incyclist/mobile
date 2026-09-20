@@ -1,10 +1,9 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, useWindowDimensions } from 'react-native';
-import { 
-    getRoutesPageService, 
-    useRouteList,
-    RoutePageDisplayProps, 
-    IObserver, 
+import {
+    getRoutesPageService,
+    RoutePageDisplayProps,
+    IObserver,
     SearchFilter,
     RouteItemProps
 } from 'incyclist-services';
@@ -40,7 +39,6 @@ const hashRoutes = (routes: RouteItemProps[]) =>
 
 export const RoutesPage = () => {
     const service = getRoutesPageService();
-    const routeList = useRouteList();
     const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt();
 
     const { height } = useWindowDimensions();
@@ -150,19 +148,20 @@ export const RoutesPage = () => {
     }, []);
 
     const onDownloadStop = useCallback((routeId: string) => {
-        routeList.getCard(routeId)?.stopDownload();
-    }, [routeList]);
+        service.onDownloadStop(routeId);
+    }, [service]);
 
     const onDownloadRetry = useCallback((routeId: string) => {
-        const card = routeList.getCard(routeId);
-        if (card) {
-            card.download();
-        }
-    }, [routeList]);
+        service.onDownloadRetry(routeId);
+    }, [service]);
 
     const onDownloadDelete = useCallback((routeId: string) => {
-        routeList.getCard(routeId)?.deleteDownload();
-    }, [routeList]);
+        service.onDownloadDelete(routeId);
+    }, [service]);
+
+    const onDownloadKeepInstead = useCallback((routeId: string) => {
+        service.onDownloadKeepInstead(routeId);
+    }, [service]);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)
@@ -195,6 +194,7 @@ export const RoutesPage = () => {
                 onDownloadStop={onDownloadStop}
                 onDownloadRetry={onDownloadRetry}
                 onDownloadDelete={onDownloadDelete}
+                onDownloadKeepInstead={onDownloadKeepInstead}
             />
             {props.detailRouteId && (
                 <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />

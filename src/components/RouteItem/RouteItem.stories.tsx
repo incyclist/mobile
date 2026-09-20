@@ -91,3 +91,53 @@ export const Loading: StoryObj<typeof RouteItemView> = {
         cntActive: 0,
     },
 };
+
+export const InICloud: StoryObj<typeof RouteItemView> = {
+    args: {
+        id: '6',
+        title: 'Col de Pennes',
+        country: 'FR',
+        totalDistance: { value: 12.3, unit: 'km' },
+        totalElevation: { value: 320, unit: 'm' },
+        hasVideo: true,
+        isNew: false,
+        isDemo: false,
+        loaded: true,
+        videoPill: 'in-icloud',
+    },
+    parameters: { viewport: { defaultViewport: 'ipadAir' } },
+};
+
+export const InICloudPhone: StoryObj<typeof RouteItemView> = {
+    args: InICloud.args,
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' } },
+};
+
+export const VideoDownloading: StoryObj<typeof RouteItemView> = {
+    args: {
+        id: '7',
+        title: 'Passo Giau',
+        country: 'IT',
+        totalDistance: { value: 9.6, unit: 'km' },
+        totalElevation: { value: 1090, unit: 'm' },
+        hasVideo: true,
+        isNew: false,
+        isDemo: false,
+        loaded: true,
+        videoPill: 'downloading',
+    },
+    parameters: { viewport: { defaultViewport: 'ipadAir' } },
+};
+
+export const VideoDownloadingPhone: StoryObj<typeof RouteItemView> = {
+    args: VideoDownloading.args,
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' } },
+};
+
+export const InICloudWithNewBadge: StoryObj<typeof RouteItemView> = {
+    args: {
+        ...InICloud.args,
+        isNew: true,
+        cntActive: 3,
+    },
+};
