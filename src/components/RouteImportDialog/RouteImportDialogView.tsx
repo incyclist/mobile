@@ -73,6 +73,7 @@ export const RouteImportDialogView = ({
                         compact={compact}
                         routes={routes}
                         parseProgress={phase === 'parsing' ? parseProgress : undefined}
+                        hasICloudDownloadFailures={displayProps.hasICloudDownloadFailures}
                         selectedIds={selectedIds}
                         onToggle={onToggleRoute}
                         onSelectAll={onSelectAll}

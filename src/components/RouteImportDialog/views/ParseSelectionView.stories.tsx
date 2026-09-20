@@ -115,3 +115,82 @@ export const Compact: Story = {
         routes: mockRoutes,
     },
 };
+
+const icloudOfflineRoute: RouteDisplayItem = {
+    id: '7',
+    label: 'Passo Giau',
+    format: 'epm',
+    importable: false,
+    alreadyImported: false,
+    parseState: 'parsed',
+    errorReason: "Could not download 'Passo Giau.epp' from iCloud: no internet connection",
+    errorCode: 'ICLOUD_OFFLINE',
+    observer: new Observer(),
+};
+
+const icloudDownloadFailedRoute: RouteDisplayItem = {
+    id: '8',
+    label: 'Col du Tourmalet',
+    format: 'xml',
+    importable: false,
+    alreadyImported: false,
+    parseState: 'parsed',
+    errorReason: "Could not download 'Col du Tourmalet.gpx' from iCloud",
+    errorCode: 'ICLOUD_DOWNLOAD_FAILED',
+    observer: new Observer(),
+};
+
+// Waiting hint shown under the parsing header once an ensureLocal wait for the current
+// route's files has run for more than 2s (tablet).
+export const WaitingForICloud: Story = {
+    args: {
+        compact: false,
+        routes: mockRoutes.slice(0, 2),
+        parseProgress: { parsed: 2, total: 10, waitingForICloud: true },
+    },
+};
+
+// Same wait state, phone layout.
+export const WaitingForICloudCompact: Story = {
+    args: {
+        compact: true,
+        routes: mockRoutes.slice(0, 2),
+        parseProgress: { parsed: 2, total: 10, waitingForICloud: true },
+    },
+};
+
+// Offline case: at least one route couldn't be fetched from iCloud because there was no
+// internet connection - the offline hint takes precedence over the plain download-failed one.
+export const ICloudOfflineFailures: Story = {
+    args: {
+        compact: false,
+        routes: [...mockRoutes.slice(0, 2), icloudOfflineRoute],
+        hasICloudDownloadFailures: true,
+    },
+};
+
+export const ICloudOfflineFailuresCompact: Story = {
+    args: {
+        compact: true,
+        routes: [...mockRoutes.slice(0, 2), icloudOfflineRoute],
+        hasICloudDownloadFailures: true,
+    },
+};
+
+// Download-failed case: no route was offline, but at least one route's files failed to
+// download or timed out.
+export const ICloudDownloadFailedFailures: Story = {
+    args: {
+        compact: false,
+        routes: [...mockRoutes.slice(0, 2), icloudDownloadFailedRoute],
+        hasICloudDownloadFailures: true,
+    },
+};
+
+export const ICloudDownloadFailedFailuresCompact: Story = {
+    args: {
+        compact: true,
+        routes: [...mockRoutes.slice(0, 2), icloudDownloadFailedRoute],
+        hasICloudDownloadFailures: true,
+    },
+};
