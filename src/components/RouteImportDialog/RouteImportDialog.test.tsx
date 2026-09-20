@@ -35,7 +35,10 @@ jest.mock('incyclist-services', () => ({
     useAppState: () => mockAppState,
 }));
 
-jest.mock('../../bindings/ui', () => ({}));
+const mockSelectDirectory = jest.fn();
+jest.mock('../../bindings/ui', () => ({
+    getUIBinding: () => ({ selectDirectory: mockSelectDirectory }),
+}));
 
 // Deferred, controllable pickFile() so we can unmount the dialog *while* the picker
 // promise is still pending, mirroring the production race (picker backgrounds the app,
@@ -69,6 +72,9 @@ jest.mock('./RouteImportDialogView', () => ({
                 </RNTouchableOpacity>
                 <RNTouchableOpacity testID="add-video-route" onPress={props.onAddVideoRoute}>
                     <RNText>Add Video Route</RNText>
+                </RNTouchableOpacity>
+                <RNTouchableOpacity testID="select-folder" onPress={props.onSelectFolder}>
+                    <RNText>Select Folder</RNText>
                 </RNTouchableOpacity>
                 <RNText testID="show-video-route-option">{String(props.showVideoRouteOption)}</RNText>
             </RNView>
@@ -184,5 +190,64 @@ describe('RouteImportDialog - VIDEO_ROUTE feature toggle (FIXES_BACKLOG item #63
         const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
 
         expect(getByTestId('show-video-route-option').props.children).toBe('false');
+    });
+});
+
+// The folder picker's grant (or grantError, when the platform couldn't produce one) has to
+// reach the scanner so it can register the access grant before scanning the folder - without
+// it, a folder picked on iOS would lose access to its contents again after a restart.
+describe('RouteImportDialog - folder selection forwards the access grant', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockPageService.getImportDisplayProps.mockReturnValue({ phase: 'landing', routes: [] });
+        mockPageService.startLibraryScan.mockReturnValue(mockObserver);
+    });
+
+    it('forwards grant to startLibraryScan when the picker returns one', async () => {
+        mockSelectDirectory.mockResolvedValue({
+            canceled: false,
+            selected: 'file:///Documents/Videos',
+            displayName: 'Videos',
+            grant: 'opaque-bookmark-token',
+        });
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+        fireEvent.press(getByTestId('select-folder'));
+
+        await waitFor(() => expect(mockPageService.startLibraryScan).toHaveBeenCalledWith({
+            uri: 'file:///Documents/Videos',
+            displayName: 'Videos',
+            grant: 'opaque-bookmark-token',
+            grantError: undefined,
+        }));
+    });
+
+    it('forwards grantError to startLibraryScan when the platform could not produce a grant', async () => {
+        mockSelectDirectory.mockResolvedValue({
+            canceled: false,
+            selected: 'file:///Documents/Videos',
+            displayName: 'Videos',
+            grantError: 'bookmark-creation-failed',
+        });
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+        fireEvent.press(getByTestId('select-folder'));
+
+        await waitFor(() => expect(mockPageService.startLibraryScan).toHaveBeenCalledWith({
+            uri: 'file:///Documents/Videos',
+            displayName: 'Videos',
+            grant: undefined,
+            grantError: 'bookmark-creation-failed',
+        }));
+    });
+
+    it('does not call startLibraryScan when the picker is cancelled', async () => {
+        mockSelectDirectory.mockResolvedValue({ canceled: true });
+
+        const { getByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+        fireEvent.press(getByTestId('select-folder'));
+
+        await waitFor(() => expect(mockSelectDirectory).toHaveBeenCalledTimes(1));
+        expect(mockPageService.startLibraryScan).not.toHaveBeenCalled();
     });
 });
