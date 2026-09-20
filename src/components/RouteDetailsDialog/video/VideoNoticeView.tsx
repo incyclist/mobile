@@ -36,7 +36,10 @@ const TONE_COLORS: Record<VideoNoticeTone, string> = {
     error: colors.error,
 }
 
-/** True once `delayMs` has passed since `key` last changed; immediately true when there is none. */
+/**
+ * True once `delayMs` has passed since `key` last changed; immediately true when there is none.
+ * The key identifies the message being waited on, so a different message restarts the wait.
+ */
 const useSettled = (key: string, delayMs?: number): boolean => {
     const [settled, setSettled] = useState(!delayMs)
 
@@ -127,7 +130,7 @@ export const VideoNoticeView = (props: VideoNoticeViewProps) => {
     const notice = getVideoNotice(video, ctx)
     const confirmedLine = getAccessConfirmedLine(video)
 
-    const settled = useSettled(video.status.state, notice?.delayMs)
+    const settled = useSettled(notice?.headline ?? '', notice?.delayMs)
     useAnnouncement(confirmedLine ? ACCESS_CONFIRMED_ANNOUNCEMENT : notice?.announce)
 
     const showNotice = !!notice && settled
