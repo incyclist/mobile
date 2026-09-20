@@ -346,6 +346,14 @@ const readyThisRideNotice: NoticeBuilder = (_video, ctx) => ({
     link: 'keep-instead',
 })
 
+/** The video is untouched - a remove attempt just didn't go through. */
+const removeFailedNotice: NoticeBuilder = () => ({
+    tone: 'error',
+    icon: '✕',
+    headline: 'Couldn\'t remove the download right now',
+    body: 'Try again later.',
+})
+
 const NOTICE_BUILDERS: Record<string, NoticeBuilder> = {
     'not-found': notFoundNotice,
     'not-enough-storage': notEnoughStorageNotice,
@@ -382,6 +390,11 @@ export const getVideoNotice = (
 ): VideoNotice | null => {
     if (!video)
         return null
+
+    // Removal is only ever offered from 'ready', so this can never collide with another state's
+    // own notice - it simply takes priority over whatever 'ready' would otherwise say.
+    if (video.removeFailed)
+        return removeFailedNotice(video, ctx)
 
     const { state } = video.status
     if (state === 'access-lost')

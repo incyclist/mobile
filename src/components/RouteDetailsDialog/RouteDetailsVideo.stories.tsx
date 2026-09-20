@@ -211,3 +211,6 @@ export const DownloadConfirmationBlockedPhone: Story = phone(MOCK_VIDEO_STATES.d
 
 export const RemoveConfirmation: Story = tablet(MOCK_VIDEO_STATES.removeConfirmation)
 export const RemoveConfirmationPhone: Story = phone(MOCK_VIDEO_STATES.removeConfirmation)
+
+export const RemoveFailed: Story = tablet(MOCK_VIDEO_STATES.removeFailed)
+export const RemoveFailedPhone: Story = phone(MOCK_VIDEO_STATES.removeFailed)

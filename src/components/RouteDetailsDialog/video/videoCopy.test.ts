@@ -46,6 +46,13 @@ describe('getVideoNotice', () => {
         expect(getVideoNotice(MOCK_VIDEO_STATES.unknown, tablet)).toBeNull()
     })
 
+    it('reports a failed remove attempt even though the state is still ready', () => {
+        const notice = getVideoNotice(MOCK_VIDEO_STATES.removeFailed, tablet)
+        expect(notice?.tone).toBe('error')
+        expect(notice?.headline).toBe('Couldn\'t remove the download right now')
+        expect(notice?.body).toBe('Try again later.')
+    })
+
     it('names the device and both figures when the video is in iCloud', () => {
         const notice = getVideoNotice(MOCK_VIDEO_STATES.notDownloaded, tablet)
         expect(notice?.tone).toBe('info')

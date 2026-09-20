@@ -275,6 +275,12 @@ export const VIDEO_REMOVE_CONFIRMATION: RouteVideoDisplayProps = {
     removeConfirmation: { sizeBytes: MOCK_VIDEO_SIZE },
 }
 
+/** The video is untouched - a remove attempt just didn't go through. */
+export const VIDEO_REMOVE_FAILED: RouteVideoDisplayProps = {
+    ...VIDEO_READY_KEPT,
+    removeFailed: true,
+}
+
 /** Every state above, keyed for stories and table-driven tests. */
 export const MOCK_VIDEO_STATES = {
     notFound: VIDEO_NOT_FOUND,
@@ -306,4 +312,5 @@ export const MOCK_VIDEO_STATES = {
     downloadConfirmationOffline: VIDEO_DOWNLOAD_CONFIRMATION_OFFLINE,
     downloadConfirmationBlocked: VIDEO_DOWNLOAD_CONFIRMATION_BLOCKED,
     removeConfirmation: VIDEO_REMOVE_CONFIRMATION,
+    removeFailed: VIDEO_REMOVE_FAILED,
 } as const
