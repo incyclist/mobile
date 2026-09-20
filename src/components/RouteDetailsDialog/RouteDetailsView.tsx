@@ -22,6 +22,15 @@ import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
 import { AttachmentChip } from '../AttachmentChip';
 import { ElevationGraph } from '../ElevationGraph';
+import { VideoNoticeView } from './video/VideoNoticeView';
+import { VideoStatBox, VideoFileRowView } from './video/VideoStatBox';
+import { VideoDownloadConfirmView } from './video/VideoDownloadConfirmView';
+import { VideoRemoveConfirmView } from './video/VideoRemoveConfirmView';
+import { getVideoButtons } from './video/videoButtons';
+import { getInfoBarSuffix } from './video/videoCopy';
+
+/** Used only when a caller renders video state without naming the device - see `deviceWord`. */
+const DEFAULT_DEVICE_WORD = 'device';
 
 const SEGMENT_CHIP_THRESHOLD = 5;
 
@@ -356,7 +365,11 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
-        onDownloadStop, onDownloadRetry, onDownloadDelete
+        onDownloadStop, onDownloadRetry, onDownloadDelete,
+        video, deviceWord = DEFAULT_DEVICE_WORD, videoNow,
+        onVideoDownloadPressed, onVideoDownloadConfirmed, onVideoDownloadDismissed,
+        onVideoRetry, onVideoStop, onVideoConfirmAccess, onVideoKeepInstead,
+        onVideoRemovePressed, onVideoRemoveConfirmed, onVideoRemoveDismissed
     } = props;
 
     const { logEvent } = useLogging('RouteDetailsView');
@@ -595,10 +608,24 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const showAddWorkoutButton = !attachedWorkout;
     const showWorkoutChip = !!attachedWorkout;
 
-    const startButtons = canStart ? [
+    // A route whose video is not on the device cannot be started however healthy the rest of it
+    // is, so the two gates are ANDed rather than one overriding the other. `video.canStart` is
+    // the page service's verdict; absent it (no file-access binding) nothing changes.
+    const canStartNow = canStart && (video?.canStart ?? true);
+
+    const startButtons = canStartNow ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
         ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onAddWorkout(data) }] : [])
     ] : []
+
+    const noop = () => {};
+
+    const videoButtons = getVideoButtons(video, {
+        onDownload: onVideoDownloadPressed ?? noop,
+        onRetry: onVideoRetry ?? noop,
+        onStop: onVideoStop ?? noop,
+        onConfirmAccess: onVideoConfirmAccess ?? noop,
+    });
 
     const downloadButton = downloadButtonLabel ? [{
         label: downloadButtonLabel,
@@ -607,7 +634,46 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         primary: downloadButtonPrimary ?? false,
     }] : []
 
-    const dialogButtons = [cancelButton, ...startButtons, ...downloadButton]
+    const dialogButtons = [cancelButton, ...startButtons, ...videoButtons, ...downloadButton]
+
+    const videoNotice = video ? (
+        <VideoNoticeView
+            video={video}
+            deviceWord={deviceWord}
+            compact={compact}
+            now={videoNow}
+            onKeepInstead={onVideoKeepInstead}
+            onRemoveDownload={onVideoRemovePressed}
+        />
+    ) : null;
+
+    // Both are nested over whichever layout is showing, so they are rendered once here and
+    // included in each branch's subtree below.
+    const videoDialogs = (
+        <>
+            {!!video?.confirmation && (
+                <VideoDownloadConfirmView
+                    confirmation={video.confirmation}
+                    downloadEnabled={video.actions.downloadEnabled}
+                    deviceWord={deviceWord}
+                    compact={compact}
+                    onConfirm={onVideoDownloadConfirmed ?? noop}
+                    onDismiss={onVideoDownloadDismissed ?? noop}
+                />
+            )}
+            {!!video?.removeConfirmation && (
+                <VideoRemoveConfirmView
+                    removeConfirmation={video.removeConfirmation}
+                    deviceWord={deviceWord}
+                    compact={compact}
+                    onConfirm={onVideoRemoveConfirmed ?? noop}
+                    onDismiss={onVideoRemoveDismissed ?? noop}
+                />
+            )}
+        </>
+    );
+
+    const videoRemoveHandler = video?.actions.remove ? onVideoRemovePressed : undefined;
 
     const workoutChip = showWorkoutChip && attachedWorkout ? (
         <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />
@@ -634,6 +700,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     if (compact) {
         const showCompactPanel = loading || showMap || hasProfile || !!previewUrl;
 
+        const infoBarSuffix = getInfoBarSuffix(video);
+
         const infoBar = (
             <View style={styles.infoBar}>
                 <Text style={[styles.infoBarText, smoothingBusy && styles.recomputing]}>
@@ -641,6 +709,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     {/* The only place a second figure fits on this layout, so it is appended to
                         the route's own rather than replacing it. */}
                     {!!smoothedFigure && ` (smoothed ${formatStat(smoothedFigure, '')})`}
+                    {!!infoBarSuffix && ` • ${infoBarSuffix}`}
                 </Text>
                 {!!canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
             </View>
@@ -662,6 +731,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                             style={styles.compactLeftScroll}
                             contentContainerStyle={styles.compactLeftScrollContent}
                         >
+                            {/* First in the column, so it is read before anything has to be
+                                scrolled - this is the thing that decides whether the user can
+                                ride at all. */}
+                            {videoNotice}
                             <RouteDetailsSettingsForm
                                 loading={loading}
                                 compact={compact}
@@ -682,6 +755,13 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                                 onNextOverwriteChange={handleNextOverwriteChange}
                                 onShowPrevChange={handleShowPrevChange}
                             />
+                            {!!video && (
+                                <VideoFileRowView
+                                    video={video}
+                                    deviceWord={deviceWord}
+                                    onRemoveDownload={videoRemoveHandler}
+                                />
+                            )}
                         </ScrollView>
                     </View>
                     {showCompactPanel && (
@@ -698,6 +778,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     onDelete={onDownloadDelete ?? (() => {})}
                     onClose={onDownloadModalClose ?? (() => {})}
                 />
+                {videoDialogs}
             </Dialog>
         );
     }
@@ -752,7 +833,13 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     <Text style={styles.statLabel}>Type</Text>
                     <Text style={styles.statValue}>{routeType}</Text>
                 </View>
+                {/* A fourth column, for iCloud videos only - it states the video's situation
+                    where the eye already is, without adding a row to the layout. */}
+                {!!video && <VideoStatBox video={video} onRemoveDownload={videoRemoveHandler} />}
             </View>
+            {/* A full-width strip between the figures and the form: it belongs to the route as a
+                whole, not to any one setting below it. */}
+            {videoNotice}
             <View style={styles.settingsArea}>
                 <RouteDetailsSettingsForm
                     loading={loading}
@@ -785,6 +872,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 onDelete={onDownloadDelete ?? (() => {})}
                 onClose={onDownloadModalClose ?? (() => {})}
             />
+            {videoDialogs}
         </Dialog>
     );
 };

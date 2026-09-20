@@ -1,6 +1,7 @@
 import type {
     UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps,
-    RouteApiDetail, RoutePoint as ServiceRoutePoint, SmoothingGradient
+    RouteApiDetail, RoutePoint as ServiceRoutePoint, SmoothingGradient,
+    RouteVideoDisplayProps, VideoKeepChoice
 } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
@@ -131,4 +132,31 @@ export interface RouteDetailsViewProps extends SmoothingPreviewProps {
     onDownloadStop?: (routeId: string) => void;
     onDownloadRetry?: (routeId: string) => void;
     onDownloadDelete?: (routeId: string) => void;
+
+    /**
+     * Everything about the route's own video file: which state it is in, which buttons apply,
+     * and whether a confirmation is open. Absent on every platform without the file-access
+     * binding (Android, and iOS builds without it), in which case the dialog renders exactly as
+     * it did before and none of the surfaces below appear.
+     *
+     * The view never inspects `video.status.state` to decide what is offered - buttons and links
+     * come from `video.actions`, Start comes from `video.canStart`, and the two nested dialogs
+     * come from `video.confirmation` / `video.removeConfirmation`. Only the wording is chosen by
+     * state, in `video/videoCopy.ts`.
+     */
+    video?: RouteVideoDisplayProps;
+    /** The word for the user's own device in the copy - "iPad" or "iPhone". */
+    deviceWord?: string;
+    /** Injectable clock behind the "started 6 min ago" line, for deterministic tests/stories. */
+    videoNow?: number;
+    onVideoDownloadPressed?: () => void;
+    onVideoDownloadConfirmed?: (choice: VideoKeepChoice) => void;
+    onVideoDownloadDismissed?: () => void;
+    onVideoRetry?: () => void;
+    onVideoStop?: () => void;
+    onVideoConfirmAccess?: () => void;
+    onVideoKeepInstead?: () => void;
+    onVideoRemovePressed?: () => void;
+    onVideoRemoveConfirmed?: () => void;
+    onVideoRemoveDismissed?: () => void;
 }
