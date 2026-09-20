@@ -22,7 +22,7 @@ const ICLOUD_PLACEHOLDER_PATTERN = /^\.(.+)\.icloud$/
 const normalizePickedFileName = (name: string): string => name.match(ICLOUD_PLACEHOLDER_PATTERN)?.[1] ?? name
 
 /**
- * Activates a stored bookmark and logs the `grant resolved=...` line (§2.3). Persists a
+ * Activates a stored bookmark and logs the `grant resolved=...` line. Persists a
  * renewed bookmark back through `onRenewed`, since a stale grant is re-signed on resolution.
  */
 async function activateStoredGrant(

@@ -78,9 +78,9 @@ export const SupportSettingsView = ({
                     </Text>
 
                     {/* Temporary, dev-variant-only spike harness for the iOS iCloud video access
-                        feature (session-plan.md §2.3/§3.1). iOS-only: the native module it drives
-                        has no Android counterpart. Remove this line (and the DebugICloud folder)
-                        once the feature ships. */}
+                        feature. iOS-only: the native module it drives has no Android
+                        counterpart. Remove this line (and the DebugICloud folder) once the
+                        feature ships. */}
                     {isDevVariant && Platform.OS === 'ios' && <DebugICloudSection />}
 
                     <View style={styles.footerSpacer} />

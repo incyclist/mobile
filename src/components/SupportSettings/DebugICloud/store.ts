@@ -1,6 +1,6 @@
 import { createMMKV } from 'react-native-mmkv'
 
-// Throwaway storage for the iCloud debug probe harness (session-plan.md §2.3). Removed with the
+// Throwaway storage for the iCloud debug probe harness. Removed with the
 // harness itself - never read by production code.
 const storage = createMMKV({ id: 'debug_icld' })
 
