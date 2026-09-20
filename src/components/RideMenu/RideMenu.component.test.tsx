@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react-native';
+import { render, act, fireEvent } from '@testing-library/react-native';
 import { RideMenu } from './RideMenu';
 
 // Full end-to-end path (RidePageService -> RideMenu -> RideMenuView), unlike RideMenu.test.tsx
@@ -23,6 +23,7 @@ const mockService = {
     onIncreaseLoad: jest.fn(),
     onDecreaseLoad: jest.fn(),
     adjustLoad: jest.fn(),
+    onVideoKeepInstead: jest.fn(),
 };
 
 jest.mock('incyclist-services', () => ({
@@ -45,7 +46,17 @@ jest.mock('../Icon', () => ({ Icon: () => null }));
 jest.mock('../GearSettings', () => ({ GearSettings: () => null }));
 jest.mock('../RideSettings', () => ({ RideSettings: () => null }));
 jest.mock('../SettingsPlaceholder', () => ({ SettingsPlaceholder: () => null }));
-jest.mock('../ActivitySummaryDialog', () => ({ ActivitySummaryDialog: () => null }));
+jest.mock('../ActivitySummaryDialog', () => ({
+    ActivitySummaryDialog: ({ videoRemoval, onVideoKeepInstead }: any) => {
+        const { Text, TouchableOpacity } = require('react-native');
+        if (!videoRemoval) return null;
+        return (
+            <TouchableOpacity onPress={onVideoKeepInstead}>
+                <Text>videoRemoval:{JSON.stringify(videoRemoval)}</Text>
+            </TouchableOpacity>
+        );
+    },
+}));
 jest.mock('../WorkoutSettingsDialog', () => ({ WorkoutSettingsDialog: () => null }));
 
 const loadButtons = { inc1: '+5W', dec1: '-5W', inc5: '+50W', dec5: '-50W' };
@@ -90,5 +101,24 @@ describe('RideMenu (smart component)', () => {
 
         expect(queryByText('Load')).toBeNull();
         expect(queryByText('Gear')).toBeNull();
+    });
+
+    // menuProps.videoRemoval reaches the ride summary through this component - it does no
+    // rendering itself, only reads menuProps and forwards the action to the page service.
+    describe('videoRemoval', () => {
+        it('forwards menuProps.videoRemoval to the summary dialog once it is opened', () => {
+            mockMenuProps = { ...mockMenuProps, finished: true, videoRemoval: { pending: true, kept: false } };
+            const { getByText } = render(<RideMenu visible={true} finished onClose={jest.fn()} />);
+            expect(getByText('videoRemoval:{"pending":true,"kept":false}')).toBeTruthy();
+        });
+
+        it('calls service.onVideoKeepInstead() when the forwarded action is pressed', () => {
+            mockMenuProps = { ...mockMenuProps, finished: true, videoRemoval: { pending: true, kept: false } };
+            const { getByText } = render(<RideMenu visible={true} finished onClose={jest.fn()} />);
+
+            fireEvent.press(getByText('videoRemoval:{"pending":true,"kept":false}'));
+
+            expect(mockService.onVideoKeepInstead).toHaveBeenCalledTimes(1);
+        });
     });
 });

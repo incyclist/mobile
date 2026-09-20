@@ -156,6 +156,55 @@ describe('ActivityDetailsDialog - workout attachment (workout-mobile-hld-phase2.
         expect(mockNavigate).not.toHaveBeenCalled();
     });
 
+    // "Ride Again" pre-check (video availability): onRideAgain (the page service, reached via the
+    // prop) now resolves 'started'/'blocked' rather than firing-and-forgetting - this dialog must
+    // stay open when the video pre-check blocks the ride, and close only once it actually starts.
+    describe('Ride Again pre-check result', () => {
+        beforeEach(() => {
+            mockActivityListService.rideAgain.mockResolvedValue({ canStart: true, route: { id: 'r1', title: 'Route 1' } });
+        });
+
+        it('closes when onRideAgain resolves "started"', async () => {
+            const onClose = jest.fn();
+            const onRideAgain = jest.fn().mockResolvedValue('started');
+            const { getByText } = render(<ActivityDetailsDialog onClose={onClose} onRideAgain={onRideAgain} />);
+
+            await act(async () => {
+                fireEvent.press(getByText('Ride Again'));
+            });
+
+            expect(onRideAgain).toHaveBeenCalledWith({ id: 'r1', title: 'Route 1' });
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        it('stays open when onRideAgain resolves "blocked"', async () => {
+            const onClose = jest.fn();
+            const onRideAgain = jest.fn().mockResolvedValue('blocked');
+            const { getByText } = render(<ActivityDetailsDialog onClose={onClose} onRideAgain={onRideAgain} />);
+
+            await act(async () => {
+                fireEvent.press(getByText('Ride Again'));
+            });
+
+            expect(onRideAgain).toHaveBeenCalledTimes(1);
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('never calls onRideAgain when the activity itself cannot start again', async () => {
+            mockActivityListService.rideAgain.mockResolvedValue({ canStart: false });
+            const onClose = jest.fn();
+            const onRideAgain = jest.fn().mockResolvedValue('started');
+            const { getByText } = render(<ActivityDetailsDialog onClose={onClose} onRideAgain={onRideAgain} />);
+
+            await act(async () => {
+                fireEvent.press(getByText('Ride Again'));
+            });
+
+            expect(onRideAgain).not.toHaveBeenCalled();
+            expect(onClose).not.toHaveBeenCalled();
+        });
+    });
+
     it('re-reads getActivityDetailsProps on a page-update (the chip clears without a remount)', () => {
         mockGetActivityDetailsProps.mockReturnValue({
             activityId: 'a1',

@@ -25,5 +25,8 @@ export interface ActivityDetailsDialogViewProps extends SelectedActivityDisplayP
 
 export interface ActivityDetailsDialogProps {
     onClose: () => void;
-    onRideAgain: (route: any) => void;
+    // Resolves once the page service's video pre-check has settled - 'started' once navigation
+    // actually happened, 'blocked' while the "Before you ride" step is shown instead (see
+    // ActivitiesPageService.onRideAgain in incyclist-services).
+    onRideAgain: (route: any) => Promise<'started' | 'blocked'>;
 }
