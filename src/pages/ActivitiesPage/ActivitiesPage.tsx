@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { 
-    getActivitiesPageService, 
-    ActivitiesPageDisplayProps, 
+import {
+    getActivitiesPageService,
+    ActivitiesPageDisplayProps,
     IObserver,
-    ActivityInfoUI
+    ActivityInfoUI,
+    VideoKeepChoice
 } from 'incyclist-services';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 import { ActivitiesPageView } from './ActivitiesPageView';
 import { ActivityDetailsDialog, ErrorBoundary, ScheduledWorkoutPromptModal, TNavigationItem } from '../../components';
+import { RideAgainCheckDialogView } from './RideAgainCheck';
 import { navigate } from '../../services';
 
 export interface ActivitiesPageProps {
@@ -96,6 +98,51 @@ export const ActivitiesPage = () => {
     
     const handleRideAgain = useCallback((route: any) => service.onRideAgain(route), [service]);
 
+    // "Before you ride" pre-check (Ride Again). Its own action handlers below just forward the
+    // route id already carried by `rideAgainCheck` to the page service - the same delegation
+    // pattern as onDeleteActivity/onSelectActivity above, no extra logic here.
+    const rideAgainCheck = props.rideAgainCheck;
+
+    const handleRideAgainCheckClose = useCallback(() => {
+        service.onRideAgainCheckClosed();
+    }, [service]);
+
+    // Mirrors ActivityDetailsDialog's own handleRideAgain: the details dialog (still open behind
+    // the pre-check) closes only once navigation actually happened.
+    const handleRideAgainCheckStart = useCallback(async () => {
+        const result = await service.onRideAgainCheckStart();
+        if (result === 'started') {
+            service.onCloseActivity();
+        }
+    }, [service]);
+
+    const handleVideoDownloadPressed = useCallback((routeId: string) => {
+        service.onVideoDownloadPressed(routeId);
+    }, [service]);
+
+    const handleVideoDownloadConfirmed = useCallback((routeId: string, choice: VideoKeepChoice) => {
+        service.onVideoDownloadConfirmed(routeId, choice);
+    }, [service]);
+
+    const handleVideoDownloadDismissed = useCallback((routeId: string) => {
+        service.onVideoDownloadDismissed(routeId);
+    }, [service]);
+
+    const handleVideoStop = useCallback((routeId: string) => {
+        service.onVideoStop(routeId);
+    }, [service]);
+
+    const handleVideoRetry = useCallback((routeId: string) => {
+        service.onVideoRetry(routeId);
+    }, [service]);
+
+    const handleVideoKeepInstead = useCallback((routeId: string) => {
+        service.onVideoKeepInstead(routeId);
+    }, [service]);
+
+    const handleConfirmAccess = useCallback((routeId: string) => {
+        service.onConfirmAccess(routeId).catch((err: any) => logError(err, 'onConfirmAccess'));
+    }, [service, logError]);
 
     return (
         <ErrorBoundary>
@@ -109,6 +156,21 @@ export const ActivitiesPage = () => {
                 <ActivityDetailsDialog
                     onClose={onCloseActivity}
                     onRideAgain={handleRideAgain}
+                />
+            )}
+            {rideAgainCheck && (
+                <RideAgainCheckDialogView
+                    video={rideAgainCheck.video}
+                    downloadedWhileOpen={rideAgainCheck.downloadedWhileOpen}
+                    onClose={handleRideAgainCheckClose}
+                    onStart={handleRideAgainCheckStart}
+                    onDownloadPress={() => handleVideoDownloadPressed(rideAgainCheck.routeId)}
+                    onDownloadConfirmed={(choice) => handleVideoDownloadConfirmed(rideAgainCheck.routeId, choice)}
+                    onDownloadDismissed={() => handleVideoDownloadDismissed(rideAgainCheck.routeId)}
+                    onStop={() => handleVideoStop(rideAgainCheck.routeId)}
+                    onRetry={() => handleVideoRetry(rideAgainCheck.routeId)}
+                    onKeepInstead={() => handleVideoKeepInstead(rideAgainCheck.routeId)}
+                    onConfirmAccess={() => handleConfirmAccess(rideAgainCheck.routeId)}
                 />
             )}
             {scheduledWorkoutPrompt && (

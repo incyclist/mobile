@@ -22,10 +22,18 @@ jest.mock('../../hooks', () => ({
 jest.mock('./ActivitySummaryDialogView', () => {
     const { TouchableOpacity, Text } = require('react-native');
     return {
-        ActivitySummaryDialogView: ({ onDeleteConfirm }: any) => (
-            <TouchableOpacity onPress={onDeleteConfirm}>
-                <Text>ConfirmDelete</Text>
-            </TouchableOpacity>
+        ActivitySummaryDialogView: ({ onDeleteConfirm, videoRemoval, onVideoKeepInstead }: any) => (
+            <>
+                <TouchableOpacity onPress={onDeleteConfirm}>
+                    <Text>ConfirmDelete</Text>
+                </TouchableOpacity>
+                {videoRemoval && <Text>videoRemoval:{JSON.stringify(videoRemoval)}</Text>}
+                {videoRemoval && (
+                    <TouchableOpacity onPress={onVideoKeepInstead}>
+                        <Text>KeepInstead</Text>
+                    </TouchableOpacity>
+                )}
+            </>
         ),
     };
 });
@@ -91,5 +99,39 @@ describe('ActivitySummaryDialog', () => {
 
         await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
         expect(onExit).not.toHaveBeenCalled();
+    });
+
+    // menuProps.videoRemoval / onVideoKeepInstead arrive here as plain props from RideMenu (which
+    // only forwards RidePageService's menuProps - see RideMenu.test.tsx for that half) - this
+    // smart component's only job with them is to pass them through to the view unchanged.
+    describe('video removal notice pass-through', () => {
+        beforeEach(() => {
+            mockUseActivityRide.mockReturnValue({
+                getActivitySummaryDisplayProperties: () => baseDisplayProps,
+                save: jest.fn(),
+                delete: jest.fn(),
+            });
+        });
+
+        it('forwards videoRemoval to the view when set', () => {
+            const { getByText } = render(
+                <ActivitySummaryDialog onClose={onClose} onExit={onExit} videoRemoval={{ pending: true, kept: false }} onVideoKeepInstead={jest.fn()} />
+            );
+            expect(getByText('videoRemoval:{"pending":true,"kept":false}')).toBeTruthy();
+        });
+
+        it('forwards onVideoKeepInstead so pressing it calls straight through', () => {
+            const onVideoKeepInstead = jest.fn();
+            const { getByText } = render(
+                <ActivitySummaryDialog onClose={onClose} onExit={onExit} videoRemoval={{ pending: true, kept: false }} onVideoKeepInstead={onVideoKeepInstead} />
+            );
+            fireEvent.press(getByText('KeepInstead'));
+            expect(onVideoKeepInstead).toHaveBeenCalledTimes(1);
+        });
+
+        it('renders nothing extra when videoRemoval is absent (the normal case)', () => {
+            const { queryByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
+            expect(queryByText(/^videoRemoval:/)).toBeNull();
+        });
     });
 });

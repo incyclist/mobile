@@ -37,6 +37,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         onSelect,
         onDelete,
         sourceTreeUri,
+        videoPill,
     } = props;
 
     if (outsideFold) {
@@ -125,6 +126,16 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                         {!!sourceTreeUri && (
                             <View style={[styles.pill, styles.pillExternal]}>
                                 <Icon name="import-route" size={10} color={colors.text} />
+                            </View>
+                        )}
+                        {videoPill === 'downloading' && (
+                            <View style={[styles.pill, styles.pillVideoDownloading]}>
+                                <Text style={styles.pillText}>Downloading</Text>
+                            </View>
+                        )}
+                        {videoPill === 'in-icloud' && (
+                            <View style={[styles.pill, styles.pillVideoICloud]}>
+                                <Text style={styles.pillText}>In iCloud</Text>
                             </View>
                         )}
                         {isNew && (
@@ -256,6 +267,8 @@ const styles = StyleSheet.create({
     pillActive: { backgroundColor: '#4CAF50' },
     pillDemo: { backgroundColor: '#8BC34A' },
     pillExternal: { backgroundColor: colors.tileIdle },
+    pillVideoDownloading: { backgroundColor: colors.tileActive },
+    pillVideoICloud: { backgroundColor: colors.tileIdle },
     pillText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
     pillTextActive: { color: '#000000', fontSize: 10, fontWeight: 'bold' },
 

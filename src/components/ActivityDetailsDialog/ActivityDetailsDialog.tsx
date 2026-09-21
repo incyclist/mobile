@@ -162,10 +162,18 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
         Linking.openURL(url).catch((err) => logError(err, 'handleOpenUpload'));
     }, [logError]);
 
+    // `service.rideAgain()` (ActivityListService) only resolves whether this activity has a
+    // route to ride again and what it is - the actual pre-check (does its video still need a
+    // download or an access confirmation?) lives in the page service's onRideAgain(), reached
+    // here via the `onRideAgain` prop. This dialog must close only once that pre-check actually
+    // let the ride start ('started') - a 'blocked' result means the "Before you ride" step is now
+    // showing instead, and this dialog stays open behind it.
     const handleRideAgain = useCallback(async () => {
         const { canStart, route } = await service.rideAgain();
-        if (canStart) {
-            onRideAgain(route);
+        if (!canStart) return;
+
+        const result = await onRideAgain(route);
+        if (result === 'started') {
             onClose();
         }
     }, [service, onRideAgain, onClose]);

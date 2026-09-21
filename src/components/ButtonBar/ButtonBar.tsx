@@ -11,7 +11,7 @@ import { useLogging, useScreenLayout } from '../../hooks'
 // regions can't overlap and turn near-misses into taps on the wrong button.
 const COMPACT_HIT_SLOP = { top: 5, bottom: 5, left: 6, right: 6 }
 
-export const Button = ({ id,label, primary,attention, onClick }:ButtonProps) => {
+export const Button = ({ id,label, primary,attention, disabled, onClick }:ButtonProps) => {
     const {logEvent} = useLogging('Incyclist')
     const layout  = useScreenLayout()
     const isCompact = layout === 'compact'
@@ -26,9 +26,10 @@ export const Button = ({ id,label, primary,attention, onClick }:ButtonProps) => 
 
     return (
         <TouchableOpacity onPress={onPress}
+            disabled={disabled}
             hitSlop={isCompact ? COMPACT_HIT_SLOP : undefined}
-            style={[styles.btn, bgStyle, isCompact && styles.btnCompact]}>
-            <Text style={[ (primary||attention) ? styles.textPrimary : styles.textSecondary, isCompact && styles.textCompact]}>
+            style={[styles.btn, bgStyle, isCompact && styles.btnCompact, disabled && styles.btnDisabled]}>
+            <Text style={[ (primary||attention) ? styles.textPrimary : styles.textSecondary, isCompact && styles.textCompact, disabled && styles.textDisabled]}>
                 {label}
             </Text>
         </TouchableOpacity>
@@ -88,6 +89,12 @@ const styles = StyleSheet.create({
     btnCompact: {
         paddingVertical: 8,
         paddingHorizontal: 16,
+    },
+    btnDisabled: {
+        opacity: 0.5,
+    },
+    textDisabled: {
+        color: colors.disabled,
     },
 
 })

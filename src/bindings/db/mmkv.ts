@@ -50,9 +50,14 @@ class MmkvJsonAccessImplementation implements JsonAccess {
 
     async list(): Promise<Array<string>> {
         try {
-            // Use built-in getAllKeys() and filter out any potential internal keys
+            // JsonRepository.list() (incyclist-services) is shared with the file-system based
+            // desktop/web-ui binding, where every resource is a "<name>.json" file: it always
+            // filters returned names for a ".json" suffix, then strips it. MMKV keys carry no
+            // such suffix, so without adding one here every name fails that filter and list()
+            // - the only way a repo can enumerate resources by an id it doesn't already know -
+            // silently returns nothing, even though read()/write() on a known id work fine.
             const data = this.storage.getAllKeys().filter(k => k !== '__index__');
-            return data
+            return data.map(key => `${key}.json`)
         } catch {
             return [];
         }

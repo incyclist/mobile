@@ -1,4 +1,5 @@
-import { getBindings, IncyclistBindings  } from "incyclist-services"
+import { Platform } from "react-native"
+import { getBindings, IncyclistBindings, withExternalFileAccess } from "incyclist-services"
 import { getLogBinding } from "./logging"
 import { getAppInfoBinding } from "./appInfo"
 import { getUserSettingsBinding } from "./user-settings"
@@ -17,6 +18,7 @@ import { getFetchBinding } from "./fetch"
 import { getFormBinding } from './form';
 import { MobileDownloadManager } from './download';
 import { getMapAvailabilityBinding } from './mapAvailability';
+import { getFileAccessBinding } from './fileAccess';
 
 
 let _bindings:IncyclistBindings|undefined
@@ -48,6 +50,15 @@ export const initBindings = async  ()=> {
     bindings.fetch = getFetchBinding()
     bindings.form = getFormBinding()
     bindings.downloadManager = new MobileDownloadManager()
+
+    // Access to files outside the app sandbox (iCloud/picked folders). iOS only - there is no
+    // Android or web-ui/desktop implementation, so the binding stays absent everywhere else.
+    // The loader is wrapped so a route-file read waits for an iCloud download first; on other
+    // platforms bindings.loader stays exactly what getFileLoaderBinding() returned above.
+    if (Platform.OS === 'ios') {
+        bindings.fileAccess = getFileAccessBinding()
+        bindings.loader = withExternalFileAccess(bindings.loader)
+    }
 
     // Gates which ride views are offered and which are safe to render. Its own check runs
     // asynchronously in the background from here - nothing waits on it.

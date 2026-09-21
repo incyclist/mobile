@@ -77,10 +77,19 @@ export const RideMenuView = ({
     onDecreaseLoadBig = () => {},
     onWorkoutSettings = () => {},
     showRideSettings = true,
+    videoRemoval,
+    onVideoKeepInstead = () => {},
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
     renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
-    renderActivitySummary = () => <ActivitySummaryDialog onClose={onDialogClose} onExit={onExitFromSummary} />,
+    renderActivitySummary = () => (
+        <ActivitySummaryDialog
+            onClose={onDialogClose}
+            onExit={onExitFromSummary}
+            videoRemoval={videoRemoval}
+            onVideoKeepInstead={onVideoKeepInstead}
+        />
+    ),
     renderWorkoutSettings = () => <WorkoutSettingsDialog onClose={onDialogClose} />,
 
 }: RideMenuViewProps) => {

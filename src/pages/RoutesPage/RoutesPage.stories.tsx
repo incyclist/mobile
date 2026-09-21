@@ -4,7 +4,8 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RoutesPageView } from './View';
 import { MainBackground } from '../../components';
-import { RouteItemProps, Unit } from 'incyclist-services';
+import { IObserver, RouteItemProps, Unit } from 'incyclist-services';
+import { ALL_ROWS } from '../../components/DownloadModal/DownloadModal.mock';
 
 const generateMockRoutes = (count: number): RouteItemProps[] => {
     return Array.from({ length: count }).map((_, i) => ({
@@ -19,7 +20,29 @@ const generateMockRoutes = (count: number): RouteItemProps[] => {
         isDemo: i === 0,
         cntActive: i % 5,
         loaded: true,
+        videoPill: i === 1 ? 'in-icloud' : i === 2 ? 'downloading' : undefined,
     })) as unknown as RouteItemProps[];
+};
+
+// A static observer: `on(event, handler)` immediately replays the fixed download-update payload,
+// so the download pill and Downloads modal render real rows in a story without a running service.
+const makeStaticDownloadObserver = (): IObserver => {
+    const observer: IObserver = {
+        on: (event: string, handler: (data: any) => void) => {
+            if (event === 'download-update') {
+                handler({
+                    rows: ALL_ROWS,
+                    count: ALL_ROWS.filter(r => r.status === 'downloading' || r.status === 'waiting').length,
+                });
+            }
+            return observer;
+        },
+        off: () => observer,
+        once: () => observer,
+        emit: () => true,
+        stop: () => undefined,
+    };
+    return observer;
 };
 
 const mockFilterOptions: {
@@ -64,6 +87,7 @@ const meta: Meta<typeof RoutesPageView> = {
         onDownloadStop: fn(),
         onDownloadRetry: fn(),
         onDownloadDelete: fn(),
+        onDownloadKeepInstead: fn(),
     },
 };
 
@@ -128,6 +152,7 @@ export const WithActiveDownload: Story = {
         synchronizing: false,
         filterVisible: false,
         compact: false,
+        downloadObserver: makeStaticDownloadObserver(),
     },
 };
 
@@ -139,5 +164,19 @@ export const WithDownloadModal: Story = {
         filterVisible: false,
         compact: false,
         showDownloadModal: true,
+        downloadObserver: makeStaticDownloadObserver(),
     },
+};
+
+export const WithDownloadModalPhone: Story = {
+    args: {
+        loading: false,
+        routes: generateMockRoutes(5),
+        synchronizing: false,
+        filterVisible: false,
+        compact: true,
+        showDownloadModal: true,
+        downloadObserver: makeStaticDownloadObserver(),
+    },
+    parameters: { viewport: { defaultViewport: 'iphone15Pro' } },
 };

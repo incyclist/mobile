@@ -1,10 +1,9 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, useWindowDimensions } from 'react-native';
-import { 
-    getRoutesPageService, 
-    useRouteList,
-    RoutePageDisplayProps, 
-    IObserver, 
+import {
+    getRoutesPageService,
+    RoutePageDisplayProps,
+    IObserver,
     SearchFilter,
     RouteItemProps
 } from 'incyclist-services';
@@ -34,13 +33,17 @@ const initialProps: RoutePageDisplayProps = {
     filterVisible: false,
 };
 
+// Stabilizes the routes array reference across page-update events that don't actually change
+// anything visible, so downstream memoized rows aren't recreated needlessly. The hash has to
+// include every field a row can gain or lose without the set of ids changing - a route's own
+// id never changes when e.g. its video pill or preview arrives asynchronously after the initial
+// render, and an id-only hash would then never refresh that route's props at all.
 const hashRoutes = (routes: RouteItemProps[]) =>
-    routes.map(r => r.id).join(',')
+    routes.map(r => `${r.id}:${r.videoPill ?? ''}:${r.previewUrl ?? ''}:${r.cntActive ?? 0}:${r.isNew ? 1 : 0}:${r.loaded ? 1 : 0}`).join(',')
 
 
 export const RoutesPage = () => {
     const service = getRoutesPageService();
-    const routeList = useRouteList();
     const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt();
 
     const { height } = useWindowDimensions();
@@ -65,7 +68,8 @@ export const RoutesPage = () => {
 
         // Stabilize routes reference using ID hash
         const newHash = hashRoutes(updated.routes ?? [])
-        if (newHash !== refRoutesHash.current) {
+        const hashChanged = newHash !== refRoutesHash.current
+        if (hashChanged) {
             refRoutesHash.current = newHash
             refRoutes.current = updated.routes ?? []
         }
@@ -150,19 +154,20 @@ export const RoutesPage = () => {
     }, []);
 
     const onDownloadStop = useCallback((routeId: string) => {
-        routeList.getCard(routeId)?.stopDownload();
-    }, [routeList]);
+        service.onDownloadStop(routeId);
+    }, [service]);
 
     const onDownloadRetry = useCallback((routeId: string) => {
-        const card = routeList.getCard(routeId);
-        if (card) {
-            card.download();
-        }
-    }, [routeList]);
+        service.onDownloadRetry(routeId);
+    }, [service]);
 
     const onDownloadDelete = useCallback((routeId: string) => {
-        routeList.getCard(routeId)?.deleteDownload();
-    }, [routeList]);
+        service.onDownloadDelete(routeId);
+    }, [service]);
+
+    const onDownloadKeepInstead = useCallback((routeId: string) => {
+        service.onDownloadKeepInstead(routeId);
+    }, [service]);
 
     const onNavigate= useCallback( (page:string)=> {
         navigate(page)
@@ -195,6 +200,7 @@ export const RoutesPage = () => {
                 onDownloadStop={onDownloadStop}
                 onDownloadRetry={onDownloadRetry}
                 onDownloadDelete={onDownloadDelete}
+                onDownloadKeepInstead={onDownloadKeepInstead}
             />
             {props.detailRouteId && (
                 <DetailsDialog routeId={props.detailRouteId} onStart={onStartRoute} />

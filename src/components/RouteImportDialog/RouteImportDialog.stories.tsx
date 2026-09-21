@@ -9,6 +9,7 @@ const meta: Meta<typeof RouteImportDialogView> = {
         compact: false,
         displayProps: {
             phase: 'landing',
+            hasICloudDownloadFailures: false,
             routes: [],
         },
         selectedIds: [],
@@ -38,6 +39,7 @@ export const Landing: Story = {
     args: {
         displayProps: {
             phase: 'landing',
+            hasICloudDownloadFailures: false,
             routes: [],
         },
         title: 'Import Routes',
@@ -48,6 +50,7 @@ export const Scanning: Story = {
     args: {
         displayProps: {
             phase: 'scanning',
+            hasICloudDownloadFailures: false,
             scanProgress: { scannedFolders: 12 },
             routes: [],
         },
@@ -60,6 +63,7 @@ export const Parsing: Story = {
     args: {
         displayProps: {
             phase: 'parsing',
+            hasICloudDownloadFailures: false,
             parseProgress: { parsed: 8, total: 15 },
             routes: [
                 { label: 'Route 1', distance: 10000, format: 'gpx', importable: true, alreadyImported: false },
@@ -78,6 +82,7 @@ export const Selecting: Story = {
     args: {
         displayProps: {
             phase: 'selecting',
+            hasICloudDownloadFailures: false,
             routes: [
                 { label: 'Alpine Loop', distance: 25000, format: 'gpx', importable: true, alreadyImported: false },
                 { label: 'Coastal Road', distance: 15000, format: 'video', importable: true, alreadyImported: false },
@@ -98,6 +103,7 @@ export const Ingesting: Story = {
     args: {
         displayProps: {
             phase: 'ingesting',
+            hasICloudDownloadFailures: false,
             ingestProgress: { current: 2, total: 4, currentName: 'Forest Trail' },
             routes: [],
         },
@@ -110,6 +116,7 @@ export const Complete: Story = {
     args: {
         displayProps: {
             phase: 'complete',
+            hasICloudDownloadFailures: false,
             completionSummary: {
                 imported: 3,
                 skipped: 1,
@@ -129,6 +136,7 @@ export const ResultSuccess: Story = {
     args: {
         displayProps: {
             phase: 'result',
+            hasICloudDownloadFailures: false,
             resultSuccess: { routeName: 'Evening Ride' },
             routes: [],
         },
@@ -141,6 +149,7 @@ export const ResultError: Story = {
     args: {
         displayProps: {
             phase: 'result',
+            hasICloudDownloadFailures: false,
             error: 'File is not a valid GPX.',
             routes: [],
         },
@@ -152,11 +161,68 @@ export const ResultError: Story = {
     },
 };
 
+// A route couldn't be fetched from iCloud because the device was offline while importing -
+// the "import the folder again" hint sits above the route list once parsing is done.
+export const SelectingICloudOffline: Story = {
+    args: {
+        displayProps: {
+            phase: 'selecting',
+            hasICloudDownloadFailures: true,
+            routes: [
+                { label: 'Alpine Loop', distance: 25000, format: 'gpx', importable: true, alreadyImported: false },
+                {
+                    label: 'Passo Giau',
+                    distance: 0,
+                    format: 'epm',
+                    importable: false,
+                    alreadyImported: false,
+                    errorReason: "Could not download 'Passo Giau.epp' from iCloud: no internet connection",
+                    errorCode: 'ICLOUD_OFFLINE',
+                },
+            ] as any,
+        },
+        selectedIds: ['1'],
+        title: 'Select Routes',
+        buttons: [
+            { label: 'Import (1)', onClick: fn(), primary: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
+    },
+};
+
+export const SelectingICloudOfflineCompact: Story = {
+    args: {
+        compact: true,
+        displayProps: {
+            phase: 'selecting',
+            hasICloudDownloadFailures: true,
+            routes: [
+                {
+                    label: 'Passo Giau',
+                    distance: 0,
+                    format: 'epm',
+                    importable: false,
+                    alreadyImported: false,
+                    errorReason: "Could not download 'Passo Giau.epp' from iCloud: no internet connection",
+                    errorCode: 'ICLOUD_OFFLINE',
+                },
+            ] as any,
+        },
+        selectedIds: [],
+        title: 'Select Routes',
+        buttons: [
+            { label: 'Import (0)', onClick: fn(), primary: true, disabled: true },
+            { label: 'Cancel', onClick: fn() },
+        ],
+    },
+};
+
 export const Compact: Story = {
     args: {
         compact: true,
         displayProps: {
             phase: 'selecting',
+            hasICloudDownloadFailures: false,
             routes: [
                 { label: 'Route 1', distance: 10000, format: 'gpx', importable: true, alreadyImported: false },
             ] as any,

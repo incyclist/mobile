@@ -1,5 +1,6 @@
 import RNFS from 'react-native-fs';
 import { Platform, TurboModuleRegistry } from 'react-native';
+import { getBindings } from 'incyclist-services';
 import { FileSystemBinding } from './index';
 
 jest.mock('react-native-fs', () => ({
@@ -24,6 +25,8 @@ jest.mock('react-native', () => {
         readFile: jest.fn(),
         exists: jest.fn(),
         listFiles: jest.fn(),
+        requestAccess: jest.fn(),
+        releaseAccess: jest.fn(),
     };
     return {
         TurboModule: {},
@@ -129,6 +132,66 @@ describe('FileSystemBinding', () => {
                 expect(result.toString()).toBe(original)
             });
         });
+
+        describe('on iOS, releases access only after the read has been awaited', () => {
+            // A sandbox path so requestAccess resolves true on its fast path, without touching
+            // any native module - these tests isolate the release-ordering fix.
+            const path = '/app/Documents/routes/route.xml';
+
+            beforeEach(() => {
+                Platform.OS = 'ios';
+            });
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('utf8/base64 branch → releases after the read resolves', async () => {
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return 'hello'; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path);
+
+                expect(result).toBe('hello');
+                expect(order).toEqual(['read', 'release']);
+                expect(folderAccess.releaseAccess).toHaveBeenCalledWith(path);
+            });
+
+            it("ascii branch → releases too (previously never released on this branch)", async () => {
+                const base64 = Buffer.from('hello', 'ascii').toString('base64');
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return base64; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path, 'ascii');
+
+                expect(result).toBe('hello');
+                expect(order).toEqual(['read', 'release']);
+                expect(folderAccess.releaseAccess).toHaveBeenCalledWith(path);
+            });
+
+            it('binary branch → releases after producing the Buffer', async () => {
+                const base64 = Buffer.from('hello', 'binary').toString('base64');
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); return base64; });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                const result = await fs.readFile(path, 'binary');
+
+                expect(Buffer.isBuffer(result)).toBe(true);
+                expect(order).toEqual(['read', 'release']);
+            });
+
+            it('a read error still releases access before the rejection propagates', async () => {
+                const order: string[] = [];
+                rnfs.readFile.mockImplementation(async () => { order.push('read'); throw new Error('disk error'); });
+                folderAccess.releaseAccess.mockImplementation(async () => { order.push('release'); return true; });
+
+                await expect(fs.readFile(path)).rejects.toThrow('disk error');
+                expect(order).toEqual(['read', 'release']);
+            });
+        });
     });
 
     // ─── writeFile ─────────────────────────────────────────────────────────────
@@ -204,6 +267,47 @@ describe('FileSystemBinding', () => {
             folderAccess.exists.mockResolvedValue(false);
             const result = await fs.existsFile('content://some/uri');
             expect(result).toBe(false);
+        });
+
+        describe('iCloud placeholder sibling', () => {
+            const path = '/icloud/routes/preview.png';
+            const placeholder = '/icloud/routes/.preview.png.icloud';
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('iOS, only the placeholder present → true', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockImplementation(async (p: string) => p === placeholder);
+
+                await expect(fs.existsFile(path)).resolves.toBe(true);
+                expect(rnfs.exists).toHaveBeenCalledWith(path);
+                expect(rnfs.exists).toHaveBeenCalledWith(placeholder);
+            });
+
+            it('iOS, file itself present → true without probing the placeholder', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockImplementation(async (p: string) => p === path);
+
+                await expect(fs.existsFile(path)).resolves.toBe(true);
+                expect(rnfs.exists).not.toHaveBeenCalledWith(placeholder);
+            });
+
+            it('iOS, neither present → false', async () => {
+                Platform.OS = 'ios';
+                rnfs.exists.mockResolvedValue(false);
+
+                await expect(fs.existsFile(path)).resolves.toBe(false);
+            });
+
+            it('Android → no placeholder probe, result unchanged', async () => {
+                rnfs.exists.mockImplementation(async (p: string) => p === placeholder);
+
+                await expect(fs.existsFile(path)).resolves.toBe(false);
+                expect(rnfs.exists).toHaveBeenCalledTimes(1);
+                expect(rnfs.exists).toHaveBeenCalledWith(path);
+            });
         });
     });
 
@@ -320,6 +424,125 @@ describe('FileSystemBinding', () => {
             });
         });
 
+        describe('iCloud placeholder names', () => {
+            const folder = '/icloud/routes';
+            const entry = (name: string, isDirectory = false) =>
+                ({ name, path: `${folder}/${name}`, isDirectory: () => isDirectory });
+
+            afterEach(() => {
+                Platform.OS = 'android';
+            });
+
+            it('iOS → placeholder resolved to the real name and the canonical uri', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.xml'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: 'Ofenpass.mp4', uri: `file://${folder}/Ofenpass.mp4`, isDirectory: false },
+                    { name: 'Ofenpass.xml', uri: `file://${folder}/Ofenpass.xml`, isDirectory: false },
+                ]);
+            });
+
+            it('iOS → ordinary names and ordinary dot-files are left alone', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.DS_Store'),
+                    entry('.icloud'),
+                    entry('route.icloud.mp4'),
+                    entry('videos', true),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result.map(e => e.name)).toEqual([
+                    '.DS_Store',
+                    '.icloud',
+                    'route.icloud.mp4',
+                    'videos',
+                ]);
+                expect(result.map(e => e.uri)).toEqual([
+                    `file://${folder}/.DS_Store`,
+                    `file://${folder}/.icloud`,
+                    `file://${folder}/route.icloud.mp4`,
+                    `file://${folder}/videos`,
+                ]);
+            });
+
+            it('iOS → both representations listed: the real entry wins, whichever comes first', async () => {
+                Platform.OS = 'ios';
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.mp4'),
+                    entry('Umbrail.mp4'),
+                    entry('.Umbrail.mp4.icloud'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: 'Ofenpass.mp4', uri: `file://${folder}/Ofenpass.mp4`, isDirectory: false },
+                    { name: 'Umbrail.mp4', uri: `file://${folder}/Umbrail.mp4`, isDirectory: false },
+                ]);
+            });
+
+            it('iOS → the native File Provider listing is normalized too', async () => {
+                Platform.OS = 'ios';
+                const externalFolder =
+                    'file:///private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/routes';
+                rnfs.readDir.mockResolvedValue([]);
+                folderAccess.listFiles.mockResolvedValue([
+                    {
+                        name: '.Col du Galibier.mp4.icloud',
+                        uri: `${externalFolder}/.Col%20du%20Galibier.mp4.icloud`,
+                        isDirectory: false,
+                        strategy: 'coordinated-contents',
+                    },
+                ]);
+
+                const result = await fs.readdir(externalFolder, { extended: true });
+
+                expect(result).toEqual([
+                    {
+                        name: 'Col du Galibier.mp4',
+                        uri: `${externalFolder}/Col du Galibier.mp4`,
+                        isDirectory: false,
+                    },
+                ]);
+            });
+
+            it('Android → listing is unchanged, placeholder names included as-is', async () => {
+                rnfs.readDir.mockResolvedValue([
+                    entry('.Ofenpass.mp4.icloud'),
+                    entry('Ofenpass.xml'),
+                ] as any);
+
+                const result = await fs.readdir(folder, { extended: true });
+
+                expect(result).toEqual([
+                    { name: '.Ofenpass.mp4.icloud', uri: `file://${folder}/.Ofenpass.mp4.icloud`, isDirectory: false },
+                    { name: 'Ofenpass.xml', uri: `file://${folder}/Ofenpass.xml`, isDirectory: false },
+                ]);
+            });
+
+            it('Android → the SAF listing is byte-identical to today', async () => {
+                const safEntries = [
+                    { name: '.Ofenpass.mp4.icloud', uri: 'content://root/.Ofenpass.mp4.icloud', isDirectory: false },
+                    { name: 'Ofenpass.mp4', uri: 'content://root/Ofenpass.mp4', isDirectory: false },
+                ];
+                folderAccess.listFiles.mockResolvedValue(safEntries);
+
+                const result = await fs.readdir('content://root', { extended: true });
+
+                expect(result).toEqual(safEntries);
+                expect(rnfs.readDir).not.toHaveBeenCalled();
+            });
+        });
+
         it('error on root path → re-throws', async () => {
             rnfs.readDir.mockRejectedValue(new Error('permission denied'));
             await expect(fs.readdir('/root')).rejects.toThrow('permission denied');
@@ -335,6 +558,82 @@ describe('FileSystemBinding', () => {
                 .mockRejectedValueOnce(new Error('no access'));
             const result = await fs.readdir('/root', { recursive: true });
             expect(result).toEqual(['good.txt', 'baddir']);
+        });
+    });
+
+    // ─── requestAccess ─────────────────────────────────────────────────────────
+
+    describe('requestAccess', () => {
+        afterEach(() => {
+            Platform.OS = 'android';
+            getBindings().fileAccess = undefined;
+        });
+
+        it('app-sandbox path → true, no native call at all', async () => {
+            const result = await fs.requestAccess('/app/Documents/routes/route.xml');
+            expect(result).toBe(true);
+            expect(folderAccess.requestAccess).not.toHaveBeenCalled();
+        });
+
+        describe('Android, external path', () => {
+            it('delegates to FolderAccess.requestAccess and returns its result', async () => {
+                folderAccess.requestAccess.mockResolvedValue(true);
+                const result = await fs.requestAccess('content://some/uri');
+                expect(folderAccess.requestAccess).toHaveBeenCalledWith('content://some/uri');
+                expect(result).toBe(true);
+            });
+
+            it('propagates a false result', async () => {
+                folderAccess.requestAccess.mockResolvedValue(false);
+                const result = await fs.requestAccess('content://some/uri');
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('iOS, external path', () => {
+            const externalPath = 'file:///private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/route.mp4';
+
+            beforeEach(() => {
+                Platform.OS = 'ios';
+            });
+
+            it('fileAccess binding absent → false, without calling the old FolderAccess.requestAccess', async () => {
+                const result = await fs.requestAccess(externalPath);
+                expect(result).toBe(false);
+                expect(folderAccess.requestAccess).not.toHaveBeenCalled();
+            });
+
+            it('fileAccess unsupported → false', async () => {
+                getBindings().fileAccess = { isSupported: () => false } as any;
+                const result = await fs.requestAccess(externalPath);
+                expect(result).toBe(false);
+            });
+
+            it('fileAccess reports readable → true', async () => {
+                const checkAccess = jest.fn().mockResolvedValue({ state: 'readable' });
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                const result = await fs.requestAccess(externalPath);
+
+                expect(checkAccess).toHaveBeenCalledWith(externalPath);
+                expect(result).toBe(true);
+            });
+
+            it('fileAccess reports denied → false (this is the Bug A fix: no longer always true)', async () => {
+                const checkAccess = jest.fn().mockResolvedValue({ state: 'denied', errno: 13 });
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                const result = await fs.requestAccess(externalPath);
+
+                expect(result).toBe(false);
+            });
+
+            it('checkAccess rejecting → false, does not throw', async () => {
+                const checkAccess = jest.fn().mockRejectedValue(new Error('probe failed'));
+                getBindings().fileAccess = { isSupported: () => true, checkAccess } as any;
+
+                await expect(fs.requestAccess(externalPath)).resolves.toBe(false);
+            });
         });
     });
 });

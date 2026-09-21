@@ -5,11 +5,13 @@ import { colors, textSizes } from '../../../theme';
 import { Icon } from '../../Icon';
 import { useLogging } from '../../../hooks';
 import { Dynamic } from '../../Dynamic';
+import { getICloudDownloadFailuresHintText, getRowErrorText, getWaitingForICloudText } from './importCopy';
 
 interface ParseSelectionViewProps {
     compact: boolean;
     routes: RouteDisplayItem[];
-    parseProgress?: { parsed: number; total: number };
+    parseProgress?: { parsed: number; total: number; waitingForICloud?: boolean };
+    hasICloudDownloadFailures?: boolean;
     selectedIds: string[];
     onToggle: (id: string) => void;
     onSelectAll: () => void;
@@ -41,22 +43,21 @@ const WarningIndicator = () => (
     </View>
 );
 
-const friendlyError = (error: string): string => {
-    const lower = error.toLowerCase();
+const ICloudHintRow = ({ compact }: { compact: boolean }) => (
+    <View style={styles.icloudHintRow} testID="icloud-waiting-hint">
+        <ActivityIndicator size="small" color={colors.tileIdle} />
+        <Text style={styles.icloudHintText}>{getWaitingForICloudText(compact)}</Text>
+    </View>
+);
 
-    if (lower.includes('avi') && lower.includes('not supported')) {
-        return 'AVI video not supported. Please convert to MP4.'    
-    }
-    if (lower.includes('could not open file') || lower.includes('could not read')) {
-        return 'Could not read file';
-    }
-    if (lower.includes('could not parse')) {
-        return 'Invalid file format';
-    }
-    return 'Import not supported';
-};
+const ICloudDownloadFailuresHint = ({ text }: { text: string }) => (
+    <View style={styles.icloudWarningRow} testID="icloud-download-failures-hint">
+        <Text style={styles.icloudWarningIcon}>⚠</Text>
+        <Text style={styles.icloudWarningText}>{text}</Text>
+    </View>
+);
 
-const RouteRow = ({ 
+const RouteRow = ({
     item, 
     isSelected, 
     onToggle, 
@@ -109,7 +110,7 @@ const RouteRow = ({
                     )}
                 </View>
                 {!isImportable && item.parseState==='parsed' && item.errorReason && (
-                    <Text style={styles.errorText}>{friendlyError(item.errorReason)}</Text>
+                    <Text style={styles.errorText}>{getRowErrorText(item.errorCode, compact)}</Text>
                 )}
             </TouchableOpacity>
             {!isImportable && item.parseState==='parsed' && <WarningIndicator />}
@@ -122,6 +123,7 @@ export const ParseSelectionView = ({
     compact,
     routes,
     parseProgress,
+    hasICloudDownloadFailures,
     selectedIds,
     onToggle,
     onSelectAll,
@@ -129,6 +131,9 @@ export const ParseSelectionView = ({
 }: ParseSelectionViewProps) => {
     const { logEvent } = useLogging('ParseSelectionView');
     const isParsing = !!parseProgress;
+    const icloudDownloadFailuresText = hasICloudDownloadFailures
+        ? getICloudDownloadFailuresHintText(routes, compact)
+        : undefined;
 
     const handleSelectAll = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'select-all', eventSource: 'user' });
@@ -147,11 +152,19 @@ export const ParseSelectionView = ({
         <View style={containerStyle}>
             <View style={styles.header}>
                 {isParsing ? (
-                    <Text style={styles.title}>
-                        Found {parseProgress.total} files... Parsing: {parseProgress.parsed}/{parseProgress.total}
-                    </Text>
+                    <>
+                        <Text style={styles.title}>
+                            Found {parseProgress.total} files... Parsing: {parseProgress.parsed}/{parseProgress.total}
+                        </Text>
+                        {!!parseProgress.waitingForICloud && <ICloudHintRow compact={compact} />}
+                    </>
                 ) : (
-                    <Text style={styles.title}>Select routes to import</Text>
+                    <>
+                        <Text style={styles.title}>Select routes to import</Text>
+                        {!!icloudDownloadFailuresText && (
+                            <ICloudDownloadFailuresHint text={icloudDownloadFailuresText} />
+                        )}
+                    </>
                 )}
             </View>
 
@@ -203,6 +216,31 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         color: colors.text,
         fontWeight: 'bold',
+    },
+    icloudHintRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        gap: 6,
+    },
+    icloudHintText: {
+        fontSize: textSizes.smallText,
+        color: colors.tileIdle,
+    },
+    icloudWarningRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginTop: 8,
+        gap: 6,
+    },
+    icloudWarningIcon: {
+        fontSize: textSizes.smallText,
+        color: colors.warning,
+    },
+    icloudWarningText: {
+        flex: 1,
+        fontSize: textSizes.smallText,
+        color: colors.warning,
     },
     bulkActions: {
         flexDirection: 'row',

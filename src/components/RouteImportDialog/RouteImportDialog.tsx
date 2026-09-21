@@ -248,6 +248,8 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
             const scanObserver = getRoutesPageService().startLibraryScan({
                 uri: result.selected,
                 displayName: result.displayName || 'Folder',
+                grant: result.grant,
+                grantError: result.grantError,
             });
             refScanObserver.current = scanObserver;
             scanObserver.on('scan-progress', onScanProgress);

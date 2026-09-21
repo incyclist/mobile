@@ -5,6 +5,13 @@ export interface RideMenuProps {
     onCloseRidePage?:()=> void;
 }
 
+/** Whether this ride's video was downloaded just for this ride and is due to be removed again
+ *  when the rider leaves - forwarded verbatim from RidePageService.menuProps.videoRemoval. */
+export interface VideoRemovalNotice {
+    pending: boolean;
+    kept: boolean;
+}
+
 export type ActiveDialog = 'gearSettings' | 'rideSettings' | 'activitySummary' | 'workoutSettings' | null;
 
 export interface RideMenuViewProps {
@@ -58,6 +65,12 @@ export interface RideMenuViewProps {
     // Workout-only ride, which has no view to select. Resolved service-side
     // (RidePageService.menuProps.showRideSettings), not derived from `workout` or ride type here.
     showRideSettings?: boolean;
+
+    // Forwarded verbatim to ActivitySummaryDialog (RidePageService.menuProps.videoRemoval /
+    // onVideoKeepInstead) - this view does no rendering or derivation of its own with them, only
+    // pass-through, since the removal notice belongs to the summary dialog it renders.
+    videoRemoval?: VideoRemovalNotice;
+    onVideoKeepInstead?: () => void;
 
     // the following props are required for Storybook
     renderGearSettings?: () => React.ReactNode;

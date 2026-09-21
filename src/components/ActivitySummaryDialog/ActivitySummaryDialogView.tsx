@@ -5,7 +5,7 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
 import { WorkoutGraph } from '../WorkoutGraph';
-import { ActivitySummaryDialogViewProps } from './types';
+import { ActivitySummaryDialogViewProps, VideoRemovalNotice } from './types';
 import { isFormattedNumber } from '../../utils/formattedNumber';
 import { ButtonProps } from '../ButtonBar/types';
 import { colors, textSizes } from '../../theme';
@@ -40,6 +40,35 @@ const buildDialogButtons = (props: {
     return buttons;
 };
 
+// "The video for this route is removed..." / "...is kept..." - only when a "for this ride"
+// download is pending removal (or was just kept instead) on leaving. `pending` and `kept` are
+// never both false when `videoRemoval` is set at all (RidePageService.buildVideoRemoval only
+// ever returns undefined otherwise), so `kept` alone decides which line applies.
+const VideoRemovalLine = ({ videoRemoval, isCompact, onVideoKeepInstead }: {
+    videoRemoval?: VideoRemovalNotice;
+    isCompact: boolean;
+    onVideoKeepInstead?: () => void;
+}) => {
+    if (!videoRemoval)
+        return null;
+
+    const deviceWord = isCompact ? 'iPhone' : 'iPad';
+    const text = videoRemoval.kept
+        ? `The video is kept on this ${deviceWord} for your next rides.`
+        : `The video for this route is removed from this ${deviceWord} when you leave the ride.`;
+
+    return (
+        <View style={styles.videoRemovalRow}>
+            <Text style={styles.videoRemovalText}>{text}</Text>
+            {!videoRemoval.kept && onVideoKeepInstead && (
+                <TouchableOpacity onPress={onVideoKeepInstead} accessibilityLabel="Keep it instead" style={styles.videoRemovalLinkHitArea}>
+                    <Text style={styles.videoRemovalLink}>Keep it instead</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+};
+
 const safeNum = (v: any): number | undefined => {
     try {
         if (v === undefined || v === null) return undefined;
@@ -70,6 +99,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         onDeleteCancel,
         onShareFile,
         compact,
+        videoRemoval,
+        onVideoKeepInstead,
     } = props;
 
     const layout = useScreenLayout();
@@ -205,6 +236,8 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             </View>
 
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
+
+            <VideoRemovalLine videoRemoval={videoRemoval} isCompact={isCompact} onVideoKeepInstead={onVideoKeepInstead} />
 
             <View style={styles.keyFactsSection}>
                 {renderKeyFact('Distance', activity.distance, 'distance')}
@@ -379,6 +412,26 @@ const styles = StyleSheet.create({
         fontSize: textSizes.normalText,
         color: colors.disabled,
         marginBottom: 12,
+    },
+    videoRemovalRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 12,
+        gap: 8,
+    },
+    videoRemovalText: {
+        fontSize: textSizes.smallText,
+        color: colors.text,
+    },
+    videoRemovalLinkHitArea: {
+        minHeight: 44,
+        justifyContent: 'center',
+    },
+    videoRemovalLink: {
+        fontSize: textSizes.smallText,
+        color: colors.tileIdle,
+        fontWeight: '600',
     },
     keyFactsSection: {
         flexDirection: 'row',
