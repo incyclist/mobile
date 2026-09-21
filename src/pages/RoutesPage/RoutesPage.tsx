@@ -33,8 +33,13 @@ const initialProps: RoutePageDisplayProps = {
     filterVisible: false,
 };
 
+// Stabilizes the routes array reference across page-update events that don't actually change
+// anything visible, so downstream memoized rows aren't recreated needlessly. The hash has to
+// include every field a row can gain or lose without the set of ids changing - a route's own
+// id never changes when e.g. its video pill or preview arrives asynchronously after the initial
+// render, and an id-only hash would then never refresh that route's props at all.
 const hashRoutes = (routes: RouteItemProps[]) =>
-    routes.map(r => r.id).join(',')
+    routes.map(r => `${r.id}:${r.videoPill ?? ''}:${r.previewUrl ?? ''}:${r.cntActive ?? 0}:${r.isNew ? 1 : 0}:${r.loaded ? 1 : 0}`).join(',')
 
 
 export const RoutesPage = () => {

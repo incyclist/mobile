@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { RoutesPage } from './RoutesPage';
 
 const mockOnDownloadStop = jest.fn();
@@ -68,6 +68,9 @@ jest.mock('./View', () => {
                 <TouchableOpacity testID="keep" onPress={() => props.onDownloadKeepInstead('r4')}>
                     <Text>keep</Text>
                 </TouchableOpacity>
+                {(props.routes ?? []).map((r: any) => (
+                    <Text key={r.id} testID={`pill-${r.id}`}>{r.videoPill ?? 'none'}</Text>
+                ))}
             </>
         ),
     };
@@ -118,5 +121,48 @@ describe('RoutesPage download handlers', () => {
         const { getByTestId } = render(<RoutesPage />);
         fireEvent.press(getByTestId('keep'));
         expect(mockOnDownloadKeepInstead).toHaveBeenCalledWith('r4');
+    });
+});
+
+describe('RoutesPage video pill updates', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    // A video pill (or a preview) can arrive asynchronously for a route that was already in the
+    // list - same id, same position, just a changed display prop. The routes array reference is
+    // deliberately stabilized across page-update events to avoid needless re-renders, but that
+    // stabilization must not swallow this case: an id-only hash would never see the change.
+    it('reflects a pill that appears on an existing route after a later page-update', () => {
+        let pageUpdateHandler: (() => void) | undefined;
+        mockOpenPage.mockReturnValue({
+            on: jest.fn((event: string, cb: () => void) => {
+                if (event === 'page-update')
+                    pageUpdateHandler = cb;
+            }),
+            stop: jest.fn(),
+        });
+
+        const displayProps = (videoPill?: string) => ({
+            loading: false,
+            synchronizing: false,
+            routes: [{ id: 'r1', videoPill }],
+            filters: {},
+            filterOptions: { countries: [], contentTypes: [], routeTypes: [], routeSources: [] },
+            filterVisible: false,
+            detailRouteId: undefined,
+        } as any);
+
+        mockGetPageDisplayProps.mockReturnValue(displayProps(undefined));
+
+        const { getByTestId } = render(<RoutesPage />);
+        expect(getByTestId('pill-r1').props.children).toBe('none');
+
+        // the availability query resolves later and the page service emits page-update again -
+        // same route id, now with a pill
+        mockGetPageDisplayProps.mockReturnValue(displayProps('in-icloud'));
+        act(() => { pageUpdateHandler?.(); });
+
+        expect(getByTestId('pill-r1').props.children).toBe('in-icloud');
     });
 });
