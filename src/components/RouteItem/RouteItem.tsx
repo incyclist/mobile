@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getRoutesPageService, RouteDetailUIItem, useRouteList } from 'incyclist-services';
 import { RouteItemView } from './RouteItemView';
 import { useLogging } from '../../hooks';
@@ -20,6 +20,9 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     const page = getRoutesPageService()
     const { logError,logEvent } = useLogging('RouteItem');
 
+    const refInitialized = useRef(false)
+    
+
     // Re-sync from cache when id changes (FlashList recycling)
     useEffect(() => {
         if (!id) return;
@@ -31,22 +34,14 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
         }
     }, [id]);
 
-    // FlashList recycles component instances across rows: the same RouteItem instance can be
-    // handed a different route's observer later without unmounting. A one-time subscription
-    // (e.g. guarded by a ref that is only ever set once) would keep listening to the previous
-    // row's observer and never pick up the current one - and a stale `updated` from that
-    // previous row would keep rendering here until (if ever) the new route's own update
-    // arrives. Re-subscribing on every observer change, and dropping any update we already
-    // have from a different observer, keeps this row correct after recycling.
-    useEffect(() => {
-        setUpdated(null)
-        const observer = props.observer
-        const listener = (update: RouteItemDisplayProps) => setUpdated(update)
-        observer?.on('update', listener)
-        return () => {
-            observer?.off('update', listener)
-        }
-    }, [props.observer])
+    useEffect( ()=>{
+        if (refInitialized.current)
+            return;
+        refInitialized.current = true
+        props.observer?.on('update',(update:RouteItemDisplayProps) =>{
+            setUpdated(update)
+        })
+    })
 
     useEffect(() => {
         // Guard: don't fetch if already have details, currently loading, props say it's loaded,
