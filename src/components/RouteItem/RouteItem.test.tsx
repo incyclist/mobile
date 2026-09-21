@@ -13,6 +13,10 @@ class FakeObserver {
         (this.listeners[event] ??= []).push(cb);
         return this;
     }
+    off(event: string, cb: (...args: any[]) => void) {
+        this.listeners[event] = (this.listeners[event] ?? []).filter(l => l !== cb);
+        return this;
+    }
     emit(event: string, ...args: any[]) {
         (this.listeners[event] ?? []).forEach(cb => cb(...args));
     }
@@ -88,5 +92,37 @@ describe('RouteItem', () => {
         });
 
         expect(getByTestId('pill').props.children).toBe('none');
+    });
+
+    // FlashList recycles component instances: the same RouteItem instance can be re-used for a
+    // different row later, receiving a new `observer` in props without unmounting. A one-time
+    // ("subscribe on first render only") registration would keep listening to the row's original
+    // observer forever, and a pill picked up for that original row would keep showing on whatever
+    // row this instance gets recycled into next.
+    test('re-subscribes to the new observer, and drops the previous row\'s update, when recycled by FlashList', () => {
+        const observerA = new FakeObserver();
+        const observerB = new FakeObserver();
+        const { getByTestId, rerender } = render(<RouteItem {...baseProps(observerA)} />);
+
+        act(() => {
+            observerA.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, videoPill: 'in-icloud' });
+        });
+        expect(getByTestId('pill').props.children).toBe('in-icloud');
+
+        // FlashList recycles this instance for a different route, without unmounting it
+        rerender(<RouteItem {...baseProps(observerB)} id="r2" title="Other Route" />);
+        expect(getByTestId('pill').props.children).toBe('none');
+
+        // the old observer no longer reaches this instance
+        act(() => {
+            observerA.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, videoPill: 'downloading' });
+        });
+        expect(getByTestId('pill').props.children).toBe('none');
+
+        // the new observer does
+        act(() => {
+            observerB.emit('update', { id: 'r2', title: 'Other Route', loaded: true, videoPill: 'downloading' });
+        });
+        expect(getByTestId('pill').props.children).toBe('downloading');
     });
 });
