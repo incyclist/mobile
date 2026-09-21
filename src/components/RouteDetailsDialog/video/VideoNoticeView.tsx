@@ -116,15 +116,19 @@ const NoticeBody = ({ notice, linkHandler }: NoticeBodyProps) => {
     )
 }
 
-const LINK_HANDLERS = (props: VideoNoticeViewProps): Record<VideoNoticeLink, (() => void) | undefined> => ({
+const getLinkHandlers = (
+    video: RouteVideoDisplayProps,
+    onKeepInstead?: () => void,
+    onRemoveDownload?: () => void
+): Record<VideoNoticeLink, (() => void) | undefined> => ({
     // Both are gated on the page service's own action flags, never on the state the copy came
     // from - the service is the only thing that knows whether an action currently applies.
-    'keep-instead': props.video.actions.keepInstead ? props.onKeepInstead : undefined,
-    'remove-download': props.video.actions.remove ? props.onRemoveDownload : undefined,
+    'keep-instead': video.actions.keepInstead ? onKeepInstead : undefined,
+    'remove-download': video.actions.remove ? onRemoveDownload : undefined,
 })
 
 export const VideoNoticeView = (props: VideoNoticeViewProps) => {
-    const { video, deviceWord, compact, now } = props
+    const { video, deviceWord, compact, now, onKeepInstead, onRemoveDownload } = props
 
     const ctx = { deviceWord, compact, now: now ?? Date.now() }
     const notice = getVideoNotice(video, ctx)
@@ -137,7 +141,7 @@ export const VideoNoticeView = (props: VideoNoticeViewProps) => {
     if (!showNotice && !confirmedLine)
         return null
 
-    const linkHandler = notice?.link ? LINK_HANDLERS(props)[notice.link] : undefined
+    const linkHandler = notice?.link ? getLinkHandlers(video, onKeepInstead, onRemoveDownload)[notice.link] : undefined
 
     return (
         <View style={styles.root}>

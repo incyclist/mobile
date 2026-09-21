@@ -5,7 +5,7 @@ import { Dialog } from '../Dialog';
 import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
 import { WorkoutGraph } from '../WorkoutGraph';
-import { ActivitySummaryDialogViewProps } from './types';
+import { ActivitySummaryDialogViewProps, VideoRemovalNotice } from './types';
 import { isFormattedNumber } from '../../utils/formattedNumber';
 import { ButtonProps } from '../ButtonBar/types';
 import { colors, textSizes } from '../../theme';
@@ -38,6 +38,35 @@ const buildDialogButtons = (props: {
     }
 
     return buttons;
+};
+
+// "The video for this route is removed..." / "...is kept..." - only when a "for this ride"
+// download is pending removal (or was just kept instead) on leaving. `pending` and `kept` are
+// never both false when `videoRemoval` is set at all (RidePageService.buildVideoRemoval only
+// ever returns undefined otherwise), so `kept` alone decides which line applies.
+const VideoRemovalLine = ({ videoRemoval, isCompact, onVideoKeepInstead }: {
+    videoRemoval?: VideoRemovalNotice;
+    isCompact: boolean;
+    onVideoKeepInstead?: () => void;
+}) => {
+    if (!videoRemoval)
+        return null;
+
+    const deviceWord = isCompact ? 'iPhone' : 'iPad';
+    const text = videoRemoval.kept
+        ? `The video is kept on this ${deviceWord} for your next rides.`
+        : `The video for this route is removed from this ${deviceWord} when you leave the ride.`;
+
+    return (
+        <View style={styles.videoRemovalRow}>
+            <Text style={styles.videoRemovalText}>{text}</Text>
+            {!videoRemoval.kept && onVideoKeepInstead && (
+                <TouchableOpacity onPress={onVideoKeepInstead} accessibilityLabel="Keep it instead" style={styles.videoRemovalLinkHitArea}>
+                    <Text style={styles.videoRemovalLink}>Keep it instead</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
 };
 
 const safeNum = (v: any): number | undefined => {
@@ -188,25 +217,6 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         );
     };
 
-    // "The video for this route is removed..." / "...is kept..." - only when a "for this ride"
-    // download is pending removal (or was just kept instead) on leaving. `pending` and `kept` are
-    // never both false when `videoRemoval` is set at all (RidePageService.buildVideoRemoval only
-    // ever returns undefined otherwise), so `kept` alone decides which line applies.
-    const VideoRemovalLine = videoRemoval ? (
-        <View style={styles.videoRemovalRow}>
-            <Text style={styles.videoRemovalText}>
-                {videoRemoval.kept
-                    ? `The video is kept on this ${isCompact ? 'iPhone' : 'iPad'} for your next rides.`
-                    : `The video for this route is removed from this ${isCompact ? 'iPhone' : 'iPad'} when you leave the ride.`}
-            </Text>
-            {!videoRemoval.kept && onVideoKeepInstead && (
-                <TouchableOpacity onPress={onVideoKeepInstead} accessibilityLabel="Keep it instead" style={styles.videoRemovalLinkHitArea}>
-                    <Text style={styles.videoRemovalLink}>Keep it instead</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-    ) : null;
-
     const mapPoints = (activity.logs?.filter(l => l.lat != null && l.lng != null && l.lat !== undefined && l.lng !== undefined) ?? []).map(l => ({
         lat: l.lat as number,
         lng: l.lng as number,
@@ -227,7 +237,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
 
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
 
-            {VideoRemovalLine}
+            <VideoRemovalLine videoRemoval={videoRemoval} isCompact={isCompact} onVideoKeepInstead={onVideoKeepInstead} />
 
             <View style={styles.keyFactsSection}>
                 {renderKeyFact('Distance', activity.distance, 'distance')}

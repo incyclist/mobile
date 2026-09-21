@@ -89,25 +89,30 @@ class ExternalFileAccessModule: NSObject {
             }
 
             let key = self.registryKey(url.path)
+            self.finishActivatingGrant(gate: gate, url: url, key: key, isStale: isStale)
+        }
+    }
 
-            self.registryQueue.async {
-                let started = self.retainScope(for: url, key: key)
+    /**
+     * Retains the scope on the registry queue, then builds the result off it - a slow bookmark
+     * renewal must never hold up another activate/deactivate.
+     */
+    private func finishActivatingGrant(gate: PromiseGate, url: URL, key: String, isStale: Bool) {
+        registryQueue.async {
+            _ = self.retainScope(for: url, key: key)
 
-                // Bookmark creation is I/O — do it off the registry queue so a slow
-                // renewal can't hold up another activate/deactivate.
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let renewed = isStale ? self.makeGrant(for: url) : nil
+            DispatchQueue.global(qos: .userInitiated).async {
+                let renewed = isStale ? self.makeGrant(for: url) : nil
 
-                    var result: [String: Any] = [
-                        "resolvedPath": key,
-                        "isStale": isStale
-                    ]
-                    if let renewed = renewed {
-                        result["renewedGrant"] = renewed
-                    }
-
-                    gate.fulfill(result)
+                var result: [String: Any] = [
+                    "resolvedPath": key,
+                    "isStale": isStale
+                ]
+                if let renewed = renewed {
+                    result["renewedGrant"] = renewed
                 }
+
+                gate.fulfill(result)
             }
         }
     }

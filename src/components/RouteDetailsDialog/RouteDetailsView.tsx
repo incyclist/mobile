@@ -353,6 +353,82 @@ const RouteDetailsSettingsForm = (props: SettingsFormProps) => {
     );
 };
 
+type VideoDetailsInput = Pick<RouteDetailsViewProps,
+    | 'video' | 'deviceWord' | 'compact' | 'videoNow' | 'canStart'
+    | 'onVideoDownloadPressed' | 'onVideoDownloadConfirmed' | 'onVideoDownloadDismissed'
+    | 'onVideoRetry' | 'onVideoStop' | 'onVideoConfirmAccess' | 'onVideoKeepInstead'
+    | 'onVideoRemovePressed' | 'onVideoRemoveConfirmed' | 'onVideoRemoveDismissed'
+>;
+
+/**
+ * Everything about a route's video that RouteDetailsView needs to render: the Start-gate, the
+ * dialog buttons, the notice strip, and the two nested confirm dialogs. Pulled out of the view
+ * itself so its handful of `video?.x` branches don't add to that already-large function.
+ */
+const buildVideoDetailsUI = (props: VideoDetailsInput) => {
+    const {
+        video, deviceWord = DEFAULT_DEVICE_WORD, compact, videoNow, canStart,
+        onVideoDownloadPressed, onVideoDownloadConfirmed, onVideoDownloadDismissed,
+        onVideoRetry, onVideoStop, onVideoConfirmAccess, onVideoKeepInstead,
+        onVideoRemovePressed, onVideoRemoveConfirmed, onVideoRemoveDismissed
+    } = props;
+
+    const noop = () => {};
+
+    // A route whose video is not on the device cannot be started however healthy the rest of it
+    // is, so the two gates are ANDed rather than one overriding the other. `video.canStart` is
+    // the page service's verdict; absent it (no file-access binding) nothing changes.
+    const canStartWithVideo = canStart && (video?.canStart ?? true);
+
+    const videoButtons = getVideoButtons(video, {
+        onDownload: onVideoDownloadPressed ?? noop,
+        onRetry: onVideoRetry ?? noop,
+        onStop: onVideoStop ?? noop,
+        onConfirmAccess: onVideoConfirmAccess ?? noop,
+    });
+
+    const videoNotice = video ? (
+        <VideoNoticeView
+            video={video}
+            deviceWord={deviceWord}
+            compact={compact}
+            now={videoNow}
+            onKeepInstead={onVideoKeepInstead}
+            onRemoveDownload={onVideoRemovePressed}
+        />
+    ) : null;
+
+    // Both are nested over whichever layout is showing, so they are rendered once here and
+    // included in each branch's subtree below.
+    const videoDialogs = (
+        <>
+            {!!video?.confirmation && (
+                <VideoDownloadConfirmView
+                    confirmation={video.confirmation}
+                    downloadEnabled={video.actions.downloadEnabled}
+                    deviceWord={deviceWord}
+                    compact={compact}
+                    onConfirm={onVideoDownloadConfirmed ?? noop}
+                    onDismiss={onVideoDownloadDismissed ?? noop}
+                />
+            )}
+            {!!video?.removeConfirmation && (
+                <VideoRemoveConfirmView
+                    removeConfirmation={video.removeConfirmation}
+                    deviceWord={deviceWord}
+                    compact={compact}
+                    onConfirm={onVideoRemoveConfirmed ?? noop}
+                    onDismiss={onVideoRemoveDismissed ?? noop}
+                />
+            )}
+        </>
+    );
+
+    const videoRemoveHandler = video?.actions.remove ? onVideoRemovePressed : undefined;
+
+    return { canStartWithVideo, videoButtons, videoNotice, videoDialogs, videoRemoveHandler };
+};
+
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
         title, compact, hasGpx, points, previewUrl, routeData, isOnline, totalDistance,
@@ -608,24 +684,17 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const showAddWorkoutButton = !attachedWorkout;
     const showWorkoutChip = !!attachedWorkout;
 
-    // A route whose video is not on the device cannot be started however healthy the rest of it
-    // is, so the two gates are ANDed rather than one overriding the other. `video.canStart` is
-    // the page service's verdict; absent it (no file-access binding) nothing changes.
-    const canStartNow = canStart && (video?.canStart ?? true);
+    const { canStartWithVideo, videoButtons, videoNotice, videoDialogs, videoRemoveHandler } = buildVideoDetailsUI({
+        video, deviceWord, compact, videoNow, canStart,
+        onVideoDownloadPressed, onVideoDownloadConfirmed, onVideoDownloadDismissed,
+        onVideoRetry, onVideoStop, onVideoConfirmAccess, onVideoKeepInstead,
+        onVideoRemovePressed, onVideoRemoveConfirmed, onVideoRemoveDismissed
+    });
 
-    const startButtons = canStartNow ? [
+    const startButtons = canStartWithVideo ? [
         { label: 'Start', primary: true, onClick: () => onStart(data) },
         ...(showAddWorkoutButton ? [{ label: 'Add Workout', onClick: () => onAddWorkout(data) }] : [])
     ] : []
-
-    const noop = () => {};
-
-    const videoButtons = getVideoButtons(video, {
-        onDownload: onVideoDownloadPressed ?? noop,
-        onRetry: onVideoRetry ?? noop,
-        onStop: onVideoStop ?? noop,
-        onConfirmAccess: onVideoConfirmAccess ?? noop,
-    });
 
     const downloadButton = downloadButtonLabel ? [{
         label: downloadButtonLabel,
@@ -635,45 +704,6 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     }] : []
 
     const dialogButtons = [cancelButton, ...startButtons, ...videoButtons, ...downloadButton]
-
-    const videoNotice = video ? (
-        <VideoNoticeView
-            video={video}
-            deviceWord={deviceWord}
-            compact={compact}
-            now={videoNow}
-            onKeepInstead={onVideoKeepInstead}
-            onRemoveDownload={onVideoRemovePressed}
-        />
-    ) : null;
-
-    // Both are nested over whichever layout is showing, so they are rendered once here and
-    // included in each branch's subtree below.
-    const videoDialogs = (
-        <>
-            {!!video?.confirmation && (
-                <VideoDownloadConfirmView
-                    confirmation={video.confirmation}
-                    downloadEnabled={video.actions.downloadEnabled}
-                    deviceWord={deviceWord}
-                    compact={compact}
-                    onConfirm={onVideoDownloadConfirmed ?? noop}
-                    onDismiss={onVideoDownloadDismissed ?? noop}
-                />
-            )}
-            {!!video?.removeConfirmation && (
-                <VideoRemoveConfirmView
-                    removeConfirmation={video.removeConfirmation}
-                    deviceWord={deviceWord}
-                    compact={compact}
-                    onConfirm={onVideoRemoveConfirmed ?? noop}
-                    onDismiss={onVideoRemoveDismissed ?? noop}
-                />
-            )}
-        </>
-    );
-
-    const videoRemoveHandler = video?.actions.remove ? onVideoRemovePressed : undefined;
 
     const workoutChip = showWorkoutChip && attachedWorkout ? (
         <AttachmentChip label="Workout" name={attachedWorkout.title} onClear={onClearWorkout} />

@@ -156,7 +156,7 @@ export const ParseSelectionView = ({
                         <Text style={styles.title}>
                             Found {parseProgress.total} files... Parsing: {parseProgress.parsed}/{parseProgress.total}
                         </Text>
-                        {parseProgress.waitingForICloud && <ICloudHintRow compact={compact} />}
+                        {!!parseProgress.waitingForICloud && <ICloudHintRow compact={compact} />}
                     </>
                 ) : (
                     <>

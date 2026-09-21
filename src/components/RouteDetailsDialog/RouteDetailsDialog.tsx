@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMonitoring } from 'incyclist-services';
-import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail } from 'incyclist-services';
-import type { VideoKeepChoice } from 'incyclist-services';
+import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail, VideoKeepChoice } from 'incyclist-services';
 import { useLogging, useUnmountEffect, useIsTablet } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';

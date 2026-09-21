@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import type { RouteVideoDisplayProps, VideoKeepChoice } from 'incyclist-services'
 import { Dialog } from '../../Dialog'
 import { colors } from '../../../theme'
-import { getDownloadConfirmCopy, VIDEO_BUTTON_LABELS } from './videoCopy'
+import { DownloadConfirmCopy, getDownloadConfirmCopy, VIDEO_BUTTON_LABELS } from './videoCopy'
 import { inertWhenDisabled } from './videoButtons'
 
 /**
@@ -36,6 +36,15 @@ const FactRows = ({ facts }: { facts: Array<{ label: string, value: string }> })
     </View>
 )
 
+/** The blocked reason takes over the facts entirely; otherwise it's the compact one-liner or the full rows. */
+const FactsOrBlocked = ({ copy, compact }: { copy: DownloadConfirmCopy, compact: boolean }) => {
+    if (copy.blocked)
+        return <Text style={styles.blocked}>{copy.blocked}</Text>
+    if (compact)
+        return <Text style={styles.paragraph}>{copy.factsLine}</Text>
+    return <FactRows facts={copy.facts} />
+}
+
 export const VideoDownloadConfirmView = (props: VideoDownloadConfirmViewProps) => {
     const { confirmation, downloadEnabled, deviceWord, compact, onConfirm, onDismiss } = props
 
@@ -67,11 +76,7 @@ export const VideoDownloadConfirmView = (props: VideoDownloadConfirmViewProps) =
             <View style={styles.body}>
                 <Text style={styles.paragraph}>{copy.intro}</Text>
 
-                {copy.blocked
-                    ? <Text style={styles.blocked}>{copy.blocked}</Text>
-                    : (compact
-                        ? <Text style={styles.paragraph}>{copy.factsLine}</Text>
-                        : <FactRows facts={copy.facts} />)}
+                <FactsOrBlocked copy={copy} compact={compact} />
 
                 {!!copy.offline && <Text style={styles.paragraph}>{copy.offline}</Text>}
 

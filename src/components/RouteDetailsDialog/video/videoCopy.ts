@@ -196,13 +196,14 @@ const downloadingExternalNotice: NoticeBuilder = (video, ctx) => ({
 
 const waitingForNetworkNotice: NoticeBuilder = (video, ctx) => {
     const size = formatBytes(video.status.sizeBytes)
+    const sizeSuffix = size ? ` (${size})` : ''
     return {
         tone: 'warning',
         icon: '⚠',
         headline: 'Waiting for an internet connection',
         body: ctx.compact
             ? 'Continues by itself when you\'re back online.'
-            : `The download of this video${size ? ` (${size})` : ''} continues by itself when you're back online.`,
+            : `The download of this video${sizeSuffix} continues by itself when you're back online.`,
     }
 }
 
@@ -299,8 +300,9 @@ const accessNeededNotice: NoticeBuilder = (video, ctx) => {
 
     // Shown when the previous attempt landed on a folder that doesn't hold this video; the
     // Confirm Access button stays, so the user can simply try again.
+    const folderHint = folder ? ` Please choose ${folder}.` : ''
     const wrongFolder = video.access?.lastResult?.outcome === 'wrong-folder'
-        ? `That folder doesn't contain this video.${folder ? ` Please choose ${folder}.` : ''}`
+        ? `That folder doesn't contain this video.${folderHint}`
         : undefined
 
     return {
@@ -545,6 +547,10 @@ export const getDownloadConfirmCopy = (
         facts.push({ label: 'Free space', value: `${free} on this ${deviceWord}` })
     facts.push({ label: 'Time', value: 'Can take a while for large videos — depending on your internet connection' })
 
+    const offlineMessage = compact
+        ? 'You\'re offline — it starts when you\'re back online.'
+        : 'You\'re offline. The download starts by itself as soon as you\'re back online.'
+
     return {
         title: multi ? 'Download these videos?' : 'Download this video?',
         intro,
@@ -562,11 +568,7 @@ export const getDownloadConfirmCopy = (
                 `Download and Keep: the video is kept on this ${deviceWord} for your next rides. You can remove it later in the route details.`,
                 'Download for This Ride: removed again automatically when you leave the ride.',
             ],
-        offline: confirmation.offline
-            ? (compact
-                ? 'You\'re offline — it starts when you\'re back online.'
-                : 'You\'re offline. The download starts by itself as soon as you\'re back online.')
-            : undefined,
+        offline: confirmation.offline ? offlineMessage : undefined,
         blocked: options.blocked
             ? `There isn't enough free space on this ${deviceWord} for this download. Free up some space, then try again.`
             : undefined,

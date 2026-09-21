@@ -154,7 +154,7 @@ const ICloudRowAction = ({ row, onStop, onRetry, onKeepInstead }: Omit<DownloadR
 // "Delete" removes the local copy, but for an iCloud video that same word would read as deleting
 // it from iCloud. Removing an iCloud video is only ever the explicit "Remove download" action in
 // route details, so this component never renders a Delete button for one.
-const ICloudDownloadRow = memo(({ row, compact, onStop, onRetry, onKeepInstead }: DownloadRowProps) => {
+const ICloudDownloadRow = memo(({ row, compact, onStop, onRetry, onKeepInstead }: Omit<DownloadRowProps, 'onDelete'>) => {
     const { title } = row;
     const { text, tone } = getICloudRowText(row, compact);
 
@@ -181,7 +181,7 @@ const ICloudDownloadRow = memo(({ row, compact, onStop, onRetry, onKeepInstead }
 
 const DownloadRow = memo(({ row, compact, onStop, onRetry, onDelete, onKeepInstead }: DownloadRowProps) => {
     if (row.source === 'icloud')
-        return <ICloudDownloadRow row={row} compact={compact} onStop={onStop} onRetry={onRetry} onDelete={onDelete} onKeepInstead={onKeepInstead} />;
+        return <ICloudDownloadRow row={row} compact={compact} onStop={onStop} onRetry={onRetry} onKeepInstead={onKeepInstead} />;
 
     return <ServerDownloadRow row={row} onStop={onStop} onRetry={onRetry} onDelete={onDelete} />;
 });
