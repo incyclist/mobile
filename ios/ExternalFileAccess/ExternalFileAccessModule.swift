@@ -80,7 +80,6 @@ class ExternalFileAccessModule: NSObject {
                     bookmarkDataIsStale: &isStale
                 )
             } catch {
-                self.debugLog("activateGrant resolve failed: \(error.localizedDescription)")
                 gate.fail(
                     "ERR_GRANT_RESOLVE",
                     "Could not resolve grant: \(error.localizedDescription)",
@@ -107,10 +106,6 @@ class ExternalFileAccessModule: NSObject {
                         result["renewedGrant"] = renewed
                     }
 
-                    self.debugLog(
-                        "activateGrant path=\(key) stale=\(isStale) " +
-                        "scopeStarted=\(started) renewed=\(renewed != nil)"
-                    )
                     gate.fulfill(result)
                 }
             }
@@ -155,9 +150,6 @@ class ExternalFileAccessModule: NSObject {
             // nil is an expected outcome, not an error: the OS refuses a bookmark for
             // a path the app has no live claim on.
             let captured = self.makeGrant(for: url)
-            self.debugLog(
-                "captureGrant path=\(url.path) captured=\(captured != nil) scopeStarted=\(started)"
-            )
             // .map keeps a missing grant nil across the Any? boundary rather than
             // handing JS a wrapped empty optional.
             gate.fulfill(captured.map { $0 as Any })
@@ -192,10 +184,6 @@ class ExternalFileAccessModule: NSObject {
                 result["errno"] = Int(probe.errorNumber)
             }
 
-            self.debugLog(
-                "checkAccess state=\(probe.state) errno=\(probe.errorNumber) step=\(probe.step) " +
-                "scopeStarted=\(started) file=\(url.lastPathComponent)"
-            )
             gate.fulfill(result)
         }
     }
@@ -235,10 +223,6 @@ class ExternalFileAccessModule: NSObject {
             }
 
             if let error = coordinationError {
-                self.debugLog(
-                    "getAvailability coordination failed domain=\(error.domain) " +
-                    "code=\(error.code) file=\(url.lastPathComponent)"
-                )
                 gate.fail(
                     "ERR_AVAILABILITY",
                     "Could not read availability of '\(url.lastPathComponent)': \(error.localizedDescription)",
@@ -255,7 +239,6 @@ class ExternalFileAccessModule: NSObject {
                 return
             }
 
-            self.debugLog("getAvailability file=\(url.lastPathComponent) \(self.describe(result))")
             gate.fulfill(result)
         }
     }
@@ -337,17 +320,6 @@ class ExternalFileAccessModule: NSObject {
             // picked iCloud folder be read", and reading it has been observed to be
             // misleading for exactly that reason. Callers use their own heuristic.
             gate.fulfill(nil)
-        }
-    }
-
-    @objc(debugIdentityTokenPresent:reject:)
-    func debugIdentityTokenPresent(
-        _ resolve: @escaping RCTPromiseResolveBlock,
-        reject: @escaping RCTPromiseRejectBlock
-    ) {
-        run("debugIdentityTokenPresent", resolve: resolve, reject: reject) { gate in
-            let present = FileManager.default.ubiquityIdentityToken != nil
-            gate.fulfill(present)
         }
     }
 
@@ -529,7 +501,6 @@ class ExternalFileAccessModule: NSObject {
                 "\(label) timed out after \(Int(timeout))s"
             )
             if timedOut {
-                self.debugLog("\(label) TIMEOUT after \(Int(timeout))s")
                 work.cancel()
             }
         }
@@ -555,7 +526,6 @@ class ExternalFileAccessModule: NSObject {
     /** Must run on registryQueue. Unknown keys are a safe no-op. */
     private func releaseScope(key: String) {
         guard var entry = scopes[key] else {
-            debugLog("deactivateGrant path=\(key) (no entry, no-op)")
             return
         }
 
@@ -569,7 +539,6 @@ class ExternalFileAccessModule: NSObject {
             entry.url.stopAccessingSecurityScopedResource()
         }
         scopes.removeValue(forKey: key)
-        debugLog("deactivateGrant path=\(key) scope released")
     }
 
     // ── File helpers ───────────────────────────────────────────────────────
@@ -587,7 +556,6 @@ class ExternalFileAccessModule: NSObject {
             )
             return data.base64EncodedString()
         } catch {
-            debugLog("makeGrant failed for \(url.lastPathComponent): \(error.localizedDescription)")
             return nil
         }
     }
@@ -799,16 +767,4 @@ class ExternalFileAccessModule: NSObject {
         return key
     }
 
-    private func describe(_ availability: [String: Any]) -> String {
-        let fields = ["isUbiquitous", "downloadStatus", "isDownloading", "downloadRequested",
-                      "downloadError", "sizeBytes", "allocatedBytes", "volumeFreeBytes"]
-        return fields
-            .compactMap { key in availability[key].map { "\(key)=\($0)" } }
-            .joined(separator: " ")
-    }
-
-    // Temporary device-spike probes: delete debugLog and every call to it before release.
-    private func debugLog(_ message: String) {
-        NSLog("%@", "[DEBUG-ICLD] " + message)
-    }
 }

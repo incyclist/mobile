@@ -87,9 +87,6 @@ export interface Spec extends TurboModule {
      */
     isCloudIdentityAvailable(): Promise<boolean | null>;
 
-    /** Diagnostic only - whether a cloud identity token is currently present. */
-    debugIdentityTokenPresent(): Promise<boolean>;
-
     /**
      * Returns a private directory inside app storage (Application Support), created on
      * demand and not visible to the user in a file browser. Only 'previews' is accepted.

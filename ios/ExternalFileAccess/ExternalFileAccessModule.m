@@ -59,11 +59,6 @@ RCT_EXTERN_METHOD(
 )
 
 RCT_EXTERN_METHOD(
-    debugIdentityTokenPresent:(RCTPromiseResolveBlock)resolve
-    reject:(RCTPromiseRejectBlock)reject
-)
-
-RCT_EXTERN_METHOD(
     getPrivateDir:(NSString *)name
     resolve:(RCTPromiseResolveBlock)resolve
     reject:(RCTPromiseRejectBlock)reject

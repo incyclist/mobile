@@ -21,7 +21,6 @@ jest.mock('react-native', () => {
         startDownload: jest.fn(),
         evict: jest.fn(),
         isCloudIdentityAvailable: jest.fn(),
-        debugIdentityTokenPresent: jest.fn(),
         getPrivateDir: jest.fn(),
         copyFile: jest.fn(),
     };
