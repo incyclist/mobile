@@ -86,7 +86,7 @@ export const RoutesPage = () => {
             filterOptions: refFilterOptions.current,
         });
 
-    }, [service, logEvent]);
+    }, [service]);
 
     const onImportClose = useCallback(() => {
         setShowImportDialog(false)

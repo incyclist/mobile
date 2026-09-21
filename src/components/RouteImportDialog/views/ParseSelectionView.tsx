@@ -161,7 +161,7 @@ export const ParseSelectionView = ({
                 ) : (
                     <>
                         <Text style={styles.title}>Select routes to import</Text>
-                        {icloudDownloadFailuresText && (
+                        {!!icloudDownloadFailuresText && (
                             <ICloudDownloadFailuresHint text={icloudDownloadFailuresText} />
                         )}
                     </>
