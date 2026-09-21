@@ -39,9 +39,7 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
             return;
         refInitialized.current = true
         props.observer?.on('update',(update:RouteItemDisplayProps) =>{
-            const {id,title,videoPill} = update
             setUpdated(update)
-            logEvent({message:'[DEBUG-ICLD] update event received',id,title,videoPill })
         })
     })
 

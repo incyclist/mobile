@@ -69,14 +69,6 @@ export const RoutesPage = () => {
         // Stabilize routes reference using ID hash
         const newHash = hashRoutes(updated.routes ?? [])
         const hashChanged = newHash !== refRoutesHash.current
-        // TEMPORARY - remove alongside the services-side [DEBUG-ICLD] list pill logs: proves
-        // whether the UI ever receives a pill from the service, and whether the hash comparison
-        // is what is keeping it from being applied.
-        logEvent({
-            message: '[DEBUG-ICLD] routes page onUpdate',
-            hashChanged,
-            pills: (updated.routes ?? []).map((r: any) => ({ id: r.id, videoPill: r.videoPill })),
-        });
         if (hashChanged) {
             refRoutesHash.current = newHash
             refRoutes.current = updated.routes ?? []
