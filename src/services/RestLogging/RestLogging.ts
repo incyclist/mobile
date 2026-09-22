@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
 import { getLogBacklog } from "../../bindings/logging/Adapters/BacklogAdapter";
+import { getRestLogFallbackStore } from "../../bindings/logging/Adapters/RestLogFallbackStore";
 
 
 const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
@@ -41,6 +42,25 @@ let restAdapter: RestLogAdapter | undefined
  */
 const replayBacklog = (adapter: RestLogAdapter, globals: Record<string, any>): number => {
     const entries = getLogBacklog().drain().filter(({ context, event }) => restLogFilter(context, event));
+
+    entries.forEach(({ context, event }) => {
+        adapter.log(context, { ...globals, ...event });
+    });
+
+    return entries.length;
+}
+
+/**
+ * Hands events that were persisted to disk after a failed send (see RestLogFallbackStore /
+ * RestLogAdapter.send()) over to the fresh adapter created on this app start.
+ *
+ * Same rationale as replayBacklog(): these are ordinary events that simply had nowhere to go
+ * last time (the POST failed and there was no time left, or no app process left, to retry),
+ * so they are replayed with the current session's globals applied and then cleared from the
+ * store so they are not replayed again on the next start.
+ */
+const replayFallback = (adapter: RestLogAdapter, globals: Record<string, any>): number => {
+    const entries = getRestLogFallbackStore().drain();
 
     entries.forEach(({ context, event }) => {
         adapter.log(context, { ...globals, ...event });
@@ -122,8 +142,9 @@ export const initRestLogging = async () => {
         logger.setGlobal(globals)
 
         const replayed = restAdapter ? replayBacklog(restAdapter, globals) : 0
+        const replayedFallback = restAdapter ? replayFallback(restAdapter, globals) : 0
 
-        logger.logEvent( {message:'Logging initialiazed', replayed})
+        logger.logEvent( {message:'Logging initialiazed', replayed, replayedFallback})
     }
     catch(err) {
         console.log('Error', err)

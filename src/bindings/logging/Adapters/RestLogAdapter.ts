@@ -1,5 +1,6 @@
 import { BaseAdapter, EventLogger } from 'gd-eventlog';
 import { ApiClient  } from '../../../services';
+import { getRestLogFallbackStore } from './RestLogFallbackStore';
 
 export const DEFAULT_SEND_INTERVAL = 10; 
 export const DEFAULT_REST_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
@@ -125,18 +126,18 @@ export class RestLogAdapter extends BaseAdapter {
                     return resolve(stats);
                 })
                 .catch((err: Error) => {
+                    let persisted = 0;
+
                     try {
-                        /*
-                    if ( err.response !== undefined) {
-                        const fName = path.join( os.tmpdir(), `./failed_logs-${Date.now()}`);
-                        this.logger.logEvent( {message:'could not send',events:fName,status:err.response.status,statusText:err.response.statusText});
-                        fs.writeFileSync( fName,JSON.stringify(events));
-                    }
-                    else {
-                        this.logger.logEvent( {message:'could not send',events:fName,errno:err.errno,code:err.code});
-                        fs.writeFileSync( fName,JSON.stringify(events));
-                    }
-                    */
+                        // The events have already been removed from inMemoryCache (see
+                        // loadFromMemoryCache above), so once the request fails there is
+                        // nothing left in memory to recover them from - persist them to disk
+                        // instead so they survive a crash or an app restart, and get replayed
+                        // by initRestLogging() next time the adapter starts up.
+                        persisted = getRestLogFallbackStore().persist(events);
+                    } catch {}
+
+                    try {
                         console.log('could not send', err.message, err.stack);
                     } catch {}
 
@@ -144,7 +145,7 @@ export class RestLogAdapter extends BaseAdapter {
                     resolve({
                         processed: 0,
                         mem: this.inMemoryCache.length,
-                        file: 0,
+                        file: persisted,
                     });
                 });
         });
