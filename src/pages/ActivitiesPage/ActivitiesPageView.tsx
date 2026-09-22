@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { ActivitiesPageDisplayProps } from 'incyclist-services';
 import { ListPageShell, ActivitiesTable, TNavigationItem } from '../../components';
 import { colors, textSizes } from '../../theme';
+import { useScreenLayout } from '../../hooks';
 
 export interface ActivitiesPageViewProps {
     props: ActivitiesPageDisplayProps | null;
@@ -12,8 +13,7 @@ export interface ActivitiesPageViewProps {
 }
 
 export const ActivitiesPageView = ({ props, onSelectActivity, onDeleteActivity, onNavigate }: ActivitiesPageViewProps) => {
-    const { height } = useWindowDimensions();
-    const compact = height < 420;
+    const compact = useScreenLayout() === 'compact';
     const activities = props?.activities ?? [];
     const isLoading = props?.loading ?? false;
 

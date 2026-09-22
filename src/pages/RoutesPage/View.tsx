@@ -144,6 +144,7 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         compact={compact}
                         onFilterChanged={onFilterChanged}
                         onToggle={onFilterToggle}
+                        resultCount={routes?.length ?? 0}
                     />
                 </View>
             }

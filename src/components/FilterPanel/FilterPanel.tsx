@@ -11,6 +11,9 @@ import {
     Modal,
 } from 'react-native';
 import { FilterPanelProps, SearchFilter } from './types';
+import { ButtonProps } from '../ButtonBar/types';
+import { Dialog } from '../Dialog';
+import { ChipSelect } from '../ChipSelect';
 import { colors } from '../../theme';
 import { useLogging } from '../../hooks';
 import { Icon } from '../Icon';
@@ -38,10 +41,14 @@ const getFilterPills = (f: SearchFilter): string[] => {
 };
 
 /**
- * Internal Input component with numeric validation and blur-based update logic
+ * Internal Input component with numeric validation. Commits its value on blur (works fine
+ * whenever the platform actually delivers a blur event) and, when `showCommitButton` is set,
+ * also via an explicit checkmark button and the keyboard's submit action - iOS's landscape
+ * numeric keypad has no return key and blur is unreliable there, so the phone filter dialog
+ * (the only caller that sets it) can't rely on blur alone.
  */
-const FilterInput = ({ 
-    value, placeholder, max, fieldName, onValueChange, compact, logEvent, onFocus 
+const FilterInput = ({
+    value, placeholder, max, fieldName, onValueChange, large, showCommitButton, logEvent, onFocus
 }: any) => {
     const [localValue, setLocalValue] = useState(value?.toString() ?? '');
     const [error, setError] = useState(false);
@@ -62,7 +69,7 @@ const FilterInput = ({
         }
     };
 
-    const handleBlur = () => {
+    const commit = () => {
         const cleaned = localValue.replace(/[^0-9.]/g, '');
         if (cleaned === '') {
             onValueChange(undefined);
@@ -70,11 +77,11 @@ const FilterInput = ({
             const val = Number.parseFloat(cleaned);
             if (!Number.isNaN(val) && val >= 0 && (max === undefined || val <= max)) {
                 onValueChange(val);
-                logEvent({ 
-                    message: 'text entered', 
-                    field: fieldName, 
-                    value: val, 
-                    eventSource: 'user' 
+                logEvent({
+                    message: 'text entered',
+                    field: fieldName,
+                    value: val,
+                    eventSource: 'user'
                 });
             }
         }
@@ -82,20 +89,32 @@ const FilterInput = ({
 
     return (
         <View style={styles.flexInputWrapper}>
-            <TextInput
-                style={[
-                    styles.input, 
-                    compact && styles.inputCompact, 
-                    error && styles.inputError
-                ]}
-                value={localValue}
-                onChangeText={handleChange}
-                onBlur={handleBlur}
-                onFocus={onFocus}
-                placeholder={placeholder}
-                placeholderTextColor={colors.disabled}
-                keyboardType="numeric"
-            />
+            <View style={styles.commitRow}>
+                <TextInput
+                    style={[
+                        styles.input,
+                        large && styles.inputLarge,
+                        error && styles.inputError
+                    ]}
+                    value={localValue}
+                    onChangeText={handleChange}
+                    onBlur={commit}
+                    onSubmitEditing={commit}
+                    onFocus={onFocus}
+                    placeholder={placeholder}
+                    placeholderTextColor={colors.disabled}
+                    keyboardType="numeric"
+                />
+                {showCommitButton && (
+                    <TouchableOpacity
+                        style={styles.commitButton}
+                        onPress={commit}
+                        accessibilityLabel={`Apply ${fieldName}`}
+                    >
+                        <Text style={styles.commitButtonText}>{'✓'}</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
             {error && <Text style={styles.errorText}>Max {max}</Text>}
         </View>
     );
@@ -113,6 +132,11 @@ const FilterInput = ({
  * the sibling's own ScrollView instead. `Modal` owns its own native window
  * layer, so it reliably wins both paint order and touch priority regardless
  * of what else is on screen.
+ *
+ * Compact mode's own inline list (no nested Modal) is what the phone filter
+ * dialog reuses for Country - nesting a Modal inside the dialog's own
+ * full-screen Modal is fragile on iOS, and Country's option count is too
+ * large for a chip row.
  */
 const FilterSelect = (props: any) => {
     const {
@@ -161,7 +185,7 @@ const FilterSelect = (props: any) => {
                     <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
                 {open && (
-                    <View style={styles.listCompact}>
+                    <ScrollView style={[styles.listCompact, { maxHeight }]} keyboardShouldPersistTaps="handled">
                         {['All', ...safeOptions].map((item: string) => (
                             <TouchableOpacity
                                 key={item}
@@ -176,7 +200,7 @@ const FilterSelect = (props: any) => {
                                 </Text>
                             </TouchableOpacity>
                         ))}
-                    </View>
+                    </ScrollView>
                 )}
             </View>
         );
@@ -253,20 +277,39 @@ const FilterSelect = (props: any) => {
     );
 };
 
+/** Single-select chip row with a leading "All" chip that clears the filter - used by the phone
+ *  dialog for the small option sets (Content/Type/Source) in place of FilterSelect's Modal, which
+ *  is fragile nested inside the dialog's own full-screen Modal on iOS. */
+const FilterChips = ({ label, value, options, onSelect }: { label: string, value?: string, options?: string[], onSelect: (v: string | undefined) => void }) => (
+    <View style={styles.dialogChipField}>
+        <ChipSelect
+            label={label}
+            labelWidth={60}
+            options={['All', ...(options ?? [])]}
+            selected={value ?? 'All'}
+            chipMinHeight={44}
+            onValueChange={(v) => onSelect(v === 'All' ? undefined : v)}
+        />
+    </View>
+);
+
 export const FilterPanel = (props: FilterPanelProps) => {
-    const { filters, visible, compact, onFilterChanged, onToggle, options } = props;
+    const { filters, visible, compact, onFilterChanged, onToggle, options, resultCount } = props;
     const { height: screenHeight } = useWindowDimensions();
-    const compactMaxHeight = compact ? screenHeight * 0.6 : undefined;
     // Bounds the non-compact dropdown overlay so long option lists (e.g. 20+
     // countries) scroll within themselves instead of running off-screen.
     const dropdownMaxHeight = screenHeight * 0.4;
-    const { 
-        countries, 
-        contentTypes, 
-        routeTypes, 
-        routeSources, 
-        maxDistance, 
-        maxElevation 
+    // The phone dialog's Country list has the whole dialog body to scroll within, but still
+    // needs its own bound - otherwise it pushes the footer ("Show N routes") off-screen instead
+    // of scrolling internally.
+    const dialogCountryMaxHeight = screenHeight * 0.5;
+    const {
+        countries,
+        contentTypes,
+        routeTypes,
+        routeSources,
+        maxDistance,
+        maxElevation
     } = options??{};
 
     const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>({});
@@ -298,12 +341,25 @@ export const FilterPanel = (props: FilterPanelProps) => {
         onFilterChanged(updated);
     };
 
+    const commitTitle = () => {
+        applyFilter({
+            ...localFilters,
+            title: localTitle === '' ? undefined : localTitle
+        });
+    };
+
+    const clearAll = () => {
+        logEvent({ message: 'button clicked', button: 'filter-clear-all', eventSource: 'user' });
+        setLocalTitle('');
+        applyFilter({});
+    };
+
     const updateMinMax = (key: 'distance' | 'elevation', type: 'min' | 'max', val: number | undefined) => {
         const defaultUnit = key === 'distance'
             ? (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km' // Applied type guard
             : (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'; // Applied type guard
         const current = localFilters[key] || {};
-        
+
         const unit = typeof current[type]==='number' ? defaultUnit : current[type]?.unit || defaultUnit;
         const updated = {
             ...current,
@@ -316,131 +372,214 @@ export const FilterPanel = (props: FilterPanelProps) => {
         });
     };
 
-    const panelContent = (
-        <>
-            <View style={styles.fullWidth}>
-                <Text style={styles.label}>Title</Text>
-                <TextInput
-                    style={[styles.input, compact && styles.inputCompact]}
-                    value={localTitle}
-                    onChangeText={setLocalTitle}
-                    onFocus={closeDropdown}
-                    onBlur={() => applyFilter({
-                        ...localFilters,
-                        title: localTitle === '' ? undefined : localTitle
-                    })}
-                    placeholder="Search title..."
-                    placeholderTextColor={colors.disabled}
-                />
-            </View>
+    const activeFilterCount = getFilterPills(localFilters).length;
 
-            <View style={styles.fullWidth}>
-                <View style={styles.row}>
-                    <View style={styles.minMaxGroup}>
-                        <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text> {/* Applied type guard */}
-                        <View style={styles.minMaxRow}>
-                            <FilterInput 
-                                compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min" // Applied type guard
-                                value={isFormattedNumber(localFilters?.distance?.min) ? localFilters.distance!.min!.value : localFilters?.distance?.min} logEvent={logEvent}
-                                onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
-                                onFocus={closeDropdown}
-                            />
-                            <Text style={styles.separator}>-</Text>
-                            <FilterInput 
-                                compact={compact} max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max" // Applied type guard
-                                value={isFormattedNumber(localFilters?.distance?.max) ? localFilters.distance!.max!.value : localFilters?.distance?.max} logEvent={logEvent}
-                                onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
-                                onFocus={closeDropdown}
-                            />
-                        </View>
+    const toggleRow = (
+        <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
+            <View style={styles.toggleLeft}>
+                <Icon
+                    name={!compact && visible ? 'chevron-up' : 'funnel'}
+                    size={20}
+                    color={colors.text}
+                />
+                {compact && activeFilterCount > 0 && (
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{activeFilterCount}</Text>
                     </View>
-                    <View style={styles.minMaxGroup}>
-                        <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text> {/* Applied type guard */}
-                        <View style={styles.minMaxRow}>
-                            <FilterInput 
-                                compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min" // Applied type guard
-                                value={isFormattedNumber(localFilters?.elevation?.min) ? localFilters.elevation!.min!.value : localFilters?.elevation?.min} logEvent={logEvent}
-                                onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
-                                onFocus={closeDropdown}
-                            />
-                            <Text style={styles.separator}>-</Text>
-                            <FilterInput 
-                                compact={compact} max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max" // Applied type guard
-                                value={isFormattedNumber(localFilters?.elevation?.max) ? localFilters.elevation!.max!.value : localFilters?.elevation?.max} logEvent={logEvent}
-                                onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
-                                onFocus={closeDropdown}
-                            />
-                        </View>
+                )}
+            </View>
+            <View style={styles.pillsRow}>
+                {getFilterPills(localFilters).map((pill, i) => (
+                    <View key={i} style={styles.pill}>
+                        <Text style={styles.pillText}>{pill}</Text>
                     </View>
-                </View>
+                ))}
             </View>
-
-            <View style={[styles.twoColumnGrid, compact && styles.twoColumnGridCompact]}>
-                <FilterSelect
-                    label="Country" value={localFilters.country} options={countries}
-                    fieldName="country" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'country'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
-                    onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
-                />
-                <FilterSelect
-                    label="Content" value={localFilters.contentType} options={contentTypes}
-                    fieldName="contentType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'contentType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
-                    onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
-                />
-                <FilterSelect
-                    label="Type" value={localFilters.routeType} options={routeTypes}
-                    fieldName="routeType" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'routeType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
-                    onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
-                />
-                <FilterSelect
-                    label="Source" value={localFilters.routeSource} options={routeSources}
-                    fieldName="routeSource" compact={compact} logEvent={logEvent} isHalf={!compact}
-                    isOpen={openField === 'routeSource'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
-                    onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
-                />
-            </View>
-        </>
+        </TouchableOpacity>
     );
 
-    return (
-        <View style={[
-            styles.container,
-            compact && styles.containerCompact,
-            compact && compactMaxHeight !== undefined && { maxHeight: compactMaxHeight },
-        ]}>
-            <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
-                <View style={styles.toggleLeft}>
-                    <Icon
-                        name={visible ? 'chevron-up' : 'funnel'}
-                        size={20}
-                        color={colors.text}
-                    />
-                </View>
-                <View style={styles.pillsRow}>
-                    {getFilterPills(localFilters).map((pill, i) => (
-                        <View key={i} style={styles.pill}>
-                            <Text style={styles.pillText}>{pill}</Text>
+    if (compact) {
+        const routeCount = resultCount ?? 0;
+        const buttons: ButtonProps[] = [
+            { id: 'filter-clear-all', label: 'Clear all', onClick: clearAll },
+            { id: 'filter-show', label: `Show ${routeCount} route${routeCount === 1 ? '' : 's'}`, primary: true, onClick: handleToggle },
+        ];
+
+        return (
+            <View style={styles.container}>
+                {toggleRow}
+                <Dialog
+                    title="Filters"
+                    variant="full"
+                    visible={visible}
+                    onOutsideClick={handleToggle}
+                    buttons={buttons}
+                >
+                    <View style={styles.dialogRow}>
+                        <View style={styles.dialogFieldFull}>
+                            <Text style={styles.label}>Title</Text>
+                            <View style={styles.commitRow}>
+                                <TextInput
+                                    style={[styles.input, styles.inputLarge]}
+                                    value={localTitle}
+                                    onChangeText={setLocalTitle}
+                                    onBlur={commitTitle}
+                                    onSubmitEditing={commitTitle}
+                                    placeholder="Search title..."
+                                    placeholderTextColor={colors.disabled}
+                                />
+                                <TouchableOpacity
+                                    style={styles.commitButton}
+                                    onPress={commitTitle}
+                                    accessibilityLabel="Apply title filter"
+                                >
+                                    <Text style={styles.commitButtonText}>{'✓'}</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    ))}
-                </View>
-            </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.dialogRow}>
+                        <View style={styles.dialogFieldHalf}>
+                            <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text>
+                            <View style={styles.minMaxRow}>
+                                <FilterInput
+                                    large showCommitButton max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min"
+                                    value={isFormattedNumber(localFilters?.distance?.min) ? localFilters.distance!.min!.value : localFilters?.distance?.min} logEvent={logEvent}
+                                    onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
+                                />
+                                <Text style={styles.separator}>-</Text>
+                                <FilterInput
+                                    large showCommitButton max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max"
+                                    value={isFormattedNumber(localFilters?.distance?.max) ? localFilters.distance!.max!.value : localFilters?.distance?.max} logEvent={logEvent}
+                                    onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.dialogFieldHalf}>
+                            <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text>
+                            <View style={styles.minMaxRow}>
+                                <FilterInput
+                                    large showCommitButton max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min"
+                                    value={isFormattedNumber(localFilters?.elevation?.min) ? localFilters.elevation!.min!.value : localFilters?.elevation?.min} logEvent={logEvent}
+                                    onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
+                                />
+                                <Text style={styles.separator}>-</Text>
+                                <FilterInput
+                                    large showCommitButton max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max"
+                                    value={isFormattedNumber(localFilters?.elevation?.max) ? localFilters.elevation!.max!.value : localFilters?.elevation?.max} logEvent={logEvent}
+                                    onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.dialogRow}>
+                        <FilterChips label="Content" value={localFilters.contentType} options={contentTypes} onSelect={(v) => applyFilter({ ...localFilters, contentType: v })} />
+                        <FilterChips label="Type" value={localFilters.routeType} options={routeTypes} onSelect={(v) => applyFilter({ ...localFilters, routeType: v })} />
+                        <FilterChips label="Source" value={localFilters.routeSource} options={routeSources} onSelect={(v) => applyFilter({ ...localFilters, routeSource: v })} />
+                    </View>
+
+                    <View style={styles.dialogRow}>
+                        <FilterSelect
+                            label="Country" value={localFilters.country} options={countries}
+                            fieldName="country" compact logEvent={logEvent}
+                            isOpen={openField === 'country'} onOpen={setOpenField} maxHeight={dialogCountryMaxHeight}
+                            onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
+                        />
+                    </View>
+                </Dialog>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            {toggleRow}
 
             {visible && (
-                compact ? (
-                    <ScrollView
-                        style={[styles.panel, styles.panelCompact]}
-                        contentContainerStyle={styles.gridColumn}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {panelContent}
-                    </ScrollView>
-                ) : (
-                    <View style={[styles.panel, styles.gridTwoColumn]}>
-                        {panelContent}
+                <View style={[styles.panel, styles.gridTwoColumn]}>
+                    <View style={styles.fullWidth}>
+                        <Text style={styles.label}>Title</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={localTitle}
+                            onChangeText={setLocalTitle}
+                            onFocus={closeDropdown}
+                            onBlur={commitTitle}
+                            placeholder="Search title..."
+                            placeholderTextColor={colors.disabled}
+                        />
                     </View>
-                )
+
+                    <View style={styles.fullWidth}>
+                        <View style={styles.row}>
+                            <View style={styles.minMaxGroup}>
+                                <Text style={styles.groupLabel}>Dist ({ (isFormattedNumber(maxDistance) ? maxDistance.unit : 'km') ?? 'km'})</Text>
+                                <View style={styles.minMaxRow}>
+                                    <FilterInput
+                                        max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_min"
+                                        value={isFormattedNumber(localFilters?.distance?.min) ? localFilters.distance!.min!.value : localFilters?.distance?.min} logEvent={logEvent}
+                                        onValueChange={(v: any) => updateMinMax('distance', 'min', v)}
+                                        onFocus={closeDropdown}
+                                    />
+                                    <Text style={styles.separator}>-</Text>
+                                    <FilterInput
+                                        max={isFormattedNumber(maxDistance) ? maxDistance.value : maxDistance} fieldName="distance_max"
+                                        value={isFormattedNumber(localFilters?.distance?.max) ? localFilters.distance!.max!.value : localFilters?.distance?.max} logEvent={logEvent}
+                                        onValueChange={(v: any) => updateMinMax('distance', 'max', v)}
+                                        onFocus={closeDropdown}
+                                    />
+                                </View>
+                            </View>
+                            <View style={styles.minMaxGroup}>
+                                <Text style={styles.groupLabel}>Elev ({ (isFormattedNumber(maxElevation) ? maxElevation.unit : 'm') ?? 'm'})</Text>
+                                <View style={styles.minMaxRow}>
+                                    <FilterInput
+                                        max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_min"
+                                        value={isFormattedNumber(localFilters?.elevation?.min) ? localFilters.elevation!.min!.value : localFilters?.elevation?.min} logEvent={logEvent}
+                                        onValueChange={(v: any) => updateMinMax('elevation', 'min', v)}
+                                        onFocus={closeDropdown}
+                                    />
+                                    <Text style={styles.separator}>-</Text>
+                                    <FilterInput
+                                        max={isFormattedNumber(maxElevation) ? maxElevation.value : maxElevation} fieldName="elevation_max"
+                                        value={isFormattedNumber(localFilters?.elevation?.max) ? localFilters.elevation!.max!.value : localFilters?.elevation?.max} logEvent={logEvent}
+                                        onValueChange={(v: any) => updateMinMax('elevation', 'max', v)}
+                                        onFocus={closeDropdown}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.twoColumnGrid}>
+                        <FilterSelect
+                            label="Country" value={localFilters.country} options={countries}
+                            fieldName="country" logEvent={logEvent} isHalf
+                            isOpen={openField === 'country'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
+                            onSelect={(v: any) => applyFilter({ ...localFilters, country: v })}
+                        />
+                        <FilterSelect
+                            label="Content" value={localFilters.contentType} options={contentTypes}
+                            fieldName="contentType" logEvent={logEvent} isHalf
+                            isOpen={openField === 'contentType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
+                            onSelect={(v: any) => applyFilter({ ...localFilters, contentType: v })}
+                        />
+                        <FilterSelect
+                            label="Type" value={localFilters.routeType} options={routeTypes}
+                            fieldName="routeType" logEvent={logEvent} isHalf
+                            isOpen={openField === 'routeType'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
+                            onSelect={(v: any) => applyFilter({ ...localFilters, routeType: v })}
+                        />
+                        <FilterSelect
+                            label="Source" value={localFilters.routeSource} options={routeSources}
+                            fieldName="routeSource" logEvent={logEvent} isHalf
+                            isOpen={openField === 'routeSource'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
+                            onSelect={(v: any) => applyFilter({ ...localFilters, routeSource: v })}
+                        />
+                    </View>
+                </View>
             )}
         </View>
     );
@@ -453,14 +592,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'visible',
     },
-    // Compact mode bounds the panel to compactMaxHeight and must clip at that
-    // box — otherwise the inline-expanding FilterSelect list (and the panel
-    // ScrollView, which has no bounded height of its own) paints straight past
-    // the container into the sibling RouteList below, and swipes meant for
-    // the dropdown land on the RouteList's ScrollView instead.
-    containerCompact: {
-        overflow: 'hidden',
-    },
     toggleRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -469,6 +600,23 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    badge: {
+        position: 'absolute',
+        top: -6,
+        right: -8,
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        paddingHorizontal: 3,
+        backgroundColor: colors.buttonPrimary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    badgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
     pillsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -488,15 +636,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     panel: { padding: 8 },
-    // flex: 1 gives the ScrollView an actual bounded viewport within
-    // containerCompact's maxHeight, so it — not the sibling RouteList below —
-    // captures swipes and scrolls internally once content overflows.
-    panelCompact: { flex: 1 },
     gridTwoColumn: { flexDirection: 'row', flexWrap: 'wrap' },
-    gridColumn: { flexDirection: 'column' },
     fullWidth: { width: '100%', marginBottom: 8 },
     twoColumnGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    twoColumnGridCompact: { flexDirection: 'column' },
     fieldContainer: { marginBottom: 8, width: '100%' },
     fieldContainerHalf: { width: '48%' },
     label: { color: colors.text, fontSize: 12, marginBottom: 2, opacity: 0.8 },
@@ -510,9 +652,25 @@ const styles = StyleSheet.create({
         height: 36,
         fontSize: 14,
     },
-    inputCompact: { height: 28, fontSize: 12, paddingHorizontal: 4 },
+    // Used only inside the phone filter dialog - 44pt minimum touch target, per the UX
+    // consultation: compact mode's old 28px inputs had no reason to
+    // stay shrunk once the panel became a full-screen dialog with room to spare.
+    inputLarge: { height: 44, fontSize: 16, paddingHorizontal: 10 },
     inputError: { borderColor: colors.error },
     errorText: { color: colors.error, fontSize: 9, marginTop: 1 },
+    // Wraps a text/numeric input together with its explicit commit button (dialog-only) - the
+    // landscape numeric keyboard has no return key on iOS, so blur-to-commit alone can leave a
+    // typed value stuck uncommitted.
+    commitRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    commitButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 4,
+        backgroundColor: colors.buttonPrimary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    commitButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
     row: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     minMaxGroup: { width: '49%' },
     groupLabel: { color: colors.text, fontSize: 11, marginBottom: 2, opacity: 0.7 },
@@ -530,7 +688,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         height: 36,
     },
-    selectTriggerCompact: { height: 28 },
+    // Used only by the phone dialog's Country field (the sole remaining caller of FilterSelect's
+    // `compact` inline-list branch) - sized for the 44pt touch-target minimum, per the same UX
+    // consultation as inputLarge above.
     selectTriggerCompactInline: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -539,8 +699,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#555',
         borderRadius: 4,
-        paddingHorizontal: 8,
-        height: 28,
+        paddingHorizontal: 10,
+        height: 44,
     },
     selectText: { color: '#FFF', fontSize: 13 },
     dropdownArrow: { color: colors.disabled, fontSize: 10 },
@@ -564,17 +724,33 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     itemCompact: {
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        minHeight: 44,
+        justifyContent: 'center',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     optionTextCompact: {
         color: '#FFF',
-        fontSize: 13,
+        fontSize: 15,
     },
     optionSelectedCompact: {
         color: colors.buttonPrimary,
         fontWeight: 'bold',
     },
+    // Phone filter dialog layout: 2-3 short columns, no vertical scrolling of its own (the
+    // Dialog's own ScrollView handles overflow on the smallest supported viewport).
+    dialogRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 12,
+    },
+    dialogFieldFull: { width: '100%' },
+    dialogFieldHalf: { flexGrow: 1, flexBasis: '45%' },
+    // Content/Type/Source render three-across (not two) so the phone dialog's fixed rows -
+    // Title, Dist/Elev, Content/Type/Source, Country - all fit within the shortest supported
+    // viewport (~430px tall) with no vertical scrolling, per the UX consultation.
+    dialogChipField: { flexGrow: 1, flexBasis: '30%' },
 });

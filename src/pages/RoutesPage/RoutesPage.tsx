@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, useWindowDimensions } from 'react-native';
+import { AppState } from 'react-native';
 import {
     getRoutesPageService,
     RoutePageDisplayProps,
@@ -7,7 +7,7 @@ import {
     SearchFilter,
     RouteItemProps
 } from 'incyclist-services';
-import { useLogging, useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect, useScreenLayout } from '../../hooks';
 import { useScheduledWorkoutPrompt } from '../../hooks/workouts';
 import { RoutesPageView } from './View';
 import { ErrorBoundary, MainBackground, RouteDetailsDialog, RouteImportDialog, ScheduledWorkoutPromptModal } from '../../components';
@@ -46,8 +46,7 @@ export const RoutesPage = () => {
     const service = getRoutesPageService();
     const { prompt: scheduledWorkoutPrompt, onYes: onScheduledWorkoutYes, onNo: onScheduledWorkoutNo, onCheckWorkouts: onScheduledWorkoutCheck } = useScheduledWorkoutPrompt();
 
-    const { height } = useWindowDimensions();
-    const compact = height < 420;
+    const compact = useScreenLayout() === 'compact';
 
     const [props, setProps] = useState<RoutePageDisplayProps>(initialProps);
     const [showImportDialog, setShowImportDialog] = useState(false);

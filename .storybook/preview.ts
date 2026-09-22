@@ -34,6 +34,14 @@ export const customViewports = {
         styles: { width: '854px', height: '384px' },
         // type: 'mobile',
     },
+    // "Pro-Max"-class phone (e.g. iPhone 17 Pro Max): landscape short side lands just over the
+    // old `height < 420` threshold (~430-440px), which misclassified it as a tablet (mobile#453).
+    // None of the phone viewports above exercise this device class.
+    proMaxLandscape: {
+        name: 'Pro-Max-class Phone (landscape)',
+        styles: { width: '932px', height: '430px' },
+        // type: 'mobile',
+    },
 
         // TABLETS
     ipadPro12: {
