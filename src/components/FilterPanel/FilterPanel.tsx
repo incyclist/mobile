@@ -177,7 +177,12 @@ const FilterSelect = (props: any) => {
     };
 
     if (compact) {
-        // Inline-expanding list for compact mode to avoid clipping by ScrollView
+        // Inline-expanding list for compact mode to avoid clipping by ScrollView. Deliberately a
+        // plain View, not its own nested ScrollView: inside the phone filter dialog this sits
+        // inside Dialog's own (single) ScrollView, and a vertical ScrollView nested inside another
+        // vertical ScrollView fights it for the scroll gesture on Android - the list would open
+        // but the rest of it stayed unreachable, showing only the first ("All") row. Expanding in
+        // flow instead lets the dialog's one scroll region reach the whole list, however long.
         return (
             <View style={[styles.fieldContainer, styles.fieldContainerCompact]}>
                 <View style={styles.inlineFieldRow}>
@@ -185,13 +190,14 @@ const FilterSelect = (props: any) => {
                     <TouchableOpacity
                         style={[styles.selectTriggerCompactInline, styles.inputFlex]}
                         onPress={() => onOpen(open ? null : fieldName)}
+                        testID={`${fieldName}-select-trigger`}
                     >
                         <Text style={styles.selectText}>{displayValue}</Text>
                         <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
                     </TouchableOpacity>
                 </View>
                 {open && (
-                    <ScrollView style={[styles.listCompact, { maxHeight }]} keyboardShouldPersistTaps="handled">
+                    <View style={styles.listCompact}>
                         {['All', ...safeOptions].map((item: string) => (
                             <TouchableOpacity
                                 key={item}
@@ -206,7 +212,7 @@ const FilterSelect = (props: any) => {
                                 </Text>
                             </TouchableOpacity>
                         ))}
-                    </ScrollView>
+                    </View>
                 )}
             </View>
         );
@@ -302,15 +308,9 @@ const FilterChips = ({ label, value, options, onSelect }: { label: string, value
 export const FilterPanel = (props: FilterPanelProps) => {
     const { filters, visible, compact, onFilterChanged, onToggle, options, resultCount } = props;
     const { height: screenHeight } = useWindowDimensions();
-    // Bounds the non-compact dropdown overlay so long option lists (e.g. 20+
-    // countries) scroll within themselves instead of running off-screen.
+    // Bounds the non-compact dropdown overlay (a Modal) so long option lists (e.g. 20+ countries)
+    // scroll within themselves instead of running off-screen.
     const dropdownMaxHeight = screenHeight * 0.4;
-    // The phone dialog's Country list has the whole dialog body to scroll within, but still needs
-    // its own bound - otherwise it pushes the footer ("Show N routes") off-screen instead of
-    // scrolling internally. Bounded by the body's own remaining space (not a flat fraction of the
-    // screen) so it shows a genuine few rows rather than guaranteeing a scroll on a short device -
-    // real-device measurement (a 390pt-tall dialog) put header+footer chrome at ~135pt.
-    const dialogCountryMaxHeight = Math.max(132, screenHeight - 260);
     const {
         countries,
         contentTypes,
@@ -519,7 +519,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                             <FilterSelect
                                 label="Country" value={localFilters.country} options={countries}
                                 fieldName="country" compact logEvent={logEvent}
-                                isOpen={openField === 'country'} onOpen={setOpenField} maxHeight={dialogCountryMaxHeight}
+                                isOpen={openField === 'country'} onOpen={setOpenField}
                                 onSelect={(v: any) => applyFilter({ ...localFiltersRef.current, country: v })}
                             />
                         </View>
@@ -724,6 +724,9 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         paddingHorizontal: 10,
         height: 44,
+        // A small gutter on the trailing edge - without it the trigger (flex:1 within its row)
+        // stretches flush to the dialog's own content edge, with no breathing room at all.
+        marginRight: 8,
     },
     selectText: { color: '#FFF', fontSize: 13 },
     dropdownArrow: { color: colors.disabled, fontSize: 10 },

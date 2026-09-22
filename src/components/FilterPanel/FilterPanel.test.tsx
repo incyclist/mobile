@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
-import { TextInput, StyleSheet } from 'react-native';
+import { TextInput, ScrollView, StyleSheet } from 'react-native';
 import { FilterPanel } from './FilterPanel';
 import type { FilterPanelProps } from './types';
 
@@ -213,6 +213,26 @@ describe('FilterPanel', () => {
                 options: { ...MOCK_OPTIONS, countries: manyCountries } as unknown as FilterPanelProps['options'],
             };
             expect(() => render(<FilterPanel {...props} />)).not.toThrow();
+        });
+
+        // Regression: the Country list used to render in its own nested ScrollView, bounded to a
+        // fixed maxHeight. Sitting inside the dialog's own ScrollView, a vertical ScrollView
+        // nested inside another vertical ScrollView fights it for the scroll gesture on Android -
+        // confirmed on a real device, where opening the list showed only its first ("All") row
+        // with the rest unreachable. Expanding as a plain (non-scrolling) View instead means the
+        // dialog's one scroll region can always reach the full list, however long.
+        it('opens the Country list as a plain view, not a nested ScrollView, so every option stays reachable via the dialog\'s own scroll', () => {
+            const manyCountries = Array.from({ length: 30 }, (_, i) => `Country ${i}`);
+            const props = {
+                ...COMPACT_PROPS,
+                options: { ...MOCK_OPTIONS, countries: manyCountries } as unknown as FilterPanelProps['options'],
+            };
+            const { getByTestId, getByText, UNSAFE_root } = render(<FilterPanel {...props} />);
+            fireEvent.press(getByTestId('country-select-trigger'));
+            expect(getByText('Country 29')).toBeTruthy();
+            // Exactly one ScrollView in the whole tree - Dialog's own body scroll area. No second,
+            // nested one for the Country list itself.
+            expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
         });
 
         // Regression guard for the same class of defect as the tablet test above - Title is the
