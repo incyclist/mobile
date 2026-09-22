@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
+import { TextInput, StyleSheet } from 'react-native';
 import { FilterPanel } from './FilterPanel';
 import type { FilterPanelProps } from './types';
 
@@ -47,10 +48,34 @@ const MOCK_PROPS = {
     onToggle: jest.fn(),
 };
 
+const advanceDebounce = () => act(() => {
+    jest.advanceTimersByTime(300);
+});
+
 describe('FilterPanel', () => {
     it('renders normal (tablet) layout when visible', () => {
         const { getByPlaceholderText } = render(<FilterPanel {...MOCK_PROPS} />);
         expect(getByPlaceholderText('Search title...')).toBeTruthy();
+    });
+
+    // Regression: FilterInput (Dist/Elev, shared with the phone dialog) wraps its TextInput in a
+    // View whose own `flex: 1` is what makes it fill its row - a version of this component once
+    // wrapped the TextInput in an extra `flexDirection: 'row'` container (for a commit button that
+    // has since been removed) without giving the TextInput itself a matching flex, and on native
+    // RN a row child with no flex shrinks to its content size. Confirmed on a real tablet device,
+    // where Dist/Elev collapsed to a several-px-wide sliver - a browser-rendered Storybook check
+    // didn't catch it (HTML's <input> has its own built-in default width). This reads the actual
+    // resolved style of the input's immediate wrapper rather than relying on a screenshot.
+    it('gives the Dist/Elev inputs a flex:1 wrapper on tablet, so they fill their row', () => {
+        const { UNSAFE_root } = render(<FilterPanel {...MOCK_PROPS} />);
+        // Title isn't part of this shared component on tablet, so it's excluded - only the
+        // Dist/Elev min/max fields (the ones with no placeholder) are at risk.
+        const distElevInputs = UNSAFE_root.findAllByType(TextInput).filter((input) => !input.props.placeholder);
+        expect(distElevInputs.length).toBe(4);
+        distElevInputs.forEach((input) => {
+            const flat = StyleSheet.flatten(input.parent!.props.style);
+            expect(flat.flex).toBe(1);
+        });
     });
 
     it('hides normal (tablet) layout when not visible', () => {
@@ -73,18 +98,16 @@ describe('FilterPanel', () => {
         expect(() => render(<FilterPanel {...props} />)).not.toThrow();
     });
 
-    // Trigger row (funnel icon + active-filter pills) stays on the page in both layouts -
-    // on phone it's the dialog's trigger, so it must never disappear behind the dialog itself.
-    it('always renders the active-filter pills, even while the phone dialog is open', () => {
-        const props = { ...MOCK_PROPS, compact: true };
-        const { getByText, getByPlaceholderText, getByLabelText } = render(<FilterPanel {...props} />);
-        fireEvent.changeText(getByPlaceholderText('Search title...'), 'Alps');
-        fireEvent.press(getByLabelText('Apply title filter'));
-        expect(getByText('*Alps*')).toBeTruthy();
-    });
-
     describe('phone dialog (compact)', () => {
         const COMPACT_PROPS = { ...MOCK_PROPS, compact: true, resultCount: 23 };
+
+        beforeEach(() => {
+            jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
 
         it('opens a full-screen dialog with every filter field, instead of an inline expanding panel', () => {
             const { getByPlaceholderText, getByText } = render(<FilterPanel {...COMPACT_PROPS} />);
@@ -111,23 +134,41 @@ describe('FilterPanel', () => {
             expect(getByText('Show 1 route')).toBeTruthy();
         });
 
-        it('applies a title filter via the explicit commit button rather than requiring blur', () => {
+        // No commit button any more (removed after a UX consult found it was the only such
+        // control in the app) - typing applies live, debounced, since a full-screen dialog has no
+        // list visible behind it for an in-flight value to look wrong against.
+        it('applies a title filter live, debounced, with no commit button', () => {
             const onFilterChanged = jest.fn();
-            const { getByPlaceholderText, getByLabelText } = render(
+            const { getByPlaceholderText, queryByLabelText } = render(
                 <FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />
             );
+            expect(queryByLabelText('Apply title filter')).toBeNull();
             fireEvent.changeText(getByPlaceholderText('Search title...'), 'Dolomites');
-            fireEvent.press(getByLabelText('Apply title filter'));
+            expect(onFilterChanged).not.toHaveBeenCalled();
+            advanceDebounce();
             expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ title: 'Dolomites' }));
         });
 
-        it('applies a numeric filter via its explicit commit button', () => {
+        it('flushes a pending title debounce immediately on blur, without waiting', () => {
             const onFilterChanged = jest.fn();
-            const { getByLabelText } = render(<FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />);
-            fireEvent.press(getByLabelText('Apply distance_min'));
-            // No value typed yet, so this just proves the button exists and doesn't crash -
-            // the commit-on-value-change path is covered by the title test above.
-            expect(onFilterChanged).not.toHaveBeenCalledWith(expect.objectContaining({ title: expect.anything() }));
+            const { getByPlaceholderText } = render(<FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />);
+            const input = getByPlaceholderText('Search title...');
+            fireEvent.changeText(input, 'Dolomites');
+            fireEvent(input, 'blur');
+            expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ title: 'Dolomites' }));
+        });
+
+        it('silently clamps an out-of-range numeric value to max, with no error text', () => {
+            const onFilterChanged = jest.fn();
+            const { getByTestId, queryByText } = render(
+                <FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />
+            );
+            fireEvent.changeText(getByTestId('distance_min'), '5000');
+            advanceDebounce();
+            expect(onFilterChanged).toHaveBeenCalledWith(
+                expect.objectContaining({ distance: { min: { value: 200, unit: 'km' } } })
+            );
+            expect(queryByText(/Max/)).toBeNull();
         });
 
         it('selects a content-type filter via chips, with an "All" chip that clears it', () => {
@@ -153,9 +194,9 @@ describe('FilterPanel', () => {
         });
 
         it('shows a badge with the active-filter count on the funnel trigger', () => {
-            const { getByText, getByPlaceholderText, getByLabelText } = render(<FilterPanel {...COMPACT_PROPS} />);
+            const { getByText, getByPlaceholderText } = render(<FilterPanel {...COMPACT_PROPS} />);
             fireEvent.changeText(getByPlaceholderText('Search title...'), 'Alps');
-            fireEvent.press(getByLabelText('Apply title filter'));
+            advanceDebounce();
             fireEvent.press(getByText('Video'));
             expect(getByText('2')).toBeTruthy();
         });
@@ -172,6 +213,25 @@ describe('FilterPanel', () => {
                 options: { ...MOCK_OPTIONS, countries: manyCountries } as unknown as FilterPanelProps['options'],
             };
             expect(() => render(<FilterPanel {...props} />)).not.toThrow();
+        });
+
+        // Regression guard for the same class of defect as the tablet test above - Title is the
+        // one field that sits directly in a row (`inlineFieldRow`, label + input) rather than
+        // behind an extra wrapper, so it needs `flex:1` on the TextInput itself.
+        it('gives the Title input flex:1 directly, since it sits directly in the label row', () => {
+            const { getByPlaceholderText } = render(<FilterPanel {...COMPACT_PROPS} />);
+            const flat = StyleSheet.flatten(getByPlaceholderText('Search title...').props.style);
+            expect(flat.flex).toBe(1);
+        });
+
+        it('gives the Dist/Elev inputs a flex:1 wrapper, same as tablet', () => {
+            const { UNSAFE_root } = render(<FilterPanel {...COMPACT_PROPS} />);
+            const distElevInputs = UNSAFE_root.findAllByType(TextInput).filter((input) => !input.props.placeholder);
+            expect(distElevInputs.length).toBe(4);
+            distElevInputs.forEach((input) => {
+                const flat = StyleSheet.flatten(input.parent!.props.style);
+                expect(flat.flex).toBe(1);
+            });
         });
     });
 });

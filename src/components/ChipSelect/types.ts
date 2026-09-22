@@ -23,6 +23,12 @@ type ChipSelectCommonProps = {
      * below the 44px touch-target floor, which only matters when tapping is the interaction.
      */
     chipMinHeight?: number;
+    /**
+     * Drops the container's default `marginVertical: 8` - opt-in so every existing caller keeps
+     * its current spacing. Set it where an outer layout already budgets the row's height exactly
+     * (e.g. a fixed-height row in a space-constrained dialog) and the extra 16px would overflow it.
+     */
+    dense?: boolean;
 };
 
 export type ChipSelectSingleProps = ChipSelectCommonProps & {

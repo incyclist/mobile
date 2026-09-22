@@ -18,7 +18,7 @@ const LABEL_MARGIN = 8;
  * cannot be selected, and shows its message as a caption below the chip.
  */
 export const ChipSelect = (props: ChipSelectProps) => {
-    const { label, options, labelWidth = 100, disabled = false, chipMinHeight } = props;
+    const { label, options, labelWidth = 100, disabled = false, chipMinHeight, dense = false } = props;
     const { logEvent } = useLogging('ChipSelect');
 
     const [selectedValue, setSelectedValue] = useState<string | undefined>(
@@ -77,9 +77,9 @@ export const ChipSelect = (props: ChipSelectProps) => {
     const chipSizeStyle = chipMinHeight !== undefined ? { minHeight: chipMinHeight } : undefined;
 
     return (
-        <View style={[styles.container, disabled && styles.disabled]}>
+        <View style={[styles.container, dense && styles.containerDense, disabled && styles.disabled]}>
             <View style={styles.row}>
-                <Text style={[styles.label, labelStyle]}>{label}</Text>
+                <Text style={[styles.label, labelStyle]} numberOfLines={1}>{label}</Text>
                 <View style={styles.chipsContainer}>
                     {options.map((option, index) => {
                         const normalized = normalizeChipOption(option);
@@ -122,6 +122,9 @@ const styles = StyleSheet.create({
     container: {
         marginVertical: 8,
         width: '100%',
+    },
+    containerDense: {
+        marginVertical: 0,
     },
     disabled: {
         opacity: 0.4,
