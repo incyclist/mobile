@@ -148,6 +148,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         const onDone = () => {
             setDownloadRow({ routeId, title, status: 'done' });
             refDownloadObserver.current = null;
+            // The video has just landed on disk - cardProps (and the canStart it carries) was
+            // captured at mount and is otherwise never refreshed, so re-read it now, the same way
+            // it is re-read once the route details finish loading above.
+            if (card) setCardProps(card.openSettings());
         };
         const onError = () => {
             setDownloadRow({ routeId, title, status: 'failed' });
@@ -170,7 +174,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             observer.off('stopped', onStopped);
             refDownloadObserver.current = null;
         };
-    }, [routeId, routeDescr]);
+    }, [routeId, routeDescr, card]);
 
     // Subscribe to any already-active download observer on mount
     useEffect(() => {
