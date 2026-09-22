@@ -298,6 +298,10 @@ const FilterChips = ({ label, value, options, onSelect }: { label: string, value
         label={label}
         labelWidth={88}
         dense
+        // Matches styles.label (the Title/Dist/Elev/Country labels) - without this override,
+        // ChipSelect's own default label size (textSizes.normalText, 16) reads visibly larger
+        // than every other label in the same dialog.
+        labelTextStyle={styles.label}
         options={['All', ...(options ?? [])]}
         selected={value ?? 'All'}
         chipMinHeight={44}
