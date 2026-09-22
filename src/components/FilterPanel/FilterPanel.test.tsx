@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
-import { TextInput, ScrollView, StyleSheet } from 'react-native';
+import { TextInput, StyleSheet } from 'react-native';
 import { FilterPanel } from './FilterPanel';
 import type { FilterPanelProps } from './types';
 
@@ -206,7 +206,7 @@ describe('FilterPanel', () => {
             expect(queryByText('0')).toBeNull();
         });
 
-        it('does not crash with many countries (Country keeps an inline scrollable list)', () => {
+        it('does not crash with many countries', () => {
             const manyCountries = Array.from({ length: 30 }, (_, i) => `Country ${i}`);
             const props = {
                 ...COMPACT_PROPS,
@@ -215,24 +215,56 @@ describe('FilterPanel', () => {
             expect(() => render(<FilterPanel {...props} />)).not.toThrow();
         });
 
-        // Regression: the Country list used to render in its own nested ScrollView, bounded to a
-        // fixed maxHeight. Sitting inside the dialog's own ScrollView, a vertical ScrollView
-        // nested inside another vertical ScrollView fights it for the scroll gesture on Android -
-        // confirmed on a real device, where opening the list showed only its first ("All") row
-        // with the rest unreachable. Expanding as a plain (non-scrolling) View instead means the
-        // dialog's one scroll region can always reach the full list, however long.
-        it('opens the Country list as a plain view, not a nested ScrollView, so every option stays reachable via the dialog\'s own scroll', () => {
+        // Regression: Country's option list used to expand in flow directly below its trigger,
+        // inside the dialog's own body. With a long list in a short dialog, that read as a stray
+        // "All" floating below the trigger with no indication anything else was reachable - and
+        // when it briefly used a nested ScrollView to bound itself, that ScrollView fought the
+        // dialog's own ScrollView for the scroll gesture on Android, so only the first row ever
+        // showed. Country now opens its own full-screen picker dialog instead (the same nested-
+        // Dialog-inside-a-full-Dialog pattern RouteDetailsView already ships): the list gets its
+        // own screen and its own single scroll region, with no competition for space or gesture.
+        it('opens Country as its own full-screen picker dialog, not an inline list', () => {
             const manyCountries = Array.from({ length: 30 }, (_, i) => `Country ${i}`);
             const props = {
                 ...COMPACT_PROPS,
                 options: { ...MOCK_OPTIONS, countries: manyCountries } as unknown as FilterPanelProps['options'],
             };
-            const { getByTestId, getByText, UNSAFE_root } = render(<FilterPanel {...props} />);
+            const { getByTestId, getByText, queryByText } = render(<FilterPanel {...props} />);
+            expect(queryByText('All countries')).toBeNull();
             fireEvent.press(getByTestId('country-select-trigger'));
+            expect(getByText('All countries')).toBeTruthy();
             expect(getByText('Country 29')).toBeTruthy();
-            // Exactly one ScrollView in the whole tree - Dialog's own body scroll area. No second,
-            // nested one for the Country list itself.
-            expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
+        });
+
+        it('applies the selected country and closes the picker', () => {
+            const onFilterChanged = jest.fn();
+            const { getByTestId, getByText, queryByText } = render(
+                <FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />
+            );
+            fireEvent.press(getByTestId('country-select-trigger'));
+            fireEvent.press(getByText('Belgium'));
+            expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ country: 'Belgium' }));
+            expect(queryByText('All countries')).toBeNull();
+        });
+
+        it('clears the country filter via "All countries"', () => {
+            const onFilterChanged = jest.fn();
+            const props = { ...COMPACT_PROPS, filters: { country: 'Belgium' }, onFilterChanged };
+            const { getByTestId, getByText } = render(<FilterPanel {...props} />);
+            fireEvent.press(getByTestId('country-select-trigger'));
+            fireEvent.press(getByText('All countries'));
+            expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ country: undefined }));
+        });
+
+        it('closes the Country picker via its Cancel button without applying anything', () => {
+            const onFilterChanged = jest.fn();
+            const { getByTestId, getByText, queryByText } = render(
+                <FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />
+            );
+            fireEvent.press(getByTestId('country-select-trigger'));
+            fireEvent.press(getByText('Cancel'));
+            expect(onFilterChanged).not.toHaveBeenCalled();
+            expect(queryByText('All countries')).toBeNull();
         });
 
         // Regression guard for the same class of defect as the tablet test above - Title is the

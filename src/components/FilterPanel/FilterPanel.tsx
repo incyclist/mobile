@@ -124,41 +124,31 @@ const FilterInput = ({ value, placeholder, max, fieldName, onValueChange, large,
 };
 
 /**
- * Internal Select component with inline dropdown list (compact mode) or a
- * `Modal` overlay (non-compact). Compact mode uses inline expansion to avoid
- * clipping by the ScrollView's overflow:'hidden'. The non-compact list used
- * to be a `position: 'absolute'` + `zIndex` overlay, but that only reorders
- * siblings sharing the same parent — it can't guarantee priority over a
- * completely separate sibling subtree (e.g. RoutesPage's route list, sitting
- * below FilterPanel in the same column). With 20+ options the list visually
- * overlapped that sibling, and swipes meant for the list were captured by
- * the sibling's own ScrollView instead. `Modal` owns its own native window
- * layer, so it reliably wins both paint order and touch priority regardless
- * of what else is on screen.
+ * Select component with a `Modal` dropdown overlay - used by the tablet inline panel for
+ * Country/Content/Type/Source. The list used to be a `position: 'absolute'` + `zIndex` overlay,
+ * but that only reorders siblings sharing the same parent — it can't guarantee priority over a
+ * completely separate sibling subtree (e.g. RoutesPage's route list, sitting below FilterPanel in
+ * the same column). With 20+ options the list visually overlapped that sibling, and swipes meant
+ * for the list were captured by the sibling's own ScrollView instead. `Modal` owns its own native
+ * window layer, so it reliably wins both paint order and touch priority regardless of what else is
+ * on screen.
  *
- * Compact mode's own inline list (no nested Modal) is what the phone filter
- * dialog reuses for Country - nesting a Modal inside the dialog's own
- * full-screen Modal is fragile on iOS, and Country's option count is too
- * large for a chip row. The dialog's Country row renders its label inline-left
- * (matching Title/Dist/Elev there) rather than stacked above the trigger.
+ * The phone dialog no longer uses this component for Country - a large option count in a short
+ * dialog body reads better as its own full-screen picker (`CountryPickerDialog` below) than as any
+ * kind of dropdown squeezed into the remaining space.
  */
 const FilterSelect = (props: any) => {
     const {
-        label, value, options, fieldName, onSelect, compact,
+        label, value, options, fieldName, onSelect,
         logEvent, isHalf, isOpen: open, onOpen, maxHeight
     } = props;
 
     const displayValue = value || 'All';
-    // `options` can be transiently undefined (e.g. filterOptions not loaded
-    // yet right after navigating to the page). The non-compact list below
-    // renders inside a Modal, whose children mount on every render
-    // regardless of `visible` — so this must never crash even while closed.
+    // `options` can be transiently undefined (e.g. filterOptions not loaded yet right after
+    // navigating to the page). The list below renders inside a Modal, whose children mount on
+    // every render regardless of `visible` — so this must never crash even while closed.
     const safeOptions: string[] = options ?? [];
 
-    // Declared unconditionally (Rules of Hooks) even though only the
-    // non-compact branch below uses them — `compact` can change between
-    // renders (e.g. tablet rotation/resize), and this component must call
-    // the same hooks in the same order every render regardless of branch.
     const triggerRef = useRef<View>(null);
     const [triggerLayout, setTriggerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -176,51 +166,8 @@ const FilterSelect = (props: any) => {
         onOpen(null);
     };
 
-    if (compact) {
-        // Inline-expanding list for compact mode to avoid clipping by ScrollView. Deliberately a
-        // plain View, not its own nested ScrollView: inside the phone filter dialog this sits
-        // inside Dialog's own (single) ScrollView, and a vertical ScrollView nested inside another
-        // vertical ScrollView fights it for the scroll gesture on Android - the list would open
-        // but the rest of it stayed unreachable, showing only the first ("All") row. Expanding in
-        // flow instead lets the dialog's one scroll region reach the whole list, however long.
-        return (
-            <View style={[styles.fieldContainer, styles.fieldContainerCompact]}>
-                <View style={styles.inlineFieldRow}>
-                    <Text style={[styles.label, styles.inlineLabel]} numberOfLines={1}>{label}</Text>
-                    <TouchableOpacity
-                        style={[styles.selectTriggerCompactInline, styles.inputFlex]}
-                        onPress={() => onOpen(open ? null : fieldName)}
-                        testID={`${fieldName}-select-trigger`}
-                    >
-                        <Text style={styles.selectText}>{displayValue}</Text>
-                        <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
-                    </TouchableOpacity>
-                </View>
-                {open && (
-                    <View style={styles.listCompact}>
-                        {['All', ...safeOptions].map((item: string) => (
-                            <TouchableOpacity
-                                key={item}
-                                style={styles.itemCompact}
-                                onPress={() => handleSelect(item)}
-                            >
-                                <Text style={[
-                                    styles.optionTextCompact,
-                                    item === displayValue && styles.optionSelectedCompact
-                                ]}>
-                                    {item}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            </View>
-        );
-    }
-
-    // Non-compact: trigger position is measured in window coordinates so the
-    // Modal (which renders outside the normal view tree) can place its list
-    // directly under the trigger.
+    // Trigger position is measured in window coordinates so the Modal (which renders outside the
+    // normal view tree) can place its list directly under the trigger.
     const handleOpen = () => {
         if (open) {
             onOpen(null);
@@ -309,6 +256,44 @@ const FilterChips = ({ label, value, options, onSelect }: { label: string, value
     />
 );
 
+/**
+ * Country's own full-screen picker, nested inside the phone filter dialog's own full-screen
+ * Dialog - a pattern this app already ships (RouteDetailsView nests DownloadModalView the same
+ * way). An in-flow expanding list (the FilterSelect `compact` branch this replaced) can't show
+ * enough of a 20+-option list to read as a list inside a ~236pt dialog body; giving Country its
+ * own screen means the list is never fighting the rest of the form for space, and content cut off
+ * at the fold is a far stronger "more below" cue than a scrollbar ever was. The grid wraps at
+ * ~25% per item, so at this dialog's width most country lists fit with no scrolling at all - a
+ * longer one scrolls within this dialog's own single scroll region.
+ */
+const CountryPickerDialog = ({ visible, options, value, onSelect, onClose }: {
+    visible: boolean, options?: string[], value?: string, onSelect: (v: string | undefined) => void, onClose: () => void
+}) => {
+    const buttons: ButtonProps[] = [{ id: 'country-cancel', label: 'Cancel', onClick: onClose }];
+
+    return (
+        <Dialog title="Country" variant="full" visible={visible} onOutsideClick={onClose} buttons={buttons}>
+            <View style={styles.countryGrid}>
+                {['All countries', ...(options ?? [])].map((item) => {
+                    const isAll = item === 'All countries';
+                    const selected = isAll ? !value : item === value;
+                    return (
+                        <TouchableOpacity
+                            key={item}
+                            style={styles.countryGridItem}
+                            onPress={() => onSelect(isAll ? undefined : item)}
+                        >
+                            <Text style={[styles.countryGridItemText, selected && styles.countryGridItemTextSelected]} numberOfLines={1}>
+                                {item}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+        </Dialog>
+    );
+};
+
 export const FilterPanel = (props: FilterPanelProps) => {
     const { filters, visible, compact, onFilterChanged, onToggle, options, resultCount } = props;
     const { height: screenHeight } = useWindowDimensions();
@@ -327,6 +312,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
     const [localFilters, setLocalFiltersState] = useState<SearchFilter|undefined>({});
     const [localTitle, setLocalTitle] = useState('');
     const [openField, setOpenField] = useState<string | null>(null);
+    const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
     // A ref mirror of localFilters, always current even inside a debounced callback fired well
     // after the render that scheduled it - without it, two fields edited within the same
@@ -520,15 +506,30 @@ export const FilterPanel = (props: FilterPanelProps) => {
                             <FilterChips label="Type" value={localFilters.routeType} options={routeTypes} onSelect={(v) => applyFilter({ ...localFiltersRef.current, routeType: v })} />
                             <FilterChips label="Source" value={localFilters.routeSource} options={routeSources} onSelect={(v) => applyFilter({ ...localFiltersRef.current, routeSource: v })} />
 
-                            <FilterSelect
-                                label="Country" value={localFilters.country} options={countries}
-                                fieldName="country" compact logEvent={logEvent}
-                                isOpen={openField === 'country'} onOpen={setOpenField}
-                                onSelect={(v: any) => applyFilter({ ...localFiltersRef.current, country: v })}
-                            />
+                            <View style={styles.inlineFieldRow}>
+                                <Text style={[styles.label, styles.inlineLabel]} numberOfLines={1}>Country</Text>
+                                <TouchableOpacity
+                                    style={[styles.selectTriggerCompactInline, styles.inputFlex]}
+                                    onPress={() => setCountryPickerOpen(true)}
+                                    testID="country-select-trigger"
+                                >
+                                    <Text style={styles.selectText}>{localFilters.country || 'All'}</Text>
+                                    <Text style={styles.dropdownArrow}>▼</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 </Dialog>
+                <CountryPickerDialog
+                    visible={countryPickerOpen}
+                    options={countries}
+                    value={localFilters.country}
+                    onClose={() => setCountryPickerOpen(false)}
+                    onSelect={(v) => {
+                        applyFilter({ ...localFiltersRef.current, country: v });
+                        setCountryPickerOpen(false);
+                    }}
+                />
             </View>
         );
     }
@@ -747,28 +748,18 @@ const styles = StyleSheet.create({
     optionItem: { paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#444' },
     optionText: { color: '#FFF', fontSize: 14, textAlign: 'center' },
     optionSelected: { color: colors.buttonPrimary, fontWeight: 'bold' },
-    fieldContainerCompact: { width: '100%', marginBottom: 8 },
-    listCompact: {
-        backgroundColor: colors.listItemBackground,
-        borderRadius: 8,
-        marginTop: 4,
-    },
-    itemCompact: {
-        paddingHorizontal: 14,
-        paddingVertical: 14,
+    // Country picker dialog: a grid rather than a single column, so most country lists fit this
+    // dialog's own width without scrolling at all (~4 columns at this dialog's typical width).
+    countryGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    countryGridItem: {
+        flexBasis: '25%',
         minHeight: 44,
         justifyContent: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 8,
     },
-    optionTextCompact: {
-        color: '#FFF',
-        fontSize: 15,
-    },
-    optionSelectedCompact: {
-        color: colors.buttonPrimary,
-        fontWeight: 'bold',
-    },
+    countryGridItemText: { color: '#FFF', fontSize: 15 },
+    countryGridItemTextSelected: { color: colors.buttonPrimary, fontWeight: 'bold' },
     // Phone filter dialog layout: two columns (left = typed criteria, right = tap-to-pick
     // categories) rather than four full-width stacked rows - a real-device UX consult found the
     // stacked layout needed ~55pt more height than a "Pro-Max"-class phone's ~390pt landscape
