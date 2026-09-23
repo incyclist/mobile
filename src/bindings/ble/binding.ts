@@ -186,7 +186,14 @@ export class BleBindingRN extends EventEmitter implements BleBinding {
         })
             .then(() => callback?.())
             .catch((err) => {
-                this.emit('error', err)
+                // This singleton persists for the app's lifetime, and consumers open windows
+                // where they briefly hold no 'error' listener (e.g. interface.ts's disconnect()
+                // clears it while native teardown work is in flight). Since this class extends
+                // Node's EventEmitter, emit('error', ...) with nobody listening throws instead
+                // of being dropped - guard it the same way react-native-zeroconf already does
+                // for its own native-error forward.
+                if (this.listenerCount('error') > 0)
+                    this.emit('error', err)
                 //callback?.(err)
             })
     }

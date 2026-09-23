@@ -10,9 +10,19 @@ class RNSocket extends EventEmitter implements Socket  {
         this.socket = new TcpSocket.Socket();
     }
 
-    connect(port:number, host:string):Socket {        
+    connect(port:number, host:string):Socket {
         this.socket?.on('data', data => this.emit('data', data))
-        this.socket?.on('error', err => this.emit('error', err))
+
+        // The native socket's own listener isn't removed until destroy() tears it down, so
+        // a late/duplicate native error (e.g. arriving during/after teardown) can still reach
+        // here after a caller has already cleared its listeners with removeAllListeners().
+        // Unlike the native socket's eventemitter3, this class extends Node's EventEmitter,
+        // which throws on emit('error', ...) when nobody is listening - only forward when
+        // someone actually is, so a stray late error is dropped instead of crashing the app.
+        this.socket?.on('error', err => {
+            if (this.listenerCount('error') > 0)
+                this.emit('error', err)
+        })
         this.socket?.on('close', () => this.emit('close'))
 
 
