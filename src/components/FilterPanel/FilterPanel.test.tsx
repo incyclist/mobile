@@ -11,10 +11,12 @@ jest.mock('incyclist-services', () => ({
 
 // Mock custom hooks - Dialog (rendered by the compact/phone layout) also pulls in
 // useUnmountEffect and useScreenLayout, so both need a value here even though FilterPanel
-// itself only uses useLogging.
+// itself only uses useLogging. Shared mockLogEvent (rather than a fresh jest.fn() per call) so
+// tests can assert on it.
+const mockLogEvent = jest.fn();
 jest.mock('../../hooks', () => ({
     useLogging: () => ({
-        logEvent: jest.fn(),
+        logEvent: mockLogEvent,
     }),
     useUnmountEffect: jest.fn(),
     useScreenLayout: () => 'compact',
@@ -102,6 +104,7 @@ describe('FilterPanel', () => {
         const COMPACT_PROPS = { ...MOCK_PROPS, compact: true, resultCount: 23 };
 
         beforeEach(() => {
+            mockLogEvent.mockClear();
             jest.useFakeTimers();
         });
 
@@ -244,7 +247,24 @@ describe('FilterPanel', () => {
             fireEvent.press(getByTestId('country-select-trigger'));
             fireEvent.press(getByText('Belgium'));
             expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ country: 'Belgium' }));
+            // Dialog's own close is animated (220ms) before it unmounts its content.
+            advanceDebounce();
             expect(queryByText('All countries')).toBeNull();
+        });
+
+        // Regression: picking a country from the full-screen picker didn't log an 'option
+        // selected' event, unlike every other select-style field in this dialog (FilterSelect's
+        // Modal branch on tablet, and ChipSelect for Content/Type/Source both log on selection).
+        it('logs an "option selected" event when a country is picked', () => {
+            const { getByTestId, getByText } = render(<FilterPanel {...COMPACT_PROPS} />);
+            fireEvent.press(getByTestId('country-select-trigger'));
+            fireEvent.press(getByText('Belgium'));
+            expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'option selected',
+                field: 'country',
+                value: 'Belgium',
+                eventSource: 'user',
+            }));
         });
 
         it('clears the country filter via "All countries"', () => {
@@ -264,6 +284,8 @@ describe('FilterPanel', () => {
             fireEvent.press(getByTestId('country-select-trigger'));
             fireEvent.press(getByText('Cancel'));
             expect(onFilterChanged).not.toHaveBeenCalled();
+            // Dialog's own close is animated (220ms) before it unmounts its content.
+            advanceDebounce();
             expect(queryByText('All countries')).toBeNull();
         });
 

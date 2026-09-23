@@ -266,10 +266,20 @@ const FilterChips = ({ label, value, options, onSelect }: { label: string, value
  * ~25% per item, so at this dialog's width most country lists fit with no scrolling at all - a
  * longer one scrolls within this dialog's own single scroll region.
  */
-const CountryPickerDialog = ({ visible, options, value, onSelect, onClose }: {
-    visible: boolean, options?: string[], value?: string, onSelect: (v: string | undefined) => void, onClose: () => void
+const CountryPickerDialog = ({ visible, options, value, onSelect, onClose, logEvent }: {
+    visible: boolean, options?: string[], value?: string, onSelect: (v: string | undefined) => void, onClose: () => void, logEvent: (event: any) => void
 }) => {
     const buttons: ButtonProps[] = [{ id: 'country-cancel', label: 'Cancel', onClick: onClose }];
+
+    const handleSelect = (item: string, isAll: boolean) => {
+        logEvent({
+            message: 'option selected',
+            field: 'country',
+            value: item,
+            eventSource: 'user'
+        });
+        onSelect(isAll ? undefined : item);
+    };
 
     return (
         <Dialog title="Country" variant="full" visible={visible} onOutsideClick={onClose} buttons={buttons}>
@@ -281,7 +291,7 @@ const CountryPickerDialog = ({ visible, options, value, onSelect, onClose }: {
                         <TouchableOpacity
                             key={item}
                             style={styles.countryGridItem}
-                            onPress={() => onSelect(isAll ? undefined : item)}
+                            onPress={() => handleSelect(item, isAll)}
                         >
                             <Text style={[styles.countryGridItemText, selected && styles.countryGridItemTextSelected]} numberOfLines={1}>
                                 {item}
@@ -309,7 +319,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
         maxElevation
     } = options??{};
 
-    const [localFilters, setLocalFiltersState] = useState<SearchFilter|undefined>({});
+    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>({});
     const [localTitle, setLocalTitle] = useState('');
     const [openField, setOpenField] = useState<string | null>(null);
     const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -319,9 +329,9 @@ export const FilterPanel = (props: FilterPanelProps) => {
     // APPLY_DEBOUNCE_MS window could each build their update from a stale snapshot and clobber
     // each other's change.
     const localFiltersRef = useRef<SearchFilter>({});
-    const setLocalFilters = (updated: SearchFilter) => {
+    const updateLocalFilters = (updated: SearchFilter) => {
         localFiltersRef.current = updated;
-        setLocalFiltersState(updated);
+        setLocalFilters(updated);
     };
 
     const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -334,7 +344,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
         if (localFilters)
             return;
 
-        setLocalFilters(filters??{});
+        updateLocalFilters(filters??{});
         setLocalTitle(filters?.title ?? '');
     }, [filters, localFilters]);
 
@@ -351,7 +361,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
     };
 
     const applyFilter = (updated: SearchFilter) => {
-        setLocalFilters(updated);
+        updateLocalFilters(updated);
         onFilterChanged(updated);
     };
 
@@ -524,6 +534,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                     visible={countryPickerOpen}
                     options={countries}
                     value={localFilters.country}
+                    logEvent={logEvent}
                     onClose={() => setCountryPickerOpen(false)}
                     onSelect={(v) => {
                         applyFilter({ ...localFiltersRef.current, country: v });
