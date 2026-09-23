@@ -319,7 +319,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
         maxElevation
     } = options??{};
 
-    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>({});
+    const [localFilters, setLocalFilters] = useState<SearchFilter|undefined>(undefined);
     const [localTitle, setLocalTitle] = useState('');
     const [openField, setOpenField] = useState<string | null>(null);
     const [countryPickerOpen, setCountryPickerOpen] = useState(false);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
+import { render, fireEvent, act, within } from '@testing-library/react-native';
 import { TextInput, StyleSheet } from 'react-native';
 import { FilterPanel } from './FilterPanel';
 import type { FilterPanelProps } from './types';
@@ -274,6 +274,19 @@ describe('FilterPanel', () => {
             fireEvent.press(getByTestId('country-select-trigger'));
             fireEvent.press(getByText('All countries'));
             expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ country: undefined }));
+        });
+
+        // Regression: on a fresh mount (e.g. navigating away from the Routes page and back),
+        // `localFilters` used to initialize to `{}` - a truthy value - which made the mount-sync
+        // effect's `if (localFilters) return` guard fire immediately and never copy the incoming
+        // `filters` prop into local state. The route list itself stayed correctly filtered
+        // (RouteListService persists the filter in a singleton), but the trigger fell back to
+        // displaying "All" regardless of what was actually applied.
+        it('shows the already-applied country on a fresh mount, not "All"', () => {
+            const props = { ...COMPACT_PROPS, filters: { country: 'Belgium' } };
+            const { getByTestId } = render(<FilterPanel {...props} />);
+            expect(within(getByTestId('country-select-trigger')).getByText('Belgium')).toBeTruthy();
+            expect(within(getByTestId('country-select-trigger')).queryByText('All')).toBeNull();
         });
 
         it('closes the Country picker via its Cancel button without applying anything', () => {
