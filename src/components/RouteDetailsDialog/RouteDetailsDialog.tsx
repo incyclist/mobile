@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
 import { useRouteList, useActivityList, getRoutesPageService, useOnlineStatusMonitoring } from 'incyclist-services';
 import type { DownloadRowDisplayProps, UIRouteSettings, UIStartSettings, RouteDetailsProps, RouteApiDetail, VideoKeepChoice } from 'incyclist-services';
-import { useLogging, useUnmountEffect, useIsTablet } from '../../hooks';
+import { useLogging, useUnmountEffect, useIsTablet, useScreenLayout } from '../../hooks';
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';
 import { navigate } from '../../services';
@@ -32,8 +31,7 @@ const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnli
 const useDeviceWord = (): string => (useIsTablet() ? 'iPad' : 'iPhone');
 
 export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps) => {
-    const { height } = useWindowDimensions();
-    const compact = height < 420;
+    const compact = useScreenLayout() === 'compact';
     const deviceWord = useDeviceWord();
 
     const service = useRouteList();

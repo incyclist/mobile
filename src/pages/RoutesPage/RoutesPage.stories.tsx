@@ -168,6 +168,22 @@ export const WithDownloadModal: Story = {
     },
 };
 
+// Regression for mobile#453: on a "Pro-Max"-class phone, the funnel
+// icon opens a full-screen filter dialog rather than an inline panel clipped to invisibility by
+// ListPageShell's overflow:'hidden'. Every field (Title, Distance, Elevation, Content, Type,
+// Source, Country) plus the footer's live "Show N routes"/"Clear all" buttons must be visible and
+// usable at this viewport with no scrolling or clipping.
+export const CompactFilterDialogProMax: Story = {
+    args: {
+        loading: false,
+        routes: generateMockRoutes(12),
+        synchronizing: false,
+        filterVisible: true,
+        compact: true,
+    },
+    parameters: { viewport: { defaultViewport: 'proMaxLandscape' } },
+};
+
 export const WithDownloadModalPhone: Story = {
     args: {
         loading: false,

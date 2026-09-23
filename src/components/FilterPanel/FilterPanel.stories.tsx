@@ -42,6 +42,7 @@ export const Compact: StoryObj<typeof FilterPanel> = {
         filters: {},
         visible: true,
         compact: true,
+        resultCount: 12,
     },
 };
 
@@ -86,6 +87,7 @@ export const CompactManyCountries: StoryObj<typeof FilterPanel> = {
         filters: {},
         visible: true,
         compact: true,
+        resultCount: 42,
         options: {
             countries: MANY_COUNTRIES,
             contentTypes: ['GPX', 'Video'],
@@ -95,6 +97,22 @@ export const CompactManyCountries: StoryObj<typeof FilterPanel> = {
             maxElevation: { value: 8000, unit: 'm' },
         },
     },
+};
+
+// Regression for mobile#453: at "Pro-Max"-class phone dimensions, the
+// old `height < 420` compact heuristic misclassified this device as a tablet and rendered the
+// tablet two-column FilterPanel inside a viewport with no room for it, clipped to invisibility by
+// ListPageShell's overflow:'hidden'. Every field must be visible and usable here with no
+// scrolling or clipping, and Content/Type/Source render as chips rather than FilterSelect's
+// nested-Modal dropdown (fragile nested inside the dialog's own full-screen Modal on iOS).
+export const CompactPhoneDialogProMax: StoryObj<typeof FilterPanel> = {
+    args: {
+        filters: { title: 'Alps', contentType: 'Video' },
+        visible: true,
+        compact: true,
+        resultCount: 23,
+    },
+    parameters: { viewport: { defaultViewport: 'proMaxLandscape' } },
 };
 
 // Non-compact/tablet regression check: the Country dropdown is an

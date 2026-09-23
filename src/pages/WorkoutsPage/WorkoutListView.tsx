@@ -1,10 +1,10 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
 import { WorkoutListContentProps } from 'incyclist-services';
 import { ListPageShell, TNavigationItem, WorkoutsTable } from '../../components';
 import { Icon } from '../../components/Icon';
 import { colors, textSizes } from '../../theme';
-import { useLogging } from '../../hooks';
+import { useLogging, useScreenLayout } from '../../hooks';
 
 export interface WorkoutListViewProps {
     data: WorkoutListContentProps;
@@ -14,8 +14,7 @@ export interface WorkoutListViewProps {
 }
 
 export const WorkoutListView = ({ data, onNavigate, onImport, onSelectGroup }: WorkoutListViewProps) => {
-    const { height } = useWindowDimensions();
-    const compact = height < 420;
+    const compact = useScreenLayout() === 'compact';
     const { logEvent } = useLogging('WorkoutListView');
 
     const handleImportPress = useCallback(() => {

@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { TNavigationItem } from '../NavigationBar/types';
 
 export interface ListPageShellProps {
-    /** Height-based compact/normal switch, computed by each page (`height < 420`). */
+    /** Phone/tablet switch, computed by each page via `useScreenLayout()`. */
     compact: boolean;
     /** Which item the sidebar highlights as active. */
     navSelected: TNavigationItem;

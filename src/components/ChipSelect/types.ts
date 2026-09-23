@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 export type NormalizedChipOption = {
     label: string;
     disabled?: boolean;
@@ -23,6 +25,20 @@ type ChipSelectCommonProps = {
      * below the 44px touch-target floor, which only matters when tapping is the interaction.
      */
     chipMinHeight?: number;
+    /**
+     * Drops the container's default `marginVertical: 8` - opt-in so every existing caller keeps
+     * its current spacing. Set it where an outer layout already budgets the row's height exactly
+     * (e.g. a fixed-height row in a space-constrained dialog) and the extra 16px would overflow it.
+     */
+    dense?: boolean;
+    /**
+     * Overrides applied on top of the label's default text style. Opt-in - unset keeps every
+     * existing caller's current label styling. Set it where the surrounding layout mixes
+     * ChipSelect with other label-left fields (EditText/EditNumber-style) that use a different
+     * label size, so the row reads as one consistent set rather than ChipSelect's label standing
+     * out at its own default size.
+     */
+    labelTextStyle?: TextStyle;
 };
 
 export type ChipSelectSingleProps = ChipSelectCommonProps & {

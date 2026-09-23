@@ -120,6 +120,31 @@ describe('ChipSelect', () => {
         expect(onValueChange).not.toHaveBeenCalled();
     });
 
+    it('drops the container\'s default vertical margin when dense is set', () => {
+        const { getByText, UNSAFE_root } = render(<ChipSelect {...MOCK_CHIP_SELECT_PROPS} dense />);
+        expect(getByText('Units')).toBeTruthy();
+        const { StyleSheet, View } = require('react-native');
+        const container = UNSAFE_root.findAllByType(View)[0];
+        const flat = StyleSheet.flatten(container.props.style);
+        expect(flat.marginVertical).toBe(0);
+    });
+
+    it('applies labelTextStyle on top of the default label style, without dropping it', () => {
+        const { getByText } = render(
+            <ChipSelect {...MOCK_CHIP_SELECT_PROPS} labelTextStyle={{ fontSize: 12 }} />
+        );
+        const { StyleSheet } = require('react-native');
+        const flat = StyleSheet.flatten(getByText('Units').props.style);
+        expect(flat.fontSize).toBe(12);
+        // Default label color (from the un-overridden base style) survives alongside the override.
+        expect(flat.color).toBeDefined();
+    });
+
+    it('truncates the label to one line', () => {
+        const { getByText } = render(<ChipSelect {...MOCK_CHIP_SELECT_PROPS} label="A Very Long Label Indeed" />);
+        expect(getByText('A Very Long Label Indeed').props.numberOfLines).toBe(1);
+    });
+
     describe('object-based options (per-option disabled state + message)', () => {
         it('renders a mix of plain-string and disabled object options', () => {
             const { getByText } = render(

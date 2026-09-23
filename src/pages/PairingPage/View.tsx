@@ -1,16 +1,15 @@
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'
 import type { PairingDisplayProps, InterfaceDisplayProps } from 'incyclist-services'
 
 import { colors, textSizes } from '../../theme'
 import { ButtonBar, CapabilityGrid, MainBackground, InterfaceState, DeviceSelector } from '../../components'
 import { BleInterfaceSettings } from '../../components/BleInterfaceSettings'
+import { useScreenLayout } from '../../hooks'
 import ExitIcon from '../../assets/icons/exit.svg'
-
-const { height } = Dimensions.get('window')
-const compact = height < 420
 
 export const PairingPageView = (props: PairingDisplayProps) => {
     const { deviceSelection, onExit } = props
+    const compact = useScreenLayout() === 'compact'
 
     return (
         <View style={styles.container}>

@@ -99,7 +99,7 @@ describe('RideOverlay', () => {
     });
 
     it('below: renders the dashboard AND both corner widgets, relocated under the column', () => {
-        setDimensions(860, 480);
+        setDimensions(860, 600); // short side 600 - tablet by the shared shortest-side convention (mobile#453), unlike the old height-only check
         const { getByTestId } = render(<RideOverlay {...baseProps} />);
 
         expect(getByTestId('ride-overlay-dashboard')).toBeTruthy();
@@ -321,7 +321,7 @@ describe('RideOverlay — no workout attached', () => {
     });
 
     it('below: relocates the side-region occupants and the previous-rides list under the column (no WorkoutDashboard, no crash on the now-optional props)', () => {
-        setDimensions(860, 480);
+        setDimensions(860, 600); // short side 600 - tablet by the shared shortest-side convention (mobile#453), unlike the old height-only check
         expect(() => render(<RideOverlay {...routeOnlyProps} />)).not.toThrow();
 
         const { queryByTestId, getByTestId } = render(<RideOverlay {...routeOnlyProps} />);
@@ -554,7 +554,7 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
     });
 
     it('below: relocates the nearby-riders list under the column along with the other side-region occupants', () => {
-        setDimensions(860, 480);
+        setDimensions(860, 600); // short side 600 - tablet by the shared shortest-side convention (mobile#453), unlike the old height-only check
         const { getByTestId } = render(<RideOverlay {...nearbyRidersProps} />);
 
         expect(getByTestId('ride-overlay-map')).toBeTruthy();
