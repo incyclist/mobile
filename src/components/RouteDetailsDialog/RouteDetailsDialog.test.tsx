@@ -522,3 +522,54 @@ describe('RouteDetailsDialog - Terrain Smoothing', () => {
     });
 
 });
+
+// cardProps (and the canStart it carries) is read from card.openSettings() once at mount and
+// otherwise only re-read when the route details finish loading. The download observer's 'done'
+// event was missing from that list, so Start stayed hidden after a required video finished
+// downloading even though the download row correctly showed "Downloaded".
+describe('RouteDetailsDialog - canStart refresh on download completion', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetRouteDetailsProps.mockReturnValue(baseRouteDetailsProps());
+        mockOnlineStatusMonitor.onlineStatus = true;
+        mockRouteData.description.videoFormat = undefined;
+        mockRouteData.description.requiresDownload = true;
+        mockCard.getCurrentDownload.mockReturnValue(null);
+        mockCard.openSettings.mockReturnValue({ ...mockCardProps, canStart: false });
+    });
+
+    afterEach(() => {
+        delete mockRouteData.description.requiresDownload;
+    });
+
+    it('enables Start once the download observer fires done, without remounting the dialog', () => {
+        const handlers: Record<string, () => void> = {};
+        const downloadObserver = {
+            on: jest.fn((event: string, cb: () => void) => { handlers[event] = cb; }),
+            off: jest.fn(),
+        };
+        mockCard.download.mockReturnValue(downloadObserver);
+
+        const { getByText, queryAllByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+
+        // requiresDownload && !isDownloaded, cardCanStart false - the Start BUTTON is not offered
+        // yet, though the "Start" position field (a same-named EditNumber label) already is - so
+        // this counts occurrences rather than asserting on presence/absence of the text alone.
+        const startCountBeforeDownload = queryAllByText('Start').length;
+        expect(queryAllByText('Add Workout')).toHaveLength(0);
+
+        fireEvent.press(getByText('Download'));
+        expect(mockCard.download).toHaveBeenCalledTimes(1);
+
+        // the video has now landed on disk - the card reports canStart:true from here on
+        mockCard.openSettings.mockReturnValue({ ...mockCardProps, canStart: true });
+
+        act(() => {
+            handlers.done();
+        });
+
+        expect(queryAllByText('Start').length).toBe(startCountBeforeDownload + 1);
+        expect(getByText('Add Workout')).toBeTruthy();
+        expect(getByText('Downloaded ✓')).toBeTruthy();
+    });
+});
