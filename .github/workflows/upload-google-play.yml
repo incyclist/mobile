@@ -174,3 +174,12 @@ jobs:
         if: failure() && github.event.inputs.releaseTag != ''
         run: |
           git push origin --delete "${{ github.event.inputs.releaseTag }}" || true
+
+      # Save AAB artifact only if upload steps failed, for manual Play Console upload
+      - name: Save AAB artifact on upload failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.run_number }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
