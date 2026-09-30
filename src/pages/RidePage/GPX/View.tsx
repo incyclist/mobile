@@ -80,7 +80,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         getPrevRidesRows,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -446,7 +446,21 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
             {/* Street View start fallback notice (INC-42, ux.md §7.3) - rendered once the overlay
                 has closed, same "after the fact" placement as web-ui's RideViewNotice. */}
-            {!startOverlayProps && <RideViewNotice notice={rideViewNotice} />}
+            {!startOverlayProps && (
+                <RideViewNotice
+                    notice={rideViewNotice}
+                    message="Street View isn't available right now. Showing the Map instead."
+                />
+            )}
+
+            {/* No coverage at the rider's current position - never a fallback, can fire
+                repeatedly as the rider rides through gaps (INC-42). */}
+            {!startOverlayProps && (
+                <RideViewNotice
+                    notice={svCoverageNotice}
+                    message="No Street View imagery at this location."
+                />
+            )}
 
             {/* Sequenced strictly after StartRideDisplay clears, never alongside it - matches
                 Workout/View.tsx. Visibility is entirely owned by RidePageService's gestureHint
