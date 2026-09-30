@@ -115,6 +115,53 @@ export const MapError: Story = {
     } as any,
 };
 
+// INC-42: Street View-specific states, gated on `viewState`. Every story above has no
+// `viewState` and is the acceptance reference for "unchanged".
+
+export const StreetViewPreparing: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        devices: [
+            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
+            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Started', capabilities: ['heartrate'] },
+        ],
+        readyToStart: false,
+        mapType: 'Street View',
+        viewState: 'loading',
+    } as any,
+};
+
+export const StreetViewSlow: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        devices: [
+            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
+            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Started', capabilities: ['heartrate'] },
+        ],
+        readyToStart: false,
+        mapType: 'Street View',
+        viewState: 'slow',
+        onStartWithMap: fn(),
+    } as any,
+};
+
+export const StreetViewFallbackWithFailedSensor: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        devices: [
+            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
+            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Error', capabilities: ['heartrate'] },
+        ],
+        readyToStart: true,
+        mapType: 'Street View',
+        viewState: 'unavailable',
+        viewFallbackCause: 'timeout',
+    } as any,
+};
+
 export const StartingFiveSensors: Story = {
     args: {
         mode: 'Free-Ride',

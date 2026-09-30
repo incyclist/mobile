@@ -77,6 +77,8 @@ export function useRidePageLifecycle<T extends AnyRidePageDisplayProps>({
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+    // Street View only (INC-42) - lets the rider skip a slow/failing Street View start.
+    const onStartWithMap = useCallback(() => refService.current?.onStartWithMap(), []);
     const getGraphActuals = useCallback(() => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS, []);
 
     return {
@@ -87,6 +89,7 @@ export function useRidePageLifecycle<T extends AnyRidePageDisplayProps>({
         onMenuClose,
         onRetryStart,
         onIgnoreStart,
+        onStartWithMap,
         getGraphActuals,
     };
 }

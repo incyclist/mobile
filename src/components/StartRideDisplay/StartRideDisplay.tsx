@@ -5,13 +5,14 @@ import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useWhyDidYouRender } from '../../hooks';
 import {
     CurrentRideDeviceInfo,
+    GPXStartOverlayProps,
     RideMapState,
     StartRideDisplayProps,
     VideoStartOverlayProps,
 } from './types';
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
-    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
+    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, onStartWithMap } = props;
 
     // FIXES_BACKLOG #52 — iOS start overlay was reported stuck showing Cancel-only although
     // services logged readyToStart:true. No re-render/memoization bug was found while tracing the
@@ -25,6 +26,12 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
 
     const isVideoRide = 'videoState' in props;
     const isGPXRide = 'mapType' in props;
+
+    // Street View-specific content only (INC-42) - gated on `viewState` so Video, Workout-only
+    // and Map/Satellite starts render exactly as before. Mirrors web-ui's StartRideOverlay -
+    // see architecture.md §3.5a for why this is the gate, not `mapType`.
+    const viewState = isGPXRide ? (props as GPXStartOverlayProps).viewState : undefined;
+    const isStreetViewStart = viewState !== undefined;
 
     // State determination logic
     const controlDeviceError = (devices??[]).find(d => d.isControl && d.status === 'Error');
@@ -72,6 +79,18 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return { text: mapState as string, color: colors.text };
     };
 
+    // Street View row text (INC-42) - only used when isStreetViewStart
+    const viewStateText = () => {
+        switch (viewState) {
+            case 'loaded': return { text: 'Loaded', color: colors.success };
+            case 'unavailable': return { text: 'Unavailable – using Map', color: colors.warning };
+            case 'loading': return { text: 'Loading ...', color: colors.text };
+            case 'slow': return { text: 'Still loading ...', color: colors.text };
+            case 'waiting':
+            default: return { text: 'Waiting', color: colors.text };
+        }
+    };
+
     const renderDeviceList = () => (
         <View style={styles.listContainer}>
             {devices.map(device => {
@@ -94,8 +113,8 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
             {isGPXRide && (
                 <View style={styles.row}>
                     <Text style={styles.labelCell}>{(props as any).mapType}</Text>
-                    <Text style={[styles.statusCell, { color: mapStateText((props as any).mapState).color }]}>
-                        {mapStateText((props as any).mapState).text}
+                    <Text style={[styles.statusCell, { color: (isStreetViewStart ? viewStateText() : mapStateText((props as any).mapState)).color }]}>
+                        {(isStreetViewStart ? viewStateText() : mapStateText((props as any).mapState)).text}
                     </Text>
                 </View>
             )}
@@ -196,7 +215,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     }
 
     // Default 'starting' state
-    const startingButtons = readyToStart 
+    const startingButtons = readyToStart
         ? [
             { id: 'start', label: 'Start', primary: true, onClick: onStart! },
             { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
@@ -205,9 +224,21 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
             { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
           ];
 
+    // "Start with Map" only in the slow step (ux.md step 2b) - a secondary way forward, added
+    // right before Cancel so the primary Start/Cancel pair (when present) stays first.
+    if (isStreetViewStart && viewState === 'slow' && onStartWithMap) {
+        startingButtons.splice(startingButtons.length - 1, 0, { id: 'start-with-map', label: 'Start with Map', primary: false, onClick: onStartWithMap });
+    }
+
+    // "Preparing Street View ..." only while it's actually loading (INC-42, ux.md step 2/2b).
+    // Every other case - including every non-Street-View start - keeps today's heading.
+    const title = isStreetViewStart && (viewState === 'loading' || viewState === 'slow')
+        ? 'Preparing Street View ...'
+        : 'Starting activity ...';
+
     return (
         <Dialog
-            title="Starting activity ..."
+            title={title}
             variant="info"
             minWidth={minWidth}
             buttons={startingButtons}

@@ -41,6 +41,7 @@ jest.mock('../../../components', () => ({
         mockRideSwipeFeedback(props);
         return null;
     },
+    RideViewNotice: () => null,
     StartRideDisplay: (props: any) => {
         mockStartRideDisplay(props);
         return null;
@@ -57,7 +58,13 @@ jest.mock('../../../hooks', () => ({
     useScreenLayout: () => mockUseScreenLayout(),
 }));
 
-jest.mock('../../../components/StreetView', () => ({ StreetView: () => null }));
+const mockStreetView = jest.fn();
+jest.mock('../../../components/StreetView', () => ({
+    StreetView: (props: any) => {
+        mockStreetView(props);
+        return null;
+    },
+}));
 
 const mockSatelliteView = jest.fn();
 jest.mock('../../../components/SatelliteView', () => ({
@@ -221,6 +228,48 @@ describe('GPXTourPageView — Satellite View branch', () => {
 
         expect(onDisplayEvent).toHaveBeenNthCalledWith(1, 'Error', 'unavailable');
         expect(onDisplayEvent).toHaveBeenNthCalledWith(2, 'Error', 'unknown');
+    });
+});
+
+describe('GPXTourPageView — Street View release gating (INC-42)', () => {
+    beforeEach(() => {
+        mockStreetView.mockClear();
+    });
+
+    it('withholds the position from <StreetView> until svInitAllowed is true, so no panorama is created early', () => {
+        const props = activeProps('sv');
+        (props.displayProps as any).svInitAllowed = false;
+        (props.displayProps as any).displayPosition = { lat: 1, lng: 2, heading: 90 };
+
+        render(<GPXTourPageView {...props} />);
+
+        const svProps = mockStreetView.mock.calls.at(-1)?.[0];
+        expect(svProps.position).toBeUndefined();
+    });
+
+    it('hands the position to <StreetView> once svInitAllowed is true', () => {
+        const props = activeProps('sv');
+        (props.displayProps as any).svInitAllowed = true;
+        (props.displayProps as any).displayPosition = { lat: 1, lng: 2, heading: 90 };
+
+        render(<GPXTourPageView {...props} />);
+
+        const svProps = mockStreetView.mock.calls.at(-1)?.[0];
+        expect(svProps.position).toEqual({ lat: 1, lng: 2, heading: 90 });
+    });
+
+    it('onNoPanorama forwards "NoPanorama" with the ZERO_RESULTS sentinel, not the stale status_changed mapping', () => {
+        const onDisplayEvent = jest.fn();
+        const props = activeProps('sv');
+        (props.displayProps as any).svInitAllowed = true;
+        (props.displayProps as any).onDisplayEvent = onDisplayEvent;
+
+        render(<GPXTourPageView {...props} />);
+
+        const svProps = mockStreetView.mock.calls.at(-1)?.[0];
+        svProps.onNoPanorama();
+
+        expect(onDisplayEvent).toHaveBeenCalledWith('NoPanorama', 'ZERO_RESULTS');
     });
 });
 
