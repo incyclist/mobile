@@ -43,7 +43,7 @@ export const beautifyUUID = (str:string, withX:boolean = false ):string => {
     }
     catch (err:any) {
         const logger = new EventLogger('Incyclist')
-        logger.logEvent({message:'beautifyUUID error',uuid:str, error:err.message})
+        logger.logEvent({message:'beautifyUUID error',uuidRequested:str, error:err.message})
         return str
     }
     
