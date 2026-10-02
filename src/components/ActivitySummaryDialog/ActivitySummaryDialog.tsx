@@ -7,6 +7,7 @@ import { useLogging } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { createMMKV } from 'react-native-mmkv';
 import RNFS from 'react-native-fs';
+import { deleteIfExisting } from '../../utils/file';
 
 export const ActivitySummaryDialog = ({ onClose, onExit, videoRemoval, onVideoKeepInstead }: ActivitySummaryDialogProps) => {
     const service = useActivityRide();
@@ -86,12 +87,14 @@ export const ActivitySummaryDialog = ({ onClose, onExit, videoRemoval, onVideoKe
                 if (!raw) throw new Error(`MMKV key not found: ${key} in ${dbId}`);
                 const fileName = key.split('/').pop() ?? 'activity.json';
                 sharePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+                await deleteIfExisting(sharePath)
                 await RNFS.writeFile(sharePath, raw, 'utf8');
             
             } else {
                 // Filesystem files in private data dir need to be copied to cache for sharing on Android
                 const fileName = path.split('/').pop() ?? 'activity.file';
                 sharePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+                await deleteIfExisting(sharePath)
                 await RNFS.copyFile(path, sharePath);
             }            
 

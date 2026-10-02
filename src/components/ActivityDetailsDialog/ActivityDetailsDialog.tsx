@@ -15,6 +15,7 @@ import { ActivityDetailsDialogView } from './ActivityDetailsDialogView';
 import { useLogging, useUnmountEffect } from '../../hooks';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { navigate } from '../../services';
+import { deleteIfExisting } from '../../utils/file';
 
 const NO_WORKOUT_ATTACHMENT: ActivityDetailsProps = { activityId: '', attachedWorkout: null };
 
@@ -136,10 +137,13 @@ export const ActivityDetailsDialog = ({ onClose, onRideAgain }: ActivityDetailsD
                 }
                 const fileName = key.split('/').pop() ?? 'activity.json';
                 sharePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+                await deleteIfExisting(sharePath)
+                
                 await RNFS.writeFile(sharePath, raw, 'utf8');
             } else {
                 const fileName = path.split('/').pop() ?? 'activity.file';
                 sharePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+                await deleteIfExisting(sharePath)
                 await RNFS.copyFile(path, sharePath);
             }
 

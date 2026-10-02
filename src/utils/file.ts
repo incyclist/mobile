@@ -1,4 +1,6 @@
+import { EventLogger } from 'gd-eventlog';
 import { FileInfo } from 'incyclist-services'
+import RNFS from 'react-native-fs';
 
 /**
  * Converts a file picker result (after keepLocalCopy) into a FileInfo
@@ -26,4 +28,18 @@ export const buildFileInfo = (
         ext,
         delimiter,
     }
+}
+
+export const deleteIfExisting = async ( path:string):Promise<void> =>{ 
+    try {
+        const isExisting = await RNFS.exists(path)
+        if (!isExisting)
+            return
+        await RNFS.unlink(path)
+    }
+    catch (err: any) {
+        const logger = new EventLogger('Incyclist')
+        logger.logEvent({message:'error', fn:'deleteIfExisting', error:err.mesage, stack:err.stack})
+    }
+
 }
