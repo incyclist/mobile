@@ -1,9 +1,10 @@
-import { GPXStartOverlayProps, StartOverlayProps, VideoStartOverlayProps,CurrentRideDeviceInfo,RideMapState } from "incyclist-services";
+import { GPXStartOverlayProps, StartOverlayProps, VideoStartOverlayProps,CurrentRideDeviceInfo,RideMapState, SvViewState } from "incyclist-services";
 
 export type {
     GPXStartOverlayProps, StartOverlayProps, VideoStartOverlayProps,
     CurrentRideDeviceInfo,
-    RideMapState
+    RideMapState,
+    SvViewState
 }
 
 export type StartCancelReason = {

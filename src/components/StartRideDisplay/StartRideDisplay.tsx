@@ -8,8 +8,35 @@ import {
     GPXStartOverlayProps,
     RideMapState,
     StartRideDisplayProps,
+    SvViewState,
     VideoStartOverlayProps,
 } from './types';
+
+const viewStateText = (viewState: SvViewState | undefined) => {
+    switch (viewState) {
+        case 'loaded': return { text: 'Loaded', color: colors.success };
+        case 'unavailable': return { text: 'Unavailable – using Map', color: colors.warning };
+        case 'loading': return { text: 'Loading ...', color: colors.text };
+        case 'slow': return { text: 'Still loading ...', color: colors.text };
+        case 'waiting':
+        default: return { text: 'Waiting', color: colors.text };
+    }
+};
+
+const startingTitle = (viewState: SvViewState | undefined) =>
+    viewState === 'loading' || viewState === 'slow' ? 'Preparing Street View ...' : 'Starting activity ...';
+
+const startingButtons = (
+    readyToStart: boolean | undefined,
+    viewState: SvViewState | undefined,
+    onStart: (() => void) | undefined,
+    onStartWithMap: (() => void) | undefined,
+    onCancel: StartRideDisplayProps['onCancel'],
+) => [
+    ...(readyToStart ? [{ id: 'start', label: 'Start', primary: true, onClick: onStart! }] : []),
+    ...(viewState === 'slow' && onStartWithMap ? [{ id: 'start-with-map', label: 'Start with Map', primary: false, onClick: onStartWithMap }] : []),
+    { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() },
+];
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, onStartWithMap } = props;
@@ -79,18 +106,6 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return { text: mapState as string, color: colors.text };
     };
 
-    // Street View row text - only used when isStreetViewStart
-    const viewStateText = () => {
-        switch (viewState) {
-            case 'loaded': return { text: 'Loaded', color: colors.success };
-            case 'unavailable': return { text: 'Unavailable – using Map', color: colors.warning };
-            case 'loading': return { text: 'Loading ...', color: colors.text };
-            case 'slow': return { text: 'Still loading ...', color: colors.text };
-            case 'waiting':
-            default: return { text: 'Waiting', color: colors.text };
-        }
-    };
-
     const renderDeviceList = () => (
         <View style={styles.listContainer}>
             {devices.map(device => {
@@ -113,8 +128,8 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
             {isGPXRide && (
                 <View style={styles.row}>
                     <Text style={styles.labelCell}>{(props as any).mapType}</Text>
-                    <Text style={[styles.statusCell, { color: (isStreetViewStart ? viewStateText() : mapStateText((props as any).mapState)).color }]}>
-                        {(isStreetViewStart ? viewStateText() : mapStateText((props as any).mapState)).text}
+                    <Text style={[styles.statusCell, { color: (isStreetViewStart ? viewStateText(viewState) : mapStateText((props as any).mapState)).color }]}>
+                        {(isStreetViewStart ? viewStateText(viewState) : mapStateText((props as any).mapState)).text}
                     </Text>
                 </View>
             )}
@@ -215,33 +230,12 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     }
 
     // Default 'starting' state
-    const startingButtons = readyToStart
-        ? [
-            { id: 'start', label: 'Start', primary: true, onClick: onStart! },
-            { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
-          ]
-        : [
-            { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
-          ];
-
-    // "Start with Map" only in the slow step - a secondary way forward, added
-    // right before Cancel so the primary Start/Cancel pair (when present) stays first.
-    if (isStreetViewStart && viewState === 'slow' && onStartWithMap) {
-        startingButtons.splice(startingButtons.length - 1, 0, { id: 'start-with-map', label: 'Start with Map', primary: false, onClick: onStartWithMap });
-    }
-
-    // "Preparing Street View ..." only while it's actually loading.
-    // Every other case - including every non-Street-View start - keeps today's heading.
-    const title = isStreetViewStart && (viewState === 'loading' || viewState === 'slow')
-        ? 'Preparing Street View ...'
-        : 'Starting activity ...';
-
     return (
         <Dialog
-            title={title}
+            title={startingTitle(viewState)}
             variant="info"
             minWidth={minWidth}
-            buttons={startingButtons}
+            buttons={startingButtons(readyToStart, viewState, onStart, onStartWithMap, onCancel)}
         >
             <View style={styles.bodyContainer}>
                 {renderDeviceList()}
