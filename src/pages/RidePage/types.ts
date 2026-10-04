@@ -15,6 +15,9 @@ export interface RideViewActionProps {
     onRetryStart: () => void;
     onIgnoreStart: () => void;
     onCancelStart: () => void;
+    /** Street View only - lets the rider skip a slow/failing Street View start.
+     *  Optional: only GPX rides (the only ride type that can be a Street View start) wire it. */
+    onStartWithMap?: () => void;
     /** Only actually called when a workout is attached (workout-mobile-hld-phase2.md §5) —
      *  unused, harmless, otherwise. */
     getGraphActuals: () => WorkoutGraphActuals;

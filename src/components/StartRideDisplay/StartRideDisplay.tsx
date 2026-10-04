@@ -5,13 +5,41 @@ import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useWhyDidYouRender } from '../../hooks';
 import {
     CurrentRideDeviceInfo,
+    GPXStartOverlayProps,
     RideMapState,
     StartRideDisplayProps,
+    SvViewState,
     VideoStartOverlayProps,
 } from './types';
 
+const viewStateText = (viewState: SvViewState | undefined) => {
+    switch (viewState) {
+        case 'loaded': return { text: 'Loaded', color: colors.success };
+        case 'unavailable': return { text: 'Unavailable – using Map', color: colors.warning };
+        case 'loading': return { text: 'Loading ...', color: colors.text };
+        case 'slow': return { text: 'Still loading ...', color: colors.text };
+        case 'waiting':
+        default: return { text: 'Waiting', color: colors.text };
+    }
+};
+
+const startingTitle = (viewState: SvViewState | undefined) =>
+    viewState === 'loading' || viewState === 'slow' ? 'Preparing Street View ...' : 'Starting activity ...';
+
+const startingButtons = (
+    readyToStart: boolean | undefined,
+    viewState: SvViewState | undefined,
+    onStart: (() => void) | undefined,
+    onStartWithMap: (() => void) | undefined,
+    onCancel: StartRideDisplayProps['onCancel'],
+) => [
+    ...(readyToStart ? [{ id: 'start', label: 'Start', primary: true, onClick: onStart! }] : []),
+    ...(viewState === 'slow' && onStartWithMap ? [{ id: 'start-with-map', label: 'Start with Map', primary: false, onClick: onStartWithMap }] : []),
+    { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() },
+];
+
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
-    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore } = props;
+    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, onStartWithMap } = props;
 
     // FIXES_BACKLOG #52 — iOS start overlay was reported stuck showing Cancel-only although
     // services logged readyToStart:true. No re-render/memoization bug was found while tracing the
@@ -25,6 +53,12 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
 
     const isVideoRide = 'videoState' in props;
     const isGPXRide = 'mapType' in props;
+
+    // Street View-specific content only - gated on `viewState` so Video, Workout-only and
+    // Map/Satellite starts render exactly as before. Mirrors web-ui's StartRideOverlay; this is
+    // the gate because mapType is also set for the Map/Satellite rows, which must stay untouched.
+    const viewState = isGPXRide ? (props as GPXStartOverlayProps).viewState : undefined;
+    const isStreetViewStart = viewState !== undefined;
 
     // State determination logic
     const controlDeviceError = (devices??[]).find(d => d.isControl && d.status === 'Error');
@@ -94,8 +128,8 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
             {isGPXRide && (
                 <View style={styles.row}>
                     <Text style={styles.labelCell}>{(props as any).mapType}</Text>
-                    <Text style={[styles.statusCell, { color: mapStateText((props as any).mapState).color }]}>
-                        {mapStateText((props as any).mapState).text}
+                    <Text style={[styles.statusCell, { color: (isStreetViewStart ? viewStateText(viewState) : mapStateText((props as any).mapState)).color }]}>
+                        {(isStreetViewStart ? viewStateText(viewState) : mapStateText((props as any).mapState)).text}
                     </Text>
                 </View>
             )}
@@ -196,21 +230,12 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     }
 
     // Default 'starting' state
-    const startingButtons = readyToStart 
-        ? [
-            { id: 'start', label: 'Start', primary: true, onClick: onStart! },
-            { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
-          ]
-        : [
-            { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
-          ];
-
     return (
         <Dialog
-            title="Starting activity ..."
+            title={startingTitle(viewState)}
             variant="info"
             minWidth={minWidth}
-            buttons={startingButtons}
+            buttons={startingButtons(readyToStart, viewState, onStart, onStartWithMap, onCancel)}
         >
             <View style={styles.bodyContainer}>
                 {renderDeviceList()}

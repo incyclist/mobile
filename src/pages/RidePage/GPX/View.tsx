@@ -15,6 +15,7 @@ import {
     RideOverlay,
     RideGestureHintOverlay,
     RideSwipeFeedback,
+    RideViewNotice,
     ErrorBoundary,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
@@ -66,6 +67,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
+        onStartWithMap,
         onCancelStart,
         getGraphActuals,
         onToggleCornerWidget,
@@ -78,7 +80,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         getPrevRidesRows,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,svHasCoverage,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -209,15 +211,21 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         displayEventRef.current?.('pano_changed')
     }, []);
 
-    // no imagery at the requested position: a valid answer, not a failure
+    // No imagery at the requested position: a valid answer, not a failure - the
+    // service treats 'ZERO_RESULTS' as "resolved, stay in Street View", same as desktop's
+    // Google-status ZERO_RESULTS). Native fires `onLoaded` unconditionally before this (see
+    // StreetView.tsx), so in practice the service has usually already resolved as 'loaded' by
+    // the time this fires; forwarding it is still correct and keeps the event vocabulary aligned
+    // with desktop for the case where it does land first.
     const onSVNoPanorama = useCallback(() => {
-        displayEventRef.current?.('status_changed')
+        displayEventRef.current?.('NoPanorama', 'ZERO_RESULTS')
     }, []);
 
-    // Handle Street View errors: hard failures (e.g. missing API key) go to the service as
-    // a true error, while soft timeouts (unavailable) are logged for telemetry only since
-    // the panorama may still arrive on retry. The service will set mapStateError which puts
-    // the start overlay into a dead end, appropriate only for permanent failures.
+    // Handle Street View errors: hard failures (e.g. missing API key) go to the service as a
+    // true error, which now falls back this ride to Map rather than the old dead end.
+    // Soft timeouts (unavailable) are logged for telemetry only since the panorama may still
+    // arrive on retry - the service's own SV_START_TIMEOUT (15s from release) is the backstop
+    // that falls back to Map if it never does.
     const onSVError = useCallback((reason: string) => {
         if (reason === 'apiKeyMissing') {
             // Hard failure — API key is missing or unreadable, never will resolve
@@ -239,7 +247,11 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         displayEventRef.current?.('Error', reason)
     }, []);
 
-    const svPosition = displayPosition as IPosition | undefined;
+    // Gates the native panorama's creation (the billable step) on services having
+    // released Street View - mirrors web-ui's `allowInit` prop on <GoogleStreetView>. StreetView
+    // itself never requests a panorama until it has a position (`if (!applied) return null`), so
+    // withholding the position here is enough to block creation; no native-side change needed.
+    const svPosition = svInitAllowed ? (displayPosition as IPosition | undefined) : undefined;
     const satPosition = displayPosition as ISatPosition | undefined;
 
     // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
@@ -432,6 +444,25 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
             {!startOverlayProps && <RideSwipeFeedback visible={feedback.visible} message={feedback.message} />}
 
+            {/* Street View start fallback notice - rendered once the overlay
+                has closed, same "after the fact" placement as web-ui's RideViewNotice. */}
+            {!startOverlayProps && (
+                <RideViewNotice
+                    notice={rideViewNotice}
+                    message="Street View isn't available right now. Showing the Map instead."
+                />
+            )}
+
+            {/* No coverage at the rider's current position - never a fallback, can fire
+                repeatedly as the rider rides through gaps. */}
+            {!startOverlayProps && (
+                <RideViewNotice
+                    notice={svCoverageNotice}
+                    hidden={svHasCoverage === true}
+                    message="No Street View imagery at this location."
+                />
+            )}
+
             {/* Sequenced strictly after StartRideDisplay clears, never alongside it - matches
                 Workout/View.tsx. Visibility is entirely owned by RidePageService's gestureHint
                 prop; this just renders what it's told (and gestureHintContent's mode gate). */}
@@ -455,6 +486,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
                     onIgnore={onIgnoreStart}
+                    onStartWithMap={onStartWithMap}
                     onCancel={onCancelStart}
                 />
             )}

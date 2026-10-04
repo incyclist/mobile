@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { StartRideDisplay } from './StartRideDisplay';
 import { StartRideDisplayProps } from './types';
 import { CurrentRideDeviceInfo } from 'incyclist-services';
@@ -102,5 +102,60 @@ describe('StartRideDisplay', () => {
         expect(getByText('Retry')).toBeTruthy();
         expect(getByText('Ignore')).toBeTruthy();
         expect(queryByText('Start')).toBeNull();
+    });
+
+    // Street View-specific content, gated on `viewState`. Every test above has no
+    // `viewState` and is the acceptance reference for "unchanged".
+    describe('Street View start', () => {
+        it('shows "Preparing Street View ..." and "Loading ..." while loading, no Start with Map yet', () => {
+            const { getByText, queryByText } = render(
+                <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={false} viewState="loading" />
+            );
+
+            expect(getByText('Preparing Street View ...')).toBeTruthy();
+            expect(getByText('Loading ...')).toBeTruthy();
+            expect(queryByText('Start with Map')).toBeNull();
+        });
+
+        it('shows "Still loading ..." and a Start with Map button once slow', () => {
+            const onStartWithMap = jest.fn();
+            const { getByText } = render(
+                <StartRideDisplay
+                    {...baseProps}
+                    rideState="Starting"
+                    readyToStart={false}
+                    viewState="slow"
+                    onStartWithMap={onStartWithMap}
+                />
+            );
+
+            expect(getByText('Preparing Street View ...')).toBeTruthy();
+            expect(getByText('Still loading ...')).toBeTruthy();
+
+            fireEvent.press(getByText('Start with Map'));
+            expect(onStartWithMap).toHaveBeenCalled();
+        });
+
+        it('shows the amber fallback row and today\'s heading once unavailable', () => {
+            const { getByText, queryByText } = render(
+                <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={true} viewState="unavailable" />
+            );
+
+            // heading returns to the default once resolved (loaded or unavailable)
+            expect(getByText('Starting activity ...')).toBeTruthy();
+            expect(getByText('Unavailable – using Map')).toBeTruthy();
+            expect(queryByText('Start with Map')).toBeNull();
+        });
+
+        it('leaves device rows, sensor-error and device-error handling untouched on a Street View start', () => {
+            const devices = [trainer('Started'), hrm('Error')];
+            const { getByText, queryByText } = render(
+                <StartRideDisplay {...baseProps} devices={devices} rideState="Error" readyToStart={true} viewState="loaded" />
+            );
+
+            expect(getByText('Retry')).toBeTruthy();
+            expect(getByText('Ignore')).toBeTruthy();
+            expect(queryByText('Start')).toBeNull();
+        });
     });
 });

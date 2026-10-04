@@ -5,6 +5,7 @@ export type {
     CurrentRideDeviceInfo,
     RideMapState
 }
+export type { SvViewState } from "incyclist-services";
 
 export type StartCancelReason = {
     device?:boolean
@@ -15,5 +16,7 @@ export type StartRideDisplayProps = (StartOverlayProps | GPXStartOverlayProps | 
     onStart: ()=>void,
     onRetry: ()=>void,
     onCancel: (reason?:StartCancelReason)=>void,
-    onIgnore: ()=>void
+    onIgnore: ()=>void,
+    /** Street View only - lets the rider skip a slow/failing Street View start. */
+    onStartWithMap?: ()=>void
 }
