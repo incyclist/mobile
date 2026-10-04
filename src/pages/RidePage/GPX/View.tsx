@@ -80,7 +80,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         getPrevRidesRows,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,svHasCoverage,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
 
     // Derived properties
     const routeData = route?.details;
@@ -458,6 +458,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
             {!startOverlayProps && (
                 <RideViewNotice
                     notice={svCoverageNotice}
+                    hidden={svHasCoverage === true}
                     message="No Street View imagery at this location."
                 />
             )}

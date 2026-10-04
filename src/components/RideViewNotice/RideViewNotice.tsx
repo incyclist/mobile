@@ -12,7 +12,7 @@ const DISMISS_AFTER = 8000;
  * (never any raw cause/status) is captured into local state here to survive that prop going back
  * to undefined on the very next page update.
  */
-export const RideViewNotice = ({ notice, message }: RideViewNoticeProps) => {
+export const RideViewNotice = ({ notice, message, hidden }: RideViewNoticeProps) => {
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export const RideViewNotice = ({ notice, message }: RideViewNoticeProps) => {
         return () => clearTimeout(to);
     }, [notice]);
 
-    if (!visible)
+    if (!visible || hidden)
         return null;
 
     return (

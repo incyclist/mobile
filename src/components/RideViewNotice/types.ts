@@ -3,4 +3,5 @@ export interface RideViewNoticeProps {
      *  next read - see RideViewNotice.tsx for why it's captured locally */
     notice?: { cause: string } | { ts: number } | null;
     message: string;
+    hidden?: boolean;
 }
