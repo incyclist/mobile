@@ -27,9 +27,9 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const isVideoRide = 'videoState' in props;
     const isGPXRide = 'mapType' in props;
 
-    // Street View-specific content only (INC-42) - gated on `viewState` so Video, Workout-only
-    // and Map/Satellite starts render exactly as before. Mirrors web-ui's StartRideOverlay -
-    // see architecture.md §3.5a for why this is the gate, not `mapType`.
+    // Street View-specific content only - gated on `viewState` so Video, Workout-only and
+    // Map/Satellite starts render exactly as before. Mirrors web-ui's StartRideOverlay; this is
+    // the gate because mapType is also set for the Map/Satellite rows, which must stay untouched.
     const viewState = isGPXRide ? (props as GPXStartOverlayProps).viewState : undefined;
     const isStreetViewStart = viewState !== undefined;
 
@@ -79,7 +79,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return { text: mapState as string, color: colors.text };
     };
 
-    // Street View row text (INC-42) - only used when isStreetViewStart
+    // Street View row text - only used when isStreetViewStart
     const viewStateText = () => {
         switch (viewState) {
             case 'loaded': return { text: 'Loaded', color: colors.success };
@@ -224,13 +224,13 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
             { id: 'cancel', label: 'Cancel', onClick: () => onCancel?.() }
           ];
 
-    // "Start with Map" only in the slow step (ux.md step 2b) - a secondary way forward, added
+    // "Start with Map" only in the slow step - a secondary way forward, added
     // right before Cancel so the primary Start/Cancel pair (when present) stays first.
     if (isStreetViewStart && viewState === 'slow' && onStartWithMap) {
         startingButtons.splice(startingButtons.length - 1, 0, { id: 'start-with-map', label: 'Start with Map', primary: false, onClick: onStartWithMap });
     }
 
-    // "Preparing Street View ..." only while it's actually loading (INC-42, ux.md step 2/2b).
+    // "Preparing Street View ..." only while it's actually loading.
     // Every other case - including every non-Street-View start - keeps today's heading.
     const title = isStreetViewStart && (viewState === 'loading' || viewState === 'slow')
         ? 'Preparing Street View ...'

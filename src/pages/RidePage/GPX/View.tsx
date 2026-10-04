@@ -211,7 +211,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         displayEventRef.current?.('pano_changed')
     }, []);
 
-    // No imagery at the requested position: a valid answer, not a failure (INC-42 D4 - the
+    // No imagery at the requested position: a valid answer, not a failure - the
     // service treats 'ZERO_RESULTS' as "resolved, stay in Street View", same as desktop's
     // Google-status ZERO_RESULTS). Native fires `onLoaded` unconditionally before this (see
     // StreetView.tsx), so in practice the service has usually already resolved as 'loaded' by
@@ -222,7 +222,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
     }, []);
 
     // Handle Street View errors: hard failures (e.g. missing API key) go to the service as a
-    // true error, which now falls back this ride to Map (INC-42) rather than the old dead end.
+    // true error, which now falls back this ride to Map rather than the old dead end.
     // Soft timeouts (unavailable) are logged for telemetry only since the panorama may still
     // arrive on retry - the service's own SV_START_TIMEOUT (15s from release) is the backstop
     // that falls back to Map if it never does.
@@ -247,7 +247,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         displayEventRef.current?.('Error', reason)
     }, []);
 
-    // Gates the native panorama's creation (the billable step, INC-42) on services having
+    // Gates the native panorama's creation (the billable step) on services having
     // released Street View - mirrors web-ui's `allowInit` prop on <GoogleStreetView>. StreetView
     // itself never requests a panorama until it has a position (`if (!applied) return null`), so
     // withholding the position here is enough to block creation; no native-side change needed.
@@ -444,7 +444,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
 
             {!startOverlayProps && <RideSwipeFeedback visible={feedback.visible} message={feedback.message} />}
 
-            {/* Street View start fallback notice (INC-42, ux.md §7.3) - rendered once the overlay
+            {/* Street View start fallback notice - rendered once the overlay
                 has closed, same "after the fact" placement as web-ui's RideViewNotice. */}
             {!startOverlayProps && (
                 <RideViewNotice
@@ -454,7 +454,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
             )}
 
             {/* No coverage at the rider's current position - never a fallback, can fire
-                repeatedly as the rider rides through gaps (INC-42). */}
+                repeatedly as the rider rides through gaps. */}
             {!startOverlayProps && (
                 <RideViewNotice
                     notice={svCoverageNotice}

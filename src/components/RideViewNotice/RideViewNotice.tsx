@@ -7,7 +7,7 @@ const DISMISS_AFTER = 8000;
 
 /**
  * One-line, self-dismissing in-ride notice. `notice` is a one-shot prop - the service sets it
- * once (`rideViewNotice` after a Street View start fallback, INC-42 `ux.md` §7.3;
+ * once (`rideViewNotice` after a Street View start fallback;
  * `svCoverageNotice` on every no-imagery answer) and clears it on the next read, so its presence
  * (never any raw cause/status) is captured into local state here to survive that prop going back
  * to undefined on the very next page update.

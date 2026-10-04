@@ -231,7 +231,7 @@ describe('GPXTourPageView — Satellite View branch', () => {
     });
 });
 
-describe('GPXTourPageView — Street View release gating (INC-42)', () => {
+describe('GPXTourPageView — Street View release gating', () => {
     beforeEach(() => {
         mockStreetView.mockClear();
     });

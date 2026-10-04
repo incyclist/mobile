@@ -16,6 +16,6 @@ export type StartRideDisplayProps = (StartOverlayProps | GPXStartOverlayProps | 
     onRetry: ()=>void,
     onCancel: (reason?:StartCancelReason)=>void,
     onIgnore: ()=>void,
-    /** Street View only (INC-42) - lets the rider skip a slow/failing Street View start. */
+    /** Street View only - lets the rider skip a slow/failing Street View start. */
     onStartWithMap?: ()=>void
 }

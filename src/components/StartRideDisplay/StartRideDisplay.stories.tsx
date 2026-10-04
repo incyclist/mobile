@@ -115,7 +115,7 @@ export const MapError: Story = {
     } as any,
 };
 
-// INC-42: Street View-specific states, gated on `viewState`. Every story above has no
+// Street View-specific states, gated on `viewState`. Every story above has no
 // `viewState` and is the acceptance reference for "unchanged".
 
 export const StreetViewPreparing: Story = {

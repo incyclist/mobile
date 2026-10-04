@@ -104,9 +104,9 @@ describe('StartRideDisplay', () => {
         expect(queryByText('Start')).toBeNull();
     });
 
-    // INC-42 - Street View-specific content, gated on `viewState`. Every test above has no
+    // Street View-specific content, gated on `viewState`. Every test above has no
     // `viewState` and is the acceptance reference for "unchanged".
-    describe('Street View start (INC-42)', () => {
+    describe('Street View start', () => {
         it('shows "Preparing Street View ..." and "Loading ..." while loading, no Start with Map yet', () => {
             const { getByText, queryByText } = render(
                 <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={false} viewState="loading" />
@@ -141,7 +141,7 @@ describe('StartRideDisplay', () => {
                 <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={true} viewState="unavailable" />
             );
 
-            // heading returns to the default once resolved (loaded or unavailable) - ux.md §7.2
+            // heading returns to the default once resolved (loaded or unavailable)
             expect(getByText('Starting activity ...')).toBeTruthy();
             expect(getByText('Unavailable – using Map')).toBeTruthy();
             expect(queryByText('Start with Map')).toBeNull();
