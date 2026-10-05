@@ -10,6 +10,8 @@ class UserSettingsImplementation implements IUserSettingsBinding {
     protected savePromise: Promise<void> | null;
     protected settings?: {[key: string]: any};
     protected logger: EventLogger;
+    protected saveCallSeq = 0;
+    protected activeWrites = 0;
 
     static getInstance(): UserSettingsImplementation {
         if (!UserSettingsImplementation._instance) {
@@ -142,12 +144,23 @@ class UserSettingsImplementation implements IUserSettingsBinding {
     async save(settings: object) {
         const appDir = getAppInfo().appDir;
         const fileName = `${appDir}/settings.json`;
+        const callId = ++this.saveCallSeq;
 
         if (this.savePromise !== null) {
+            // diagnostic (FIXES_BACKLOG item on iOS settings-save ENOENT): reveals how
+            // often saves queue up, and - together with the activeWrites check below -
+            // whether 3+ stacked calls ever let two writes run concurrently, since each
+            // queued call here awaits whatever save was in flight when it arrived rather
+            // than chaining strictly onto the one immediately before it
+            this.logger.logEvent({message:'save queued behind in-flight save', callId});
             await this.savePromise;
         }
 
         let success = false;
+        this.activeWrites++;
+        if (this.activeWrites>1) {
+            this.logger.logEvent({message:'concurrent settings writes in flight', callId, activeWrites:this.activeWrites});
+        }
         try {
             this.savePromise = RNFS.writeFile(
                 fileName,
@@ -156,14 +169,17 @@ class UserSettingsImplementation implements IUserSettingsBinding {
             await this.savePromise;
             success = true;
         } catch (e) {
-            this.logError(e, 'save');
+            let dirExists: boolean|undefined;
+            try { dirExists = await RNFS.exists(appDir); } catch { /* best-effort diagnostic only */ }
+            this.logError(e, 'save', {callId, activeWrites: this.activeWrites, dirExists});
         }
+        this.activeWrites--;
         this.savePromise = null;
         return success;
     }
 
-    protected logError (err:any, fn:string) {
-        this.logger.logEvent({message:'error',fn,error:err.message, stack:err.stack})
+    protected logError (err:any, fn:string, extra?:object) {
+        this.logger.logEvent({message:'error',fn,error:err.message, stack:err.stack, ...extra})
 
     }
 
