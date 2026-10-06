@@ -6,7 +6,17 @@ import { textSizes } from '../../theme';
 import { Dialog } from '../Dialog';
 import { BinarySelect } from '../BinarySelect';
 
+const capabilityTitles: Record<string, string> = {
+  control: 'Resistance',
+  power: 'Power',
+  speed: 'Speed',
+  heartrate: 'Heartrate',
+  cadence: 'Cadence',
+  app_control: 'Controller',
+};
+
 export const DeviceSelector: FC<DeviceSelectionProps> = ({
+  capability,
   devices,
   isScanning,
   disabled,
@@ -70,7 +80,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
 
                     <View style={styles.checkboxContainer}>
                         <BinarySelect
-                            label="Disable All"
+                            label={`Don't use a ${capabilityTitles[capability] ?? capability} device`}
                             labelPosition="after"
                             value={none}
                             onValueChange={setNone}

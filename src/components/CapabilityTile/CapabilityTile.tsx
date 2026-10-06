@@ -17,12 +17,14 @@ import  {CapabilityDisplayProps} from 'incyclist-services'
 interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
     marginRight?: number
+    variant?: 'full' | 'short'
+    waiting?: boolean
 }
 
 export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) => {
 
     const { onClick, ...childProps} = props
-   
+
     const onPress = ()=>{
         if (onClick)
             onClick(props as CapabilityDisplayProps)
@@ -30,10 +32,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     const size = (props.height??0)>150 ? 'large' : 'small'
     const isEmpty = !props.deviceName
     const backgroundColor = isEmpty ?  colors.tileEmpty : colors.tileActive
+    const waitingBorder = props.waiting && isEmpty ? { borderWidth: 3, borderColor: '#f5a623' } : undefined
 
     return (
         <TouchableOpacity
-            style={[styles[size].tile, { height:props.height, backgroundColor,marginRight:props.marginRight}]}
+            style={[styles[size].tile, { height:props.height, backgroundColor,marginRight:props.marginRight}, waitingBorder]}
             onPress={onPress}
         >
 
@@ -46,6 +49,8 @@ type ComponentProps = Partial<CapabilityTileProps> & {
     size: 'small' | 'large' 
 }
 
+const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').replace('Zwift Play', 'Zwift Play')
+
 const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
     const {      
@@ -57,8 +62,10 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         disabled,
         unit,
         interface:ifName,
-        size
-        
+        size,
+        helpText,
+        emptyFooter,
+        variant = 'full',
      } = props
 
     const interfaceMap: Record<string,any> = {
@@ -134,7 +141,11 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </View>
             }
 
-            <View style={[styles.rows.flex]} />
+            <View style={[styles.rows.flex]}>
+                    <Text style={styles[size].helpText}>
+                        { formatHelpText((variant === 'short' ? helpText?.short : helpText?.full) ?? ' ') }
+                    </Text>
+            </View>
 
             <View style={ styles.rows.fixed}>
                     <View style={styles.cols.device}>
@@ -144,7 +155,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
             <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
                     <Text style={styles[size].emptyText}>
-                        { disabled ? 'Click to enable' : 'Click to search' }
+                        { disabled ? 'Click to enable' : (emptyFooter ?? ' ') }
                     </Text>
             </View>
 
@@ -228,9 +239,16 @@ const styles = {
             verticalAlign:'middle',
             justifyContent:'center'
         },
-        emptyText: { 
+        emptyText: {
             textAlign:'center',
-            color: '#fff', fontSize: 10 
+            color: '#fff', fontSize: 12
+        },
+        helpText: {
+            color: '#fff',
+            fontSize: 12,
+            textAlign: 'center',
+            flexShrink: 1,
+            paddingHorizontal: 4,
         },
         footer: {
             width: '100%',
@@ -280,10 +298,17 @@ const styles = {
             verticalAlign:'middle',
             justifyContent:'center'
         },
-        emptyText: { 
+        emptyText: {
             textAlign:'center',
-            color: '#fff', 
+            color: '#fff',
             fontSize: 18,
+        },
+        helpText: {
+            color: '#fff',
+            fontSize: 16,
+            textAlign: 'center',
+            flexShrink: 1,
+            paddingHorizontal: 4,
         },
         emptyFooter: {
             backgroundColor: colors.tileEmpty,
