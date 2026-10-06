@@ -46,8 +46,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
             onPress={onPress}
         >
 
-            <CapabilityTileView {...childProps} size={size} />
-            {!isEmpty && props.onUnselect && <UnselectButton title={props.title} onPress={onUnselectPressed} />}
+            <CapabilityTileView
+                {...childProps}
+                size={size}
+                unselect={!isEmpty && props.onUnselect ? <UnselectButton title={props.title} onPress={onUnselectPressed} /> : undefined}
+            />
         </TouchableOpacity>
     )
 }
@@ -56,6 +59,7 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
 const UnselectButton = ({ title, onPress }: { title?: string, onPress: ()=>void }) => (
     <TouchableOpacity
         style={unselectStyles.touchArea}
+        hitSlop={UNSELECT_HIT_SLOP}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`Don't use ${title ?? ''} device`}
@@ -66,8 +70,9 @@ const UnselectButton = ({ title, onPress }: { title?: string, onPress: ()=>void 
     </TouchableOpacity>
 )
 
-type ComponentProps = Partial<CapabilityTileProps> & { 
-    size: 'small' | 'large' 
+type ComponentProps = Partial<CapabilityTileProps> & {
+    size: 'small' | 'large'
+    unselect?: React.ReactNode
 }
 
 const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').replace('Zwift Play', 'Zwift Play')
@@ -87,6 +92,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         helpText,
         emptyFooter,
         variant = 'full',
+        unselect,
      } = props
 
     const interfaceMap: Record<string,any> = {
@@ -148,6 +154,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                     <Text style={styles[size].state}>
                     {(connectState??' ').toUpperCase()}
                     </Text>
+                    {unselect}
                 </View>
                 
             </View>
@@ -184,13 +191,16 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     )
 })
 
+// The footer strip is shorter than 48 dp, so the touch area is extended with hitSlop
+const UNSELECT_HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 }
+
 const unselectStyles = StyleSheet.create({
     touchArea: {
         position: 'absolute',
+        top: 0,
         bottom: 0,
         right: 0,
         width: 48,
-        height: 48,
         alignItems: 'center',
         justifyContent: 'center',
     },
