@@ -1,6 +1,6 @@
 import React, { PropsWithChildren } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { colors, textSizes } from '../../theme'
+import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native'
+import { colors } from '../../theme'
 import { useLogging } from '../../hooks'
 
 import BleIcon from '../../assets/icons/ble.svg'
@@ -31,9 +31,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
         if (onClick)
             onClick(props as CapabilityDisplayProps)
     }
-    const onUnselectPressed = ()=>{
-        logEvent({ message:'button clicked', button:'unselect', capability:props.capability })
-        props.onUnselect?.()
+    // the toggle is on while the device is used; switching it off unselects the capability
+    const onUseChanged = (use:boolean)=>{
+        logEvent({ message:'toggle changed', toggle:'use', capability:props.capability, value:use })
+        if (!use)
+            props.onUnselect?.()
     }
     const size = (props.height??0)>150 ? 'large' : 'small'
     const isEmpty = !props.deviceName
@@ -49,25 +51,25 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
             <CapabilityTileView
                 {...childProps}
                 size={size}
-                unselect={!isEmpty && props.onUnselect ? <UnselectButton title={props.title} onPress={onUnselectPressed} /> : undefined}
+                unselect={!isEmpty && props.onUnselect ? <UseSwitch title={props.title} onChange={onUseChanged} /> : undefined}
             />
         </TouchableOpacity>
     )
 }
 
-// The visible circle is 24 dp, but the touch area is 48 dp so it is reliable to tap
-const UnselectButton = ({ title, onPress }: { title?: string, onPress: ()=>void }) => (
-    <TouchableOpacity
-        style={unselectStyles.touchArea}
-        hitSlop={UNSELECT_HIT_SLOP}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={`Don't use ${title ?? ''}`}
-    >
-        <View style={unselectStyles.circle}>
-            <Text style={unselectStyles.cross}>{'✕'}</Text>
-        </View>
-    </TouchableOpacity>
+// A small on/off toggle in the footer strip; it is on for a used device
+const UseSwitch = ({ title, onChange }: { title?: string, onChange: (use:boolean)=>void }) => (
+    <View style={unselectStyles.container}>
+        <Switch
+            value={true}
+            onValueChange={onChange}
+            trackColor={{ false: colors.switchTrack.false, true: colors.switchTrack.true }}
+            thumbColor={colors.switchThumb.on}
+            accessibilityRole="switch"
+            accessibilityLabel={`Use ${title ?? ''}`}
+            style={unselectStyles.switch}
+        />
+    </View>
 )
 
 type ComponentProps = Partial<CapabilityTileProps> & {
@@ -191,32 +193,16 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     )
 })
 
-// The footer strip is shorter than 48 dp, so the touch area is extended with hitSlop
-const UNSELECT_HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 }
-
 const unselectStyles = StyleSheet.create({
-    touchArea: {
+    container: {
         position: 'absolute',
         top: 0,
         bottom: 0,
-        right: 0,
-        width: 48,
-        alignItems: 'center',
+        right: 4,
         justifyContent: 'center',
     },
-    circle: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: colors.text,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cross: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-        fontWeight: '700',
+    switch: {
+        transform: [{ scale: 0.7 }],
     },
 })
 
