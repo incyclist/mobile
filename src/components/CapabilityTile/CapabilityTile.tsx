@@ -18,12 +18,13 @@ interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
     marginRight?: number
     variant?: 'full' | 'short'
+    waiting?: boolean
 }
 
 export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) => {
 
     const { onClick, ...childProps} = props
-   
+
     const onPress = ()=>{
         if (onClick)
             onClick(props as CapabilityDisplayProps)
@@ -31,10 +32,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     const size = (props.height??0)>150 ? 'large' : 'small'
     const isEmpty = !props.deviceName
     const backgroundColor = isEmpty ?  colors.tileEmpty : colors.tileActive
+    const waitingBorder = props.waiting && isEmpty ? { borderWidth: 3, borderColor: '#f5a623' } : undefined
 
     return (
         <TouchableOpacity
-            style={[styles[size].tile, { height:props.height, backgroundColor,marginRight:props.marginRight}]}
+            style={[styles[size].tile, { height:props.height, backgroundColor,marginRight:props.marginRight}, waitingBorder]}
             onPress={onPress}
         >
 

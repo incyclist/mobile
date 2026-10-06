@@ -37,7 +37,7 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                 <View style={styles.rowFlex}>
                     {/* <InterfaceInfo interfaces={props.interfaces} /> */}
 
-                    <CapabilityGrid capabilities={props.capabilities} compact={compact} />
+                    <CapabilityGrid capabilities={props.capabilities} compact={compact} readyToStart={props.readyToStart} />
                 </View>
 
                 <View style={styles.rowButtons}>

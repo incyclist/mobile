@@ -10,6 +10,7 @@ interface CapabilityGridProps {
         rowLabels?: { top: PairingRowLabelProps, bottom: PairingRowLabelProps }
     }
     compact: boolean
+    readyToStart?: boolean
 }
 
 const GAP = 10;
@@ -25,7 +26,7 @@ interface Dimensions {
     containerWidth: number,
 }
 
-export const CapabilityGrid = ({ capabilities }: CapabilityGridProps) => {
+export const CapabilityGrid = ({ capabilities, readyToStart }: CapabilityGridProps) => {
 
     const [dimensions, setDimensions] = useState<Dimensions>({ w: 0, h: 0, containerWidth: 0 });
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -71,7 +72,7 @@ export const CapabilityGrid = ({ capabilities }: CapabilityGridProps) => {
                                 marginLeft: index === 0 ? 0 : GAP,
                             }]}
                         >
-                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} />
+                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} waiting={tile.role === 'required' && !readyToStart} />
                         </View>
                     ))}
                 </View>
