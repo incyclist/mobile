@@ -34,10 +34,17 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                     <Text style={styles.title}>{props.title?.toUpperCase()}</Text>
                 </View>
 
+                {props.status && (
+                    <View style={styles.statusRow}>
+                        <View style={[styles.statusDot, { backgroundColor: statusDotColors[props.status.dot] }]} />
+                        <Text style={styles.statusText}>{compact ? props.status.shortText : props.status.text}</Text>
+                    </View>
+                )}
+
                 <View style={styles.rowFlex}>
                     {/* <InterfaceInfo interfaces={props.interfaces} /> */}
 
-                    <CapabilityGrid capabilities={props.capabilities} compact={compact} readyToStart={props.readyToStart} />
+                    <CapabilityGrid capabilities={props.capabilities} compact={compact} readyToStart={props.readyToStart} noSearch={props.status?.id === 'S1'} />
                 </View>
 
                 <View style={styles.rowButtons}>
@@ -56,7 +63,29 @@ export const PairingPageView = (props: PairingDisplayProps) => {
     )
 }
 
+const statusDotColors = {
+    red: '#e74c3c',
+    green: '#2ecc71',
+    amber: '#f5a623',
+}
+
 const styles = StyleSheet.create({
+    statusRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    statusText: {
+        color: '#fff',
+        fontSize: 13,
+    },
     container: {
         flex: 1,
         flexDirection: 'row',
