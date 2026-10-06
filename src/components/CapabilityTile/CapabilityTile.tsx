@@ -47,6 +47,8 @@ type ComponentProps = Partial<CapabilityTileProps> & {
     size: 'small' | 'large' 
 }
 
+const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').replace('Zwift Play', 'Zwift Play')
+
 const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
     const {      
@@ -139,7 +141,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
             <View style={[styles.rows.flex]}>
                     <Text style={styles[size].helpText}>
-                        { (variant === 'short' ? helpText?.short : helpText?.full) ?? ' ' }
+                        { formatHelpText((variant === 'short' ? helpText?.short : helpText?.full) ?? ' ') }
                     </Text>
             </View>
 
@@ -243,6 +245,8 @@ const styles = {
             color: '#fff',
             fontSize: 12,
             textAlign: 'center',
+            flexShrink: 1,
+            paddingHorizontal: 4,
         },
         footer: {
             width: '100%',
@@ -301,6 +305,8 @@ const styles = {
             color: '#fff',
             fontSize: 16,
             textAlign: 'center',
+            flexShrink: 1,
+            paddingHorizontal: 4,
         },
         emptyFooter: {
             backgroundColor: colors.tileEmpty,
