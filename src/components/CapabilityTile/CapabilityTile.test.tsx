@@ -31,7 +31,7 @@ describe('CapabilityTile unselect', () => {
 
     it('shows the cross on a tile with a selected device', () => {
         const { getByLabelText } = render(<CapabilityTile {...buildTile()} height={120} />);
-        expect(getByLabelText("Don't use Power device")).toBeTruthy();
+        expect(getByLabelText("Don't use Power")).toBeTruthy();
     });
 
     it('does not show the cross on an empty tile', () => {
@@ -48,7 +48,7 @@ describe('CapabilityTile unselect', () => {
         const tile = buildTile();
         const { getByLabelText } = render(<CapabilityTile {...tile} height={120} />);
 
-        fireEvent.press(getByLabelText("Don't use Power device"));
+        fireEvent.press(getByLabelText("Don't use Power"));
 
         expect(tile.onUnselect).toHaveBeenCalledTimes(1);
         expect(tile.onClick).not.toHaveBeenCalled();

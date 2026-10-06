@@ -62,7 +62,7 @@ const UnselectButton = ({ title, onPress }: { title?: string, onPress: ()=>void 
         hitSlop={UNSELECT_HIT_SLOP}
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={`Don't use ${title ?? ''} device`}
+        accessibilityLabel={`Don't use ${title ?? ''}`}
     >
         <View style={unselectStyles.circle}>
             <Text style={unselectStyles.cross}>{'✕'}</Text>
@@ -208,8 +208,8 @@ const unselectStyles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: colors.background,
-        opacity: 0.85,
+        borderWidth: 1.5,
+        borderColor: colors.text,
         alignItems: 'center',
         justifyContent: 'center',
     },
