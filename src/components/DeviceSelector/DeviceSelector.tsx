@@ -6,20 +6,9 @@ import { textSizes } from '../../theme';
 import { Dialog } from '../Dialog';
 import { BinarySelect } from '../BinarySelect';
 
-const capabilityTitles: Record<string, string> = {
-  control: 'Resistance',
-  power: 'Power',
-  speed: 'Speed',
-  heartrate: 'Heartrate',
-  cadence: 'Cadence',
-  app_control: 'Controller',
-};
-
 export const DeviceSelector: FC<DeviceSelectionProps> = ({
-  capability,
   devices,
   isScanning,
-  disabled,
   changeForAll,
   canSelectAll,
   onClose,
@@ -32,7 +21,6 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     const deviceListMinHeight = Math.min(380, minHeightLeft);
 
     const [all, setAll] = useState<boolean>(canSelectAll && changeForAll);
-    const [none, setNone] = useState<boolean>(disabled);
 
     const onDeviceClicked = (device: DeviceSelectionItemProps) => {
         if (device.onClick) {
@@ -41,7 +29,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     };
 
     const onDialogClosed = () => {
-        onClose(none === false);
+        onClose();
     };
 
     const dialogStyle = [styles.dialog, { width: dialogWidth }];
@@ -57,10 +45,9 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
             <View style={styles.modalView}>
                 <ScrollView style={deviceListStyle} contentContainerStyle={styles.deviceListContent}>
                     {devices.map((device) => (
-                        <DeviceEntry 
-                            key={`${device.deviceName}-${device.interface}`} 
-                            {...device} 
-                            disabled={none} 
+                        <DeviceEntry
+                            key={`${device.deviceName}-${device.interface}`}
+                            {...device}
                             onClick={() => onDeviceClicked(device)}
                         />
                     ))}
@@ -77,15 +64,6 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
                             />
                         </View>
                     )}
-
-                    <View style={styles.checkboxContainer}>
-                        <BinarySelect
-                            label={`Don't use a ${capabilityTitles[capability] ?? capability} device`}
-                            labelPosition="after"
-                            value={none}
-                            onValueChange={setNone}
-                        />
-                    </View>
                 </View>
             </View>
         </Dialog>

@@ -1,6 +1,7 @@
 import React, { PropsWithChildren } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { colors } from '../../theme'
+import { colors, textSizes } from '../../theme'
+import { useLogging } from '../../hooks'
 
 import BleIcon from '../../assets/icons/ble.svg'
 import WifiIcon from '../../assets/icons/wifi.svg'
@@ -24,10 +25,15 @@ interface CapabilityTileProps extends CapabilityDisplayProps {
 export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) => {
 
     const { onClick, ...childProps} = props
+    const { logEvent } = useLogging('CapabilityTile')
 
     const onPress = ()=>{
         if (onClick)
             onClick(props as CapabilityDisplayProps)
+    }
+    const onUnselectPressed = ()=>{
+        logEvent({ message:'button clicked', button:'unselect', capability:props.capability })
+        props.onUnselect?.()
     }
     const size = (props.height??0)>150 ? 'large' : 'small'
     const isEmpty = !props.deviceName
@@ -40,10 +46,25 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
             onPress={onPress}
         >
 
-            <CapabilityTileView {...childProps} size={size} />  
+            <CapabilityTileView {...childProps} size={size} />
+            {!isEmpty && props.onUnselect && <UnselectButton title={props.title} onPress={onUnselectPressed} />}
         </TouchableOpacity>
     )
 }
+
+// The visible circle is 24 dp, but the touch area is 48 dp so it is reliable to tap
+const UnselectButton = ({ title, onPress }: { title?: string, onPress: ()=>void }) => (
+    <TouchableOpacity
+        style={unselectStyles.touchArea}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Don't use ${title ?? ''} device`}
+    >
+        <View style={unselectStyles.circle}>
+            <Text style={unselectStyles.cross}>{'✕'}</Text>
+        </View>
+    </TouchableOpacity>
+)
 
 type ComponentProps = Partial<CapabilityTileProps> & { 
     size: 'small' | 'large' 
@@ -161,6 +182,32 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
         </View>        
     )
+})
+
+const unselectStyles = StyleSheet.create({
+    touchArea: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 48,
+        height: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    circle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: colors.background,
+        opacity: 0.85,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cross: {
+        color: colors.text,
+        fontSize: textSizes.normalText,
+        fontWeight: '700',
+    },
 })
 
 const styles = {
