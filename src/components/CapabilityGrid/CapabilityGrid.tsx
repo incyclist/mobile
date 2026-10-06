@@ -52,14 +52,14 @@ export const CapabilityGrid = ({ capabilities, readyToStart, noSearch }: Capabil
     const labelLeft = (dimensions.containerWidth - groupWidth) / 2 - GAP - LABEL_WIDTH
 
     const rows = [
-        { label: capabilities.rowLabels?.top, tiles: capabilities.top ?? [] },
-        { label: capabilities.rowLabels?.bottom, tiles: capabilities.bottom ?? [] },
+        { id: 'required', label: capabilities.rowLabels?.top, tiles: capabilities.top ?? [] },
+        { id: 'optional', label: capabilities.rowLabels?.bottom, tiles: capabilities.bottom ?? [] },
     ];
 
     return (
         <View style={styles.container} onLayout={onLayout}>
-            {dimensions.h > 0 && rows.map((row, rowIndex) => (
-                <View key={rowIndex} style={[styles.row, { height: dimensions.h, marginTop: rowIndex === 0 ? 0 : ROW_GAP }]}>
+            {dimensions.h > 0 && rows.map((row) => (
+                <View key={row.id} style={[styles.row, { height: dimensions.h, marginTop: row.id === 'required' ? 0 : ROW_GAP }]}>
                     <View style={[styles.label, { width: LABEL_WIDTH, left: labelLeft }]}>
                         <Text style={styles.labelTitle} numberOfLines={1}>{row.label?.text ?? ''}</Text>
                         {row.label?.subtext ? <Text style={styles.labelSubtext}>{row.label.subtext}</Text> : null}
