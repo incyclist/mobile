@@ -31,16 +31,24 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
         if (onClick)
             onClick(props as CapabilityDisplayProps)
     }
-    // the toggle is on while the device is used; switching it off unselects the capability
+    // the toggle is on while the capability is used. Switching it off unselects it (normal tile).
+    // Switching a switched-off tile's toggle back on (T16) restores its remembered device with no
+    // new scan - props.onUse is only set when there is a device to restore.
     const onUseChanged = (use:boolean)=>{
         logEvent({ message:'toggle changed', toggle:'use', capability:props.capability, value:use })
-        if (!use)
+        if (use)
+            props.onUse?.()
+        else
             props.onUnselect?.()
     }
     const size = (props.height??0)>150 ? 'large' : 'small'
-    const isEmpty = !props.deviceName
-    const backgroundColor = isEmpty ?  colors.tileEmpty : colors.tileActive
-    const waitingBorder = props.waiting && isEmpty ? { borderWidth: 3, borderColor: '#f5a623' } : undefined
+    const hasDevice = Boolean(props.deviceName)
+    const switchedOff = hasDevice && Boolean(props.disabled)
+    const isEmpty = !hasDevice
+    // a switched-off tile (T16) uses the same muted look as an empty tile, not the active colour
+    const backgroundColor = hasDevice && !switchedOff ? colors.tileActive : colors.tileEmpty
+    const waitingBorder = props.waiting && isEmpty && !props.disabled ? { borderWidth: 3, borderColor: '#f5a623' } : undefined
+    const showToggle = hasDevice && Boolean(props.onUnselect || props.onUse)
 
     return (
         <TouchableOpacity
@@ -51,20 +59,20 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
             <CapabilityTileView
                 {...childProps}
                 size={size}
-                unselect={!isEmpty && props.onUnselect ? <UseSwitch title={props.title} onChange={onUseChanged} /> : undefined}
+                unselect={showToggle ? <UseSwitch title={props.title} on={!switchedOff} onChange={onUseChanged} /> : undefined}
             />
         </TouchableOpacity>
     )
 }
 
-// A small on/off toggle in the footer strip; it is on for a used device
-const UseSwitch = ({ title, onChange }: { title?: string, onChange: (use:boolean)=>void }) => (
+// A small on/off toggle in the footer strip; on while the capability is used
+const UseSwitch = ({ title, on, onChange }: { title?: string, on: boolean, onChange: (use:boolean)=>void }) => (
     <View style={unselectStyles.container}>
         <Switch
-            value={true}
+            value={on}
             onValueChange={onChange}
             trackColor={{ false: colors.switchTrack.false, true: colors.switchTrack.true }}
-            thumbColor={colors.switchThumb.on}
+            thumbColor={on ? colors.switchThumb.on : colors.switchThumb.off}
             accessibilityRole="switch"
             accessibilityLabel={`Use ${title ?? ''}`}
             style={unselectStyles.switch}
@@ -78,6 +86,10 @@ type ComponentProps = Partial<CapabilityTileProps> & {
 }
 
 const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').replace('Zwift Play', 'Zwift Play')
+
+// T16b's full-size copy doesn't fit the phone footer; "Not used" (T16) is already short enough as is
+const formatEmptyFooter = (text: string, variant: 'full' | 'short') =>
+    variant === 'short' && text === 'Not used · tap to search' ? 'Tap to search' : text
 
 const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
@@ -162,12 +174,49 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
             </View>
         )
     }
-    
+
+    // T16: switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
+    // parent), with the device name and no value, and the toggle to turn it straight back on
+    if ( deviceName && disabled) {
+        return (
+            <View style= {styles.container}>
+
+                { title &&
+                    <View style={styles.rows.fixed}>
+                        <Text style={styles[size].title}>{title.toUpperCase()}</Text>
+                    </View>
+                }
+
+                <View  style= {styles.rows.flex} >
+                        {CapabilityIcon &&
+                            <View style={styles.cols.fixed}>
+                                <CapabilityIcon  style={styles[size].icon} width={48} height={48} />
+                            </View>
+                        }
+                </View>
+
+                <View style={styles.rows.fixed}>
+                        <View style={styles.cols.device}>
+                            <Text style={styles[size].device}>{deviceName}</Text>
+                        </View>
+                </View>
+
+                <View style={[styles.rows.fixed, styles[size].footer]}>
+                    <Text style={styles[size].state}>
+                    {(emptyFooter ?? 'NOT USED').toUpperCase()}
+                    </Text>
+                    {unselect}
+                </View>
+
+            </View>
+        )
+    }
+
     return (
             <View style= {styles.container}>
             {title &&
                 <View style={styles.rows.fixed}>
-                    <Text style={styles[size].title}>{title.toUpperCase()}</Text> 
+                    <Text style={styles[size].title}>{title.toUpperCase()}</Text>
                 </View>
             }
 
@@ -185,11 +234,11 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
             <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
                     <Text style={styles[size].emptyText}>
-                        { emptyFooter ?? ' ' }
+                        { formatEmptyFooter(emptyFooter ?? ' ', variant) }
                     </Text>
             </View>
 
-        </View>        
+        </View>
     )
 })
 
