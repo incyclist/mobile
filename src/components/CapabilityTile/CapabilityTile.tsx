@@ -185,7 +185,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
             <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
                     <Text style={styles[size].emptyText}>
-                        { disabled ? 'Click to enable' : (emptyFooter ?? ' ') }
+                        { emptyFooter ?? ' ' }
                     </Text>
             </View>
 

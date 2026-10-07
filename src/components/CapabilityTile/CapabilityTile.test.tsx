@@ -52,4 +52,14 @@ describe('CapabilityTile use toggle', () => {
         expect(tile.onClick).not.toHaveBeenCalled();
         expect(mockLogEvent).toHaveBeenCalledWith({ message: 'toggle changed', toggle: 'use', capability: 'power', value: false });
     });
+
+    it('a disabled tile (turned off capability) shows the normal empty footer, not "Click to enable"', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({
+            deviceName: undefined, value: undefined, unit: undefined,
+            disabled: true, emptyFooter: 'Searching…',
+        })} height={120} />);
+
+        expect(getByText('Searching…')).toBeTruthy();
+        expect(queryByText('Click to enable')).toBeNull();
+    });
 });
