@@ -258,10 +258,12 @@ const unselectStyles = StyleSheet.create({
 
 // Phone only ('short' variant) - tablet ('full') keeps its normal state/emptyFooter font size.
 // A word like "CONNECTING" needs to fit beside the toggle on a phone's narrow tile; the regular
-// size (14, see styles.small.state) doesn't leave room for both. numberOfLines={1} on the Text
-// itself is the backstop for an even narrower tile or a longer connect state.
+// size (14, see styles.small.state) doesn't leave room for both. 12 is the floor for phone
+// secondary text (ux spec, "never smaller") - numberOfLines={1} on the Text itself is the
+// backstop (truncates with an ellipsis) for an even narrower tile or a longer connect state,
+// rather than shrinking further.
 const compactStateText = StyleSheet.create({
-    text: { fontSize: 10 },
+    text: { fontSize: 12 },
 }).text
 
 const styles = {
