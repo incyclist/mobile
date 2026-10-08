@@ -81,6 +81,21 @@ export const NoDevice:  Story= {
   }
 };
 
+// Reproduces a phone-sized tile ('short' variant, ~90px height, narrow aspect ratio) with its
+// toggle shown - checking for the footer overlap reported on phones.
+export const PhoneWithToggle:  Story= {
+  args: {
+    height:90,
+    title:'control',
+    capability:'control',
+    deviceName:'KICKR CORE 0000',
+    connectState:'connected',
+    variant:'short',
+    onUnselect:fn(),
+    onClick:fn()
+  }
+};
+
 export const UndefinedUnits:  Story= {
   args: {   
     height:160,

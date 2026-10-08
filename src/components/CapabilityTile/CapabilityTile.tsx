@@ -165,12 +165,12 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </View>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={styles[size].state}>
+                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1}>
                     {(connectState??' ').toUpperCase()}
                     </Text>
                     {unselect}
                 </View>
-                
+
             </View>
         )
     }
@@ -202,7 +202,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </View>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={styles[size].state}>
+                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1}>
                     {(emptyFooter ?? 'NOT USED').toUpperCase()}
                     </Text>
                     {unselect}
@@ -243,17 +243,26 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 })
 
 const unselectStyles = StyleSheet.create({
+    // a normal flex sibling of the footer's state/emptyFooter text, not an absolute overlay: on
+    // a narrow phone tile (the 'small' size), the centred text's width can reach the full width
+    // of the footer, so an absolutely positioned toggle on top of it used to overlap the text.
+    // Giving the text flex:1 (below) and this a fixed natural width keeps them side by side.
     container: {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        right: 4,
         justifyContent: 'center',
+        marginLeft: 4,
     },
     switch: {
         transform: [{ scale: 0.7 }],
     },
 })
+
+// Phone only ('short' variant) - tablet ('full') keeps its normal state/emptyFooter font size.
+// A word like "CONNECTING" needs to fit beside the toggle on a phone's narrow tile; the regular
+// size (14, see styles.small.state) doesn't leave room for both. numberOfLines={1} on the Text
+// itself is the backstop for an even narrower tile or a longer connect state.
+const compactStateText = StyleSheet.create({
+    text: { fontSize: 10 },
+}).text
 
 const styles = {
     container: StyleSheet.create({
@@ -344,11 +353,14 @@ const styles = {
         },
         footer: {
             width: '100%',
+            flexDirection: 'row',
             backgroundColor: '#000',
             alignItems: 'center',
         },
-        state: { 
-            color: '#fff', 
+        state: {
+            flex: 1,
+            textAlign: 'center',
+            color: '#fff',
             fontSize: 14,
         },
     }),
@@ -408,14 +420,16 @@ const styles = {
             padding: 4,
         },
         footer: {
+            flexDirection: 'row',
             backgroundColor: '#000',
+            alignItems: 'center',
             justifyContent: 'center',
             padding: 4,
         },
-        state: { 
+        state: {
             textAlign: 'center',
-            width: '100%',
-            color: '#fff', 
+            flex: 1,
+            color: '#fff',
             fontSize: 18,
         },
     })
