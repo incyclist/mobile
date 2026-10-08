@@ -75,6 +75,40 @@ describe('CapabilityTile use toggle', () => {
     });
 });
 
+describe('CapabilityTile footer/toggle layout', () => {
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('the connect-state text is a single line, so it cannot overlap the toggle next to it', () => {
+        const { getByText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="short" />);
+
+        expect(getByText('CONNECTING').props.numberOfLines).toBe(1);
+    });
+
+    it('phone (short variant) uses a smaller connect-state font than tablet (full), to make room for the toggle', () => {
+        const short = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="short" />);
+        const full = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="full" />);
+
+        const flatten = (style: unknown) => Object.assign({}, ...(Array.isArray(style) ? style.filter(Boolean) : [style]));
+
+        const shortSize = flatten(short.getByText('CONNECTING').props.style).fontSize;
+        const fullSize = flatten(full.getByText('CONNECTING').props.style).fontSize;
+
+        expect(shortSize).toBeLessThan(fullSize);
+    });
+
+    it('the toggle sits beside the state text as a normal flex sibling, not an absolute overlay on top of it', () => {
+        const { getByLabelText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="short" />);
+
+        const toggleContainer = getByLabelText('Use Power').parent;
+        const style = Object.assign({}, ...(Array.isArray(toggleContainer?.props.style) ? toggleContainer.props.style.filter(Boolean) : [toggleContainer?.props.style]));
+
+        expect(style.position).not.toBe('absolute');
+    });
+});
+
 describe('CapabilityTile T16 (switched off, device remembered)', () => {
 
     afterEach(() => {
