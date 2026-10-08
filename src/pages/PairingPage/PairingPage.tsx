@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 
-import { getDevicesPageService,PairingDisplayProps, IObserver } from 'incyclist-services'
+import { getDevicesPageService, MobilePairingPageService, PairingDisplayProps, IObserver } from 'incyclist-services'
 import { ErrorBoundary, MainBackground } from '../../components'
 import { useLogging,useUnmountEffect } from '../../hooks'
 import { PairingPageView } from './View'
@@ -25,7 +25,11 @@ export const PairingPage = ( {forRide}:PairingPageProps) => {
     const [props, setProps] = useState<PairingDisplayProps>(initialProps)
     const refObserver = useRef<IObserver|null|undefined>(null)
 
-    const service = getDevicesPageService()
+    // getDevicesPageService() dispatches by platform and so is typed as the union of both
+    // platforms' page services; this file only ever runs on the mobile channel, so it's always
+    // actually a MobilePairingPageService - narrowed here so getPageDisplayProperties() below is
+    // typed as plain PairingDisplayProps, not the desktop-shaped union.
+    const service = getDevicesPageService() as MobilePairingPageService
     const {logError,logEvent} = useLogging('PairingPage')
 
     
