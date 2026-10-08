@@ -73,7 +73,7 @@ export const CapabilityGrid = ({ capabilities, readyToStart, noSearch }: Capabil
                                 marginLeft: index === 0 ? 0 : GAP,
                             }]}
                         >
-                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} waiting={tile.role === 'required' && !readyToStart && !noSearch} />
+                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} waiting={tile.role === 'required' && !readyToStart && !noSearch && !tile.disabled} />
                         </View>
                     ))}
                 </View>

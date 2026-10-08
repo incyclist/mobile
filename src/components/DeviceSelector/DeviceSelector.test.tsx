@@ -52,9 +52,9 @@ describe('DeviceSelector', () => {
         expect(flatStyle.paddingBottom).toBeGreaterThanOrEqual(60);
     });
 
-    it('renders "For all capabilities" and names the capability in the unselect control', () => {
-        const { getByText } = render(<DeviceSelector {...buildProps(5)} />);
+    it('renders "For all capabilities" and no "Don\'t use" tick, since unselecting is done from the tile', () => {
+        const { getByText, queryByText } = render(<DeviceSelector {...buildProps(5)} />);
         expect(getByText('For all capabilities')).toBeTruthy();
-        expect(getByText("Don't use a Resistance device")).toBeTruthy();
+        expect(queryByText(/Don't use/)).toBeNull();
     });
 });

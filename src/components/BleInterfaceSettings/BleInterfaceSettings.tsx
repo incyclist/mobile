@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
 import { Platform, Linking } from 'react-native';
-import { getDevicesPageService, Observer } from 'incyclist-services';
+import { getDevicesPageService, MobilePairingPageService, Observer } from 'incyclist-services';
 import { BleInterfaceSettingsView } from './BleInterfaceSettingsView';
 import { PermissionService } from '../../services/PermissionsService';
 import { getBleBinding } from '../../bindings/ble';
 
 export const BleInterfaceSettings = memo(() => {
-    const pairingService = getDevicesPageService();
+    // getDevicesPageService() dispatches by platform and so is typed as the union of both
+    // platforms' page services; this file only ever runs on the mobile channel, so it's always
+    // actually a MobilePairingPageService - narrowed here rather than exposing BLE-only members
+    // on DesktopPairingPageService, which doesn't have (or need) them.
+    const pairingService = getDevicesPageService() as MobilePairingPageService;
     const permissionService = useMemo(() => new PermissionService(), []);
 
     const [displayProps, setDisplayProps] = useState(pairingService.getInterfaceSettingsDisplayProps());
