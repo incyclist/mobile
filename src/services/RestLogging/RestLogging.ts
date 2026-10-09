@@ -29,6 +29,11 @@ const restLogFilter = (context:string, event:any) => {
 }
 
 let restAdapter: RestLogAdapter | undefined
+// Guards against a second call on the same JS runtime (e.g. Loader remounting after an Android
+// Activity recreation that doesn't restart the process) registering a second RestLogAdapter -
+// EventLogger.registerAdapter() has no dedup, so without this every event would be shipped
+// twice, once per adapter, with identical timestamps.
+let initialized = false
 
 /**
  * Hands the events that were logged before this adapter existed over to it.
@@ -85,8 +90,16 @@ export const flushLogs = async (timeoutMs = 2000): Promise<void> => {
     ])
 }
 
-export const initRestLogging = async () => {
+/** Test-only: simulates a genuine process restart, where the module-level guard is naturally fresh. */
+export const resetRestLogging = (): void => {
+    initialized = false
+    restAdapter = undefined
+}
 
+export const initRestLogging = async () => {
+    if (initialized)
+        return
+    initialized = true
 
     try {
 

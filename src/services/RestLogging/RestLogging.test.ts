@@ -61,7 +61,7 @@ jest.mock('../../bindings/logging/Adapters/RestLogAdapter', () => ({
 }));
 
 import { EventLogger } from 'gd-eventlog';
-import { initRestLogging } from './RestLogging';
+import { initRestLogging, resetRestLogging } from './RestLogging';
 import { getLogBacklog, resetLogBacklog } from '../../bindings/logging/Adapters/BacklogAdapter';
 import { getRestLogFallbackStore, resetRestLogFallbackStore } from '../../bindings/logging/Adapters/RestLogFallbackStore';
 
@@ -71,6 +71,7 @@ describe('initRestLogging - early event handover', () => {
         EventLogger.reset();
         resetLogBacklog();
         resetRestLogFallbackStore();
+        resetRestLogging();
         mockAdapters.length = 0;
         Object.keys(mockSettings).forEach((key) => delete mockSettings[key]);
         mockSettings.uuid = 'test-uuid';
@@ -205,6 +206,7 @@ describe('initRestLogging - fallback store replay', () => {
         EventLogger.reset();
         resetLogBacklog();
         resetRestLogFallbackStore();
+        resetRestLogging();
         mockAdapters.length = 0;
         Object.keys(mockSettings).forEach((key) => delete mockSettings[key]);
         mockSettings.uuid = 'test-uuid';
@@ -250,7 +252,10 @@ describe('initRestLogging - fallback store replay', () => {
         await initRestLogging();
         expect(getRestLogFallbackStore().size).toBe(0);
 
-        // Simulate a second app start with a fresh adapter - nothing left to replay.
+        // Simulate a second app start (a genuine process restart, not a same-process remount -
+        // see the dedicated describe block below for that case) with a fresh adapter - nothing
+        // left to replay.
+        resetRestLogging();
         mockAdapters.length = 0;
         await initRestLogging();
 
@@ -268,5 +273,41 @@ describe('initRestLogging - fallback store replay', () => {
 
         const entry = replayed().find((e: any) => e.event.message === 'Logging initialiazed');
         expect(entry.event.replayedFallback).toBe(2);
+    });
+});
+
+// A root remount on the same JS runtime (e.g. an Android Activity recreated without a process
+// restart) re-runs Loader's one-time init, including this call - without a guard, that would
+// register a second RestLogAdapter and ship every later event twice.
+describe('initRestLogging - idempotent on a live JS runtime', () => {
+
+    beforeEach(() => {
+        EventLogger.reset();
+        resetLogBacklog();
+        resetRestLogFallbackStore();
+        resetRestLogging();
+        mockAdapters.length = 0;
+        Object.keys(mockSettings).forEach((key) => delete mockSettings[key]);
+        mockSettings.uuid = 'test-uuid';
+    });
+
+    it('a second call on the same runtime does not register a second adapter', async () => {
+        await initRestLogging();
+        expect(mockAdapters).toHaveLength(1);
+
+        await initRestLogging();
+
+        expect(mockAdapters).toHaveLength(1);
+    });
+
+    it('a second call does not ship later events twice', async () => {
+        await initRestLogging();
+        await initRestLogging();
+
+        mockAdapters[0].log.mockClear();
+        new EventLogger('mq').logEvent({ message: 'mqtt connected' });
+
+        const calls = mockAdapters[0].log.mock.calls.filter(([, event]: any[]) => event.message === 'mqtt connected');
+        expect(calls).toHaveLength(1);
     });
 });
