@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { App } from './App'; // This is your actual application
 import { ApiConfiguration, initRestLogging  } from './services';
 
@@ -32,13 +33,21 @@ const initApi = async ()=> {
 
 }
 
+// Module-level, not component state: survives a root remount (the same JS runtime mounting a
+// fresh Loader/App tree, e.g. an Android Activity destroyed and recreated without a process
+// restart - see design/features/root-remount-resilience/architecture.md). `refChecking` below
+// only guards re-entrancy within one component instance; it resets to null on every mount, so
+// it cannot detect this case by itself. This counter is the primary frequency signal for how
+// often it actually happens in production.
+let mountCount = 0
+
 export const Loader = () =>{
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [statusMessage, setStatusMessage] = useState<string>('Starting up...');
     const [secretsStatus, setSecretsStatus] = useState<SecretsStatus>('ok');
 
     const refChecking = useRef<Promise<any> | null>(null)
-    
+
     const initLogging =() =>{
         // Registered first, so nothing logged between here and the REST adapter coming up
         // is lost. initRestLogging() cannot run any earlier - it needs the settings - and
@@ -56,11 +65,19 @@ export const Loader = () =>{
     useEffect(() => {
         if ( refChecking.current)
             return
-        
+
+        mountCount += 1
+        if (mountCount > 1) {
+            // initRestLogging()/onAppLaunch() are independently idempotent (see their own
+            // guards), so re-running the rest of this effect on a remount is harmless - but it
+            // still happening at all is the thing worth knowing about.
+            new EventLogger('Incyclist').logEvent({ message: 'app root remounted', mountCount, appState: AppState.currentState })
+        }
+
         Orientation.lockToLandscape();
 
-        
-        
+
+
         const run = async () => {
 
             await initLogging()
