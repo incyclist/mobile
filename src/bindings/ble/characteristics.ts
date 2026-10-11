@@ -155,7 +155,7 @@ function mapProperties(props: any): BleProperty[] {
 
     if (props.Read) result.push('read')
     if (props.Write) result.push('write')
-    if (props.WriteWithoutResponse) result.push('write')
+    if (props.WriteWithoutResponse) result.push('writeWithoutResponse')
     if (props.Notify) result.push('notify')
     if (props.Indicate) result.push('indicate')
 
