@@ -90,5 +90,5 @@ export interface BleCharacteristic  {
     _serviceUuid?: string
 }
 
-export type BleProperty = 'notify' | 'read' | 'write' | 'indicate'
+export type BleProperty = 'notify' | 'read' | 'write' | 'writeWithoutResponse' | 'indicate'
 
