@@ -32,6 +32,13 @@ if (typeof structuredClone==='undefined') {
     }
 }
 
+// Polyfill Array.prototype.toSorted (Hermes 0.14.1 does not implement this ES2023 method)
+if (!Array.prototype.toSorted) {
+    Array.prototype.toSorted = function(compareFn) {
+        return this.slice().sort(compareFn);
+    };
+}
+
 /* required of default exports of events are used
 const EventEmitter = require('events');
 if (!EventEmitter.default) {
