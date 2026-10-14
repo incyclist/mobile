@@ -17,6 +17,14 @@ import { mapAndroidErrorCode } from './mapAndroidErrorCode';
 import { resolveNativeVideoSrc } from './resolveNativeVideoSrc';
 import { encodeUriIdempotent } from './encodeUriIdempotent';
 
+/**
+ * How long the start check waits for the native player to confirm its initial seek (`onSeek`).
+ * The player does not always confirm a seek (e.g. while it is still buffering at the target
+ * position); after this time the frame that is currently showing is accepted, rather than
+ * blocking the ride start indefinitely.
+ */
+export const VIDEO_SEEK_TIMEOUT_MS = 300;
+
 export const Video = (props: VideoProps) => {
     const {
         src,
@@ -45,6 +53,7 @@ export const Video = (props: VideoProps) => {
     const refHidden = useRef(hidden);
     const refBootstrapSeek = useRef(false);
     const refHasGrant = useRef(false)
+    const refSeekTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const {logEvent} = useLogging('Video')
 
     const refInfo = useRef({
@@ -96,6 +105,38 @@ export const Video = (props: VideoProps) => {
         logEvent({message:'load start event', isNetwork:data.isNetwork, type:data.type, uri:data.uri})
     }, [logEvent]);
 
+    const clearSeekTimeout = useCallback(() => {
+        if (refSeekTimeout.current) {
+            clearTimeout(refSeekTimeout.current);
+            refSeekTimeout.current = undefined;
+        }
+    }, []);
+
+    const done = useCallback(() => {
+        clearSeekTimeout();
+
+        if (!refInfo.current.loading)
+            return;
+
+        refInfo.current.loading = false
+        refInfo.current.loaded = true
+        // internalHidden=false is safe here — VideoView receives (hidden || internalHidden)
+        // so if the hidden prop is true, the component remains invisible regardless
+        setInternalHidden(false);
+        onLoaded?.(refInfo.current.bufferedTime);
+    }, [clearSeekTimeout, onLoaded]);
+
+    const handleSeekTimeout = useCallback(() => {
+        refSeekTimeout.current = undefined;
+        if (!refInfo.current.loading)
+            return;
+
+        logEvent({message:'seek not confirmed, accepting current frame', timeout:VIDEO_SEEK_TIMEOUT_MS})
+        refBootstrapSeek.current = false;
+        setPaused(true);
+        done();
+    }, [done, logEvent]);
+
     const handleLoad = useCallback((_data: OnLoadData) => {
         if (!refInfo?.current?.loaded)  {
             logEvent({message:'load event'})
@@ -107,12 +148,15 @@ export const Video = (props: VideoProps) => {
             seekTo(0.1);
         } else {
             seekTo(startTime);
-        }        
+        }
 
         refInfo.current.loading = true
         refInfo.current.loaded = false
-       
-    }, [seekTo, startTime,logEvent]);
+
+        clearSeekTimeout();
+        refSeekTimeout.current = setTimeout(handleSeekTimeout, VIDEO_SEEK_TIMEOUT_MS);
+
+    }, [seekTo, startTime, logEvent, clearSeekTimeout, handleSeekTimeout]);
 
     const handleSeek = useCallback((data: OnSeekData) => {
 
@@ -122,40 +166,30 @@ export const Video = (props: VideoProps) => {
 
 
         if (refBootstrapSeek.current) {
+            // the bootstrap seek (forward from 0, to avoid an initial black frame) is confirmed:
+            // being a few frames into the video is within tolerance, so there is no need to seek
+            // back to 0 - which would force the player to fetch the start of the file again
             refBootstrapSeek.current = false;
-            seekTo(0);  // seek back to actual start
-            return;     // wait for the next onSeek
-        }
-
-        const done = ()=> {
-
-            if (!refInfo.current.loading)
-                return;
-
-            refInfo.current.loading = false
-            refInfo.current.loaded = true
-            // internalHidden=false is safe here — VideoView receives (hidden || internalHidden)
-            // so if the hidden prop is true, the component remains invisible regardless        
-            setInternalHidden(false);
-            onLoaded?.(refInfo.current.bufferedTime);
-
+            setPaused(true);
+            done();
+            return;
         }
 
         if (refInfo.current.loaded) {
             return;
         }
-        
+
         setPaused(true);
         if (data.currentTime===(startTime ?? 0)) {
             sleep(5).then(done)
         }
         else {
-            seekTo(startTime ?? 0);            
+            seekTo(startTime ?? 0);
             sleep(5).then(done)
         }
 
 
-    }, [logEvent, onLoaded, seekTo, startTime]);
+    }, [logEvent, done, seekTo, startTime]);
 
     const handleProgress = useCallback((data: OnProgressData) => {
         if (!refInfo?.current?.loaded)  {
@@ -295,6 +329,7 @@ export const Video = (props: VideoProps) => {
     }, [hidden, internalHidden]);
 
     useUnmountEffect(() => {
+        clearSeekTimeout();
         observer
             ?.off('rate-update', handleRateChangeRequest)
             ?.off('time-update', seekTo);
