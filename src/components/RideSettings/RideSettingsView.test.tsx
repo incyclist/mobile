@@ -13,6 +13,7 @@ const MOCK_PROPS: RideSettingsViewProps = {
     ]),
     onClose: jest.fn(),
     onChangeRideView: jest.fn(),
+    onChangeVideoAudio: jest.fn(),
 };
 
 describe('RideSettingsView', () => {

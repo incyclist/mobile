@@ -2,12 +2,15 @@ import React, { useCallback, useMemo } from 'react';
 import { RideSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { ChipSelect } from '../ChipSelect';
+import { BinarySelect } from '../BinarySelect';
 
 export const RideSettingsView = ({
     rideView,
     rideViewOptions,
+    videoOptions,
     onClose,
     onChangeRideView,
+    onChangeVideoAudio
 }: RideSettingsViewProps) => {
     // ChipSelect's own contract is keyed by label (string), not by TRideView - map the
     // already-resolved {label, disabled, message} entries straight through.
@@ -42,10 +45,18 @@ export const RideSettingsView = ({
         >
             <ChipSelect
                 label="Select View"
+                labelWidth={135}
                 options={options}
                 selected={selected}
                 onValueChange={handleChange}
             />
+
+            <BinarySelect
+                label="Play video sound"
+                labelWidth={135}
+                onValueChange={onChangeVideoAudio}
+                value={videoOptions?.enableAudio??false}
+                />
         </Dialog>
     );
 };

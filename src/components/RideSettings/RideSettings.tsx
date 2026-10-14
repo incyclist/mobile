@@ -4,7 +4,7 @@ import { useUnmountEffect } from '../../hooks';
 import { RideSettingsProps } from './types';
 import { RideSettingsView } from './RideSettingsView';
 
-export const RideSettings = ({ onClose }: RideSettingsProps) => {
+export const RideSettings = ({ onClose,isRide }: RideSettingsProps) => {
     const service = useRideSettingsDisplay();
     const [displayProps, setDisplayProps] = useState<RideSettingsDisplayProps | null>(null);
     const refInitialized = useRef(false);
@@ -21,10 +21,10 @@ export const RideSettings = ({ onClose }: RideSettingsProps) => {
             return;
         }
         refInitialized.current = true;
-        const observer = service.open();
+        const observer = service.open(isRide);
         setDisplayProps(service.getDisplayProps());
         observer.on('changed', onChanged);
-    }, [service, onChanged]);
+    }, [service, onChanged, isRide]);
 
     useUnmountEffect(() => {
         service.close();
@@ -34,6 +34,12 @@ export const RideSettings = ({ onClose }: RideSettingsProps) => {
         service.setRideView(view);
     }, [service]);
 
+    const onChangeVideoAudio = useCallback((enabled: boolean) => {
+        service.setVideoAudioEnabled(enabled)
+    }, [service]);
+
+
+    
     if (!displayProps) {
         return null;
     }
@@ -43,6 +49,7 @@ export const RideSettings = ({ onClose }: RideSettingsProps) => {
             {...displayProps}
             onClose={onClose}
             onChangeRideView={onChangeRideView}
+            onChangeVideoAudio={onChangeVideoAudio}
         />
     );
 };

@@ -81,7 +81,7 @@ export const RideMenuView = ({
     onVideoKeepInstead = () => {},
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
-    renderRideSettings = () => <RideSettings onClose={onDialogClose} />,
+    renderRideSettings = () => <RideSettings isRide={true} onClose={onDialogClose} />,
     renderActivitySummary = () => (
         <ActivitySummaryDialog
             onClose={onDialogClose}
