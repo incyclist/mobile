@@ -1,8 +1,27 @@
 import  { EventEmitter } from "events"
 
-export type StatScanningCallback = (error?: Error) => void
+// The binding contract that incyclist-devices expects. These are re-exported by incyclist-services
+// and must not be re-declared here: a local copy drifts silently when devices changes the contract.
+// (type-only imports: they are erased at build time, so this file never loads the services barrel)
+import type {
+    BleInterfaceState,
+    BleService,
+    DiscoverResult,
+} from "incyclist-services"
 
-export type BleInterfaceState  =  'unknown' | 'resetting' | 'unsupported' | 'unauthorized' | 'poweredOff'|  'poweredOn'
+export type {
+    BleInterfaceState,
+    BleService,
+    DiscoverResult,
+}
+
+export type {
+    BleProperty,
+    BleCharacteristic,
+    BleRawCharacteristic,
+} from "incyclist-services"
+
+export type StatScanningCallback = (error?: Error) => void
 
 
 // 'stateChange' event
@@ -12,9 +31,11 @@ export type StateChangeEventHandler = (state:BleInterfaceState)=>void
 export type ErrorEventhandler = (error?: Error) => void
 
 // 'discover' event
-export type DiscoverEventhandler = (peripheral:BleRawPeripheral)=>void   
+export type DiscoverEventhandler = (peripheral:BleRawPeripheral)=>void
 
 
+// Kept local on purpose, although incyclist-devices has a type of the same name: devices' BleBinding
+// also demands a `_bindings` member (a detail of its Noble binding) that this RN binding does not have.
 export interface BleBinding extends EventEmitter {
     // starts a scan, emits  'discover' events for every peripheral that got announced
     startScanning(serviceUUIDs?: string[], allowDuplicates?: boolean, callback?: StatScanningCallback): void;
@@ -32,9 +53,11 @@ export interface BleBinding extends EventEmitter {
 
     // the current state ( based on state it has received )
     state: BleInterfaceState;
-    
+
 }
 
+// Kept local on purpose: devices only has `BleRawAdvertisement` (address/localName/serviceUuids/rssi),
+// which is a different shape. This one describes what react-native-ble-plx provides.
 export type BleServiceData = {uuid: string, data: Buffer}
 
 export interface BleAdvertisement {
@@ -45,9 +68,12 @@ export interface BleAdvertisement {
     serviceUuids?: string[]
 }
 
-/** 
+/**
  * Peripheral as provided by the binding (Noble library)
  * this will be used as interface to communicate with the device
+ *
+ * Kept local on purpose: identical to devices' BleRawPeripheral except that `advertisement` is
+ * typed (BleAdvertisement) here, where devices types it as `any`.
  **/
 export interface BleRawPeripheral extends EventEmitter{
     id?: string;
@@ -64,31 +90,3 @@ export interface BleRawPeripheral extends EventEmitter{
     discoverSomeServicesAndCharacteristicsAsync(serviceUUIDs: string[], characteristicUUIDs: string[]): Promise<DiscoverResult>;
     discoverServicesAsync?(serviceUUIDs: string[]): Promise<BleService[]>;
 }
-
-
-export type DiscoverResult = {
-    services: BleService[]
-    characteristics: BleRawCharacteristic[]
-}
-
-export interface BleRawCharacteristic extends BleCharacteristic, EventEmitter {
-    subscribe( callback: (err:Error|undefined)=>void): void
-    unsubscribe( callback: (err:Error|undefined)=>void): void
-    read( callback: (err:Error|undefined, data:Buffer)=>void): void
-    write(data:Buffer, withoutResponse:boolean,callback?: (err:Error|undefined)=>void): void
-}
-
-export type BleService = {
-    uuid: string;
-    characteristics?: BleCharacteristic[]
-}
-
-export interface BleCharacteristic  {
-    uuid: string;
-    properties: BleProperty[];
-    name?: string
-    _serviceUuid?: string
-}
-
-export type BleProperty = 'notify' | 'read' | 'write' | 'writeWithoutResponse' | 'indicate'
-
