@@ -5,21 +5,21 @@ import  { EventEmitter } from "events"
 // (type-only imports: they are erased at build time, so this file never loads the services barrel)
 import type {
     BleInterfaceState,
-    BleProperty,
-    BleCharacteristic,
-    BleRawCharacteristic,
     BleService,
     DiscoverResult,
 } from "incyclist-services"
 
 export type {
     BleInterfaceState,
-    BleProperty,
-    BleCharacteristic,
-    BleRawCharacteristic,
     BleService,
     DiscoverResult,
 }
+
+export type {
+    BleProperty,
+    BleCharacteristic,
+    BleRawCharacteristic,
+} from "incyclist-services"
 
 export type StatScanningCallback = (error?: Error) => void
 
