@@ -120,6 +120,14 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
         service.adjustLoad(-LARGE_LOAD_INCREMENT);
     }, [service]);
 
+    // The explanation of a restricted ride view is a dialog of the ride page: close the menu first,
+    // so that it is not shown behind (or on top of) the menu's own dialog
+    const handleRideViewHelp = useCallback(() => {
+        setActiveDialog(null);
+        onClose();
+        service.onOpenRideViewRestrictionDialog();
+    }, [onClose, service]);
+
     // Generic handler to close any active dialog
     const handleDialogClose = useCallback(() => {
         setActiveDialog(null);
@@ -159,6 +167,7 @@ export const RideMenu = ({ visible, finished, onClose, onCloseRidePage=()=>{} }:
             onWorkoutSettings={handleWorkoutSettings}
             onDialogClose={handleDialogClose}
             onExitFromSummary={handleExitFromSummary}
+            onRideViewHelp={handleRideViewHelp}
         />
     );
 };

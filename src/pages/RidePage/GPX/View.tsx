@@ -3,6 +3,7 @@ import { Platform, View, StyleSheet } from 'react-native';
 import {
     RoutePoint,
     GPXRidePageDisplayProps,
+    RideViewNoticeActionId,
     useAvatars,
 } from 'incyclist-services';
 import {
@@ -16,6 +17,8 @@ import {
     RideGestureHintOverlay,
     RideSwipeFeedback,
     RideViewNotice,
+    RideViewRestrictionNotice,
+    RideViewRestrictionDialog,
     ErrorBoundary,
 } from '../../../components';
 import { LatLng } from '../../../components/FreeMap/types';
@@ -34,6 +37,12 @@ import { avatarToConfig } from '../../../components/PrevRides';
 
 export interface GPXTourPageViewProps extends RideViewActionProps {
     displayProps: GPXRidePageDisplayProps;
+    /** simulated ride without personal Maps key: the ride view is limited to the Map */
+    onRideViewNoticeAction?: (id: RideViewNoticeActionId) => void;
+    onRideViewNoticeClosed?: () => void;
+    onCloseRideViewRestrictionDialog?: () => void;
+    onRideViewReminderChanged?: (enabled: boolean) => void;
+    onDiscardSimulatedRide?: () => void;
 }
 
 const SV = React.memo(StreetView
@@ -78,9 +87,29 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onSetPrevRidesVisibleRows,
         onSetPrevRidesMode,
         getPrevRidesRows,
+        onRideViewNoticeAction,
+        onRideViewNoticeClosed,
+        onCloseRideViewRestrictionDialog,
+        onRideViewReminderChanged,
+        onDiscardSimulatedRide,
     } = props;
 
-    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,svHasCoverage,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
+    const { startOverlayProps,menuProps,rideView,route,displayObserver,displayPosition,onDisplayEvent,svInitAllowed,rideViewNotice,svCoverageNotice,svHasCoverage,rideViewRestrictionNotice,rideViewRestrictionDialog,workoutAttached,graph,steps,dashboard,cornerWidget,loadButtonMode,gestureHint,prevRides,nearbyRiders} = displayProps??{};
+
+    const handleRestrictionNoticeAction = useCallback(
+        (id: RideViewNoticeActionId) => onRideViewNoticeAction?.(id),
+        [onRideViewNoticeAction]
+    );
+    const handleRestrictionNoticeClosed = useCallback(() => onRideViewNoticeClosed?.(), [onRideViewNoticeClosed]);
+    const handleRestrictionDialogClose = useCallback(
+        () => onCloseRideViewRestrictionDialog?.(),
+        [onCloseRideViewRestrictionDialog]
+    );
+    const handleReminderChanged = useCallback(
+        (enabled: boolean) => onRideViewReminderChanged?.(enabled),
+        [onRideViewReminderChanged]
+    );
+    const handleDiscard = useCallback(() => onDiscardSimulatedRide?.(), [onDiscardSimulatedRide]);
 
     // Derived properties
     const routeData = route?.details;
@@ -452,6 +481,25 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     message="Street View isn't available right now. Showing the Map instead."
                 />
             )}
+
+            {/* Simulated ride without personal Maps key: why the Map is shown. Only reported by the
+                service once neither the start overlay nor the gesture hint is showing. */}
+            {!startOverlayProps && (
+                <RideViewRestrictionNotice
+                    notice={rideViewRestrictionNotice}
+                    onAction={handleRestrictionNoticeAction}
+                    onClose={handleRestrictionNoticeClosed}
+                />
+            )}
+
+            {rideViewRestrictionDialog ? (
+                <RideViewRestrictionDialog
+                    dialog={rideViewRestrictionDialog}
+                    onClose={handleRestrictionDialogClose}
+                    onDiscard={handleDiscard}
+                    onReminderChanged={handleReminderChanged}
+                />
+            ) : null}
 
             {/* No coverage at the rider's current position - never a fallback, can fire
                 repeatedly as the rider rides through gaps. */}

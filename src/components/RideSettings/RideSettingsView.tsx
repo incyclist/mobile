@@ -3,14 +3,17 @@ import { RideSettingsViewProps } from './types';
 import { Dialog } from '../Dialog';
 import { ChipSelect } from '../ChipSelect';
 import { BinarySelect } from '../BinarySelect';
+import { LinkButton } from '../LinkButton';
 
 export const RideSettingsView = ({
     rideView,
     rideViewOptions,
+    rideViewHelp,
     videoOptions,
     onClose,
     onChangeRideView,
-    onChangeVideoAudio
+    onChangeVideoAudio,
+    onShowRideViewHelp
 }: RideSettingsViewProps) => {
     // ChipSelect's own contract is keyed by label (string), not by TRideView - map the
     // already-resolved {label, disabled, message} entries straight through.
@@ -50,6 +53,9 @@ export const RideSettingsView = ({
                 selected={selected}
                 onValueChange={handleChange}
             />
+            {rideViewHelp && onShowRideViewHelp ? (
+                <LinkButton label={rideViewHelp.label} onPress={onShowRideViewHelp} />
+            ) : null}
 
             <BinarySelect
                 label="Play video sound"

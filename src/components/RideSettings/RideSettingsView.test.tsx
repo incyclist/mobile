@@ -108,4 +108,36 @@ describe('RideSettingsView', () => {
         fireEvent.press(getByText('Map'));
         expect(onChangeRideView).toHaveBeenCalledWith('map');
     });
+    describe('restricted ride view (simulated ride)', () => {
+        const restricted: Partial<RideSettingsViewProps> = {
+            rideView: 'map',
+            rideViewOptions: new Map<TRideView, TRideViewOption>([
+                ['sv', { label: 'Street View', disabled: true, message: 'Not available in simulated rides', reason: 'simulation' }],
+                ['map', { label: 'Map' }],
+                ['sat', { label: 'Satellite View', disabled: true, message: 'Not available in simulated rides', reason: 'simulation' }],
+            ]),
+            rideViewHelp: { label: 'How to get Street View' },
+        };
+
+        it('shows the link below the view selector and reports a press', () => {
+            const onShowRideViewHelp = jest.fn();
+            const { getByText } = render(
+                <RideSettingsView {...MOCK_PROPS} {...restricted} onShowRideViewHelp={onShowRideViewHelp} />
+            );
+
+            fireEvent.press(getByText('How to get Street View'));
+
+            expect(onShowRideViewHelp).toHaveBeenCalledTimes(1);
+        });
+
+        it('shows no link if the parent does not handle it', () => {
+            const { queryByText } = render(<RideSettingsView {...MOCK_PROPS} {...restricted} />);
+            expect(queryByText('How to get Street View')).toBeNull();
+        });
+
+        it('shows no link if nothing is restricted', () => {
+            const { queryByText } = render(<RideSettingsView {...MOCK_PROPS} onShowRideViewHelp={jest.fn()} />);
+            expect(queryByText('How to get Street View')).toBeNull();
+        });
+    });
 });

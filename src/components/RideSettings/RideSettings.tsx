@@ -4,7 +4,7 @@ import { useUnmountEffect } from '../../hooks';
 import { RideSettingsProps } from './types';
 import { RideSettingsView } from './RideSettingsView';
 
-export const RideSettings = ({ onClose,isRide }: RideSettingsProps) => {
+export const RideSettings = ({ onClose,isRide,onShowRideViewHelp }: RideSettingsProps) => {
     const service = useRideSettingsDisplay();
     const [displayProps, setDisplayProps] = useState<RideSettingsDisplayProps | null>(null);
     const refInitialized = useRef(false);
@@ -50,6 +50,7 @@ export const RideSettings = ({ onClose,isRide }: RideSettingsProps) => {
             onClose={onClose}
             onChangeRideView={onChangeRideView}
             onChangeVideoAudio={onChangeVideoAudio}
+            onShowRideViewHelp={onShowRideViewHelp}
         />
     );
 };

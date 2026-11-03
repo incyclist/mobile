@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { View } from 'react-native';
-import { GPXRidePageDisplayProps, RideType } from 'incyclist-services';
+import { GPXRidePageDisplayProps, RideType, RideViewNoticeActionId } from 'incyclist-services';
 import { colors } from '../../../theme';
 import { GPXTourPageView } from './View';
 import { MainBackground, ErrorBoundary } from '../../../components';
@@ -36,6 +36,22 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
         (dismissProps: { dontShowAgain: boolean }) => refService.current?.onGestureHintDismissed(dismissProps),
         [refService]
     );
+    const onRideViewNoticeAction = useCallback(
+        (id: RideViewNoticeActionId) => refService.current?.onRideViewNoticeAction(id),
+        [refService]
+    );
+    const onRideViewNoticeClosed = useCallback(() => refService.current?.onRideViewNoticeClosed(), [refService]);
+    const onCloseRideViewRestrictionDialog = useCallback(
+        () => refService.current?.onCloseRideViewRestrictionDialog(),
+        [refService]
+    );
+    const onRideViewReminderChanged = useCallback(
+        (enabled: boolean) => refService.current?.onRideViewReminderChanged(enabled),
+        [refService]
+    );
+    const onDiscardSimulatedRide = useCallback(() => {
+        refService.current?.onDiscardSimulatedRide();
+    }, [refService]);
     const onExpandPrevRides = useCallback(() => refService.current?.onExpandPrevRides?.(), [refService]);
     const onCollapsePrevRides = useCallback(() => refService.current?.onCollapsePrevRides?.(), [refService]);
     const onSetPrevRidesVisibleRows = useCallback(
@@ -76,6 +92,11 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
                 onToggleCornerWidget={onToggleCornerWidget}
                 onStopWorkout={onStopWorkout}
                 onGestureHintDismissed={onGestureHintDismissed}
+                onRideViewNoticeAction={onRideViewNoticeAction}
+                onRideViewNoticeClosed={onRideViewNoticeClosed}
+                onCloseRideViewRestrictionDialog={onCloseRideViewRestrictionDialog}
+                onRideViewReminderChanged={onRideViewReminderChanged}
+                onDiscardSimulatedRide={onDiscardSimulatedRide}
                 onExpandPrevRides={onExpandPrevRides}
                 onCollapsePrevRides={onCollapsePrevRides}
                 onSetPrevRidesVisibleRows={onSetPrevRidesVisibleRows}
