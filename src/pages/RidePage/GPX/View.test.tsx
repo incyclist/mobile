@@ -20,6 +20,8 @@ const mockRideOverlay = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
 const mockFreeMap = jest.fn();
+const mockRestrictionNotice = jest.fn();
+const mockRestrictionDialog = jest.fn();
 jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
@@ -42,6 +44,14 @@ jest.mock('../../../components', () => ({
         return null;
     },
     RideViewNotice: () => null,
+    RideViewRestrictionNotice: (props: any) => {
+        mockRestrictionNotice(props);
+        return null;
+    },
+    RideViewRestrictionDialog: (props: any) => {
+        mockRestrictionDialog(props);
+        return null;
+    },
     StartRideDisplay: (props: any) => {
         mockStartRideDisplay(props);
         return null;
@@ -331,6 +341,80 @@ describe('GPXTourPageView — workout overlay branch', () => {
 // RideSwipeFeedback) was only ever attached to WorkoutRidePageView - GPXTourPageView had none of
 // it, even though RidePageService's adjustLoad()/onStepBack()/onStepForward() already worked
 // correctly for a plain GPX ride.
+describe('GPXTourPageView — ride view restriction', () => {
+    const notice = {
+        id: 1,
+        state: 'message' as const,
+        text: "Street View isn't available in simulated rides. Showing the Map instead.",
+        actions: [{ id: 'how-to' as const, label: 'How to get Street View' }],
+    };
+    const dialog = { title: 'Street View in simulated rides', body: 'Body', options: [] };
+
+    beforeEach(() => {
+        mockRestrictionNotice.mockClear();
+        mockRestrictionDialog.mockClear();
+    });
+
+    it('hands the notice and the callbacks to the notice component', () => {
+        const onRideViewNoticeAction = jest.fn();
+        const onRideViewNoticeClosed = jest.fn();
+        render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                displayProps={{ ...activeProps('map').displayProps, rideViewRestrictionNotice: notice } as any}
+                onRideViewNoticeAction={onRideViewNoticeAction}
+                onRideViewNoticeClosed={onRideViewNoticeClosed}
+            />
+        );
+
+        const props = mockRestrictionNotice.mock.calls.at(-1)[0];
+        expect(props.notice).toEqual(notice);
+        props.onAction('how-to');
+        props.onClose();
+        expect(onRideViewNoticeAction).toHaveBeenCalledWith('how-to');
+        expect(onRideViewNoticeClosed).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not mount the notice while the start overlay is showing', () => {
+        render(
+            <GPXTourPageView
+                {...baseProps}
+                displayProps={{ ...baseProps.displayProps, startOverlayProps: { mode: 'GPX' }, rideViewRestrictionNotice: notice } as any}
+            />
+        );
+        expect(mockRestrictionNotice).not.toHaveBeenCalled();
+    });
+
+    it('renders no dialog unless the service has one', () => {
+        render(<GPXTourPageView {...activeProps('map')} />);
+        expect(mockRestrictionDialog).not.toHaveBeenCalled();
+    });
+
+    it('renders the dialog and wires its callbacks to the service', () => {
+        const onCloseRideViewRestrictionDialog = jest.fn();
+        const onRideViewReminderChanged = jest.fn();
+        const onDiscardSimulatedRide = jest.fn();
+        render(
+            <GPXTourPageView
+                {...activeProps('map')}
+                displayProps={{ ...activeProps('map').displayProps, rideViewRestrictionDialog: dialog } as any}
+                onCloseRideViewRestrictionDialog={onCloseRideViewRestrictionDialog}
+                onRideViewReminderChanged={onRideViewReminderChanged}
+                onDiscardSimulatedRide={onDiscardSimulatedRide}
+            />
+        );
+
+        const props = mockRestrictionDialog.mock.calls.at(-1)[0];
+        expect(props.dialog).toEqual(dialog);
+        props.onClose();
+        props.onReminderChanged(false);
+        props.onDiscard();
+        expect(onCloseRideViewRestrictionDialog).toHaveBeenCalledTimes(1);
+        expect(onRideViewReminderChanged).toHaveBeenCalledWith(false);
+        expect(onDiscardSimulatedRide).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('GPXTourPageView — swipe-gesture surface', () => {
     beforeEach(() => {
         mockRideGestureHintOverlay.mockClear();

@@ -57,6 +57,8 @@ jest.mock('../../../components', () => {
         RideGestureHintOverlay: () => null,
         RideSwipeFeedback: () => null,
         RideViewNotice: () => null,
+        RideViewRestrictionNotice: () => null,
+        RideViewRestrictionDialog: () => null,
         StartRideDisplay: () => null,
         RideOverlay: () => null,
     };

@@ -9,6 +9,7 @@ export const colors = {
     buttonSecondary: '#FFFFFF',
     button: '#EEEEEE',
     text: '#FFFFFF',
+    link: '#8cc4ff',
     textPrimary: '#FFFFFF',
     icon:  '#FFFFFF',
     iconSelected: "#000000",

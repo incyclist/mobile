@@ -24,6 +24,7 @@ export interface RideMenuViewProps {
     onEndRide: () => void;
     onGearSettings: () => void;
     onRideSettings: () => void;
+    onRideViewHelp?: () => void; // explain why a ride view is not available (link in the Ride View dialog)
     onDialogClose: () => void; // Generic dialog close for GearSettings, RideSettingsPlaceholder
     onExitFromSummary: () => void; // Specific exit for ActivitySummaryDialog (e.g., calls service.onEndRide)
 

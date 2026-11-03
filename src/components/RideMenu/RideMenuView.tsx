@@ -64,6 +64,7 @@ export const RideMenuView = ({
     onRideSettings,
     onDialogClose,
     onExitFromSummary,
+    onRideViewHelp,
 
     workout = false,
     canStepBack = false,
@@ -81,7 +82,7 @@ export const RideMenuView = ({
     onVideoKeepInstead = () => {},
 
     renderGearSettings = () => <GearSettings onClose={onDialogClose} />,
-    renderRideSettings = () => <RideSettings isRide={true} onClose={onDialogClose} />,
+    renderRideSettings = () => <RideSettings isRide={true} onClose={onDialogClose} onShowRideViewHelp={onRideViewHelp} />,
     renderActivitySummary = () => (
         <ActivitySummaryDialog
             onClose={onDialogClose}
