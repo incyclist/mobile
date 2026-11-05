@@ -12,7 +12,7 @@ export const KomootLoginDialog = ({ onSuccess, onCancel }: KomootLoginDialogProp
     const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
 
     const service = useAppsService()
-    const { logEvent, logError } = useLogging('KomootLoginDialog')
+    const { logEvent } = useLogging('KomootLoginDialog')
 
     const handleConnect = useCallback(async () => {
         if (!service) return
@@ -26,12 +26,11 @@ export const KomootLoginDialog = ({ onSuccess, onCancel }: KomootLoginDialogProp
         } catch (err) {
             const error = err as Error
             logEvent({ message: 'komoot login failed', error })
-            logError(error, 'handleConnect')
             setErrorMessage(error.message)
         } finally {
             setIsConnecting(false)
         }
-    }, [service, username, password, userid, logEvent, logError, onSuccess])
+    }, [service, username, password, userid, logEvent, onSuccess])
 
     const handleCancel = useCallback(() => {
         onCancel?.()
