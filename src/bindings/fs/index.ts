@@ -36,6 +36,10 @@ export class FileSystemBinding implements IFileSystem {
     protected logger = new EventLogger('FS')
 
     async writeFile(path: string, data: any, encoding?: string): Promise<void> {
+        if (!path) {
+            this.logger.logEvent({message:'error',fn:'fs.writeFile',error:'writeFile called without providing path'})
+            return
+        }
 
         if (Buffer.isBuffer(data)) {
             // Buffer already contains raw bytes — convert to base64 for RNFS
@@ -54,6 +58,11 @@ export class FileSystemBinding implements IFileSystem {
     async readFile(path: string, encoding?: string): Promise<string|Buffer> {
         let accessRequested = false
         try {
+
+            if (!path) {
+                this.logger.logEvent({message:'error',fn:'fs.readFile',error:'readFile called without providing path'})
+                throw new Error('readFile called without providing path')
+            }
             const readRaw = path.startsWith('content://')
                 ? (enc: string) => requireFolderAccess().readFile(path, enc)
                 : (enc: string) => RNFS.readFile(path, enc)
@@ -127,6 +136,9 @@ export class FileSystemBinding implements IFileSystem {
     }
 
     async existsFile(path: string): Promise<boolean> {
+        if (!path)
+            return false
+
         // Path is guaranteed to be a string, no need for optional chaining
         if (path.startsWith('content://')) {
             return await requireFolderAccess().exists(path);
