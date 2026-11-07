@@ -97,13 +97,10 @@ export const resetRestLogging = (): void => {
 }
 
 export const getLogUrl = () => {
-    console.log('[debug] getLogUrl', isProdVariant )
     const settings = getUserSettingsBinding()
     const logUrl = settings.getValue('logRest.url',DEFAULT_LOG_URL )
 
-    console.log('[debug] getLogUrl - configured',logUrl )
     if (!isProdVariant  && logUrl===DEFAULT_LOG_URL) {
-        console.log('[debug] getLogUrl - overwrite',DEFAULT_DEV_LOG_URL)
         return DEFAULT_DEV_LOG_URL
     }
     return logUrl   
