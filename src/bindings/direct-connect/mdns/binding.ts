@@ -3,17 +3,22 @@ import Zeroconf from 'react-native-zeroconf'
 import type { BrowserConfig, MulticastDnsAnnouncement, MulticastDnsBinding } from '../types'
 
 export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
-    private bonjour:Zeroconf|undefined
     private _logger!: EventLogger
+    private _connected: boolean = false
+    private browsers: Map<string,Zeroconf> = new Map<string,Zeroconf>()
 
-    connect():void {            
+    connect():void {           
+
         try {
-            console.log('[DirectConnect].connect')
-            if (!this.bonjour) {
-                this.bonjour = new Zeroconf()
-
-                this.logger.logEvent( {message:'Connect to bonjour '})
+            let log = true
+            if (this._connected) {
+                this.disconnect()
+                log = false
             }
+            this._connected = true
+
+            if (log)
+                this.logger.logEvent( {message:'Connect to bonjour '})
             return;
 
         }
@@ -22,27 +27,25 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
         }
     }
 
-    protected get logger():EventLogger {
-        this._logger = this._logger??new EventLogger('DirectConnect')
-        return this._logger
-    }
-
-    protected logError(err:any,fn:string) {
-        this.logger.logEvent({message:'error', fn, error:err.message, stack:err.stack})
-    }
-
     disconnect():void {
         try {
-            console.log('[DirectConnect].disconnect')
-            if (this.bonjour) {
+            if (this._connected) {
                 this.logger.logEvent( {message:'Disconnect from bonjour '})
-                this.bonjour.stop()
-                this.bonjour.removeAllListeners()
-                this.bonjour = undefined
-            }
+
+                const searches = Object.keys(this.browsers)
+                searches.forEach( search => {
+                    const browser = this.browsers.get(search)
+                    browser?.stop()
+                    browser?.removeAllListeners()
+                })               
+            }            
         }
         catch(err:any) {
             this.logError(err,'diconnect')
+        }
+        finally {
+            this.browsers.clear()
+            this._connected = false
         }
         return;
     }
@@ -56,8 +59,12 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
 
     find(opts: BrowserConfig | null, onup?: (svc: MulticastDnsAnnouncement) => void) {
 
+        if (!this._connected) return
 
-        if (!this.bonjour) return
+        // no support for wildcard search
+        if (!opts?.type)
+            return
+
 
         try {
 
@@ -65,13 +72,20 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
             const protocol = opts?.protocol ?? 'tcp'
             const domain = 'local.'
 
-            
-            console.log('[DirectConnect].find', opts,{type,protocol,domain})
 
-            this.bonjour.on('resolved', (service:any) => {
+            const key = `${type}:${protocol}:${domain}`
+            let browser = this.browsers.get(key)
+            if (!browser) {
+                browser = new Zeroconf()
+                this.browsers.set(key,browser)
+            }
+
+            this.logger.logEvent( {message:'start scan', type,protocol,domain})
+
+            browser.on('resolved', (service:any) => {
                 if (!service.addresses?.length) return
 
-                console.log('[DirectConnect] got announcement', service)
+                this.logger.logEvent( {message:'got announcement', type,protocol,domain,service})
 
                 const announcement: MulticastDnsAnnouncement = {
                 type,
@@ -88,8 +102,7 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
                 onup?.(announcement)
             })
 
-
-            this.bonjour.scan(type, protocol, domain)
+            browser.scan(type, protocol, domain)
 
         }
         catch(err:any) {
@@ -97,6 +110,16 @@ export class ReactNativeMdnsBinding  implements MulticastDnsBinding{
         }
 
     }
+
+    protected get logger():EventLogger {
+        this._logger = this._logger??new EventLogger('DirectConnect')
+        return this._logger
+    }
+
+    protected logError(err:any,fn:string) {
+        this.logger.logEvent({message:'error', fn, error:err.message, stack:err.stack})
+    }
+
 
   
 }
