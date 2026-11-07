@@ -84,7 +84,7 @@ export class UpdateService {
         this.logger.logEvent( {message:'check for updates', isDevVariant, isProdVariant})
 
         // 1. Skip if in Debug (Development) mode
-        if (isDevVariant) {
+        if (!isProdVariant) {
             this.logger.logEvent({message:'Skipping update check in Debug mode.'});
             return;
         }

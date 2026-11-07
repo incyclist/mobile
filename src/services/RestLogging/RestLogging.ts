@@ -2,14 +2,14 @@ import { EventLogger } from "gd-eventlog"
 import { RestLogAdapter } from "../../bindings/logging/Adapters/RestLogAdapter"
 import { ApiConfiguration } from "../IncyclistApi";
 import { Platform } from "react-native";
-import { getAppInfoBinding, getChannel} from "../../bindings/appInfo";
+import { getAppInfoBinding, getChannel, isProdVariant} from "../../bindings/appInfo";
 import { getUserSettingsBinding } from "../../bindings/user-settings";
 import { getLogBacklog } from "../../bindings/logging/Adapters/BacklogAdapter";
 import { getRestLogFallbackStore } from "../../bindings/logging/Adapters/RestLogFallbackStore";
 
 
 const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
-//const TEST_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
+const DEFAULT_DEV_LOG_URL = 'https://analytics.test.incyclist.com/api/v1'
 const DEFAULT_LOG_INTERVAL = 10
 
 const LOG_BLACKLIST = ['user', 'auth', 'cacheDir', 'baseDir', 'pageDir', 'appDir'];
@@ -96,6 +96,16 @@ export const resetRestLogging = (): void => {
     restAdapter = undefined
 }
 
+export const getLogUrl = () => {
+    const settings = getUserSettingsBinding()
+    const logUrl = settings.getValue('logRest.url',DEFAULT_LOG_URL )
+
+    if (!isProdVariant  && logUrl===DEFAULT_LOG_URL) {
+        return DEFAULT_DEV_LOG_URL
+    }
+    return logUrl   
+}
+
 export const initRestLogging = async () => {
     if (initialized)
         return
@@ -109,7 +119,7 @@ export const initRestLogging = async () => {
 
         await settings.getAll()
 
-        const logUrl = settings.get('logRest.url',DEFAULT_LOG_URL )
+        const logUrl = getLogUrl()
         const sendInterval = settings.get('logRest.sendInterval',DEFAULT_LOG_INTERVAL)
         const enabled = settings.get('logRest.enabled',true)
 
