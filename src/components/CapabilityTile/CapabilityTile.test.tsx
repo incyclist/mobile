@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { CapabilityTile } from './CapabilityTile';
 import { CapabilityDisplayProps } from 'incyclist-services';
@@ -49,7 +49,7 @@ describe('CapabilityTile use toggle', () => {
         const tile = buildTile();
         const { getByLabelText } = render(<CapabilityTile {...tile} height={120} />);
 
-        fireEvent(getByLabelText('Use Power'), 'valueChange', false);
+        fireEvent.press(getByLabelText('Use Power'));
 
         expect(tile.onUnselect).toHaveBeenCalledTimes(1);
         expect(tile.onClick).not.toHaveBeenCalled();
@@ -67,14 +67,13 @@ describe('CapabilityTile use toggle', () => {
         expect(queryByLabelText('Use Power')).toBeNull();
     });
 
-    it('T16b: the phone (short) variant shortens the footer copy', () => {
-        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({
+    it('the phone (short) variant shows the footer copy as the page service sends it, unchanged', () => {
+        const { getByText } = render(<CapabilityTile {...buildTile({
             deviceName: undefined, value: undefined, unit: undefined, onUnselect: undefined,
             disabled: true, emptyFooter: 'Not used · tap to search',
         })} height={120} variant="short" />);
 
-        expect(getByText('Tap to search')).toBeTruthy();
-        expect(queryByText('Not used · tap to search')).toBeNull();
+        expect(getByText('Not used · tap to search')).toBeTruthy();
     });
 });
 
@@ -105,10 +104,63 @@ describe('CapabilityTile footer/toggle layout', () => {
     it('the toggle sits beside the state text as a normal flex sibling, not an absolute overlay on top of it', () => {
         const { getByLabelText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="short" />);
 
-        const toggleContainer = getByLabelText('Use Power').parent;
-        const style = Object.assign({}, ...(Array.isArray(toggleContainer?.props.style) ? toggleContainer.props.style.filter(Boolean) : [toggleContainer?.props.style]));
+        const style = StyleSheet.flatten(getByLabelText('Use Power').props.style);
 
         expect(style.position).not.toBe('absolute');
+    });
+
+    it('the toggle only takes the footprint of the scaled-down switch (iOS: 0.7 x the 65x31 switch box), not its unscaled size', () => {
+        const { getByLabelText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={120} variant="full" />);
+
+        const style = StyleSheet.flatten(getByLabelText('Use Power').props.style);
+
+        expect(style.width).toBe(46);
+        expect(style.height).toBe(22);
+    });
+
+    it('the toggle can be tapped within at least a 44pt tall area, even though the switch is drawn smaller', () => {
+        const tile = buildTile({ connectState: 'connected' });
+        const { getByLabelText } = render(<CapabilityTile {...tile} height={120} variant="full" />);
+        const toggle = getByLabelText('Use Power');
+
+        const height = StyleSheet.flatten(toggle.props.style).height;
+        const { top = 0, bottom = 0 } = toggle.props.hitSlop ?? {};
+        expect(height + top + bottom).toBeGreaterThanOrEqual(44);
+
+        fireEvent.press(toggle);
+        expect(tile.onUnselect).toHaveBeenCalledTimes(1);
+    });
+
+    it('the switch inside the toggle does not take touches itself, so a tap is handled once, by the toggle', () => {
+        const { UNSAFE_getByType } = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={120} variant="full" />);
+
+        expect(UNSAFE_getByType(Switch).parent?.props.pointerEvents).toBe('none');
+    });
+});
+
+describe('CapabilityTile footer text fit', () => {
+
+    const footers: Array<[string, Partial<CapabilityDisplayProps>, string]> = [
+        ['connect state of an active device', { connectState: 'connecting' }, 'CONNECTING'],
+        ['footer of a switched-off tile', { value: undefined, unit: undefined, disabled: true, emptyFooter: 'Not used', onUse: jest.fn() }, 'NOT USED'],
+        ['footer of an empty tile', { deviceName: undefined, value: undefined, unit: undefined, emptyFooter: 'Tap to search' }, 'Tap to search'],
+    ];
+
+    it.each(footers)('on a tablet, the %s stays on one line and shrinks to at most 75%% to fit', (_name, props, text) => {
+        const { getByText } = render(<CapabilityTile {...buildTile(props)} height={120} variant="full" />);
+        const footer = getByText(text);
+
+        expect(footer.props.numberOfLines).toBe(1);
+        expect(footer.props.adjustsFontSizeToFit).toBe(true);
+        expect(footer.props.minimumFontScale).toBe(0.75);
+    });
+
+    it.each(footers)('on a phone, the %s does not shrink', (_name, props, text) => {
+        const { getByText } = render(<CapabilityTile {...buildTile(props)} height={120} variant="short" />);
+        const footer = getByText(text);
+
+        expect(footer.props.adjustsFontSizeToFit).toBeFalsy();
+        expect(footer.props.minimumFontScale).toBeUndefined();
     });
 });
 
@@ -134,18 +186,19 @@ describe('CapabilityTile T16 (switched off, device remembered)', () => {
     });
 
     it('shows the toggle, in the off position', () => {
-        const { getByLabelText } = render(<CapabilityTile {...buildSwitchedOffTile()} height={120} />);
+        const { getByLabelText, UNSAFE_getByType } = render(<CapabilityTile {...buildSwitchedOffTile()} height={120} />);
         const toggle = getByLabelText('Use Power');
 
         expect(toggle).toBeTruthy();
-        expect(toggle.props.value).toBe(false);
+        expect(toggle.props.accessibilityState).toEqual({ checked: false });
+        expect(UNSAFE_getByType(Switch).props.value).toBe(false);
     });
 
     it('switching the toggle on restores the device with no scan, and does not open the device list', () => {
         const tile = buildSwitchedOffTile();
         const { getByLabelText } = render(<CapabilityTile {...tile} height={120} />);
 
-        fireEvent(getByLabelText('Use Power'), 'valueChange', true);
+        fireEvent.press(getByLabelText('Use Power'));
 
         expect(tile.onUse).toHaveBeenCalledTimes(1);
         expect(tile.onClick).not.toHaveBeenCalled();

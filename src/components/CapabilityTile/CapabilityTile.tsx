@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Switch, Platform } from 'react-native'
 import { colors } from '../../theme'
 import { useLogging } from '../../hooks'
 
@@ -64,19 +64,28 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     )
 }
 
-// A small on/off toggle in the footer strip; on while the capability is used
+// A small on/off toggle in the footer strip; on while the capability is used.
+// The switch is drawn scaled down, so the Pressable around it owns the tap, with a hitSlop that
+// brings the touch area back up to the platform minimum. The switch itself takes no touches
+// (pointerEvents="none" on its wrapper), so a tap is handled once, here.
 const UseSwitch = ({ title, on, onChange }: { title?: string, on: boolean, onChange: (use:boolean)=>void }) => (
-    <View style={unselectStyles.container}>
-        <Switch
-            value={on}
-            onValueChange={onChange}
-            trackColor={{ false: colors.switchTrack.false, true: colors.switchTrack.true }}
-            thumbColor={on ? colors.switchThumb.on : colors.switchThumb.off}
-            accessibilityRole="switch"
-            accessibilityLabel={`Use ${title ?? ''}`}
-            style={unselectStyles.switch}
-        />
-    </View>
+    <Pressable
+        style={unselectStyles.container}
+        hitSlop={SWITCH_HIT_SLOP}
+        onPress={() => onChange(!on)}
+        accessibilityRole="switch"
+        accessibilityLabel={`Use ${title ?? ''}`}
+        accessibilityState={{ checked: on }}
+    >
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Switch
+                value={on}
+                trackColor={{ false: colors.switchTrack.false, true: colors.switchTrack.true }}
+                thumbColor={on ? colors.switchThumb.on : colors.switchThumb.off}
+                style={unselectStyles.switch}
+            />
+        </View>
+    </Pressable>
 )
 
 type ComponentProps = Partial<CapabilityTileProps> & {
@@ -85,10 +94,6 @@ type ComponentProps = Partial<CapabilityTileProps> & {
 }
 
 const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').replace('Zwift Play', 'Zwift Play')
-
-// T16b's full-size copy doesn't fit the phone footer; "Not used" (T16) is already short enough as is
-const formatEmptyFooter = (text: string, variant: 'full' | 'short') =>
-    variant === 'short' && text === 'Not used · tap to search' ? 'Tap to search' : text
 
 // the page service's footer copy, when it has one for this tile: the phone copy on a phone, the full one on a tablet
 const pickFooterText = (footerText: CapabilityDisplayProps['footerText'], variant: 'full' | 'short'): string | undefined => {
@@ -153,6 +158,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         unselect,
      } = props
     const footer = pickFooterText(footerText, variant)
+    const footerFit = variant === 'full' ? tabletFooterFit : undefined
 
     const interfaceMap: Record<string,any> = {
         ble: BleIcon,
@@ -213,7 +219,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </DeviceWithRole>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={[styles[size].state, variant==='short' && compactStateText, activeFooter.searching && searchingStateText]} numberOfLines={1}>
+                    <Text style={[styles[size].state, variant==='short' && compactStateText, activeFooter.searching && searchingStateText]} numberOfLines={1} {...footerFit}>
                     {activeFooter.text}
                     </Text>
                     {unselect}
@@ -252,7 +258,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </DeviceWithRole>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1}>
+                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1} {...footerFit}>
                     {footer ?? (emptyFooter ?? 'NOT USED').toUpperCase()}
                     </Text>
                     {unselect}
@@ -283,8 +289,8 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
             </View>
 
             <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
-                    <Text style={styles[size].emptyText}>
-                        { footer ?? formatEmptyFooter(emptyFooter ?? ' ', variant) }
+                    <Text style={styles[size].emptyText} {...footerFit}>
+                        { footer ?? emptyFooter ?? ' ' }
                     </Text>
             </View>
 
@@ -292,17 +298,44 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     )
 })
 
+// The switch is drawn at SWITCH_SCALE, but a transform doesn't change layout, so its container is
+// sized to the scaled footprint - otherwise it reserves the unscaled box and takes that width away
+// from the footer text. Native sizes, unscaled:
+// - Android: SwitchCompat with the AppCompat track/thumb drawables measures 38x27dp
+// - iOS: RN reports UISwitch's intrinsic size + 2pt width - 53x31 for the classic switch, 65x28
+//   for the wider iOS 26 one; the container takes the wider of the two widths and the taller height
+const SWITCH_SCALE = 0.7
+const SWITCH_NATIVE_SIZE = Platform.select({
+    android: { width: 38, height: 27 },
+    default: { width: 65, height: 31 },
+})
+const SWITCH_FOOTPRINT = {
+    width: Math.ceil(SWITCH_NATIVE_SIZE.width * SWITCH_SCALE),
+    height: Math.ceil(SWITCH_NATIVE_SIZE.height * SWITCH_SCALE),
+}
+// minimum touch target: 48dp on Android, 44pt on iOS
+const MIN_TOUCH_SIZE = Platform.OS === 'android' ? 48 : 44
+const slopFor = (size: number) => Math.max(0, Math.ceil((MIN_TOUCH_SIZE - size) / 2))
+const SWITCH_HIT_SLOP = {
+    top: slopFor(SWITCH_FOOTPRINT.height),
+    bottom: slopFor(SWITCH_FOOTPRINT.height),
+    left: slopFor(SWITCH_FOOTPRINT.width),
+    right: slopFor(SWITCH_FOOTPRINT.width),
+}
+
 const unselectStyles = StyleSheet.create({
     // a normal flex sibling of the footer's state/emptyFooter text, not an absolute overlay: on
     // a narrow phone tile (the 'small' size), the centred text's width can reach the full width
     // of the footer, so an absolutely positioned toggle on top of it used to overlap the text.
-    // Giving the text flex:1 (below) and this a fixed natural width keeps them side by side.
+    // Giving the text flex:1 (below) and this a fixed width keeps them side by side.
     container: {
+        ...SWITCH_FOOTPRINT,
+        alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 4,
     },
     switch: {
-        transform: [{ scale: 0.7 }],
+        transform: [{ scale: SWITCH_SCALE }],
     },
 })
 
@@ -315,6 +348,17 @@ const unselectStyles = StyleSheet.create({
 const compactStateText = StyleSheet.create({
     text: { fontSize: 12 },
 }).text
+
+// Tablet only ('full' variant): the footer strip is the narrowest text on the tile, so a footer
+// that is slightly too long (a smaller tablet, a larger OS font scale) shrinks to fit one line
+// rather than wrapping; numberOfLines={1} still ellipsizes anything that doesn't fit even then.
+// On Android, RN ignores minimumFontScale - the text still shrinks only as much as needed to fit
+// one line, but down to RN's own 4pt minimum instead of the 75% floor. The phone keeps its fixed floor size (see compactStateText).
+const tabletFooterFit = {
+    numberOfLines: 1,
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.75,
+} as const
 
 // stateText ('Found') shows while a search is still running - use the same amber used elsewhere
 // on this screen for an in-progress/searching state (see waitingBorder above), distinct from the
