@@ -273,6 +273,8 @@ export const Video = (props: VideoProps) => {
                 probeContentLength:contentLength, probeAcceptRanges:acceptRanges, probeFinalUrl:finalUrl,
                 probeServer:server, probeCfRay:cfRay, probeCfCacheStatus:cfCacheStatus, probeError
             })
+        }).catch(() => {
+            // diagnostics only - a failing log must never affect the retry
         });
 
         clearSeekTimeout();
