@@ -98,6 +98,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         title,
         deviceName,
         connectState,
+        stateText,
         value,
         disabled,
         unit,
@@ -165,8 +166,8 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                 </View>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1}>
-                    {(connectState??' ').toUpperCase()}
+                    <Text style={[styles[size].state, variant==='short' && compactStateText, stateText && searchingStateText]} numberOfLines={1}>
+                    {(stateText ?? connectState ?? ' ').toUpperCase()}
                     </Text>
                     {unselect}
                 </View>
@@ -264,6 +265,13 @@ const unselectStyles = StyleSheet.create({
 // rather than shrinking further.
 const compactStateText = StyleSheet.create({
     text: { fontSize: 12 },
+}).text
+
+// stateText ('Found') shows while a search is still running - use the same amber used elsewhere
+// on this screen for an in-progress/searching state (see waitingBorder above), distinct from the
+// plain white connect-state text so it doesn't read as already connected.
+const searchingStateText = StyleSheet.create({
+    text: { color: '#f5a623' },
 }).text
 
 const styles = {
