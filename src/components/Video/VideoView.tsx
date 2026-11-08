@@ -18,6 +18,7 @@ export const VideoView = memo((props: VideoViewProps) => {
         width,
         height,
         videoRef,
+        reloadKey = 0,
         onLoad,
         onSeek,
         onError,
@@ -30,6 +31,7 @@ export const VideoView = memo((props: VideoViewProps) => {
     return (
         <View style={[styles.container, { width: width as DimensionValue, height: height as DimensionValue }, hidden && styles.hidden]}>
             <RNVideo
+                key={reloadKey}
                 source={{ uri: src }}
                 ref={videoRef}
                 style={styles.video}
