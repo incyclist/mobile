@@ -14,32 +14,33 @@ const isConnected = (tile: CapabilityDisplayProps): boolean =>
 
 /**
  * The one state line of a status bar, from the same props the tile shows: the value, the device (or
- * what the tile is for, while it's empty) and the tile's footer.
+ * what the tile is for, while it's empty), how it relates to the trainer, and the tile's footer. The
+ * bars only show on a phone, so the page service's footer copy is its phone variant.
  */
 export const getBarStateLine = (tile: CapabilityDisplayProps): string => {
+    const footer = tile.footerText?.short
+
     if (isSwitchedOff(tile))
-        return [tile.deviceName, tile.emptyFooter ?? 'Not used'].join(' · ')
+        return [tile.deviceName, footer ?? tile.emptyFooter ?? 'Not used'].join(' · ')
 
     if (!tile.deviceName)
-        return [tile.helpText?.short, tile.emptyFooter].filter(Boolean).join(' · ')
+        return [tile.helpText?.short, footer ?? tile.emptyFooter].filter(Boolean).join(' · ')
 
     const value = tile.value ? [tile.value, tile.unit].filter(Boolean).join(' ') : undefined
-    const state = (tile.stateText ?? tile.connectState)?.toUpperCase()
-    return [value, tile.deviceName, state].filter(Boolean).join(' · ')
+    const state = footer ?? (tile.stateText ?? tile.connectState)?.toUpperCase()
+    return [value, tile.deviceName, tile.roleLabel, state].filter(Boolean).join(' · ')
 }
 
 /**
  * The bar's look, in the tile colour language: green when connected, dimmed when switched off, the
  * amber outline while the page waits for it, grey otherwise.
- *
- * @param waiting the page waits for this tile
  */
-export const getBarLook = (tile: CapabilityDisplayProps, waiting: boolean): BarLook => {
+export const getBarLook = (tile: CapabilityDisplayProps): BarLook => {
     if (isSwitchedOff(tile))
         return 'dimmed'
     if (isConnected(tile))
         return 'connected'
-    return waiting ? 'waiting' : 'idle'
+    return tile.awaited ? 'waiting' : 'idle'
 }
 
 /** The optional row collapsed to one line: each tile's title, and whether it's connected. */

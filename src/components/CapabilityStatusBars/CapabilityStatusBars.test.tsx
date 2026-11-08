@@ -15,10 +15,17 @@ describe('CapabilityStatusBars', () => {
         const onClick = jest.fn()
         const tiles = MOCK_CAPABILITIES_TRAINER_UNAVAILABLE.top.map(t => (t.capability === 'power' ? { ...t, onClick } : t))
         const { getByText } = render(
-            <CapabilityStatusBars capabilities={{ ...MOCK_CAPABILITIES_TRAINER_UNAVAILABLE, top: tiles }} pairingCase="trainer-unavailable" />
+            <CapabilityStatusBars capabilities={{ ...MOCK_CAPABILITIES_TRAINER_UNAVAILABLE, top: tiles }} />
         )
         fireEvent.press(getByText('POWER'))
         expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows the page service's tile copy while the trainer can't be reached", () => {
+        const { getByText, getAllByText } = render(<CapabilityStatusBars capabilities={MOCK_CAPABILITIES_TRAINER_UNAVAILABLE} />)
+        expect(getByText('Tacx Flux · Your trainer · Waiting…')).toBeTruthy()
+        // Power and Speed both hold the trainer
+        expect(getAllByText('Tacx Flux · via your trainer · Via trainer')).toHaveLength(2)
     })
 
     it('renders nothing without capabilities', () => {

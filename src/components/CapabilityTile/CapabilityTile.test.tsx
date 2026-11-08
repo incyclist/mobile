@@ -1,7 +1,9 @@
 import React from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { CapabilityTile } from './CapabilityTile';
 import { CapabilityDisplayProps } from 'incyclist-services';
+import { colors } from '../../theme';
 
 const mockLogEvent = jest.fn();
 jest.mock('../../hooks', () => ({
@@ -16,6 +18,7 @@ const buildTile = (props: Partial<CapabilityDisplayProps> = {}) => ({
     deviceName: 'Tacx Neo',
     value: '100',
     unit: 'W',
+    awaited: false,
     onClick: jest.fn(),
     onUnselect: jest.fn(),
     ...props,
@@ -156,5 +159,94 @@ describe('CapabilityTile T16 (switched off, device remembered)', () => {
         fireEvent.press(getByText('Tacx Neo'));
 
         expect(tile.onClick).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('CapabilityTile waiting outline', () => {
+
+    const borderColorOf = (root: ReturnType<typeof render>['UNSAFE_root']) =>
+        StyleSheet.flatten(root.findByType(TouchableOpacity).props.style).borderColor;
+
+    it('shows the amber outline when the page waits for the tile', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ deviceName: undefined, awaited: true })} height={120} />);
+        expect(borderColorOf(UNSAFE_root)).toBe(colors.pairingWaiting);
+    });
+
+    it('shows the outline on a tile with a device, e.g. a trainer that cannot be reached', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ deviceName: 'Tacx Flux', connectState: 'failed', awaited: true })} height={120} />);
+        expect(borderColorOf(UNSAFE_root)).toBe(colors.pairingWaiting);
+    });
+
+    it('shows no outline when the page does not wait for the tile', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ deviceName: undefined, awaited: false })} height={120} />);
+        expect(borderColorOf(UNSAFE_root)).toBeUndefined();
+    });
+});
+
+describe('CapabilityTile footer copy from the page service', () => {
+
+    const footerText = { full: 'Not connected · waiting', short: 'Waiting…' };
+
+    it('replaces the connect state, with the full copy on a tablet', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({ connectState: 'failed', footerText })} height={120} variant="full" />);
+        expect(getByText('Not connected · waiting')).toBeTruthy();
+        expect(queryByText('FAILED')).toBeNull();
+    });
+
+    it('replaces the connect state, with the phone copy on a phone', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({ connectState: 'failed', footerText })} height={120} variant="short" />);
+        expect(getByText('Waiting…')).toBeTruthy();
+        expect(queryByText('Not connected · waiting')).toBeNull();
+    });
+
+    it('replaces the state text of a found device', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting', stateText: 'Found', footerText })} height={120} variant="full" />);
+        expect(getByText('Not connected · waiting')).toBeTruthy();
+        expect(queryByText('FOUND')).toBeNull();
+    });
+
+    it("replaces an empty tile's footer", () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildTile({
+            deviceName: undefined, value: undefined, unit: undefined, emptyFooter: 'Searching…',
+            footerText: { full: 'Optional for now', short: 'Optional for now' },
+        })} height={120} variant="short" />);
+        expect(getByText('Optional for now')).toBeTruthy();
+        expect(queryByText('Searching…')).toBeNull();
+    });
+
+    it('without it, the tile keeps its own footer', () => {
+        const connected = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={120} />);
+        expect(connected.getByText('CONNECTED')).toBeTruthy();
+
+        const empty = render(<CapabilityTile {...buildTile({ deviceName: undefined, value: undefined, unit: undefined, emptyFooter: 'Searching…' })} height={120} />);
+        expect(empty.getByText('Searching…')).toBeTruthy();
+    });
+});
+
+describe('CapabilityTile trainer role line', () => {
+
+    it("shows the role line on the trainer's own tile, above the device name", () => {
+        const { getByText, toJSON } = render(<CapabilityTile {...buildTile({
+            title: 'Resistance', capability: 'control', deviceName: 'Tacx Flux', connectState: 'failed',
+            trainerRole: 'trainer', roleLabel: 'Your trainer',
+        })} height={120} />);
+        expect(getByText('Your trainer')).toBeTruthy();
+        const tree = JSON.stringify(toJSON());
+        expect(tree.indexOf('Your trainer')).toBeLessThan(tree.indexOf('Tacx Flux'));
+    });
+
+    it('shows the role line on a tile the trainer fills, below the device name', () => {
+        const { getByText, toJSON } = render(<CapabilityTile {...buildTile({
+            deviceName: 'Tacx Flux', connectState: 'failed', trainerRole: 'via-trainer', roleLabel: 'via your trainer',
+        })} height={120} />);
+        expect(getByText('via your trainer')).toBeTruthy();
+        const tree = JSON.stringify(toJSON());
+        expect(tree.indexOf('via your trainer')).toBeGreaterThan(tree.indexOf('Tacx Flux'));
+    });
+
+    it('shows no role line without one', () => {
+        const { queryByText } = render(<CapabilityTile {...buildTile({ deviceName: 'Tacx Flux', connectState: 'failed' })} height={120} />);
+        expect(queryByText('Your trainer')).toBeNull();
+        expect(queryByText('via your trainer')).toBeNull();
     });
 });

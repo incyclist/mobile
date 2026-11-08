@@ -17,6 +17,7 @@ const empty = (title: string, capability: CapabilityDisplayProps['capability'], 
     role,
     helpText: { full: what, short: what },
     emptyFooter: role === 'required' ? 'Searching…' : 'Optional',
+    awaited: role === 'required',
     onClick: noop,
 })
 
@@ -43,7 +44,7 @@ export const MOCK_CAPABILITIES_SEARCHING: Capabilities = {
 export const MOCK_CAPABILITIES_HEARTRATE_ONLY: Capabilities = {
     ...MOCK_CAPABILITIES_SEARCHING,
     bottom: [
-        { ...OPTIONAL_ROW[0], deviceName: 'HRM Dual', value: '72', unit: 'bpm', connectState: 'connected' },
+        { ...OPTIONAL_ROW[0], deviceName: 'HRM Dual', value: '72', unit: 'bpm', connectState: 'connected', awaited: false },
         OPTIONAL_ROW[1],
         OPTIONAL_ROW[2],
     ],
@@ -56,6 +57,8 @@ const trainerIn = (title: string, capability: CapabilityDisplayProps['capability
     interface: 'ble',
     role: 'required',
     connectState,
+    // while the trainer connects, the page waits for its Resistance tile
+    awaited: capability === 'control',
     onClick: noop,
 })
 
@@ -66,18 +69,38 @@ export const MOCK_CAPABILITIES_TRAINER_CONNECTING: Capabilities = {
     rowLabels: { top: { text: 'TO RIDE', subtext: 'connecting to your trainer' }, bottom: OPTIONAL_LABEL },
 }
 
+const viaTrainer = (title: string, capability: CapabilityDisplayProps['capability']): CapabilityDisplayProps => ({
+    ...trainerIn(title, capability, 'failed'),
+    trainerRole: 'via-trainer',
+    roleLabel: 'via your trainer',
+    footerText: { full: 'Waiting for trainer', short: 'Via trainer' },
+    awaited: false,
+})
+
 /** A configured trainer that can't be reached: its attempt failed, background retries go on. */
 export const MOCK_CAPABILITIES_TRAINER_UNAVAILABLE: Capabilities = {
     ...MOCK_CAPABILITIES_TRAINER_CONNECTING,
-    top: [trainerIn('Resistance', 'control', 'failed'), trainerIn('Power', 'power', 'failed'), trainerIn('Speed', 'speed', 'failed')],
+    top: [
+        {
+            ...trainerIn('Resistance', 'control', 'failed'),
+            trainerRole: 'trainer',
+            roleLabel: 'Your trainer',
+            footerText: { full: 'Not connected · waiting', short: 'Waiting…' },
+            awaited: true,
+        },
+        viaTrainer('Power', 'power'),
+        viaTrainer('Speed', 'speed'),
+    ],
+    rowLabels: { top: { text: 'TO RIDE', subtext: 'waiting for your trainer' }, bottom: OPTIONAL_LABEL },
 }
 
 /** Ready: a power meter connected, Resistance switched off with its trainer remembered. */
 export const MOCK_CAPABILITIES_SWITCHED_OFF: Capabilities = {
     top: [
-        { ...trainerIn('Resistance', 'control', undefined), disabled: true, emptyFooter: 'Not used' },
-        { title: 'Power', capability: 'power', deviceName: 'Stages Power', role: 'required', value: '154', unit: 'W', connectState: 'connected', onClick: noop },
-        empty('Speed', 'speed', 'Speed sensor', 'required'),
+        { ...trainerIn('Resistance', 'control', undefined), disabled: true, emptyFooter: 'Not used', awaited: false },
+        { title: 'Power', capability: 'power', deviceName: 'Stages Power', role: 'required', value: '154', unit: 'W', connectState: 'connected', awaited: false, onClick: noop },
+        // nothing is waited for once the row is ready
+        { ...empty('Speed', 'speed', 'Speed sensor', 'required'), awaited: false },
     ],
     bottom: OPTIONAL_ROW,
     rowLabels: { top: { text: '✓ READY TO RIDE' }, bottom: OPTIONAL_LABEL },

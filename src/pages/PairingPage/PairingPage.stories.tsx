@@ -41,13 +41,13 @@ export const Initial: Story = {
         title: 'Devices',
         capabilities: {
             top: [
-                { title: 'control', capability: 'control', deviceName: '', onClick: fn() },
-                { title: 'power', capability: 'power', deviceName: '', onClick: fn() },
-                { title: 'heartrate', capability: 'heartrate', deviceName: '', onClick: fn() },
+                { title: 'control', capability: 'control', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'power', capability: 'power', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'heartrate', capability: 'heartrate', deviceName: '', awaited: false, onClick: fn() },
             ],
             bottom: [
-                { title: 'speed', capability: 'speed', deviceName: '', onClick: fn() },
-                { title: 'cadence', capability: 'cadence', deviceName: '', onClick: fn() },
+                { title: 'speed', capability: 'speed', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'cadence', capability: 'cadence', deviceName: '', awaited: false, onClick: fn() },
             ],
         },
         interfaces: [
@@ -68,6 +68,7 @@ const defaultArgs = {
             {
                 title: 'control',
                 capability: 'control',
+                awaited: false,
                 deviceName: 'DCSIM FTMS 1234',
                 connectState: 'connected',
                 onClick: fn(),
@@ -75,6 +76,7 @@ const defaultArgs = {
             {
                 title: 'power',
                 capability: 'power',
+                awaited: false,
                 deviceName: 'DCSIM FTMS 1234',
                 value: '154',
                 unit: 'W',
@@ -83,6 +85,7 @@ const defaultArgs = {
             {
                 title: 'heartrate',
                 capability: 'heartrate',
+                awaited: false,
                 deviceName: 'HRM Dual',
                 value: '135',
                 unit: 'bpm',
@@ -93,15 +96,17 @@ const defaultArgs = {
             {
                 title: 'cadence',
                 capability: 'cadence',
+                awaited: false,
                 deviceName: 'DCSIM FTMS 1234',
                 value: '90',
                 unit: 'rpm',
                 onClick: fn(),
             },
-            { title: 'control', capability: 'control', deviceName: '', onClick: fn() },
+            { title: 'control', capability: 'control', deviceName: '', awaited: false, onClick: fn() },
             {
                 title: 'speed',
                 capability: 'speed',
+                awaited: false,
                 deviceName: 'DCSIM FTMS 1234',
                 value: '29.1',
                 unit: 'km/h',
@@ -135,6 +140,7 @@ export const Selected: Story = {
                 {
                     title: 'control',
                     capability: 'control',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     connectState: 'connected',
                     onClick: fn(),
@@ -142,6 +148,7 @@ export const Selected: Story = {
                 {
                     title: 'power',
                     capability: 'power',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '154',
                     unit: 'W',
@@ -150,6 +157,7 @@ export const Selected: Story = {
                 {
                     title: 'heartrate',
                     capability: 'heartrate',
+                    awaited: false,
                     deviceName: 'HRM Dual',
                     value: '135',
                     unit: 'bpm',
@@ -160,15 +168,17 @@ export const Selected: Story = {
                 {
                     title: 'cadence',
                     capability: 'cadence',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '90',
                     unit: 'rpm',
                     onClick: fn(),
                 },
-                { title: 'control', capability: 'control', deviceName: '', onClick: fn() },
+                { title: 'control', capability: 'control', deviceName: '', awaited: false, onClick: fn() },
                 {
                     title: 'speed',
                     capability: 'speed',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '29.1',
                     unit: 'km/h',

@@ -25,23 +25,23 @@ export default meta
 type Story = StoryObj<typeof CapabilityStatusBars>
 
 export const Searching: Story = {
-    args: { capabilities: MOCK_CAPABILITIES_SEARCHING, pairingCase: 'no-trainer' },
+    args: { capabilities: MOCK_CAPABILITIES_SEARCHING },
 }
 
 export const HeartrateOnly: Story = {
-    args: { capabilities: MOCK_CAPABILITIES_HEARTRATE_ONLY, pairingCase: 'no-trainer' },
+    args: { capabilities: MOCK_CAPABILITIES_HEARTRATE_ONLY },
 }
 
 export const TrainerConnecting: Story = {
-    args: { capabilities: MOCK_CAPABILITIES_TRAINER_CONNECTING, pairingCase: 'trainer-connecting' },
+    args: { capabilities: MOCK_CAPABILITIES_TRAINER_CONNECTING },
 }
 
 export const TrainerUnavailable: Story = {
-    args: { capabilities: MOCK_CAPABILITIES_TRAINER_UNAVAILABLE, pairingCase: 'trainer-unavailable' },
+    args: { capabilities: MOCK_CAPABILITIES_TRAINER_UNAVAILABLE },
 }
 
 export const SwitchedOff: Story = {
-    args: { capabilities: MOCK_CAPABILITIES_SWITCHED_OFF, readyToStart: true, pairingCase: 'no-trainer' },
+    args: { capabilities: MOCK_CAPABILITIES_SWITCHED_OFF },
 }
 
 // the space left beside the helper panel on a 667 x 375 phone

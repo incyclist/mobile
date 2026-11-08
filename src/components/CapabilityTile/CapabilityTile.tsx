@@ -19,7 +19,6 @@ interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
     marginRight?: number
     variant?: 'full' | 'short'
-    waiting?: boolean
 }
 
 export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) => {
@@ -46,9 +45,8 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     const switchedOff = hasDevice && Boolean(props.disabled)
     // a switched-off tile (T16) uses the same muted look as an empty tile, not the active colour
     const backgroundColor = hasDevice && !switchedOff ? colors.tileActive : colors.tileEmpty
-    // the parent decides which tiles the page waits for: empty required tiles, and the configured
-    // trainer's tile while it connects or can't be reached
-    const waitingBorder = props.waiting && !props.disabled ? { borderWidth: 3, borderColor: colors.pairingWaiting } : undefined
+    // the page service decides which tiles the page waits for; the tile only renders the outline
+    const waitingBorder = props.awaited ? { borderWidth: 3, borderColor: colors.pairingWaiting } : undefined
     const showToggle = hasDevice && Boolean(props.onUnselect || props.onUse)
 
     return (
@@ -92,9 +90,50 @@ const formatHelpText = (text: string) => text.replace(', e.g. ', ',\ne.g. ').rep
 const formatEmptyFooter = (text: string, variant: 'full' | 'short') =>
     variant === 'short' && text === 'Not used · tap to search' ? 'Tap to search' : text
 
+// the page service's footer copy, when it has one for this tile: the phone copy on a phone, the full one on a tablet
+const pickFooterText = (footerText: CapabilityDisplayProps['footerText'], variant: 'full' | 'short'): string | undefined => {
+    if (!footerText)
+        return undefined
+    return variant === 'short' ? footerText.short : footerText.full
+}
+
+// the footer of a tile with an active device: the page service's copy if set, otherwise the state
+// text ('Found', shown amber while a search runs) or the connect state
+const getActiveFooter = (footer: string | undefined, stateText?: string, connectState?: string): { text: string, searching: boolean } => {
+    if (footer)
+        return { text: footer, searching: false }
+    return { text: (stateText ?? connectState ?? ' ').toUpperCase(), searching: Boolean(stateText) }
+}
+
+type DeviceWithRoleProps = {
+    size: 'small' | 'large'
+    roleLabel?: string
+    trainerRole?: CapabilityDisplayProps['trainerRole']
+    children: React.ReactNode
+}
+
+// The device row, with the line that says how the tile relates to the trainer: above the device name
+// on the trainer's own tile ("Your trainer"), below it on a tile the trainer fills ("via your trainer")
+const DeviceWithRole = ({ size, roleLabel, trainerRole, children }: DeviceWithRoleProps) => {
+    const label = roleLabel ? (
+        <View style={styles.rows.fixed}>
+            <Text style={styles[size].roleLabel} numberOfLines={1}>{roleLabel}</Text>
+        </View>
+    ) : null
+    const labelFirst = trainerRole === 'trainer'
+
+    return (
+        <>
+            {labelFirst && label}
+            {children}
+            {!labelFirst && label}
+        </>
+    )
+}
+
 const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
-    const {      
+    const {
         capability,
         title,
         deviceName,
@@ -107,9 +146,13 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         size,
         helpText,
         emptyFooter,
+        footerText,
+        roleLabel,
+        trainerRole,
         variant = 'full',
         unselect,
      } = props
+    const footer = pickFooterText(footerText, variant)
 
     const interfaceMap: Record<string,any> = {
         ble: BleIcon,
@@ -130,6 +173,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     const CapabilityIcon = capability===undefined ? undefined : capabilityMap[capability]
 
     if ( deviceName && !disabled) {
+        const activeFooter = getActiveFooter(footer, stateText, connectState)
         return (
             <View style= {styles.container}>
             
@@ -155,20 +199,22 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                         </View>
                 </View>
 
-                <View style={styles.rows.fixed}>
-                        { InterfaceIcon && 
+                <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
+                    <View style={styles.rows.fixed}>
+                            { InterfaceIcon &&
+                                <View style={styles.cols.device}>
+                                    <InterfaceIcon fill="#FFFFFF" width={iconSize} height={iconSize} />
+                                </View>
+                            }
                             <View style={styles.cols.device}>
-                                <InterfaceIcon fill="#FFFFFF" width={iconSize} height={iconSize} />
+                                <Text style={styles[size].device}>{deviceName??' '}</Text>
                             </View>
-                        }
-                        <View style={styles.cols.device}>
-                            <Text style={styles[size].device}>{deviceName??' '}</Text>
-                        </View>
-                </View>
+                    </View>
+                </DeviceWithRole>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={[styles[size].state, variant==='short' && compactStateText, stateText && searchingStateText]} numberOfLines={1}>
-                    {(stateText ?? connectState ?? ' ').toUpperCase()}
+                    <Text style={[styles[size].state, variant==='short' && compactStateText, activeFooter.searching && searchingStateText]} numberOfLines={1}>
+                    {activeFooter.text}
                     </Text>
                     {unselect}
                 </View>
@@ -197,15 +243,17 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                         }
                 </View>
 
-                <View style={styles.rows.fixed}>
-                        <View style={styles.cols.device}>
-                            <Text style={styles[size].device}>{deviceName}</Text>
-                        </View>
-                </View>
+                <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
+                    <View style={styles.rows.fixed}>
+                            <View style={styles.cols.device}>
+                                <Text style={styles[size].device}>{deviceName}</Text>
+                            </View>
+                    </View>
+                </DeviceWithRole>
 
                 <View style={[styles.rows.fixed, styles[size].footer]}>
                     <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1}>
-                    {(emptyFooter ?? 'NOT USED').toUpperCase()}
+                    {footer ?? (emptyFooter ?? 'NOT USED').toUpperCase()}
                     </Text>
                     {unselect}
                 </View>
@@ -236,7 +284,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
             <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
                     <Text style={styles[size].emptyText}>
-                        { formatEmptyFooter(emptyFooter ?? ' ', variant) }
+                        { footer ?? formatEmptyFooter(emptyFooter ?? ' ', variant) }
                     </Text>
             </View>
 
@@ -328,7 +376,8 @@ const styles = {
         },
         icon: { width: 48, height: 48, color:'#ffffff',tintColor: '#fff' },
         device: { color: '#fff', fontSize: 12 },
-        title: { 
+        roleLabel: { color: '#fff', fontSize: 12, fontStyle: 'italic' },
+        title: {
             color: '#fff', 
             fontSize: 14,
             fontWeight: '700' 
@@ -391,10 +440,16 @@ const styles = {
             fontWeight: '700' ,
             padding:4
         },
-        device: { 
-            color: '#fff', 
+        device: {
+            color: '#fff',
             fontSize: 16,
-            padding: 4, 
+            padding: 4,
+        },
+        roleLabel: {
+            color: '#fff',
+            fontSize: 16,
+            fontStyle: 'italic',
+            paddingHorizontal: 4,
         },
         value: { 
             color: '#fff', 

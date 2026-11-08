@@ -20,13 +20,12 @@ const PANEL_WIDTH_TABLET = 320
 const PANEL_TOP_CLEARANCE = 56
 
 export const PairingPageView = (props: PairingDisplayProps) => {
-    const { deviceSelection, onExit, helper, status, interfaces, capabilities, readyToStart, pairingCase } = props
+    const { deviceSelection, onExit, helper, status, interfaces, capabilities } = props
     const compact = useScreenLayout() === 'compact'
 
     const onStatusLink = useMemo(() => getStatusLinkHandler(status, helper, interfaces), [status, helper, interfaces])
 
     const helperOpen = helper !== undefined && helper.phase !== 'hidden'
-    const noSearch = status?.id === 'S1'
     // on a phone, the helper leaves too little room for tiles: the required row becomes status bars
     const showBars = helperOpen && compact
     const panelStyle = { width: compact ? PANEL_WIDTH_PHONE : PANEL_WIDTH_TABLET }
@@ -69,11 +68,11 @@ export const PairingPageView = (props: PairingDisplayProps) => {
 
                         {showBars ? (
                             <ScrollView style={styles.rowFlex} contentContainerStyle={styles.barsContent}>
-                                <CapabilityStatusBars capabilities={capabilities} readyToStart={readyToStart} noSearch={noSearch} pairingCase={pairingCase} />
+                                <CapabilityStatusBars capabilities={capabilities} />
                             </ScrollView>
                         ) : (
                             <View style={styles.gridArea}>
-                                <CapabilityGrid capabilities={capabilities} compact={compact} readyToStart={readyToStart} noSearch={noSearch} pairingCase={pairingCase} />
+                                <CapabilityGrid capabilities={capabilities} compact={compact} />
                             </View>
                         )}
 

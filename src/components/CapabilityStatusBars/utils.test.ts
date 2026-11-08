@@ -2,7 +2,7 @@ import type { CapabilityDisplayProps } from 'incyclist-services'
 import { getBarLook, getBarStateLine, getOptionalSummary } from './utils'
 
 const tile = (props: Partial<CapabilityDisplayProps> = {}): CapabilityDisplayProps => ({
-    title: 'Power', capability: 'power', deviceName: undefined, role: 'required', onClick: jest.fn(), ...props,
+    title: 'Power', capability: 'power', deviceName: undefined, role: 'required', awaited: false, onClick: jest.fn(), ...props,
 })
 
 describe('getBarStateLine', () => {
@@ -29,15 +29,41 @@ describe('getBarStateLine', () => {
     it('a switched-off tile without a footer still says it is not used', () => {
         expect(getBarStateLine(tile({ deviceName: 'Tacx Flux', disabled: true }))).toBe('Tacx Flux · Not used')
     })
+
+    it("the page service's footer copy replaces the state, in its phone variant", () => {
+        const t = tile({
+            deviceName: 'Stages Power', value: '0', unit: 'W', connectState: 'connected',
+            footerText: { full: 'CONNECTED · can replace trainer', short: 'Can replace trainer' },
+        })
+        expect(getBarStateLine(t)).toBe('0 W · Stages Power · Can replace trainer')
+    })
+
+    it("the page service's footer copy replaces an empty tile's footer", () => {
+        const t = tile({ helpText: { full: 'Power meter', short: 'Power meter' }, emptyFooter: 'Searching…', footerText: { full: 'Optional for now', short: 'Optional for now' } })
+        expect(getBarStateLine(t)).toBe('Power meter · Optional for now')
+    })
+
+    it('a tile the trainer fills says so after the device', () => {
+        const t = tile({
+            deviceName: 'Tacx Flux', connectState: 'failed', roleLabel: 'via your trainer',
+            footerText: { full: 'Waiting for trainer', short: 'Via trainer' },
+        })
+        expect(getBarStateLine(t)).toBe('Tacx Flux · via your trainer · Via trainer')
+    })
 })
 
 describe('getBarLook', () => {
     it('follows the tile colour language', () => {
-        expect(getBarLook(tile({ deviceName: 'Stages Power', connectState: 'connected' }), false)).toBe('connected')
-        expect(getBarLook(tile({ deviceName: 'Tacx Flux', disabled: true }), false)).toBe('dimmed')
-        expect(getBarLook(tile(), true)).toBe('waiting')
-        expect(getBarLook(tile(), false)).toBe('idle')
-        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'connecting' }), false)).toBe('idle')
+        expect(getBarLook(tile({ deviceName: 'Stages Power', connectState: 'connected' }))).toBe('connected')
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', disabled: true }))).toBe('dimmed')
+        expect(getBarLook(tile({ awaited: true }))).toBe('waiting')
+        expect(getBarLook(tile({ awaited: false }))).toBe('idle')
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'connecting' }))).toBe('idle')
+    })
+
+    it('the amber outline follows whether the page waits for the tile', () => {
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'failed', awaited: true }))).toBe('waiting')
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'failed', awaited: false }))).toBe('idle')
     })
 })
 

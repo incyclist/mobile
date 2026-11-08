@@ -1,4 +1,4 @@
-import type { CapabilityDisplayProps, PairingCase, PairingRowLabelProps } from 'incyclist-services'
+import type { CapabilityDisplayProps, PairingRowLabelProps } from 'incyclist-services'
 
 export interface CapabilityStatusBarsProps {
     capabilities?: {
@@ -6,8 +6,4 @@ export interface CapabilityStatusBarsProps {
         bottom: Array<CapabilityDisplayProps>
         rowLabels?: { top: PairingRowLabelProps, bottom: PairingRowLabelProps }
     }
-    readyToStart?: boolean
-    /** nothing can search */
-    noSearch?: boolean
-    pairingCase?: PairingCase
 }

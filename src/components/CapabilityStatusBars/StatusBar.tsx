@@ -10,11 +10,10 @@ const MIN_BAR_HEIGHT = 48
 
 interface StatusBarProps {
     tile: CapabilityDisplayProps
-    waiting: boolean
 }
 
 /** One required tile as a full-width bar: its title and one state line, which may wrap. A tap opens its device list, as the tile does. */
-export const StatusBar = ({ tile, waiting }: StatusBarProps) => {
+export const StatusBar = ({ tile }: StatusBarProps) => {
     const { logEvent } = useLogging('CapabilityStatusBars')
 
     const onPress = useCallback(() => {
@@ -22,7 +21,7 @@ export const StatusBar = ({ tile, waiting }: StatusBarProps) => {
         tile.onClick(tile)
     }, [logEvent, tile])
 
-    const look: BarLook = getBarLook(tile, waiting)
+    const look: BarLook = getBarLook(tile)
 
     return (
         <Pressable accessibilityRole="button" onPress={onPress} style={[styles.bar, lookStyles[look]]}>

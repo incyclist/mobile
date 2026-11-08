@@ -2,7 +2,6 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 
 import { colors, textSizes } from '../../theme'
-import { isTileWaiting } from '../CapabilityGrid/utils'
 import { StatusBar } from './StatusBar'
 import { getOptionalSummary } from './utils'
 import { CapabilityStatusBarsProps } from './types'
@@ -12,7 +11,7 @@ import { CapabilityStatusBarsProps } from './types'
  * bars under a one-line row header, and the optional row collapsed to one summary line. Bars can wrap
  * to two lines where tiles would clip their text at a large font scale.
  */
-export const CapabilityStatusBars = ({ capabilities, readyToStart, noSearch, pairingCase }: CapabilityStatusBarsProps) => {
+export const CapabilityStatusBars = ({ capabilities }: CapabilityStatusBarsProps) => {
     if (!capabilities)
         return null
 
@@ -30,7 +29,7 @@ export const CapabilityStatusBars = ({ capabilities, readyToStart, noSearch, pai
             ) : null}
 
             {(capabilities.top ?? []).map(tile => (
-                <StatusBar key={tile.capability} tile={tile} waiting={isTileWaiting(tile, { readyToStart, noSearch, pairingCase })} />
+                <StatusBar key={tile.capability} tile={tile} />
             ))}
 
             {optional.length > 0 && (
