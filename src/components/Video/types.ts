@@ -50,6 +50,7 @@ export interface VideoViewProps {
     width: number | string;
     height: number | string;
     videoRef: React.RefObject<any>;
+    reloadKey?: number;        // changing it re-creates the native player (reloads the source)
     onLoad: (data: OnLoadData) => void;
     onSeek: (data: OnSeekData) => void;
     onError: (error: OnVideoErrorData) => void;

@@ -16,6 +16,15 @@ import { getFileSystemBinding } from '../../bindings/fs';
 import { mapAndroidErrorCode } from './mapAndroidErrorCode';
 import { resolveNativeVideoSrc } from './resolveNativeVideoSrc';
 import { encodeUriIdempotent } from './encodeUriIdempotent';
+import { isServerMisconfiguredError } from './isServerMisconfiguredError';
+import { probeVideoSource } from './probeVideoSource';
+
+/**
+ * iOS only: how often, and after how long, a load that failed with "server not correctly
+ * configured" is retried before the failure is reported to the ride.
+ */
+export const VIDEO_LOAD_MAX_RETRIES = 1;
+export const VIDEO_LOAD_RETRY_DELAY_MS = 500;
 
 /**
  * How long the start check waits for the native player to confirm its initial seek (`onSeek`).
@@ -47,8 +56,11 @@ export const Video = (props: VideoProps) => {
     const [paused, setPaused] = useState(false);
     const [rate, setRate] = useState(0);
     const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || src.startsWith('http') )
+    const [reloadKey, setReloadKey] = useState(0);
 
     const refVideo = useRef<any>(null);
+    const refRetries = useRef(0);
+    const refRetryTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const refInitialized = useRef<boolean>(false);
     const refHidden = useRef(hidden);
     const refBootstrapSeek = useRef(false);
@@ -120,11 +132,14 @@ export const Video = (props: VideoProps) => {
 
         refInfo.current.loading = false
         refInfo.current.loaded = true
+        if (refRetries.current > 0) {
+            logEvent({message:'load retry succeeded', attempts:refRetries.current})
+        }
         // internalHidden=false is safe here — VideoView receives (hidden || internalHidden)
         // so if the hidden prop is true, the component remains invisible regardless
         setInternalHidden(false);
         onLoaded?.(refInfo.current.bufferedTime);
-    }, [clearSeekTimeout, onLoaded]);
+    }, [clearSeekTimeout, onLoaded, logEvent]);
 
     const handleSeekTimeout = useCallback(() => {
         refSeekTimeout.current = undefined;
@@ -234,9 +249,52 @@ export const Video = (props: VideoProps) => {
         }
     }, [logEvent,onWaiting]);
 
+    const canRetryLoad = useCallback((error: OnVideoErrorData): boolean => {
+        return Platform.OS === 'ios'
+            && src.startsWith('http')
+            && !refInfo.current.loaded
+            && refRetries.current < VIDEO_LOAD_MAX_RETRIES
+            && isServerMisconfiguredError(error);
+    }, [src]);
+
+    // Loads the same source again. Reports what the server answers to the player's first request,
+    // to find out why the player rejected it (see probeVideoSource).
+    const retryLoad = useCallback((error: OnVideoErrorData) => {
+        refRetries.current += 1;
+        const attempt = refRetries.current;
+        logEvent({message:'load retry', attempt, errorCode:error.error.code})
+
+        probeVideoSource(encodeUriIdempotent(src)).then(({
+            elapsedMs, status, contentRange, contentLength, acceptRanges, finalUrl, server, cfRay, cfCacheStatus, error: probeError
+        }) => {
+            logEvent({
+                message:'load error probe', attempt,
+                probeElapsedMs:elapsedMs, probeStatus:status, probeContentRange:contentRange,
+                probeContentLength:contentLength, probeAcceptRanges:acceptRanges, probeFinalUrl:finalUrl,
+                probeServer:server, probeCfRay:cfRay, probeCfCacheStatus:cfCacheStatus, probeError
+            })
+        });
+
+        clearSeekTimeout();
+        refBootstrapSeek.current = false;
+        refInfo.current.loading = true;
+        refInfo.current.loaded = false;
+
+        clearTimeout(refRetryTimeout.current);
+        refRetryTimeout.current = setTimeout(() => {
+            refRetryTimeout.current = undefined;
+            setReloadKey(key => key + 1);
+        }, VIDEO_LOAD_RETRY_DELAY_MS);
+    }, [src, logEvent, clearSeekTimeout]);
+
     const handleError = useCallback((error: OnVideoErrorData) => {
         if (!refInfo?.current?.loaded)  {
             logEvent({message:'error event', errorData:error})
+        }
+
+        if (canRetryLoad(error)) {
+            retryLoad(error);
+            return;
         }
 
         const hasErrorCode = error?.error?.errorCode !== undefined
@@ -256,7 +314,7 @@ export const Video = (props: VideoProps) => {
         } else {
             onPlaybackError?.(mediaError);
         }
-    }, [logEvent, onLoadError, onPlaybackError]);
+    }, [logEvent, onLoadError, onPlaybackError, canRetryLoad, retryLoad]);
 
     const handleEnd = useCallback(() => {
         if (!refInfo?.current?.loaded)  {
@@ -330,6 +388,7 @@ export const Video = (props: VideoProps) => {
 
     useUnmountEffect(() => {
         clearSeekTimeout();
+        clearTimeout(refRetryTimeout.current);
         observer
             ?.off('rate-update', handleRateChangeRequest)
             ?.off('time-update', seekTo);
@@ -360,6 +419,7 @@ export const Video = (props: VideoProps) => {
             width={width}
             height={height}
             videoRef={refVideo}
+            reloadKey={reloadKey}
             onLoad={handleLoad}
             onLoadStart={handleLoadStart}
             onSeek={handleSeek}
