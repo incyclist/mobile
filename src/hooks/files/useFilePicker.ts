@@ -31,6 +31,15 @@ const pickWithRetry = async (props: any, logEvent: (event: any) => void) => {
     }
 }
 
+// A name containing a literal '%' makes decodeURIComponent throw - keep the path as is then
+const safeDecode = (path: string): string => {
+    try {
+        return decodeURIComponent(path)
+    } catch {
+        return path
+    }
+}
+
 export interface FilePickerProps {
     extensions?:Array<string>
 }
@@ -118,8 +127,9 @@ export const useFilePicker = (): UseFilePickerResult => {
 
             // FIX: Discriminate LocalCopyResponse based on status
             if (localCopy.status === 'success') {
-                // Remove 'file://' prefix from local URI
-                const localPath = localCopy.localUri.replace('file://', '')
+                // Remove 'file://' prefix from local URI. The URI is percent-encoded on iOS
+                // (e.g. "Circuit%20bugatti.gpx"), but file system calls need the real path.
+                const localPath = safeDecode(localCopy.localUri.replace('file://', ''))
                 return buildFileInfo(localPath,fileName)
             } else {
                 // If the local copy failed, log the error and return null.

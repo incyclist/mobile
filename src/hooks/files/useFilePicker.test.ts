@@ -280,6 +280,36 @@ describe('useFilePicker', () => {
         expect(fileInfo).not.toBeNull()
     })
 
+    it('decodes a percent-encoded local copy uri so the path matches the file on disk (iOS)', async () => {
+        // iOS returns an encoded localUri ("Circuit%20bugatti.gpx"), but the file on disk has the
+        // real space - passing the encoded path on made RNFS.readFile fail for names with spaces.
+        mockPick.mockResolvedValueOnce([
+            { name: 'Circuit bugatti.gpx', uri: 'file:///path/to/Circuit%20bugatti.gpx' },
+        ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/Circuit%20bugatti.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        await result.current.pickFile()
+
+        expect(mockBuildFileInfo).toHaveBeenCalledWith('/cache/Circuit bugatti.gpx', 'Circuit bugatti.gpx')
+    })
+
+    it('keeps the path as is when the local copy uri is not valid percent-encoding', async () => {
+        mockPick.mockResolvedValueOnce([
+            { name: '100%.gpx', uri: 'file:///path/to/100%.gpx' },
+        ])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/100%.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        await result.current.pickFile()
+
+        expect(mockBuildFileInfo).toHaveBeenCalledWith('/cache/100%.gpx', '100%.gpx')
+    })
+
     it('returns null when name is missing and no filename can be derived from the uri either', async () => {
         mockPick.mockResolvedValueOnce([
             { name: undefined, uri: 'file:///' },
