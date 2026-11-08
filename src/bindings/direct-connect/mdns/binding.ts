@@ -16,7 +16,7 @@ type BrowserEntry = {
 export class ReactNativeMdnsBinding implements MulticastDnsBinding {
     private _logger!: EventLogger
     private _connected: boolean = false
-    private browsers: Map<string, BrowserEntry> = new Map()
+    private readonly browsers: Map<string, BrowserEntry> = new Map()
     private rotationTimer?: ReturnType<typeof setTimeout>
     private activeKey?: string
 
