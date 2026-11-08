@@ -1,15 +1,35 @@
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'
+import React, { useMemo } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native'
 import type { PairingDisplayProps, InterfaceDisplayProps } from 'incyclist-services'
 
 import { colors, textSizes } from '../../theme'
-import { ButtonBar, CapabilityGrid, MainBackground, InterfaceState, DeviceSelector } from '../../components'
+import {
+    ButtonBar, CapabilityGrid, CapabilityStatusBars, MainBackground, InterfaceState, DeviceSelector,
+    PairingHelperPanel, PairingStatusLine,
+} from '../../components'
 import { BleInterfaceSettings } from '../../components/BleInterfaceSettings'
 import { useScreenLayout } from '../../hooks'
 import ExitIcon from '../../assets/icons/exit.svg'
+import { getStatusLinkHandler } from './utils'
+
+// the helper panel's width beside the tiles
+const PANEL_WIDTH_PHONE = 300
+const PANEL_WIDTH_TABLET = 320
+// the interface icons float at the top right (top 20, 80 high, see InterfaceState). The panel starts
+// below them, so they never cover its close button.
+const PANEL_TOP_CLEARANCE = 56
 
 export const PairingPageView = (props: PairingDisplayProps) => {
-    const { deviceSelection, onExit } = props
+    const { deviceSelection, onExit, helper, status, interfaces, capabilities, readyToStart, pairingCase } = props
     const compact = useScreenLayout() === 'compact'
+
+    const onStatusLink = useMemo(() => getStatusLinkHandler(status, helper, interfaces), [status, helper, interfaces])
+
+    const helperOpen = helper !== undefined && helper.phase !== 'hidden'
+    const noSearch = status?.id === 'S1'
+    // on a phone, the helper leaves too little room for tiles: the required row becomes status bars
+    const showBars = helperOpen && compact
+    const panelStyle = { width: compact ? PANEL_WIDTH_PHONE : PANEL_WIDTH_TABLET }
 
     return (
         <View style={styles.container}>
@@ -17,7 +37,7 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                 {deviceSelection && <DeviceSelector {...deviceSelection} />}
 
                 <View style={styles.interfaceOverlay}>
-                    {props.interfaces?.map((inter: InterfaceDisplayProps, index: number) => (
+                    {interfaces?.map((inter: InterfaceDisplayProps, index: number) => (
                         <InterfaceState
                             key={`${inter.name}-${index}`}
                             name={inter.name}
@@ -34,21 +54,39 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                     <Text style={styles.title}>{props.title?.toUpperCase()}</Text>
                 </View>
 
-                {props.status && (
-                    <View style={styles.statusRow}>
-                        <View style={[styles.statusDot, { backgroundColor: statusDotColors[props.status.dot] }]} />
-                        <Text style={styles.statusText}>{compact ? props.status.shortText : props.status.text}</Text>
+                <View style={styles.body}>
+                    <View style={styles.main}>
+                        {status && (
+                            <View style={styles.statusRow}>
+                                <PairingStatusLine
+                                    status={status}
+                                    variant={compact ? 'short' : 'full'}
+                                    stateOnly={showBars}
+                                    onLinkPress={onStatusLink}
+                                />
+                            </View>
+                        )}
+
+                        {showBars ? (
+                            <ScrollView style={styles.rowFlex} contentContainerStyle={styles.barsContent}>
+                                <CapabilityStatusBars capabilities={capabilities} readyToStart={readyToStart} noSearch={noSearch} pairingCase={pairingCase} />
+                            </ScrollView>
+                        ) : (
+                            <View style={styles.gridArea}>
+                                <CapabilityGrid capabilities={capabilities} compact={compact} readyToStart={readyToStart} noSearch={noSearch} pairingCase={pairingCase} />
+                            </View>
+                        )}
+
+                        <View style={styles.rowButtons}>
+                            {props.buttons && <ButtonBar buttons={props.buttons} />}
+                        </View>
                     </View>
-                )}
 
-                <View style={styles.rowFlex}>
-                    {/* <InterfaceInfo interfaces={props.interfaces} /> */}
-
-                    <CapabilityGrid capabilities={props.capabilities} compact={compact} readyToStart={props.readyToStart} noSearch={props.status?.id === 'S1'} />
-                </View>
-
-                <View style={styles.rowButtons}>
-                    {props.buttons && <ButtonBar buttons={props.buttons} />}
+                    {helperOpen && (
+                        <View style={[styles.panel, panelStyle]}>
+                            <PairingHelperPanel helper={helper} layout={compact ? 'phone' : 'tablet'} />
+                        </View>
+                    )}
                 </View>
 
                 {props.showExit && (
@@ -63,28 +101,9 @@ export const PairingPageView = (props: PairingDisplayProps) => {
     )
 }
 
-const statusDotColors = {
-    red: '#e74c3c',
-    green: '#2ecc71',
-    amber: '#f5a623',
-}
-
 const styles = StyleSheet.create({
     statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
         marginBottom: 8,
-    },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 6,
-    },
-    statusText: {
-        color: '#fff',
-        fontSize: 13,
     },
     container: {
         flex: 1,
@@ -92,6 +111,17 @@ const styles = StyleSheet.create({
     },
     rowTitle: {
         marginVertical: 5,
+    },
+    body: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    main: {
+        flex: 1,
+    },
+    panel: {
+        marginTop: PANEL_TOP_CLEARANCE,
+        paddingBottom: 8,
     },
     rowButtons: {},
     interfaceOverlay: {
@@ -104,8 +134,15 @@ const styles = StyleSheet.create({
     },
     rowFlex: {
         flex: 1, // Takes up all available space
+    },
+    gridArea: {
+        flex: 1, // Takes up all available space
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    barsContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
     },
     title: {
         textAlign: 'center',

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, LayoutChangeEvent, useWindowDimensions } from 'react-native'
 import { CapabilityTile } from '../CapabilityTile'
-import { CapabilityDisplayProps, PairingRowLabelProps } from 'incyclist-services'
+import { CapabilityDisplayProps, PairingCase, PairingRowLabelProps } from 'incyclist-services'
+import { isTileWaiting } from './utils'
 
 interface CapabilityGridProps {
     capabilities?: {
@@ -12,6 +13,7 @@ interface CapabilityGridProps {
     compact: boolean
     readyToStart?: boolean
     noSearch?: boolean
+    pairingCase?: PairingCase
 }
 
 const GAP = 10;
@@ -27,7 +29,7 @@ interface Dimensions {
     containerWidth: number,
 }
 
-export const CapabilityGrid = ({ capabilities, readyToStart, noSearch }: CapabilityGridProps) => {
+export const CapabilityGrid = ({ capabilities, readyToStart, noSearch, pairingCase }: CapabilityGridProps) => {
 
     const [dimensions, setDimensions] = useState<Dimensions>({ w: 0, h: 0, containerWidth: 0 });
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -73,7 +75,7 @@ export const CapabilityGrid = ({ capabilities, readyToStart, noSearch }: Capabil
                                 marginLeft: index === 0 ? 0 : GAP,
                             }]}
                         >
-                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} waiting={tile.role === 'required' && !readyToStart && !noSearch && !tile.disabled} />
+                            <CapabilityTile {...tile} height={dimensions.h} variant={variant} waiting={isTileWaiting(tile, { readyToStart, noSearch, pairingCase })} />
                         </View>
                     ))}
                 </View>

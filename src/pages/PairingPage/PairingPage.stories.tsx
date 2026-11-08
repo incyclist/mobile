@@ -3,6 +3,15 @@ import { fn } from 'storybook/test';
 import { View as PairingPage } from 'react-native';
 import { PairingPageView } from './View';
 import { defaultArgs as deviceSelectorArgs } from '../../components/DeviceSelector/DeviceSelector.stories';
+import {
+    buildAsleepHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildTrainerUnavailableHelper,
+} from '../../components/PairingHelperPanel/PairingHelperPanel.mock';
+import {
+    MOCK_CAPABILITIES_HEARTRATE_ONLY, MOCK_CAPABILITIES_SEARCHING, MOCK_CAPABILITIES_TRAINER_CONNECTING, MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
+} from '../../components/CapabilityStatusBars/CapabilityStatusBars.mock';
+import {
+    MOCK_STATUS_STILL_SEARCHING, MOCK_STATUS_TRAINER_CONNECTING, MOCK_STATUS_TRAINER_UNAVAILABLE,
+} from '../../components/PairingStatusLine/PairingStatusLine.mock';
 
 const meta: Meta<typeof PairingPageView> = {
     title: 'Pages/PairingPage',
@@ -180,4 +189,67 @@ export const Selected: Story = {
             { label: 'Skip', primary: false, onClick: fn() },
         ],
     },
+};
+// The helper beside the tiles. Shown as a phone or tablet layout depending on the window size
+// (a phone below 600 on its shortest side).
+
+export const StillSearchingWithLink: Story = {
+    args: {
+        title: 'Devices',
+        status: MOCK_STATUS_STILL_SEARCHING,
+        capabilities: MOCK_CAPABILITIES_SEARCHING,
+        pairingCase: 'no-trainer',
+        helper: { ...buildNoTrainerHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn() }), phase: 'hidden' },
+        interfaces: [{ name: 'ble', state: 'scanning', onClick: fn() }],
+        buttons: [{ label: 'Skip', primary: true, onClick: fn() }],
+    } as any,
+};
+
+export const HelperAsleep: Story = {
+    args: {
+        title: 'Devices',
+        status: MOCK_STATUS_STILL_SEARCHING,
+        capabilities: MOCK_CAPABILITIES_HEARTRATE_ONLY,
+        pairingCase: 'no-trainer',
+        helper: buildAsleepHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn() }),
+        interfaces: [{ name: 'ble', state: 'scanning', onClick: fn() }],
+        buttons: [{ label: 'Skip', primary: true, onClick: fn() }],
+    } as any,
+};
+
+export const HelperNoDevice: Story = {
+    args: {
+        ...HelperAsleep.args,
+        helper: buildNoDeviceHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn(), onAction: fn() }),
+    } as any,
+};
+
+export const TrainerConnecting: Story = {
+    args: {
+        title: 'Devices',
+        status: MOCK_STATUS_TRAINER_CONNECTING,
+        capabilities: MOCK_CAPABILITIES_TRAINER_CONNECTING,
+        pairingCase: 'trainer-connecting',
+        trainerPhase: 'connecting',
+        interfaces: [{ name: 'ble', state: 'scanning', onClick: fn() }],
+        buttons: [{ label: 'Skip', primary: true, onClick: fn() }],
+    } as any,
+};
+
+export const TrainerUnavailable: Story = {
+    args: {
+        ...TrainerConnecting.args,
+        status: MOCK_STATUS_TRAINER_UNAVAILABLE,
+        capabilities: MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
+        pairingCase: 'trainer-unavailable',
+        trainerPhase: 'unavailable',
+        helper: { ...buildTrainerUnavailableHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn() }), phase: 'hidden' },
+    } as any,
+};
+
+export const TrainerUnavailableHelper: Story = {
+    args: {
+        ...TrainerUnavailable.args,
+        helper: buildTrainerUnavailableHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn(), onAction: fn() }),
+    } as any,
 };

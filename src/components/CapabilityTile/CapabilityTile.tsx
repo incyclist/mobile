@@ -44,10 +44,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     const size = (props.height??0)>150 ? 'large' : 'small'
     const hasDevice = Boolean(props.deviceName)
     const switchedOff = hasDevice && Boolean(props.disabled)
-    const isEmpty = !hasDevice
     // a switched-off tile (T16) uses the same muted look as an empty tile, not the active colour
     const backgroundColor = hasDevice && !switchedOff ? colors.tileActive : colors.tileEmpty
-    const waitingBorder = props.waiting && isEmpty && !props.disabled ? { borderWidth: 3, borderColor: '#f5a623' } : undefined
+    // the parent decides which tiles the page waits for: empty required tiles, and the configured
+    // trainer's tile while it connects or can't be reached
+    const waitingBorder = props.waiting && !props.disabled ? { borderWidth: 3, borderColor: colors.pairingWaiting } : undefined
     const showToggle = hasDevice && Boolean(props.onUnselect || props.onUse)
 
     return (
