@@ -147,6 +147,101 @@ const DeviceWithRole = ({ size, roleLabel, trainerRole, children }: DeviceWithRo
     )
 }
 
+type IconBox = { width: number, height: number }
+
+type SwitchedOffTileViewProps = {
+    size: 'small' | 'large'
+    title?: string
+    deviceName: string
+    roleLabel?: string
+    trainerRole?: CapabilityDisplayProps['trainerRole']
+    footer?: string
+    emptyFooter?: string
+    variant: 'full' | 'short'
+    footerFit?: typeof tabletFooterFit
+    unselect?: React.ReactNode
+    iconBox?: IconBox
+    CapabilityIcon?: React.ComponentType<any>
+}
+
+// T16: switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
+// parent), with the device name and no value, and the toggle to turn it straight back on
+const SwitchedOffTileView = ({ size, title, deviceName, roleLabel, trainerRole, footer, emptyFooter, variant, footerFit, unselect, iconBox, CapabilityIcon }: SwitchedOffTileViewProps) => (
+    <View style= {styles.container}>
+
+        { title &&
+            <View style={styles.rows.fixed}>
+                <Text style={styles[size].title}>{title.toUpperCase()}</Text>
+            </View>
+        }
+
+        <View testID="capability-tile-icon-row" style={[styles.rows.flex, styles.rows.clip]} >
+                {CapabilityIcon && iconBox &&
+                    <View style={styles.cols.fixed}>
+                        <CapabilityIcon testID="capability-tile-icon" style={[styles[size].icon, iconBox]} width={iconBox.width} height={iconBox.height} />
+                    </View>
+                }
+        </View>
+
+        <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
+            <View style={[styles.rows.fixed, styles.rows.device]}>
+                    <View style={[styles.cols.device, styles.cols.deviceName]}>
+                        <Text style={styles[size].device} numberOfLines={1} ellipsizeMode="middle">{deviceName}</Text>
+                    </View>
+            </View>
+        </DeviceWithRole>
+
+        <View style={[styles.rows.fixed, styles[size].footer]}>
+            <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1} {...footerFit}>
+            {footer ?? (emptyFooter ?? 'NOT USED').toUpperCase()}
+            </Text>
+            {unselect}
+        </View>
+
+    </View>
+)
+
+type EmptyTileViewProps = {
+    size: 'small' | 'large'
+    title?: string
+    helpText?: { full?: string, short?: string }
+    variant: 'full' | 'short'
+    footer?: string
+    emptyFooter?: string
+    footerFit?: typeof tabletFooterFit
+}
+
+// nothing selected yet - the capability's title, what it's for, and the page service's own footer
+// copy (searching/optional/etc.) if it has one, otherwise the empty-tile default
+const EmptyTileView = ({ size, title, helpText, variant, footer, emptyFooter, footerFit }: EmptyTileViewProps) => (
+    <View style= {styles.container}>
+        {title &&
+            <View style={styles.rows.fixed}>
+                <Text style={styles[size].title}>{title.toUpperCase()}</Text>
+            </View>
+        }
+
+        <View style={[styles.rows.flex]}>
+                <Text style={styles[size].helpText}>
+                    { formatHelpText((variant === 'short' ? helpText?.short : helpText?.full) ?? ' ') }
+                </Text>
+        </View>
+
+        <View style={ styles.rows.fixed}>
+                <View style={styles.cols.device}>
+                    <Text style={styles[size].device}>{' '}</Text>
+                </View>
+        </View>
+
+        <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
+                <Text style={styles[size].emptyText} {...footerFit}>
+                    { footer ?? emptyFooter ?? ' ' }
+                </Text>
+        </View>
+
+    </View>
+)
+
 const CapabilityTileView = React.memo ( (props: ComponentProps) => {
 
     const {
@@ -268,70 +363,20 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     // T16: switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
     // parent), with the device name and no value, and the toggle to turn it straight back on
     if ( deviceName && disabled) {
-        const iconBox = getIconBox(false)
         return (
-            <View style= {styles.container}>
-
-                { title &&
-                    <View style={styles.rows.fixed}>
-                        <Text style={styles[size].title}>{title.toUpperCase()}</Text>
-                    </View>
-                }
-
-                <View testID="capability-tile-icon-row" style={[styles.rows.flex, styles.rows.clip]} >
-                        {CapabilityIcon && iconBox &&
-                            <View style={styles.cols.fixed}>
-                                <CapabilityIcon testID="capability-tile-icon" style={[styles[size].icon, iconBox]} width={iconBox.width} height={iconBox.height} />
-                            </View>
-                        }
-                </View>
-
-                <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
-                    <View style={[styles.rows.fixed, styles.rows.device]}>
-                            <View style={[styles.cols.device, styles.cols.deviceName]}>
-                                <Text style={styles[size].device} numberOfLines={1} ellipsizeMode="middle">{deviceName}</Text>
-                            </View>
-                    </View>
-                </DeviceWithRole>
-
-                <View style={[styles.rows.fixed, styles[size].footer]}>
-                    <Text style={[styles[size].state, variant==='short' && compactStateText]} numberOfLines={1} {...footerFit}>
-                    {footer ?? (emptyFooter ?? 'NOT USED').toUpperCase()}
-                    </Text>
-                    {unselect}
-                </View>
-
-            </View>
+            <SwitchedOffTileView
+                size={size} title={title} deviceName={deviceName} roleLabel={roleLabel} trainerRole={trainerRole}
+                footer={footer} emptyFooter={emptyFooter} variant={variant} footerFit={footerFit} unselect={unselect}
+                iconBox={getIconBox(false)} CapabilityIcon={CapabilityIcon}
+            />
         )
     }
 
     return (
-            <View style= {styles.container}>
-            {title &&
-                <View style={styles.rows.fixed}>
-                    <Text style={styles[size].title}>{title.toUpperCase()}</Text>
-                </View>
-            }
-
-            <View style={[styles.rows.flex]}>
-                    <Text style={styles[size].helpText}>
-                        { formatHelpText((variant === 'short' ? helpText?.short : helpText?.full) ?? ' ') }
-                    </Text>
-            </View>
-
-            <View style={ styles.rows.fixed}>
-                    <View style={styles.cols.device}>
-                        <Text style={styles[size].device}>{' '}</Text>
-                    </View>
-            </View>
-
-            <View style={[styles.rows.fixed, styles[size].emptyFooter]}>
-                    <Text style={styles[size].emptyText} {...footerFit}>
-                        { footer ?? emptyFooter ?? ' ' }
-                    </Text>
-            </View>
-
-        </View>
+        <EmptyTileView
+            size={size} title={title} helpText={helpText} variant={variant}
+            footer={footer} emptyFooter={emptyFooter} footerFit={footerFit}
+        />
     )
 })
 
