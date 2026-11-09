@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { DeviceSelector } from './DeviceSelector';
 import { DeviceSelectionProps, TIncyclistCapability } from 'incyclist-services';
 import { fn } from 'storybook/test';
+import { buildManualConflict } from '../ConflictStepRows/ConflictStepRows.mock';
 
 export const defaultArgs: DeviceSelectionProps = {
     capability: 'control' as TIncyclistCapability,
@@ -62,8 +63,7 @@ export const Disabled: Story = {
 };
 
 // Regression case for the scroll/overlap bug: with enough entries to overflow the list's
-// maxHeight, the last entries must remain reachable by scrolling and must not render hidden
-// underneath the "For all capabilities" / "Disable All" footer bar.
+// maxHeight, the last entries must remain reachable by scrolling.
 export const LongList: Story = {
     args: {
         ...Default.args,
@@ -75,5 +75,20 @@ export const LongList: Story = {
             onClick: fn(),
             onDelete: () => {},
         })),
+    },
+};
+
+// The second step after a pick in the Resistance list that would take slots held by other devices
+export const ConflictStep: Story = {
+    args: {
+        ...Default.args,
+        conflictStep: buildManualConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+    },
+};
+
+export const ConflictStepOneReplaced: Story = {
+    args: {
+        ...Default.args,
+        conflictStep: buildManualConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }, { power: 'replace' }),
     },
 };

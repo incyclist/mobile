@@ -1,76 +1,96 @@
-import React, { FC, useState } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import React, { FC, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import DeviceEntry from '../DeviceEntry';
-import { DeviceSelectionItemProps, DeviceSelectionProps } from 'incyclist-services';
-import { textSizes } from '../../theme';
+import { ConflictStepProps, DeviceSelectionItemProps, DeviceSelectionProps } from 'incyclist-services';
+import { colors, textSizes } from '../../theme';
+import { useScreenLayout } from '../../hooks';
 import { Dialog } from '../Dialog';
-import { BinarySelect } from '../BinarySelect';
+import { ButtonProps } from '../ButtonBar/types';
+import { ConflictStepRows } from '../ConflictStepRows';
 
+const DONE_LABEL = 'Done';
+
+interface ConflictStepBodyProps {
+    step: ConflictStepProps
+    compact: boolean
+}
+
+// the list's second step: which device each slot held by another device should use
+const ConflictStepBody = ({ step, compact }: ConflictStepBodyProps) => (
+    <View style={styles.stepView}>
+        <Text style={styles.stepSubline}>{compact ? step.subline.short : step.subline.full}</Text>
+        <ConflictStepRows rows={step.rows} onChoice={step.onChoice} />
+    </View>
+);
+
+/**
+ * The device list of one capability. After a pick in the Resistance list that would take slots held
+ * by a different device, the page service sends a conflict step: it replaces the list in the same
+ * dialog until Done, or a tap outside / the back button, which both apply the choices made so far.
+ */
 export const DeviceSelector: FC<DeviceSelectionProps> = ({
   devices,
   isScanning,
-  changeForAll,
-  canSelectAll,
+  conflictStep,
   onClose,
 }) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const compact = useScreenLayout() === 'compact';
 
     const targetWidth = textSizes.listEntry * 0.6 * 40; // ~288dp
     const dialogWidth = Math.min(0.9 * screenWidth, targetWidth);
     const minHeightLeft = screenHeight - (textSizes.dialogTitle + 100 + 80 + 8);
     const deviceListMinHeight = Math.min(380, minHeightLeft);
 
-    const [all, setAll] = useState<boolean>(canSelectAll && changeForAll);
-
     const onDeviceClicked = (device: DeviceSelectionItemProps) => {
-        if (device.onClick) {
-            device.onClick(all);
-        }
+        device.onClick?.();
     };
 
-    const onDialogClosed = () => {
-        onClose();
-    };
+    const onOutsideClick = useCallback(() => {
+        if (conflictStep)
+            conflictStep.onDismiss();
+        else
+            onClose();
+    }, [conflictStep, onClose]);
+
+    const stepButtons = useMemo<ButtonProps[] | undefined>(() => conflictStep
+        ? [{ id: 'conflict-done', label: DONE_LABEL, primary: true, onClick: conflictStep.onDone }]
+        : undefined
+    , [conflictStep]);
 
     const dialogStyle = [styles.dialog, { width: dialogWidth }];
     const deviceListStyle = [styles.deviceList, { minHeight: deviceListMinHeight }];
 
+    let title = isScanning ? 'Searching ...' : 'Select Device';
+    if (conflictStep)
+        title = conflictStep.title;
+
     return (
         <Dialog
             style={dialogStyle}
-            title={isScanning ? 'Searching ...' : 'Select Device'}
-            onOutsideClick={onDialogClosed}
-            scrollable={false}
+            title={title}
+            onOutsideClick={onOutsideClick}
+            buttons={stepButtons}
+            scrollable={Boolean(conflictStep)}
         >
-            <View style={styles.modalView}>
-                <ScrollView style={deviceListStyle} contentContainerStyle={styles.deviceListContent}>
-                    {devices.map((device) => (
-                        <DeviceEntry
-                            key={`${device.deviceName}-${device.interface}`}
-                            {...device}
-                            onClick={() => onDeviceClicked(device)}
-                        />
-                    ))}
-                </ScrollView>
-
-                <View style={styles.footer}>
-                    {canSelectAll && (
-                        <View style={styles.checkboxContainer}>
-                            <BinarySelect
-                                label="For all capabilities"
-                                labelPosition="after"
-                                value={all}
-                                onValueChange={setAll}
+            {conflictStep ? (
+                <ConflictStepBody step={conflictStep} compact={compact} />
+            ) : (
+                <View style={styles.modalView}>
+                    <ScrollView style={deviceListStyle}>
+                        {devices.map((device) => (
+                            <DeviceEntry
+                                key={`${device.deviceName}-${device.interface}`}
+                                {...device}
+                                onClick={() => onDeviceClicked(device)}
                             />
-                        </View>
-                    )}
+                        ))}
+                    </ScrollView>
                 </View>
-            </View>
+            )}
         </Dialog>
     );
 };
-
-const FOOTER_HEIGHT = 60;
 
 const styles = StyleSheet.create({
     dialog: {
@@ -89,27 +109,13 @@ const styles = StyleSheet.create({
         maxHeight: 380,
         // Dynamic minHeight applied via inline style
     },
-    // Reserves space at the bottom of the scrollable content so the last device entries clear
-    // the footer bar, which is absolutely positioned over the bottom of `modalView`.
-    deviceListContent: {
-        paddingBottom: FOOTER_HEIGHT,
+    stepView: {
+        paddingHorizontal: 8,
+        paddingTop: 4,
     },
-    footer: {
-        flexDirection: 'row',
-        height: FOOTER_HEIGHT,
-        width: '100%',
-        position: 'absolute',
-        left: 0,
-        bottom: 0,
-        paddingHorizontal: 15,
-        borderTopWidth: 1,
-        borderTopColor: '#553388',
-        alignItems: 'center',
-    },
-    checkboxContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginRight: 4,
+    stepSubline: {
+        color: colors.text,
+        fontSize: textSizes.smallText,
+        marginBottom: 10,
     },
 });
