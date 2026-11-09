@@ -257,6 +257,90 @@ describe('CapabilityTile fill colour', () => {
     });
 });
 
+describe('CapabilityTile device name line', () => {
+
+    const longName = 'DCSIM FTMS .100';
+
+    it('the name stays on one line and is cut in the middle, so its distinguishing end stays visible', () => {
+        const { getByText } = render(<CapabilityTile {...buildTile({ deviceName: longName, interface: 'wifi', connectState: 'failed' })} height={120} />);
+        const name = getByText(longName);
+
+        expect(name.props.numberOfLines).toBe(1);
+        expect(name.props.ellipsizeMode).toBe('middle');
+    });
+
+    it('the name of a switched-off tile is cut the same way', () => {
+        const { getByText } = render(<CapabilityTile {...buildTile({
+            deviceName: longName, value: undefined, unit: undefined, onUnselect: undefined, disabled: true, emptyFooter: 'Not used', onUse: jest.fn(),
+        })} height={120} />);
+        const name = getByText(longName);
+
+        expect(name.props.numberOfLines).toBe(1);
+        expect(name.props.ellipsizeMode).toBe('middle');
+    });
+
+    it.each([[120, 12], [200, 14]])('at height %d the interface icon keeps a fixed %ddp box with a 4dp gap before the name', (height, iconSize) => {
+        const { getByTestId } = render(<CapabilityTile {...buildTile({ deviceName: longName, interface: 'wifi', connectState: 'failed' })} height={height} />);
+        const style = StyleSheet.flatten(getByTestId('capability-tile-interface-icon').props.style);
+
+        expect(style.width).toBe(iconSize);
+        expect(style.flexShrink).toBe(0);
+        expect(style.marginRight).toBe(4);
+    });
+});
+
+describe('CapabilityTile capability icon', () => {
+
+    const iconSizeOf = (utils: ReturnType<typeof render>) => {
+        const icon = utils.queryByTestId('capability-tile-icon');
+        return icon ? icon.props.width : undefined;
+    };
+
+    it('shrinks or disappears when the tile also has to show a role line', () => {
+        const plain = render(<CapabilityTile {...buildTile({ deviceName: 'Tacx Flux', connectState: 'failed', value: undefined, unit: undefined })} height={200} />);
+        const withRole = render(<CapabilityTile {...buildTile({
+            deviceName: 'Tacx Flux', connectState: 'failed', value: undefined, unit: undefined, trainerRole: 'via-trainer', roleLabel: 'via your trainer',
+        })} height={200} />);
+
+        const plainSize = iconSizeOf(plain);
+        const roleSize = iconSizeOf(withRole);
+        expect(plainSize).toBeGreaterThanOrEqual(24);
+        if (roleSize !== undefined)
+            expect(roleSize).toBeLessThan(plainSize);
+    });
+
+    it('is drawn square, at the size it was given, never below 24dp', () => {
+        const utils = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={200} />);
+        const icon = utils.getByTestId('capability-tile-icon');
+
+        expect(icon.props.width).toBe(icon.props.height);
+        expect(icon.props.width).toBeGreaterThanOrEqual(24);
+        expect(StyleSheet.flatten(icon.props.style).width).toBe(icon.props.width);
+    });
+
+    it('is left out on a tile too small to fit it', () => {
+        const utils = render(<CapabilityTile {...buildTile({
+            deviceName: 'Tacx Flux', connectState: 'failed', trainerRole: 'trainer', roleLabel: 'Your trainer', awaited: true,
+        })} height={60} />);
+
+        expect(utils.queryByTestId('capability-tile-icon')).toBeNull();
+    });
+
+    it('is centred in its row on a tile with no value, rather than sharing it with an empty value column', () => {
+        const noValue = render(<CapabilityTile {...buildTile({ deviceName: 'Tacx Flux', connectState: 'failed', value: undefined, unit: undefined })} height={200} />);
+        const withValue = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={200} />);
+
+        expect(noValue.getByTestId('capability-tile-icon-row').children).toHaveLength(1);
+        expect(withValue.getByTestId('capability-tile-icon-row').children).toHaveLength(2);
+    });
+
+    it('the row the icon sits in clips anything that does not fit, so nothing is drawn over the lines around it', () => {
+        const { getByTestId } = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={200} />);
+
+        expect(StyleSheet.flatten(getByTestId('capability-tile-icon-row').props.style).overflow).toBe('hidden');
+    });
+});
+
 describe('CapabilityTile footer copy from the page service', () => {
 
     const footerText = { full: 'Not connected · waiting', short: 'Waiting…' };

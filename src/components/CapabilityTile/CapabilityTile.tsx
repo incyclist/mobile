@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react'
-import { View, Text, TouchableOpacity, Pressable, StyleSheet, Switch, Platform } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Switch, Platform, useWindowDimensions } from 'react-native'
 import { colors } from '../../theme'
 import { useLogging } from '../../hooks'
 
@@ -15,6 +15,7 @@ import SpeedIcon from '../../assets/icons/speed.svg'
 
 import  {CapabilityDisplayProps} from 'incyclist-services'
 import { isConnected, isSwitchedOff } from '../CapabilityStatusBars/utils'
+import { getCapabilityIconSize } from './utils'
 
 interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
@@ -26,6 +27,7 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
 
     const { onClick, ...childProps} = props
     const { logEvent } = useLogging('CapabilityTile')
+    const { fontScale } = useWindowDimensions()
 
     const onPress = ()=>{
         if (onClick)
@@ -61,6 +63,7 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
             <CapabilityTileView
                 {...childProps}
                 size={size}
+                fontScale={fontScale}
                 unselect={showToggle ? <UseSwitch title={props.title} on={!switchedOff} onChange={onUseChanged} /> : undefined}
             />
         </TouchableOpacity>
@@ -93,6 +96,7 @@ const UseSwitch = ({ title, on, onChange }: { title?: string, on: boolean, onCha
 
 type ComponentProps = Partial<CapabilityTileProps> & {
     size: 'small' | 'large'
+    fontScale?: number
     unselect?: React.ReactNode
 }
 
@@ -159,6 +163,9 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         trainerRole,
         variant = 'full',
         unselect,
+        height = 0,
+        awaited,
+        fontScale = 1,
      } = props
     const footer = pickFooterText(footerText, variant)
     const footerFit = variant === 'full' ? tabletFooterFit : undefined
@@ -181,42 +188,64 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     const InterfaceIcon = ifName===undefined ? undefined : interfaceMap[ifName]
     const CapabilityIcon = capability===undefined ? undefined : capabilityMap[capability]
 
+    // the interface icon keeps its size and a fixed gap; the device name is what gives way
+    const interfaceIconBox = { width: iconSize, flexShrink: 0, marginRight: 4 }
+
+    // the capability icon is the one flexible part of a tile with a device: it gets what's left of
+    // the tile after the fixed lines, and is left out once that's below its minimum size
+    const getIconBox = (hasValue: boolean) => {
+        const capabilityIconSize = CapabilityIcon ? getCapabilityIconSize({
+            height, size, fontScale, hasValue,
+            hasTitle: Boolean(title),
+            hasRoleLabel: Boolean(roleLabel),
+            hasToggle: Boolean(unselect),
+            awaited: Boolean(awaited),
+        }) : undefined
+        return capabilityIconSize === undefined ? undefined : { width: capabilityIconSize, height: capabilityIconSize }
+    }
+
     if ( deviceName && !disabled) {
         const activeFooter = getActiveFooter(footer, stateText, connectState)
+        // a connected tile keeps its value column even before the first value arrives, so the icon
+        // doesn't jump; any other tile has no value, and its icon has the row to itself, centred
+        const hasValue = Boolean(value) || isConnected(props as CapabilityDisplayProps)
+        const iconBox = getIconBox(hasValue)
         return (
             <View style= {styles.container}>
-            
+
                 { (title ) &&
                     <View style={styles.rows.fixed}>
-                        <Text style={styles[size].title}>{title.toUpperCase()}</Text> 
+                        <Text style={styles[size].title}>{title.toUpperCase()}</Text>
                     </View>
                 }
 
-                <View  style= {styles.rows.flex} >
-                        {CapabilityIcon && 
+                <View testID="capability-tile-icon-row" style={[styles.rows.flex, styles.rows.clip]} >
+                        {CapabilityIcon && iconBox &&
                             <View style={styles.cols.fixed}>
-                                <CapabilityIcon  style={styles[size].icon} width={48} height={48} />   
+                                <CapabilityIcon testID="capability-tile-icon" style={[styles[size].icon, iconBox]} width={iconBox.width} height={iconBox.height} />
                             </View>
                         }
-                        <View style={styles.cols.fixed}>
-                            <Text style={styles[size].value}>                                
-                                {value ?  `${value}` : ' ' }
-                            </Text>
-                            <Text style={styles[size].unit}>                                
-                                {unit ?  `${unit}` : ' ' }
-                            </Text>
-                        </View>
+                        {hasValue &&
+                            <View style={styles.cols.fixed}>
+                                <Text style={styles[size].value}>
+                                    {value ?  `${value}` : ' ' }
+                                </Text>
+                                <Text style={styles[size].unit}>
+                                    {unit ?  `${unit}` : ' ' }
+                                </Text>
+                            </View>
+                        }
                 </View>
 
                 <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
-                    <View style={styles.rows.fixed}>
+                    <View style={[styles.rows.fixed, styles.rows.device]}>
                             { InterfaceIcon &&
-                                <View style={styles.cols.device}>
+                                <View testID="capability-tile-interface-icon" style={[styles.cols.device, interfaceIconBox]}>
                                     <InterfaceIcon fill="#FFFFFF" width={iconSize} height={iconSize} />
                                 </View>
                             }
-                            <View style={styles.cols.device}>
-                                <Text style={styles[size].device}>{deviceName??' '}</Text>
+                            <View style={[styles.cols.device, styles.cols.deviceName]}>
+                                <Text style={styles[size].device} numberOfLines={1} ellipsizeMode="middle">{deviceName??' '}</Text>
                             </View>
                     </View>
                 </DeviceWithRole>
@@ -235,6 +264,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
     // T16: switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
     // parent), with the device name and no value, and the toggle to turn it straight back on
     if ( deviceName && disabled) {
+        const iconBox = getIconBox(false)
         return (
             <View style= {styles.container}>
 
@@ -244,18 +274,18 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
                     </View>
                 }
 
-                <View  style= {styles.rows.flex} >
-                        {CapabilityIcon &&
+                <View testID="capability-tile-icon-row" style={[styles.rows.flex, styles.rows.clip]} >
+                        {CapabilityIcon && iconBox &&
                             <View style={styles.cols.fixed}>
-                                <CapabilityIcon  style={styles[size].icon} width={48} height={48} />
+                                <CapabilityIcon testID="capability-tile-icon" style={[styles[size].icon, iconBox]} width={iconBox.width} height={iconBox.height} />
                             </View>
                         }
                 </View>
 
                 <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
-                    <View style={styles.rows.fixed}>
-                            <View style={styles.cols.device}>
-                                <Text style={styles[size].device}>{deviceName}</Text>
+                    <View style={[styles.rows.fixed, styles.rows.device]}>
+                            <View style={[styles.cols.device, styles.cols.deviceName]}>
+                                <Text style={styles[size].device} numberOfLines={1} ellipsizeMode="middle">{deviceName}</Text>
                             </View>
                     </View>
                 </DeviceWithRole>
@@ -396,7 +426,18 @@ const styles = {
             justifyContent: 'center',
             alignItems: 'center',
             width:'100%',
-        }
+        },
+        // the icon row is the one that gives way: anything that still doesn't fit is clipped
+        // rather than drawn over the lines above and below it
+        clip: {
+            overflow: 'hidden',
+        },
+        // the device name line never gets wider than the tile, so a long name is cut, not overflowing
+        device: {
+            maxWidth: '100%',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+        },
     }),
     idle: { backgroundColor: colors.tileIdle },
     cols: StyleSheet.create({ 
@@ -412,7 +453,10 @@ const styles = {
             display:'flex',
             flexDirection:'column',
             justifyContent: 'center',
-        }
+        },
+        deviceName: {
+            flexShrink: 1,
+        },
     }),
     small: StyleSheet.create({
         tile: {
@@ -421,7 +465,7 @@ const styles = {
             alignItems: 'center',
             justifyContent: 'space-between',
         },
-        icon: { width: 48, height: 48, color:'#ffffff',tintColor: '#fff' },
+        icon: { color:'#ffffff',tintColor: '#fff' },
         device: { color: '#fff', fontSize: 12 },
         roleLabel: { color: '#fff', fontSize: 12, fontStyle: 'italic' },
         title: {
@@ -480,7 +524,7 @@ const styles = {
         },
         active: { backgroundColor: colors.tileActive },
         idle: { backgroundColor: colors.tileIdle },
-        icon: { width: 64, height: 64, color: '#fff' },
+        icon: { color: '#fff' },
         title: { 
             color: '#fff', 
             fontSize: 20,
