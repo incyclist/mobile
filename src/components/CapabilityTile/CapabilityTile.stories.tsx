@@ -96,6 +96,43 @@ export const PhoneWithToggle:  Story= {
   }
 };
 
+// The ride falls back to a separate power meter while the trainer isn't available: the Resistance
+// tile is dimmed, without a switch, and a tap takes the trainer back into use
+export const DimmedResistance:  Story= {
+  args: {
+    height:160,
+    title:'resistance',
+    capability:'control',
+    deviceName:'Tacx Flux',
+    interface:'ble',
+    connectState:'failed',
+    trainerRole:'trainer',
+    roleLabel:'Your trainer',
+    footerText:{ full:'Tap to use again', short:'Tap to use again' },
+    dimmed:true,
+    awaited:false,
+    onClick:fn()
+  }
+};
+
+// Another tile the trainer still holds while the ride falls back to another device
+export const DimmedViaTrainerPhone:  Story= {
+  args: {
+    height:90,
+    title:'speed',
+    capability:'speed',
+    deviceName:'Tacx Flux',
+    interface:'ble',
+    connectState:'failed',
+    trainerRole:'via-trainer',
+    footerText:{ full:'Not used', short:'Not used' },
+    dimmed:true,
+    awaited:false,
+    variant:'short',
+    onClick:fn()
+  }
+};
+
 export const UndefinedUnits:  Story= {
   args: {   
     height:160,

@@ -50,6 +50,27 @@ describe('getBarStateLine', () => {
         })
         expect(getBarStateLine(t)).toBe('Tacx Flux · via your trainer · Via trainer')
     })
+
+    it('a dimmed Resistance tile: the trainer, its role and the footer copy as given, without a connect state', () => {
+        const t = tile({
+            title: 'Resistance', capability: 'control', deviceName: 'Tacx Flux', connectState: 'failed', dimmed: true,
+            trainerRole: 'trainer', roleLabel: 'Your trainer', footerText: { full: 'Tap to use again', short: 'Tap again' },
+        })
+        expect(getBarStateLine(t)).toBe('Tacx Flux · Your trainer · Tap again')
+    })
+
+    it('a dimmed tile the trainer still holds shows no value, even if one is reported', () => {
+        const t = tile({
+            deviceName: 'Tacx Flux', value: '120', unit: 'W', connectState: 'connected', dimmed: true,
+            trainerRole: 'via-trainer', footerText: { full: 'Not used', short: 'Not used' },
+        })
+        expect(getBarStateLine(t)).toBe('Tacx Flux · Not used')
+    })
+
+    it('a dimmed tile without footer copy falls back to its empty footer, never to the connect state', () => {
+        const t = tile({ deviceName: 'Tacx Flux', connectState: 'failed', dimmed: true, emptyFooter: 'Searching…' })
+        expect(getBarStateLine(t)).toBe('Tacx Flux · Searching…')
+    })
 })
 
 describe('getBarLook', () => {
@@ -59,6 +80,12 @@ describe('getBarLook', () => {
         expect(getBarLook(tile({ awaited: true }))).toBe('waiting')
         expect(getBarLook(tile({ awaited: false }))).toBe('idle')
         expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'connecting' }))).toBe('idle')
+    })
+
+    it('a dimmed tile gets the same muted look as a switched-off one, even if its device reports connected', () => {
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'failed', dimmed: true }))).toBe('dimmed')
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'connected', dimmed: true }))).toBe('dimmed')
+        expect(getBarLook(tile({ deviceName: 'Tacx Flux', connectState: 'failed', dimmed: true, awaited: true }))).toBe('dimmed')
     })
 
     it('the amber outline follows whether the page waits for the tile', () => {
@@ -84,5 +111,10 @@ describe('getOptionalSummary', () => {
     it('a switched-off tile is never marked connected', () => {
         const tiles = [tile({ title: 'Heartrate', capability: 'heartrate', deviceName: 'HRM', connectState: 'connected', disabled: true })]
         expect(getOptionalSummary(tiles)).toEqual([{ title: 'Heartrate', connected: false }])
+    })
+
+    it('a dimmed tile is never marked connected', () => {
+        const tiles = [tile({ title: 'Cadence', capability: 'cadence', deviceName: 'Tacx Flux', connectState: 'connected', dimmed: true })]
+        expect(getOptionalSummary(tiles)).toEqual([{ title: 'Cadence', connected: false }])
     })
 })

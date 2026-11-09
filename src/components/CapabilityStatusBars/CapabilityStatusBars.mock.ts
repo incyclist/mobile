@@ -94,6 +94,39 @@ export const MOCK_CAPABILITIES_TRAINER_UNAVAILABLE: Capabilities = {
     rowLabels: { top: { text: 'TO RIDE', subtext: 'waiting for your trainer' }, bottom: OPTIONAL_LABEL },
 }
 
+const dimmedTrainerIn = (title: string, capability: CapabilityDisplayProps['capability']): CapabilityDisplayProps => ({
+    ...trainerIn(title, capability, 'failed'),
+    trainerRole: 'via-trainer',
+    footerText: { full: 'Not used', short: 'Not used' },
+    dimmed: true,
+    awaited: false,
+})
+
+/**
+ * The trainer can't be reached and the rider chose to ride on a separate power meter: Resistance and
+ * the other tile still holding the trainer are dimmed, and a tap on Resistance takes the trainer back.
+ */
+export const MOCK_CAPABILITIES_FALLBACK: Capabilities = {
+    top: [
+        {
+            ...trainerIn('Resistance', 'control', 'failed'),
+            trainerRole: 'trainer',
+            roleLabel: 'Your trainer',
+            footerText: { full: 'Tap to use again', short: 'Tap to use again' },
+            dimmed: true,
+            awaited: false,
+        },
+        { title: 'Power', capability: 'power', deviceName: 'Stages Power', interface: 'ble', role: 'required', value: '154', unit: 'W', connectState: 'connected', awaited: false, onClick: noop, onUnselect: noop },
+        dimmedTrainerIn('Speed', 'speed'),
+    ],
+    bottom: [
+        OPTIONAL_ROW[0],
+        { ...dimmedTrainerIn('Cadence', 'cadence'), role: 'optional' },
+        OPTIONAL_ROW[2],
+    ],
+    rowLabels: { top: { text: '✓ READY TO RIDE' }, bottom: OPTIONAL_LABEL },
+}
+
 /** Ready: a power meter connected, Resistance switched off with its trainer remembered. */
 export const MOCK_CAPABILITIES_SWITCHED_OFF: Capabilities = {
     top: [

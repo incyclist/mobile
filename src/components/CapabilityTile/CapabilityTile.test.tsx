@@ -215,6 +215,109 @@ describe('CapabilityTile T16 (switched off, device remembered)', () => {
     });
 });
 
+describe('CapabilityTile dimmed (the ride falls back to another device)', () => {
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    // the shape the page service sends for a dimmed tile: a device, not disabled, no switch handlers
+    const buildDimmedTile = (props: Partial<CapabilityDisplayProps> = {}) => buildTile({
+        title: 'Resistance', capability: 'control', deviceName: 'Tacx Flux', connectState: 'failed',
+        value: undefined, unit: undefined, onUnselect: undefined, onUse: undefined,
+        dimmed: true, trainerRole: 'trainer', roleLabel: 'Your trainer',
+        footerText: { full: 'Tap to use again', short: 'Tap again' },
+        ...props,
+    });
+
+    const fillOf = (root: ReturnType<typeof render>['UNSAFE_root']) =>
+        StyleSheet.flatten(root.findByType(TouchableOpacity).props.style).backgroundColor;
+
+    it('shows the device, its role and the footer copy as given, with no value and no connect state', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildDimmedTile({ value: '120', unit: 'W' })} height={120} variant="full" />);
+
+        expect(getByText('Tacx Flux')).toBeTruthy();
+        expect(getByText('Your trainer')).toBeTruthy();
+        expect(getByText('Tap to use again')).toBeTruthy();
+        expect(queryByText('120')).toBeNull();
+        expect(queryByText('FAILED')).toBeNull();
+    });
+
+    it('uses the phone footer copy on a phone', () => {
+        const { getByText, queryByText } = render(<CapabilityTile {...buildDimmedTile()} height={120} variant="short" />);
+
+        expect(getByText('Tap again')).toBeTruthy();
+        expect(queryByText('Tap to use again')).toBeNull();
+    });
+
+    it('has no on/off switch', () => {
+        const { queryByLabelText } = render(<CapabilityTile {...buildDimmedTile()} height={120} />);
+
+        expect(queryByLabelText('Use Resistance')).toBeNull();
+    });
+
+    it('gets the muted fill of a switched-off tile, even if its device reports connected', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildDimmedTile({ connectState: 'connected' })} height={120} />);
+
+        expect(fillOf(UNSAFE_root)).toBe(colors.tileEmpty);
+    });
+
+    it('a tap on the tile calls its onClick, once, with the tile', () => {
+        const tile = buildDimmedTile();
+        const { getByText } = render(<CapabilityTile {...tile} height={120} />);
+
+        fireEvent.press(getByText('Tacx Flux'));
+
+        expect(tile.onClick).toHaveBeenCalledTimes(1);
+        expect(tile.onClick).toHaveBeenCalledWith(expect.objectContaining({ capability: 'control', dimmed: true }));
+    });
+
+    it('another tile the trainer still holds is dimmed the same way', () => {
+        const { getByText, queryByText, queryByLabelText, UNSAFE_root } = render(<CapabilityTile {...buildDimmedTile({
+            title: 'Power', capability: 'power', value: '0', unit: 'W', connectState: 'connected',
+            trainerRole: 'via-trainer', roleLabel: undefined, footerText: { full: 'Not used', short: 'Not used' },
+        })} height={120} />);
+
+        expect(getByText('Not used')).toBeTruthy();
+        expect(queryByText('0')).toBeNull();
+        expect(queryByLabelText('Use Power')).toBeNull();
+        expect(fillOf(UNSAFE_root)).toBe(colors.tileEmpty);
+    });
+});
+
+describe('CapabilityTile Resistance switch while the trainer connects or cannot be reached', () => {
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const buildTrainerTile = (connectState: CapabilityDisplayProps['connectState']) => buildTile({
+        title: 'Resistance', capability: 'control', deviceName: 'Tacx Flux', value: undefined, unit: undefined,
+        connectState, trainerRole: 'trainer', roleLabel: 'Your trainer', awaited: true,
+        footerText: { full: 'Not connected · waiting', short: 'Waiting…' },
+    });
+
+    it.each(['connecting', 'failed'])('switching it off (%s) calls onUnselect exactly once, and nothing else', (connectState) => {
+        const tile = buildTrainerTile(connectState as CapabilityDisplayProps['connectState']);
+        const { getByLabelText } = render(<CapabilityTile {...tile} height={120} />);
+
+        fireEvent.press(getByLabelText('Use Resistance'));
+
+        expect(tile.onUnselect).toHaveBeenCalledTimes(1);
+        expect(tile.onUnselect).toHaveBeenCalledWith();
+        expect(tile.onClick).not.toHaveBeenCalled();
+    });
+
+    it('the switch stays as the page service draws it: still on after the tap, until the next props arrive', () => {
+        const tile = buildTrainerTile('connecting');
+        const { getByLabelText } = render(<CapabilityTile {...tile} height={120} />);
+
+        fireEvent.press(getByLabelText('Use Resistance'));
+
+        expect(getByLabelText('Use Resistance').props.accessibilityState).toEqual({ checked: true });
+    });
+});
+
 describe('CapabilityTile waiting outline', () => {
 
     const borderColorOf = (root: ReturnType<typeof render>['UNSAFE_root']) =>
