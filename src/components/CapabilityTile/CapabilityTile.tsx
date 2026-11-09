@@ -169,18 +169,18 @@ type SwitchedOffTileViewProps = {
 const SwitchedOffTileView = ({ size, title, deviceName, roleLabel, trainerRole, footer, emptyFooter, variant, footerFit, unselect, iconBox, CapabilityIcon }: SwitchedOffTileViewProps) => (
     <View style= {styles.container}>
 
-        { title &&
+        { title ?
             <View style={styles.rows.fixed}>
                 <Text style={styles[size].title}>{title.toUpperCase()}</Text>
             </View>
-        }
+        : null }
 
         <View testID="capability-tile-icon-row" style={[styles.rows.flex, styles.rows.clip]} >
-                {CapabilityIcon && iconBox &&
+                {CapabilityIcon && iconBox ?
                     <View style={styles.cols.fixed}>
                         <CapabilityIcon testID="capability-tile-icon" style={[styles[size].icon, iconBox]} width={iconBox.width} height={iconBox.height} />
                     </View>
-                }
+                : null}
         </View>
 
         <DeviceWithRole size={size} roleLabel={roleLabel} trainerRole={trainerRole}>
@@ -215,11 +215,11 @@ type EmptyTileViewProps = {
 // copy (searching/optional/etc.) if it has one, otherwise the empty-tile default
 const EmptyTileView = ({ size, title, helpText, variant, footer, emptyFooter, footerFit }: EmptyTileViewProps) => (
     <View style= {styles.container}>
-        {title &&
+        {title ?
             <View style={styles.rows.fixed}>
                 <Text style={styles[size].title}>{title.toUpperCase()}</Text>
             </View>
-        }
+        : null}
 
         <View style={[styles.rows.flex]}>
                 <Text style={styles[size].helpText}>
