@@ -33,9 +33,9 @@ describe('getBarStateLine', () => {
     it("the page service's footer copy replaces the state, in its phone variant", () => {
         const t = tile({
             deviceName: 'Stages Power', value: '0', unit: 'W', connectState: 'connected',
-            footerText: { full: 'CONNECTED · can replace trainer', short: 'Can replace trainer' },
+            footerText: { full: 'Waiting for trainer', short: 'Via trainer' },
         })
-        expect(getBarStateLine(t)).toBe('0 W · Stages Power · Can replace trainer')
+        expect(getBarStateLine(t)).toBe('0 W · Stages Power · Via trainer')
     })
 
     it("the page service's footer copy replaces an empty tile's footer", () => {
