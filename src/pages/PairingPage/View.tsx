@@ -5,7 +5,7 @@ import type { PairingDisplayProps, InterfaceDisplayProps } from 'incyclist-servi
 import { colors, textSizes } from '../../theme'
 import {
     ButtonBar, CapabilityGrid, CapabilityStatusBars, MainBackground, InterfaceState, DeviceSelector,
-    PairingHelperPanel, PairingStatusLine,
+    PairingConflictCard, PairingHelperPanel, PairingStatusLine,
 } from '../../components'
 import { BleInterfaceSettings } from '../../components/BleInterfaceSettings'
 import { useScreenLayout } from '../../hooks'
@@ -20,14 +20,20 @@ const PANEL_WIDTH_TABLET = 320
 const PANEL_TOP_CLEARANCE = 56
 
 export const PairingPageView = (props: PairingDisplayProps) => {
-    const { deviceSelection, onExit, helper, status, interfaces, capabilities } = props
+    const { deviceSelection, onExit, helper, status, interfaces, capabilities, pendingConflict } = props
     const compact = useScreenLayout() === 'compact'
+    const panelLayout = compact ? 'phone' : 'tablet'
 
     const onStatusLink = useMemo(() => getStatusLinkHandler(status, helper, interfaces), [status, helper, interfaces])
 
     const helperOpen = helper !== undefined && helper.phase !== 'hidden'
-    // on a phone, the helper leaves too little room for tiles: the required row becomes status bars
-    const showBars = helperOpen && compact
+    // the panel beside the tiles holds one thing at a time: the helper, or a device-selection
+    // conflict. The page service only gives a conflict while the helper and the device lists are
+    // closed, so the conflict card is shown whenever it is given.
+    const conflictCard = helperOpen ? undefined : pendingConflict
+    const panelOpen = helperOpen || conflictCard !== undefined
+    // on a phone, the panel leaves too little room for tiles: the required row becomes status bars
+    const showBars = panelOpen && compact
     const panelStyle = { width: compact ? PANEL_WIDTH_PHONE : PANEL_WIDTH_TABLET }
 
     return (
@@ -76,14 +82,17 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                             </View>
                         )}
 
-                        <View style={styles.rowButtons}>
+                        {/* exactly the page service's buttons, never filtered or added to */}
+                        <View testID="pairing-page-buttons" style={styles.rowButtons}>
                             {props.buttons && <ButtonBar buttons={props.buttons} />}
                         </View>
                     </View>
 
-                    {helperOpen && (
+                    {panelOpen && (
                         <View style={[styles.panel, panelStyle]}>
-                            <PairingHelperPanel helper={helper} layout={compact ? 'phone' : 'tablet'} />
+                            {helperOpen
+                                ? <PairingHelperPanel helper={helper} layout={panelLayout} />
+                                : conflictCard && <PairingConflictCard conflict={conflictCard} layout={panelLayout} />}
                         </View>
                     )}
                 </View>
