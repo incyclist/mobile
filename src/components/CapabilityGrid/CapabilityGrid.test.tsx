@@ -12,19 +12,13 @@ const buildTile = (props: Partial<CapabilityDisplayProps> = {}): CapabilityDispl
     capability: 'power',
     deviceName: undefined,
     role: 'required',
+    awaited: false,
     onClick: jest.fn(),
     ...props,
-} as CapabilityDisplayProps);
+});
 
-const renderGrid = (tile: CapabilityDisplayProps, extra: Partial<{ readyToStart: boolean, noSearch: boolean }> = {}) => {
-    const utils = render(
-        <CapabilityGrid
-            capabilities={{ top: [tile], bottom: [] }}
-            compact={false}
-            readyToStart={extra.readyToStart ?? false}
-            noSearch={extra.noSearch ?? false}
-        />
-    );
+const renderGrid = (tile: CapabilityDisplayProps) => {
+    const utils = render(<CapabilityGrid capabilities={{ top: [tile], bottom: [] }} compact={false} />);
     const container = utils.UNSAFE_root.findByType(View);
     fireEvent(container, 'layout', layout(900, 300));
     return utils;
@@ -32,15 +26,13 @@ const renderGrid = (tile: CapabilityDisplayProps, extra: Partial<{ readyToStart:
 
 describe('CapabilityGrid - amber waiting outline', () => {
 
-    // Regression test: a required tile the rider had switched off kept the amber "waiting" border
-    // while the app searched for the other required capabilities.
-    it('a required tile that is switched off (disabled) never gets the waiting outline', () => {
-        const { UNSAFE_root } = renderGrid(buildTile({ disabled: true }), { readyToStart: false, noSearch: false });
-        expect(UNSAFE_root.findByType(CapabilityTile).props.waiting).toBe(false);
+    it('passes on that the page waits for a tile', () => {
+        const { UNSAFE_root } = renderGrid(buildTile({ awaited: true }));
+        expect(UNSAFE_root.findByType(CapabilityTile).props.awaited).toBe(true);
     });
 
-    it('a required tile that is searching does get the waiting outline', () => {
-        const { UNSAFE_root } = renderGrid(buildTile({ disabled: false }), { readyToStart: false, noSearch: false });
-        expect(UNSAFE_root.findByType(CapabilityTile).props.waiting).toBe(true);
+    it('passes on that the page does not wait for a tile', () => {
+        const { UNSAFE_root } = renderGrid(buildTile({ awaited: false }));
+        expect(UNSAFE_root.findByType(CapabilityTile).props.awaited).toBe(false);
     });
 });

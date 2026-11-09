@@ -30,6 +30,17 @@ export const colors = {
         off: '#f4f3f4',
         on: 'green'
     },
+    // Pairing page: the status line's dot, and the amber "waiting for this one" outline
+    statusDot: {
+        red: '#e74c3c',
+        green: '#2ecc71',
+        amber: '#f5a623',
+    },
+    pairingWaiting: '#f5a623',
+    // a switched-off tile's surface: dimmed, while its text keeps full contrast
+    tileDimmed: 'rgba(159, 164, 168, 0.4)',
+    helperPanelBackground: 'rgba(30, 36, 46, 0.97)',
+    helperTipBackground: 'rgba(0, 0, 0, 0.3)',
     error: '#D32F2F',
     warning: '#FFBF00',
     success: '#4CAF50',

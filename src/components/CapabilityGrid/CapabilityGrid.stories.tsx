@@ -39,13 +39,13 @@ export const Initial: Story = {
     args: {
         capabilities: {
             top: [
-                { title: 'control', capability: 'control', deviceName: '', onClick: fn() },
-                { title: 'power', capability: 'power', deviceName: '', onClick: fn() },
-                { title: 'heartrate', capability: 'heartrate', deviceName: '', onClick: fn() },
+                { title: 'control', capability: 'control', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'power', capability: 'power', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'heartrate', capability: 'heartrate', deviceName: '', awaited: false, onClick: fn() },
             ],
             bottom: [
-                { title: 'speed', capability: 'speed', deviceName: '', onClick: fn() },
-                { title: 'cadence', capability: 'cadence', deviceName: '', onClick: fn() },
+                { title: 'speed', capability: 'speed', deviceName: '', awaited: false, onClick: fn() },
+                { title: 'cadence', capability: 'cadence', deviceName: '', awaited: false, onClick: fn() },
             ],
         },
     },
@@ -58,6 +58,7 @@ export const Paired: Story = {
                 {
                     title: 'control',
                     capability: 'control',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     connectState: 'connected',
                     onClick: fn(),
@@ -65,6 +66,7 @@ export const Paired: Story = {
                 {
                     title: 'power',
                     capability: 'power',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '154',
                     unit: 'W',
@@ -73,6 +75,7 @@ export const Paired: Story = {
                 {
                     title: 'heartrate',
                     capability: 'heartrate',
+                    awaited: false,
                     deviceName: 'HRM Dual',
                     value: '135',
                     unit: 'bpm',
@@ -83,6 +86,7 @@ export const Paired: Story = {
                 {
                     title: 'cadence',
                     capability: 'cadence',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '90',
                     unit: 'rpm',
@@ -91,6 +95,7 @@ export const Paired: Story = {
                 {
                     title: 'speed',
                     capability: 'speed',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '29.1',
                     unit: 'km/h',
@@ -108,6 +113,7 @@ export const PairedWaiting: Story = {
                 {
                     title: 'control',
                     capability: 'control',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     connectState: 'waiting',
                     onClick: fn(),
@@ -115,6 +121,7 @@ export const PairedWaiting: Story = {
                 {
                     title: 'power',
                     capability: 'power',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '154',
                     unit: 'W',
@@ -123,6 +130,7 @@ export const PairedWaiting: Story = {
                 {
                     title: 'heartrate',
                     capability: 'heartrate',
+                    awaited: false,
                     deviceName: 'HRM Dual',
                     value: '135',
                     unit: 'bpm',
@@ -133,6 +141,7 @@ export const PairedWaiting: Story = {
                 {
                     title: 'cadence',
                     capability: 'cadence',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '90',
                     unit: 'rpm',
@@ -141,6 +150,7 @@ export const PairedWaiting: Story = {
                 {
                     title: 'speed',
                     capability: 'speed',
+                    awaited: false,
                     deviceName: 'DCSIM FTMS 1234',
                     value: '29.1',
                     unit: 'km/h',
