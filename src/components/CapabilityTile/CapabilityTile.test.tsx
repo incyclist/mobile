@@ -86,7 +86,7 @@ describe('CapabilityTile footer/toggle layout', () => {
     it('the connect-state text is a single line, so it cannot overlap the toggle next to it', () => {
         const { getByText } = render(<CapabilityTile {...buildTile({ connectState: 'connecting' })} height={90} variant="short" />);
 
-        expect(getByText('CONNECTING').props.numberOfLines).toBe(1);
+        expect(getByText('Connecting…').props.numberOfLines).toBe(1);
     });
 
     it('phone (short variant) uses a smaller connect-state font than tablet (full), to make room for the toggle', () => {
@@ -95,8 +95,8 @@ describe('CapabilityTile footer/toggle layout', () => {
 
         const flatten = (style: unknown) => Object.assign({}, ...(Array.isArray(style) ? style.filter(Boolean) : [style]));
 
-        const shortSize = flatten(short.getByText('CONNECTING').props.style).fontSize;
-        const fullSize = flatten(full.getByText('CONNECTING').props.style).fontSize;
+        const shortSize = flatten(short.getByText('Connecting…').props.style).fontSize;
+        const fullSize = flatten(full.getByText('Connecting…').props.style).fontSize;
 
         expect(shortSize).toBeLessThan(fullSize);
     });
@@ -141,7 +141,7 @@ describe('CapabilityTile footer/toggle layout', () => {
 describe('CapabilityTile footer text fit', () => {
 
     const footers: Array<[string, Partial<CapabilityDisplayProps>, string]> = [
-        ['connect state of an active device', { connectState: 'connecting' }, 'CONNECTING'],
+        ['connect state of an active device', { connectState: 'connecting' }, 'Connecting…'],
         ['footer of a switched-off tile', { value: undefined, unit: undefined, disabled: true, emptyFooter: 'Not used', onUse: jest.fn() }, 'NOT USED'],
         ['footer of an empty tile', { deviceName: undefined, value: undefined, unit: undefined, emptyFooter: 'Tap to search' }, 'Tap to search'],
     ];
@@ -370,6 +370,15 @@ describe('CapabilityTile footer copy from the page service', () => {
         })} height={120} variant="short" />);
         expect(getByText('Optional for now')).toBeTruthy();
         expect(queryByText('Searching…')).toBeNull();
+    });
+
+    it("without it, a connecting device reads 'Connecting…', a connected one still 'CONNECTED'", () => {
+        const connecting = render(<CapabilityTile {...buildTile({ title: 'Controller', capability: 'app_control', deviceName: 'Zwift Click B4EB', connectState: 'connecting' })} height={120} variant="short" />);
+        expect(connecting.getByText('Connecting…')).toBeTruthy();
+        expect(connecting.queryByText('CONNECTING')).toBeNull();
+
+        const connected = render(<CapabilityTile {...buildTile({ title: 'Controller', capability: 'app_control', deviceName: 'Zwift Click B4EB', connectState: 'connected' })} height={120} variant="short" />);
+        expect(connected.getByText('CONNECTED')).toBeTruthy();
     });
 
     it('without it, the tile keeps its own footer', () => {

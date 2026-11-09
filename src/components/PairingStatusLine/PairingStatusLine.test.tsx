@@ -28,6 +28,23 @@ describe('PairingStatusLine', () => {
         expect(queryByText('Not available?')).toBeNull()
     })
 
+    it('shows only the state, without its tip, when only the state is shown', () => {
+        const short = render(<PairingStatusLine status={MOCK_STATUS_TRAINER_UNAVAILABLE} variant="short" stateOnly />)
+        expect(short.getByText("Can't reach Tacx Flux.")).toBeTruthy()
+        expect(short.queryByText("Can't reach Tacx Flux. Pedal to wake it")).toBeNull()
+
+        const full = render(<PairingStatusLine status={MOCK_STATUS_TRAINER_UNAVAILABLE} variant="full" stateOnly />)
+        expect(full.getByText("Can't reach your trainer Tacx Flux.")).toBeTruthy()
+    })
+
+    it('keeps the tip in the text otherwise', () => {
+        const short = render(<PairingStatusLine status={MOCK_STATUS_TRAINER_UNAVAILABLE} variant="short" />)
+        expect(short.getByText("Can't reach Tacx Flux. Pedal to wake it")).toBeTruthy()
+
+        const full = render(<PairingStatusLine status={MOCK_STATUS_TRAINER_UNAVAILABLE} variant="full" />)
+        expect(full.getByText("Can't reach your trainer Tacx Flux. Pedal a few strokes to wake it up.")).toBeTruthy()
+    })
+
     it('leaves the link out when there is nothing for it to open', () => {
         const { queryByText } = render(<PairingStatusLine status={MOCK_STATUS_STILL_SEARCHING} variant="short" />)
         expect(queryByText('Need help?')).toBeNull()

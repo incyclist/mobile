@@ -110,10 +110,14 @@ const pickFooterText = (footerText: CapabilityDisplayProps['footerText'], varian
 }
 
 // the footer of a tile with an active device: the page service's copy if set, otherwise the state
-// text ('Found', shown amber while a search runs) or the connect state
+// text ('Found', shown amber while a search runs) or the connect state. A device that is connecting
+// reads 'Connecting…', in the same style as the rest of the screen's copy; other connect states
+// (e.g. 'CONNECTED') keep the upper-case state.
 const getActiveFooter = (footer: string | undefined, stateText?: string, connectState?: string): { text: string, searching: boolean } => {
     if (footer)
         return { text: footer, searching: false }
+    if (!stateText && connectState === 'connecting')
+        return { text: 'Connecting…', searching: false }
     return { text: (stateText ?? connectState ?? ' ').toUpperCase(), searching: Boolean(stateText) }
 }
 

@@ -40,7 +40,7 @@ export const CapabilityStatusBars = ({ capabilities }: CapabilityStatusBarsProps
                             <Text key={item.title}>
                                 {index > 0 ? ' · ' : ''}
                                 {item.connected ? <Text style={styles.check}>✓ </Text> : null}
-                                {item.title}
+                                {item.title.toUpperCase()}
                             </Text>
                         ))}
                     </Text>

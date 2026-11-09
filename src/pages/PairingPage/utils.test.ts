@@ -2,7 +2,7 @@ import type { InterfaceDisplayProps, PairingHelperDisplayProps, PairingStatusDis
 import { getStatusLinkHandler } from './utils'
 
 const status = (id: PairingStatusDisplayProps['id'], link?: string): PairingStatusDisplayProps => ({
-    id, text: 'text', shortText: 'short', link, shortLink: link, dot: 'amber',
+    id, text: 'text', shortText: 'short', stateOnlyText: 'text', shortStateOnlyText: 'short', link, shortLink: link, dot: 'amber',
 })
 
 const helper = (onOpen = jest.fn()): PairingHelperDisplayProps => ({

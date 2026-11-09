@@ -17,7 +17,11 @@ export const PairingStatusLine = ({ status, variant, stateOnly = false, onLinkPr
     const { logEvent } = useLogging('PairingStatusLine')
 
     const isShort = variant === 'short'
-    const text = isShort ? status.shortText : status.text
+    // with only the state shown (e.g. the helper is open beside it and covers any tip), the text
+    // drops its tip too, not only the link
+    const shortText = stateOnly ? status.shortStateOnlyText : status.shortText
+    const fullText = stateOnly ? status.stateOnlyText : status.text
+    const text = isShort ? shortText : fullText
     const link = isShort ? status.shortLink : status.link
     const showLink = !stateOnly && Boolean(link) && onLinkPress !== undefined
 

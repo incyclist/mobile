@@ -8,7 +8,13 @@ describe('CapabilityStatusBars', () => {
         const { getByText } = render(<CapabilityStatusBars capabilities={MOCK_CAPABILITIES_HEARTRATE_ONLY} />)
         expect(getByText('RESISTANCE')).toBeTruthy()
         expect(getByText('Smart trainer · Searching…')).toBeTruthy()
-        expect(getByText(/Cadence/)).toBeTruthy()
+        expect(getByText(/CADENCE/)).toBeTruthy()
+    })
+
+    it('the optional line writes the titles in upper case, as the tiles and bars do', () => {
+        const { getByText, queryByText } = render(<CapabilityStatusBars capabilities={MOCK_CAPABILITIES_HEARTRATE_ONLY} />)
+        expect(getByText('OPTIONAL: ✓ HEARTRATE · CADENCE · CONTROLLER')).toBeTruthy()
+        expect(queryByText(/Cadence/)).toBeNull()
     })
 
     it('a tap on a bar opens its device list, as the tile does', () => {
