@@ -83,6 +83,18 @@ export const buildTrainerUnavailableHelper = (h: MockHelperHandlers = {}): Pairi
     onDismiss: h.onDismiss ?? noop,
 })
 
+export const MOCK_TIP_FALLBACK_POWER = {
+    text: "You can ride with your power meter instead. Normally Incyclist changes your trainer's resistance, so you feel hills and workouts get harder or easier by themselves. With only a power meter that doesn't happen: you set the effort with your gears. This lasts until you next open Devices.",
+    shortText: "Ride with your power meter instead. You won't feel hills or workout changes; use your gears. Until you next open Devices.",
+}
+
+/** The configured trainer can't be reached, "my trainer isn't available today" picked, a separate power meter connected: the ride can fall back to it. */
+export const buildFallbackHelper = (h: MockHelperHandlers = {}): PairingHelperDisplayProps => ({
+    ...buildTrainerUnavailableHelper(h),
+    tip: MOCK_TIP_FALLBACK_POWER,
+    action: { label: 'Ride with power meter only', onClick: h.onAction ?? noop },
+})
+
 /** A device made the row ready while the helper was open. */
 export const buildResolvedHelper = (h: MockHelperHandlers = {}): PairingHelperDisplayProps => ({
     ...buildAsleepHelper(h),
