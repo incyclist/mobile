@@ -14,6 +14,7 @@ import PowerIcon from '../../assets/icons/power.svg'
 import SpeedIcon from '../../assets/icons/speed.svg'     
 
 import  {CapabilityDisplayProps} from 'incyclist-services'
+import { isConnected, isSwitchedOff } from '../CapabilityStatusBars/utils'
 
 interface CapabilityTileProps extends CapabilityDisplayProps {
     height: number
@@ -42,9 +43,11 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     }
     const size = (props.height??0)>150 ? 'large' : 'small'
     const hasDevice = Boolean(props.deviceName)
-    const switchedOff = hasDevice && Boolean(props.disabled)
-    // a switched-off tile (T16) uses the same muted look as an empty tile, not the active colour
-    const backgroundColor = hasDevice && !switchedOff ? colors.tileActive : colors.tileEmpty
+    const switchedOff = isSwitchedOff(props)
+    // only a connected device gets the in-use colour - the same rule as the status bars, so the grid
+    // and the bars always agree. A device that is still connecting or can't be reached, and a
+    // switched-off tile (T16), use the same muted look as an empty tile.
+    const backgroundColor = isConnected(props) ? colors.tileActive : colors.tileEmpty
     // the page service decides which tiles the page waits for; the tile only renders the outline
     const waitingBorder = props.awaited ? { borderWidth: 3, borderColor: colors.pairingWaiting } : undefined
     const showToggle = hasDevice && Boolean(props.onUnselect || props.onUse)

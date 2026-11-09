@@ -7,9 +7,9 @@ export interface OptionalSummaryItem {
     connected: boolean
 }
 
-const isSwitchedOff = (tile: CapabilityDisplayProps): boolean => Boolean(tile.deviceName) && Boolean(tile.disabled)
+export const isSwitchedOff = (tile: CapabilityDisplayProps): boolean => Boolean(tile.deviceName) && Boolean(tile.disabled)
 
-const isConnected = (tile: CapabilityDisplayProps): boolean =>
+export const isConnected =(tile: CapabilityDisplayProps): boolean =>
     Boolean(tile.deviceName) && !tile.disabled && tile.connectState === 'connected'
 
 /**

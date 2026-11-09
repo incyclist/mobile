@@ -236,6 +236,27 @@ describe('CapabilityTile waiting outline', () => {
     });
 });
 
+describe('CapabilityTile fill colour', () => {
+
+    const fillOf = (root: ReturnType<typeof render>['UNSAFE_root']) =>
+        StyleSheet.flatten(root.findByType(TouchableOpacity).props.style).backgroundColor;
+
+    it('a connected device gets the in-use fill', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ connectState: 'connected' })} height={120} />);
+        expect(fillOf(UNSAFE_root)).toBe(colors.tileActive);
+    });
+
+    it.each(['connecting', 'failed', undefined])('a device that is not connected (%s) does not look in use', (connectState) => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ connectState: connectState as CapabilityDisplayProps['connectState'] })} height={120} />);
+        expect(fillOf(UNSAFE_root)).toBe(colors.tileEmpty);
+    });
+
+    it('a switched-off tile keeps the muted fill even if its device reports connected', () => {
+        const { UNSAFE_root } = render(<CapabilityTile {...buildTile({ connectState: 'connected', disabled: true, onUse: jest.fn() })} height={120} />);
+        expect(fillOf(UNSAFE_root)).toBe(colors.tileEmpty);
+    });
+});
+
 describe('CapabilityTile footer copy from the page service', () => {
 
     const footerText = { full: 'Not connected · waiting', short: 'Waiting…' };
