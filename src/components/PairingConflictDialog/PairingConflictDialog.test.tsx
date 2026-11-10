@@ -1,6 +1,6 @@
 import React from 'react'
 import { act, render, fireEvent, within } from '@testing-library/react-native'
-import { Modal, ScrollView, TouchableWithoutFeedback } from 'react-native'
+import { Modal, ScrollView, StyleSheet, TouchableWithoutFeedback } from 'react-native'
 import { PairingConflictDialog, ARMING_DELAY_MS } from './PairingConflictDialog'
 import {
     buildDetectionConflict, buildQueuedDetectionConflict, buildSingleRowDetectionConflict,
@@ -25,6 +25,14 @@ const PHONE: [number, number] = [800, 360]
 const TABLET: [number, number] = [1280, 800]
 
 const arm = () => act(() => { jest.advanceTimersByTime(ARMING_DELAY_MS) })
+
+// the dialog's own surface, sized to the whole window with square corners
+const fillsScreen = (root: ReturnType<typeof render>['UNSAFE_root']) => root.findAll(node => {
+    if (typeof node.type !== 'string')
+        return false
+    const style = StyleSheet.flatten(node.props.style)
+    return style?.width === '100%' && style?.height === '100%' && style?.borderRadius === 0
+}).length > 0
 
 // the dialog's outside area is the outermost TouchableWithoutFeedback; the inner one only stops taps on the dialog itself
 const tapOutside = (root: ReturnType<typeof render>['UNSAFE_root']) => {
@@ -152,6 +160,17 @@ describe('PairingConflictDialog', () => {
 
         expect(onDismiss).toHaveBeenCalledTimes(1)
         expect(onDone).not.toHaveBeenCalled()
+    })
+
+    it('on a phone, fills the screen', () => {
+        const { UNSAFE_root } = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
+        expect(fillsScreen(UNSAFE_root)).toBe(true)
+    })
+
+    it('on a tablet, keeps the device list\'s size', () => {
+        setDimensions(...TABLET)
+        const { UNSAFE_root } = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
+        expect(fillsScreen(UNSAFE_root)).toBe(false)
     })
 
     it('scrolls the rows in the body\'s own ScrollView, not the dialog\'s', () => {

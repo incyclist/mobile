@@ -1,5 +1,6 @@
 import React, { FC, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DeviceEntry from '../DeviceEntry';
 import { DeviceSelectionItemProps, DeviceSelectionProps } from 'incyclist-services';
 import { textSizes } from '../../theme';
@@ -15,6 +16,7 @@ const DONE_LABEL = 'Done';
  * The device list of one capability. After a pick in the Resistance list that would take slots held
  * by a different device, the page service sends a conflict step: it replaces the list in the same
  * dialog until Done, or a tap outside / the back button, which both apply the choices made so far.
+ * On a phone, the dialog fills the screen while it shows the step.
  */
 export const DeviceSelector: FC<DeviceSelectionProps> = ({
   devices,
@@ -24,6 +26,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
 }) => {
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const compact = useScreenLayout() === 'compact';
+    const insets = useSafeAreaInsets();
 
     const dialogWidth = getDeviceDialogWidth(screenWidth);
     const minHeightLeft = screenHeight - (textSizes.dialogTitle + 100 + 80 + 8);
@@ -45,7 +48,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
         : undefined
     , [conflictStep]);
 
-    const dialogStyle = [styles.dialog, conflictStep ? getConflictDialogStyle(screenWidth, compact) : { width: dialogWidth }];
+    const dialogStyle = [styles.dialog, conflictStep ? getConflictDialogStyle(screenWidth, compact, insets) : { width: dialogWidth }];
     const deviceListStyle = [styles.deviceList, { minHeight: deviceListMinHeight }];
 
     let title = isScanning ? 'Searching ...' : 'Select Device';
@@ -58,7 +61,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
             title={title}
             onOutsideClick={onOutsideClick}
             buttons={stepButtons}
-            footerNote={conflictStep ? (compact ? conflictStep.queuedText?.short : conflictStep.queuedText?.full) : undefined}
+            footerNote={compact ? conflictStep?.queuedText?.short : conflictStep?.queuedText?.full}
             // the list and the conflict step both scroll on their own
             scrollable={false}
         >

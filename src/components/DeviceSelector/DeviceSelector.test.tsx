@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, within } from '@testing-library/react-native';
-import { Modal, ScrollView } from 'react-native';
+import { Modal, ScrollView, StyleSheet } from 'react-native';
 import { DeviceSelector } from './DeviceSelector';
 import { DeviceSelectionItemProps, DeviceSelectionProps, TIncyclistCapability } from 'incyclist-services';
 import { buildManualConflict } from '../ConflictStepRows/ConflictStepRows.mock';
@@ -16,6 +16,14 @@ const setDimensions = (width: number, height: number) => {
 };
 const PHONE: [number, number] = [800, 360];
 const TABLET: [number, number] = [1280, 800];
+
+// the dialog's own surface, sized to the whole window with square corners
+const fillsScreen = (root: ReturnType<typeof render>['UNSAFE_root']) => root.findAll(node => {
+    if (typeof node.type !== 'string')
+        return false;
+    const style = StyleSheet.flatten(node.props.style);
+    return style?.width === '100%' && style?.height === '100%' && style?.borderRadius === 0;
+}).length > 0;
 
 const buildDevice = (i: number): DeviceSelectionItemProps => ({
     deviceName: `Device ${i}`,
@@ -153,6 +161,21 @@ describe('DeviceSelector conflict step', () => {
         expect(onDismiss).toHaveBeenCalledTimes(1);
         expect(onDone).not.toHaveBeenCalled();
         expect(props.onClose).not.toHaveBeenCalled();
+    });
+
+    it('on a phone, the step fills the screen; the list before it keeps its size', () => {
+        const list = render(<DeviceSelector {...buildProps(3)} />);
+        expect(fillsScreen(list.UNSAFE_root)).toBe(false);
+        list.unmount();
+
+        const step = render(<DeviceSelector {...buildProps(3, { conflictStep: buildManualConflict() })} />);
+        expect(fillsScreen(step.UNSAFE_root)).toBe(true);
+    });
+
+    it('on a tablet, the step keeps the list\'s size', () => {
+        setDimensions(...TABLET);
+        const { UNSAFE_root } = render(<DeviceSelector {...buildProps(3, { conflictStep: buildManualConflict() })} />);
+        expect(fillsScreen(UNSAFE_root)).toBe(false);
     });
 
     it('scrolls the rows in the step\'s own ScrollView, not the dialog\'s', () => {

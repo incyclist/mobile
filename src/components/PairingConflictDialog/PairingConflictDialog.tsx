@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useWindowDimensions } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { ConflictStepProps } from 'incyclist-services'
 
 import { useLogging, useScreenLayout } from '../../hooks'
@@ -22,13 +23,15 @@ type TapControl = 'choice' | 'done'
 /**
  * A device found by the search wants slots that already hold a different device: the rider picks,
  * per slot, which device to keep. The same dialog, at the same size, as the device list's own
- * conflict step. Done applies the choices; a tap outside or the back button go to the conflict's
- * `onDismiss`, right away, even during the arming delay.
+ * conflict step: the full screen on a phone. Done applies the choices; a tap outside (if any is left
+ * on a phone) or the back button go to the conflict's `onDismiss`, right away, even during the
+ * arming delay.
  */
 export const PairingConflictDialog = ({ conflict }: PairingConflictDialogProps) => {
     const { logEvent } = useLogging('PairingConflictDialog')
     const { width: screenWidth } = useWindowDimensions()
     const compact = useScreenLayout() === 'compact'
+    const insets = useSafeAreaInsets()
     const refArmed = useRef<boolean>(false)
 
     // armed again for every new conflict: the next one in the queue takes this one's place right
@@ -64,7 +67,7 @@ export const PairingConflictDialog = ({ conflict }: PairingConflictDialogProps) 
         { id: 'conflict-done', label: DONE_LABEL, primary: true, onClick: onDone },
     ], [onDone])
 
-    const dialogStyle = getConflictDialogStyle(screenWidth, compact)
+    const dialogStyle = getConflictDialogStyle(screenWidth, compact, insets)
 
     return (
         <Dialog

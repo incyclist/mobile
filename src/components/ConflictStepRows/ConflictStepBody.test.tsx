@@ -62,17 +62,27 @@ describe('ConflictStepBody', () => {
         expect(UNSAFE_root.findAllByType(ScrollView)).toHaveLength(1)
     })
 
-    it('in landscape, puts each row\'s Keep and Use side by side', () => {
+    it('on a phone, puts each row on one line: the slot\'s name on the left, then Keep and Use', () => {
         const step = buildManualConflict()
         const { getByTestId } = render(<ConflictStepBody step={step} compact onChoice={step.onChoice} />)
 
+        expect(directionOf(getByTestId('conflict-row-power'))).toBe('row')
+        expect(directionOf(getByTestId('conflict-choices-power'))).toBe('row')
+    })
+
+    it('on a tablet in landscape, puts Keep and Use side by side under the slot\'s name', () => {
+        setDimensions(1280, 800)
+        const step = buildManualConflict()
+        const { getByTestId } = render(<ConflictStepBody step={step} compact={false} onChoice={step.onChoice} />)
+
+        expect(directionOf(getByTestId('conflict-row-power'))).not.toBe('row')
         expect(directionOf(getByTestId('conflict-choices-power'))).toBe('row')
     })
 
     it('in portrait, stacks them', () => {
-        setDimensions(360, 800)
+        setDimensions(800, 1280)
         const step = buildManualConflict()
-        const { getByTestId } = render(<ConflictStepBody step={step} compact onChoice={step.onChoice} />)
+        const { getByTestId } = render(<ConflictStepBody step={step} compact={false} onChoice={step.onChoice} />)
 
         expect(directionOf(getByTestId('conflict-choices-power'))).not.toBe('row')
     })

@@ -55,9 +55,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.disabled,
     },
+    // on one line with the other choice: the row's own spacing separates it from the next row
     optionFill: {
         flex: 1,
         flexBasis: 0,
+        marginBottom: 0,
     },
     optionSelected: {
         borderColor: colors.pairingWaiting,

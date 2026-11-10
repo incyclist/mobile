@@ -52,23 +52,58 @@ describe('ConflictStepRows', () => {
         expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'button clicked', button: 'conflict choice', capability: 'cadence', choice: 'replace' }))
     })
 
-    it('side by side: each row\'s Keep and Use share one line, Keep first', () => {
+    it('side by side: each row\'s Keep and Use share one line, Keep first, under the row\'s title', () => {
         const { rows, onChoice } = buildManualConflict()
-        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} sideBySide />)
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} layout="side-by-side" />)
 
         rows.forEach(row => {
             const choices = getByTestId(`conflict-choices-${row.capability}`)
             expect(StyleSheet.flatten(choices.props.style).flexDirection).toBe('row')
             const labels = within(choices).getAllByRole('radio').map(r => r.props.accessibilityLabel)
             expect(labels).toEqual([`${row.capabilityTitle}: ${row.keepLabel}`, `${row.capabilityTitle}: ${row.replaceLabel}`])
+            expect(StyleSheet.flatten(getByTestId(`conflict-row-${row.capability}`).props.style)?.flexDirection).not.toBe('row')
         })
     })
 
     it('stacked: Keep above Use', () => {
         const { rows, onChoice } = buildManualConflict()
-        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} sideBySide={false} />)
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} layout="stacked" />)
 
         expect(StyleSheet.flatten(getByTestId('conflict-choices-power').props.style)?.flexDirection).not.toBe('row')
+    })
+
+    it('stacked unless told otherwise', () => {
+        const { rows, onChoice } = buildManualConflict()
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} />)
+
+        expect(StyleSheet.flatten(getByTestId('conflict-choices-power').props.style)?.flexDirection).not.toBe('row')
+    })
+
+    it('label column: each row is one line - the slot\'s name on the left, then Keep and Use', () => {
+        const { rows, onChoice } = buildManualConflict()
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} layout="label-column" />)
+
+        rows.forEach(row => {
+            const line = getByTestId(`conflict-row-${row.capability}`)
+            expect(StyleSheet.flatten(line.props.style).flexDirection).toBe('row')
+
+            const texts = within(line).getAllByText(/./).map(t => t.props.children)
+            expect(texts).toEqual([row.capabilityTitle.toUpperCase(), row.keepLabel, row.replaceLabel])
+
+            const choices = getByTestId(`conflict-choices-${row.capability}`)
+            expect(StyleSheet.flatten(choices.props.style).flexDirection).toBe('row')
+        })
+    })
+
+    it('label column: the name may wrap, its column has a fixed width so every row lines up', () => {
+        const { rows, onChoice } = buildManualConflict()
+        const { getByText } = render(<ConflictStepRows rows={rows} onChoice={onChoice} layout="label-column" />)
+
+        const label = getByText('POWER')
+        expect(label.props.numberOfLines).toBeUndefined()
+        const widths = ['POWER', 'SPEED', 'CADENCE'].map(t => StyleSheet.flatten(getByText(t).props.style).width)
+        expect(new Set(widths).size).toBe(1)
+        expect(widths[0]).toEqual(expect.any(Number))
     })
 
     it('renders no buttons of its own beyond the two choices per row', () => {

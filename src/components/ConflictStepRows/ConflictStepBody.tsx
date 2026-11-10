@@ -6,7 +6,7 @@ import {
 
 import { colors, textSizes } from '../../theme'
 import { ConflictStepRows } from './ConflictStepRows'
-import { ConflictStepBodyProps } from './types'
+import { ConflictRowsLayout, ConflictStepBodyProps } from './types'
 import { hasMoreBelow, ScrollSizes } from './utils'
 
 const MORE_BELOW = 'More below ▾'
@@ -14,13 +14,16 @@ const MORE_BELOW = 'More below ▾'
 /**
  * The body of a conflict dialog, under its title: the subline, and the rows in a scroll view of
  * their own, so the subline stays in view. While rows are hidden below, a hint at the bottom says
- * so. In landscape, each row's two choices share one line. Both the device list's second step and
- * the dialog for a device found by the search show it, so the two look and read the same; the
- * dialog using it must not scroll its own content (`scrollable={false}`).
+ * so. A phone's rows use the label-column layout; a tablet falls back to side-by-side (landscape)
+ * or stacked (portrait). Both the device list's second step and the dialog for a device found by
+ * the search show it, so the two look and read the same; the dialog using it must not scroll its
+ * own content (`scrollable={false}`).
  */
 export const ConflictStepBody = ({ step, compact, onChoice }: ConflictStepBodyProps) => {
     const { width, height } = useWindowDimensions()
-    const sideBySide = width > height
+    // a phone's rows always use the label column - it's the layout the scroll-drag area needs,
+    // regardless of orientation; a tablet falls back to the existing side-by-side/stacked choice
+    const layout: ConflictRowsLayout = compact ? 'label-column' : (width > height ? 'side-by-side' : 'stacked')
 
     const refSizes = useRef<ScrollSizes>({ viewHeight: 0, contentHeight: 0, offset: 0 })
     const [moreBelow, setMoreBelow] = useState<boolean>(false)
@@ -55,7 +58,7 @@ export const ConflictStepBody = ({ step, compact, onChoice }: ConflictStepBodyPr
                     persistentScrollbar
                     bounces={false}
                 >
-                    <ConflictStepRows rows={step.rows} onChoice={onChoice} sideBySide={sideBySide} />
+                    <ConflictStepRows rows={step.rows} onChoice={onChoice} layout={layout} />
                 </ScrollView>
                 {moreBelow ? (
                     <View testID="conflict-more-below" style={styles.moreBelow}>
