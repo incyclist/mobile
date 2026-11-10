@@ -12,6 +12,7 @@ import { activateKeepAwake, deactivateKeepAwake } from '@sayem314/react-native-k
 import { captureScreen } from 'react-native-view-shot';
 import { EventLogger } from "gd-eventlog";
 import {getLocales} from 'react-native-localize'
+import { isPickerCancel, onPickerFailed, onPickerPresented } from '../../utils/pickerDiagnostics';
 
 // Ride-summary screenshot is neither displayed nor shared above this size today - cap the
 // captured bitmap's longer edge here rather than allocating at full native resolution and
@@ -125,6 +126,7 @@ export class UIBinding implements INativeUI {
 
     // open a dialog that allows user to select a directory (to e.g. define where files should be downloaded)
     async selectDirectory(options?: SelectDirectoryOptions): Promise<SelectDirectoryResult> {
+        let pickerReturned = false;
         try {
             const pickOptions: PickDirectoryOptions = {
                 requestLongTermAccess: true,
@@ -133,6 +135,8 @@ export class UIBinding implements INativeUI {
 
             // Uses system picker to let user define a target location
             const result = await pickDirectory(pickOptions) as DirectoryPickerResponseLongTerm;
+            pickerReturned = true;
+            onPickerPresented('directory', e => new EventLogger('UIBinding').logEvent(e));
             const uri = result.uri;
 
             // Derive displayName from result.uri by extracting the last path segment, URL-decoded
@@ -151,11 +155,21 @@ export class UIBinding implements INativeUI {
                 grant: result.bookmarkStatus === 'success' ? result.bookmark : undefined,
                 grantError: result.bookmarkStatus === 'error' ? result.bookmarkError : undefined,
             };
-        } catch  {
+        } catch (err: any) {
+            // Every error is reported to the caller as a cancel. Real picker failures (as opposed to
+            // the user dismissing the picker) are logged here, as the caller can't tell them apart.
+            if (!pickerReturned) {
+                const log = (e: Record<string, unknown>) => new EventLogger('UIBinding').logEvent(e);
+                if (isPickerCancel(err)) {
+                    onPickerPresented('directory', log);
+                } else {
+                    onPickerFailed('directory', err, log);
+                }
+            }
             return { canceled: true };
         }
     }
-    
+
     // open a dialog that shows a file in its parent folder. This allows the user to open or share this file
     showItemInFolder(fileName: string): void {
         const path = fileName.startsWith('file://') ? fileName : `file://${fileName}`;

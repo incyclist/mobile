@@ -4,6 +4,7 @@ import { useLogging } from '../logging'
 import { Platform } from 'react-native'
 import { buildFileInfo } from '../../utils/file'
 import { sleep } from '../../utils/timers'
+import { isPickerCancel, onPickerFailed, onPickerPresented } from '../../utils/pickerDiagnostics'
 
 // Module-level re-entrancy guard to prevent concurrent pick() calls
 let inFlightPick = false
@@ -20,12 +21,19 @@ const NULL_PRESENTER_RETRY_DELAYS_MS = [200, 500]
 const pickWithRetry = async (props: any, logEvent: (event: any) => void) => {
     for (let attempt = 0; ; attempt++) {
         try {
-            return await pick(props)
+            const result = await pick(props)
+            onPickerPresented('file', logEvent)
+            return result
         } catch (err: any) {
-            if (err?.code !== 'NULL_PRESENTER' || attempt >= NULL_PRESENTER_RETRY_DELAYS_MS.length) {
+            if (isPickerCancel(err)) {
+                onPickerPresented('file', logEvent)
                 throw err
             }
-            logEvent({ message: 'file picker presenter not ready, retrying', attempt })
+            if (err?.code !== 'NULL_PRESENTER' || attempt >= NULL_PRESENTER_RETRY_DELAYS_MS.length) {
+                onPickerFailed('file', err, logEvent)
+                throw err
+            }
+            logEvent({ message: 'file picker presenter not ready, retrying', attempt, errCode: err.code })
             await sleep(NULL_PRESENTER_RETRY_DELAYS_MS[attempt])
         }
     }
@@ -141,7 +149,7 @@ export const useFilePicker = (): UseFilePickerResult => {
         catch (err: any) {
 
             // User cancelled the document picker — this is not an error
-            if (err?.code === 'DOCUMENT_PICKER_CANCELED' || err?.code === 'OPERATION_CANCELED') {
+            if (isPickerCancel(err)) {
                 logEvent({ message:'file picker cancelled', eventSource:'user' })
                 return null
             }

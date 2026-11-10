@@ -32,10 +32,12 @@ jest.mock('../../utils/file', () => ({
 }))
 
 import { useFilePicker } from './useFilePicker'
+import { resetPickerDiagnostics } from '../../utils/pickerDiagnostics'
 
 describe('useFilePicker', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        resetPickerDiagnostics()
         mockLogEvent.mockClear()
         mockPick.mockClear()
         mockKeepLocalCopy.mockClear()
@@ -424,6 +426,77 @@ describe('useFilePicker', () => {
         expect(mockPick).toHaveBeenCalledTimes(3)
 
         jest.useRealTimers()
+    })
+
+    it('logs the error code on a retry', async () => {
+        jest.useFakeTimers()
+
+        mockPick
+            .mockRejectedValueOnce({ code: 'NULL_PRESENTER' })
+            .mockResolvedValueOnce([{ name: 'test.gpx', uri: 'file:///path/to/test.gpx' }])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/test.gpx', copyError: null },
+        ])
+
+        const { result } = renderHook(() => useFilePicker())
+        const pickPromise = result.current.pickFile()
+        await jest.runAllTimersAsync()
+        await pickPromise
+
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'file picker presenter not ready, retrying', errCode: 'NULL_PRESENTER' })
+        )
+
+        jest.useRealTimers()
+    })
+
+    it('logs "picker failed" with diagnostics when the picker cannot be presented', async () => {
+        jest.useFakeTimers()
+
+        mockPick.mockRejectedValue({ code: 'NULL_PRESENTER', message: 'RCTPresentedViewController was nil' })
+
+        const { result } = renderHook(() => useFilePicker())
+        const pickPromise = result.current.pickFile()
+        pickPromise.catch(() => {})
+        await jest.runAllTimersAsync()
+        await expect(pickPromise).rejects.toBeDefined()
+
+        // logged once for the whole call, not once per retry
+        const failed = mockLogEvent.mock.calls.filter(([e]) => e.message === 'picker failed')
+        expect(failed).toHaveLength(1)
+        expect(failed[0][0]).toEqual(expect.objectContaining({
+            pickerKind: 'file',
+            errCode: 'NULL_PRESENTER',
+            errMessage: 'RCTPresentedViewController was nil',
+            consecutiveFailures: 1,
+        }))
+
+        jest.useRealTimers()
+    })
+
+    it('does not log "picker failed" if the user cancels the picker', async () => {
+        mockPick.mockRejectedValue({ code: 'DOCUMENT_PICKER_CANCELED' })
+
+        const { result } = renderHook(() => useFilePicker())
+        await result.current.pickFile()
+
+        expect(mockLogEvent).not.toHaveBeenCalledWith(expect.objectContaining({ message: 'picker failed' }))
+    })
+
+    it('logs "picker recovered" when the picker works again after a failure', async () => {
+        mockPick.mockRejectedValueOnce({ code: 'SOMETHING_ELSE', message: 'boom' })
+        const { result } = renderHook(() => useFilePicker())
+        await expect(result.current.pickFile()).rejects.toBeDefined()
+
+        mockPick.mockResolvedValueOnce([{ name: 'test.gpx', uri: 'file:///path/to/test.gpx' }])
+        mockKeepLocalCopy.mockResolvedValueOnce([
+            { status: 'success', localUri: 'file:///cache/test.gpx', copyError: null },
+        ])
+        await result.current.pickFile()
+
+        expect(mockLogEvent).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'picker recovered', pickerKind: 'file', failures: 1 })
+        )
     })
 
     it('filters pick types when extensions are provided', async () => {
