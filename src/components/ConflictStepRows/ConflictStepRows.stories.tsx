@@ -11,7 +11,7 @@ const meta: Meta<typeof ConflictStepRows> = {
     component: ConflictStepRows,
     args: {
         onChoice: fn(),
-        sideBySide: true,
+        layout: 'side-by-side',
     },
     decorators: [
         (Story) => (
@@ -36,7 +36,12 @@ export const OneReplaced: Story = {
 
 // where the dialog is too narrow for the two choices on one line
 export const Stacked: Story = {
-    args: { rows: buildDetectionConflict().rows, sideBySide: false },
+    args: { rows: buildDetectionConflict().rows, layout: 'stacked' },
+}
+
+// a phone's layout: the capability's name in a column on the left, the choices to its right
+export const LabelColumn: Story = {
+    args: { rows: buildDetectionConflict().rows, layout: 'label-column' },
 }
 
 // about the width of the rows in the conflict dialog on a phone

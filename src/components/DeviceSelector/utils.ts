@@ -9,6 +9,8 @@ export interface SideInsets {
     right: number
 }
 
+const NO_INSETS: SideInsets = { left: 0, right: 0 }
+
 /**
  * The width of the device list's dialog, which the dialog for a device found by the search shares.
  *
@@ -26,7 +28,7 @@ export const getDeviceDialogWidth = (screenWidth: number): number => Math.min(0.
  * @param compact a phone's layout
  * @param insets the safe-area insets left and right (the app is landscape-locked, so the notch is on a side)
  */
-export const getConflictDialogStyle = (screenWidth: number, compact: boolean, insets: SideInsets = { left: 0, right: 0 }): ViewStyle => {
+export const getConflictDialogStyle = (screenWidth: number, compact: boolean, insets: SideInsets = NO_INSETS): ViewStyle => {
     if (!compact)
         return { width: getDeviceDialogWidth(screenWidth) }
 

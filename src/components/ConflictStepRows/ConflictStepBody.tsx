@@ -23,7 +23,8 @@ export const ConflictStepBody = ({ step, compact, onChoice }: ConflictStepBodyPr
     const { width, height } = useWindowDimensions()
     // a phone's rows always use the label column - it's the layout the scroll-drag area needs,
     // regardless of orientation; a tablet falls back to the existing side-by-side/stacked choice
-    const layout: ConflictRowsLayout = compact ? 'label-column' : (width > height ? 'side-by-side' : 'stacked')
+    const tabletLayout: ConflictRowsLayout = width > height ? 'side-by-side' : 'stacked'
+    const layout: ConflictRowsLayout = compact ? 'label-column' : tabletLayout
 
     const refSizes = useRef<ScrollSizes>({ viewHeight: 0, contentHeight: 0, offset: 0 })
     const [moreBelow, setMoreBelow] = useState<boolean>(false)
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         alignItems: 'center',
         paddingVertical: 3,
-        backgroundColor: colors.dialogBackground[colors.dialogBackground.length - 1],
+        backgroundColor: colors.dialogBackground.at(-1),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: colors.buttonPrimary,
         // a hint only: taps go to the row under it
