@@ -1,21 +1,4 @@
-import { getConflictQueuedNote, hasMoreBelow } from './utils'
-
-describe('getConflictQueuedNote', () => {
-    it('says nothing when no conflict waits', () => {
-        expect(getConflictQueuedNote(0, true)).toBeUndefined()
-        expect(getConflictQueuedNote(0, false)).toBeUndefined()
-    })
-
-    it('on a phone: "{n} more to check"', () => {
-        expect(getConflictQueuedNote(1, true)).toBe('1 more to check')
-        expect(getConflictQueuedNote(2, true)).toBe('2 more to check')
-    })
-
-    it('on a tablet: "{n} more devices to check", singular for one', () => {
-        expect(getConflictQueuedNote(1, false)).toBe('1 more device to check')
-        expect(getConflictQueuedNote(3, false)).toBe('3 more devices to check')
-    })
-})
+import { hasMoreBelow } from './utils'
 
 describe('hasMoreBelow', () => {
     it('is false while the content fits', () => {

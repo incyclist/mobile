@@ -6,7 +6,7 @@ import { textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { Dialog } from '../Dialog';
 import { ButtonProps } from '../ButtonBar/types';
-import { ConflictStepBody, getConflictQueuedNote } from '../ConflictStepRows';
+import { ConflictStepBody } from '../ConflictStepRows';
 import { getConflictDialogStyle, getDeviceDialogWidth } from './utils';
 
 const DONE_LABEL = 'Done';
@@ -58,7 +58,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
             title={title}
             onOutsideClick={onOutsideClick}
             buttons={stepButtons}
-            footerNote={conflictStep ? getConflictQueuedNote(conflictStep.queued, compact) : undefined}
+            footerNote={conflictStep ? (compact ? conflictStep.queuedText?.short : conflictStep.queuedText?.full) : undefined}
             // the list and the conflict step both scroll on their own
             scrollable={false}
         >

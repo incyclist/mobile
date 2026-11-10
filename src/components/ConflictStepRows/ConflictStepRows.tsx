@@ -36,13 +36,16 @@ export const ConflictStepRows = ({ rows, onChoice, sideBySide = false }: Conflic
 
 const styles = StyleSheet.create({
     row: {
-        marginBottom: 4,
+        // a dedicated non-button strip wide enough to reliably start a scroll drag - the choice
+        // buttons below fill almost their whole row, so this is most of the "neutral" scroll area
+        marginBottom: 16,
     },
     rowTitle: {
         color: colors.text,
         fontSize: textSizes.smallText,
         fontWeight: '700',
-        marginBottom: 4,
+        marginBottom: 8,
+        paddingVertical: 4,
     },
     choicesStacked: {
         flexDirection: 'column',

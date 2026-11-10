@@ -14,6 +14,9 @@ export interface MockConflictHandlers {
 
 const NEW_DEVICE = 'Tacx Neo 2T'
 
+// the page service's copy for two conflicts waiting
+const QUEUED_TWO = { full: '2 more devices to check', short: '2 more to check' }
+
 const row = (capability: TIncyclistCapability, capabilityTitle: string, currentName: string, choice: ConflictChoice = 'keep'): ConflictStepRowProps => ({
     capability,
     capabilityTitle,
@@ -56,7 +59,7 @@ export const buildThreeRowDetectionConflict = (h: MockConflictHandlers = {}): Co
         ...conflict,
         rows: [conflict.rows[0], row('speed', 'Speed', 'Wahoo Speed'), conflict.rows[1]],
         queued: 2,
-        queuedText: '2 more',
+        queuedText: QUEUED_TWO,
     }
 }
 
@@ -64,7 +67,7 @@ export const buildThreeRowDetectionConflict = (h: MockConflictHandlers = {}): Co
 export const buildQueuedDetectionConflict = (h: MockConflictHandlers = {}): ConflictStepProps => ({
     ...buildDetectionConflict(h),
     queued: 2,
-    queuedText: '2 more',
+    queuedText: QUEUED_TWO,
 })
 
 /** The rider picked a trainer in the Resistance list, and it would take Power, Speed and Cadence from other devices. */

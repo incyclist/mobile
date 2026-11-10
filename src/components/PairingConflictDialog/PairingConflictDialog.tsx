@@ -5,7 +5,7 @@ import type { ConflictStepProps } from 'incyclist-services'
 import { useLogging, useScreenLayout } from '../../hooks'
 import { Dialog } from '../Dialog'
 import { ButtonProps } from '../ButtonBar/types'
-import { ConflictStepBody, getConflictQueuedNote } from '../ConflictStepRows'
+import { ConflictStepBody } from '../ConflictStepRows'
 import { getConflictDialogStyle } from '../DeviceSelector/utils'
 import { PairingConflictDialogProps } from './types'
 
@@ -72,7 +72,7 @@ export const PairingConflictDialog = ({ conflict }: PairingConflictDialogProps) 
             title={conflict.title}
             onOutsideClick={onOutsideClick}
             buttons={buttons}
-            footerNote={getConflictQueuedNote(conflict.queued, compact)}
+            footerNote={compact ? conflict.queuedText?.short : conflict.queuedText?.full}
             // the body scrolls its rows itself, below the subline
             scrollable={false}
         >

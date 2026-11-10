@@ -79,7 +79,14 @@ const DialogFooterWithNote = ({ buttons, note, styles }: DialogFooterWithNotePro
 const DialogContent = ({ title, titleStyle, scrollable, children, buttons, buttonSignature, footerNote, styles }: DialogContentProps) => (
     <>
         <View style={styles.header}>
-            <Text style={[styles.title, titleStyle]}>{title}</Text>
+            <Text
+                style={[styles.title, titleStyle]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+            >
+                {title}
+            </Text>
         </View>
 
         {scrollable ? (

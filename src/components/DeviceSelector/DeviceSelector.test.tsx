@@ -162,10 +162,11 @@ describe('DeviceSelector conflict step', () => {
     });
 
     it('says how many more wait in the footer, the same way as the dialog for a device found by the search', () => {
-        const conflictStep = { ...buildManualConflict(), queued: 1, queuedText: '1 more' };
-        const { getByTestId } = render(<DeviceSelector {...buildProps(3, { conflictStep })} />);
+        const conflictStep = { ...buildManualConflict(), queued: 1, queuedText: { full: 'The full queued line', short: 'The short queued line' } };
+        const { getByTestId, queryByText } = render(<DeviceSelector {...buildProps(3, { conflictStep })} />);
 
-        expect(within(getByTestId('dialog-footer')).getByText('1 more to check')).toBeTruthy();
+        expect(within(getByTestId('dialog-footer')).getByText('The short queued line')).toBeTruthy();
+        expect(queryByText('The full queued line')).toBeNull();
     });
 
     it('has Done as its only button', () => {

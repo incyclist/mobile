@@ -90,8 +90,21 @@ describe('PairingConflictDialog', () => {
         expect(within(getByTestId('dialog-footer')).getByText('2 more devices to check')).toBeTruthy()
     })
 
-    it('says nothing about more when none waits', () => {
-        const { queryByText } = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
+    it('shows the page service\'s queued copy as given: short on a phone, full on a tablet', () => {
+        const conflict = { ...buildDetectionConflict(), queued: 3, queuedText: { full: 'The full queued line', short: 'The short queued line' } }
+
+        const phone = render(<PairingConflictDialog conflict={conflict} />)
+        expect(within(phone.getByTestId('dialog-footer')).getByText('The short queued line')).toBeTruthy()
+        expect(phone.queryByText('The full queued line')).toBeNull()
+        phone.unmount()
+
+        setDimensions(...TABLET)
+        const tablet = render(<PairingConflictDialog conflict={conflict} />)
+        expect(within(tablet.getByTestId('dialog-footer')).getByText('The full queued line')).toBeTruthy()
+    })
+
+    it('says nothing about more when the page service gives no copy for it, whatever the count', () => {
+        const { queryByText } = render(<PairingConflictDialog conflict={{ ...buildDetectionConflict(), queued: 2 }} />)
         expect(queryByText(/to check$/)).toBeNull()
     })
 
