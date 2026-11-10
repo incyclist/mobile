@@ -30,8 +30,8 @@ export const buildDetectionConflict = (h: MockConflictHandlers = {}, choices: Pa
     deviceName: NEW_DEVICE,
     title: `${NEW_DEVICE} can also measure more`,
     subline: {
-        full: 'Resistance was free and now uses it. Choose for the rest; nothing changes until you do.',
-        short: 'Nothing changes until you choose.',
+        full: `We just found your ${NEW_DEVICE}. Nothing changes until you choose. Resistance was free and now uses ${NEW_DEVICE}.`,
+        short: `Just found ${NEW_DEVICE}. Nothing changes until you choose.`,
     },
     rows: [
         row('power', 'Power', 'Stages Power', choices.power),
@@ -43,7 +43,13 @@ export const buildDetectionConflict = (h: MockConflictHandlers = {}, choices: Pa
     onDismiss: h.onDismiss ?? noop,
 })
 
-/** The same card, with two more conflicts waiting behind it. */
+/** A power meter found by the search wants Cadence only, which another device already holds. */
+export const buildSingleRowDetectionConflict = (h: MockConflictHandlers = {}): ConflictStepProps => {
+    const conflict = buildDetectionConflict(h)
+    return { ...conflict, rows: conflict.rows.filter(r => r.capability === 'cadence') }
+}
+
+/** The same conflict, with two more waiting behind it. */
 export const buildQueuedDetectionConflict = (h: MockConflictHandlers = {}): ConflictStepProps => ({
     ...buildDetectionConflict(h),
     queued: 2,

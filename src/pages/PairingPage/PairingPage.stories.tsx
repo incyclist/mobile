@@ -288,8 +288,8 @@ export const FallingBack: Story = {
     } as any,
 };
 
-// A trainer found by the search wants slots other devices hold: the card beside the tiles, OK stays usable
-export const ConflictCard: Story = {
+// A trainer found by the search wants slots other devices hold: a dialog over the tiles, which stay as they are
+export const ConflictDialog: Story = {
     args: {
         title: 'Devices',
         capabilities: MOCK_CAPABILITIES_SWITCHED_OFF,
@@ -299,9 +299,9 @@ export const ConflictCard: Story = {
     } as any,
 };
 
-export const ConflictCardMoreWaiting: Story = {
+export const ConflictDialogMoreWaiting: Story = {
     args: {
-        ...ConflictCard.args,
+        ...ConflictDialog.args,
         pendingConflict: buildQueuedDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
     } as any,
 };
@@ -309,7 +309,7 @@ export const ConflictCardMoreWaiting: Story = {
 // A pick in the Resistance list would take slots other devices hold: the list's second step
 export const ResistanceListConflictStep: Story = {
     args: {
-        ...ConflictCard.args,
+        ...ConflictDialog.args,
         pendingConflict: undefined,
         deviceSelection: {
             ...deviceSelectorArgs,

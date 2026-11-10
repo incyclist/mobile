@@ -8,7 +8,7 @@ import { ConflictStepRowsProps } from './types'
 /**
  * The rows of a device-selection conflict: one per slot that already holds a different device, each
  * with its title and the two choices (keep the current device, or use the new one) stacked under it.
- * The same rows show in the conflict card beside the tiles and in the Resistance list's second step.
+ * The same rows show in the dialog for a device found by the search and in the Resistance list's second step.
  */
 export const ConflictStepRows = ({ rows, onChoice }: ConflictStepRowsProps) => (
     <View>

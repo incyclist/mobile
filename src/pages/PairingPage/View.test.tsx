@@ -1,7 +1,11 @@
 import React from 'react'
-import { render, fireEvent, within } from '@testing-library/react-native'
+import { Modal } from 'react-native'
+import { act, render, fireEvent, within } from '@testing-library/react-native'
 import type { DeviceSelectionProps, PairingDisplayProps } from 'incyclist-services'
 import { PairingPageView } from './View'
+import { ARMING_DELAY_MS } from '../../components/PairingConflictDialog'
+import { CapabilityGrid } from '../../components/CapabilityGrid'
+import { CapabilityStatusBars } from '../../components/CapabilityStatusBars'
 import { MOCK_PAIRING_BUTTON_SETS } from './PairingPage.mock'
 import {
     buildAsleepHelper, buildFallbackHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildTrainerUnavailableHelper,
@@ -28,7 +32,7 @@ jest.mock('../../components', () => {
         CapabilityGrid: jest.requireActual('../../components/CapabilityGrid').CapabilityGrid,
         CapabilityStatusBars: jest.requireActual('../../components/CapabilityStatusBars').CapabilityStatusBars,
         PairingHelperPanel: jest.requireActual('../../components/PairingHelperPanel').PairingHelperPanel,
-        PairingConflictCard: jest.requireActual('../../components/PairingConflictCard').PairingConflictCard,
+        PairingConflictDialog: jest.requireActual('../../components/PairingConflictDialog').PairingConflictDialog,
         PairingStatusLine: jest.requireActual('../../components/PairingStatusLine').PairingStatusLine,
     }
 })
@@ -101,21 +105,30 @@ describe('PairingPageView', () => {
     })
 })
 
-describe('PairingPageView conflict card', () => {
-    it('on a phone: the card in the panel slot, the required row as status bars', () => {
-        setDimensions(...PHONE)
-        const { getByText } = render(<PairingPageView {...props({ pendingConflict: buildDetectionConflict() })} />)
-        expect(getByText('Tacx Neo 2T can also measure more')).toBeTruthy()
-        expect(getByText('Nothing changes until you choose.')).toBeTruthy()
-        expect(getByText('Smart trainer · Searching…')).toBeTruthy()
+describe('PairingPageView conflict dialog', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
     })
 
-    it('on a tablet: the card beside the tiles, with the full subline', () => {
+    afterEach(() => {
+        jest.useRealTimers()
+    })
+
+    const arm = () => act(() => { jest.advanceTimersByTime(ARMING_DELAY_MS) })
+
+    it('on a phone: the conflict in a dialog, with the phone subline', () => {
+        setDimensions(...PHONE)
+        const { getByText, UNSAFE_root } = render(<PairingPageView {...props({ pendingConflict: buildDetectionConflict() })} />)
+        expect(UNSAFE_root.findAllByType(Modal)).toHaveLength(1)
+        expect(getByText('Tacx Neo 2T can also measure more')).toBeTruthy()
+        expect(getByText('Just found Tacx Neo 2T. Nothing changes until you choose.')).toBeTruthy()
+    })
+
+    it('on a tablet: the full subline', () => {
         setDimensions(...TABLET)
         const conflict = buildDetectionConflict()
-        const { getByText, queryByText } = render(<PairingPageView {...props({ pendingConflict: conflict })} />)
+        const { getByText } = render(<PairingPageView {...props({ pendingConflict: conflict })} />)
         expect(getByText(conflict.subline.full)).toBeTruthy()
-        expect(queryByText('Smart trainer · Searching…')).toBeNull()
     })
 
     it('shows how many more wait', () => {
@@ -124,30 +137,39 @@ describe('PairingPageView conflict card', () => {
         expect(getByText('2 more')).toBeTruthy()
     })
 
-    it('never blocks the page buttons: OK still works while the card shows', () => {
+    it.each([['phone', PHONE], ['tablet', TABLET]] as Array<[string, [number, number]]>)(
+        'on a %s the tiles stay as they are behind the dialog: no status bars, and no side panel', (_layout, size) => {
+            setDimensions(...size)
+            const { queryByText, queryByLabelText, UNSAFE_root } = render(<PairingPageView {...props({ pendingConflict: buildDetectionConflict() })} />)
+            expect(UNSAFE_root.findAllByType(CapabilityGrid)).toHaveLength(1)
+            expect(UNSAFE_root.findAllByType(CapabilityStatusBars)).toHaveLength(0)
+            expect(queryByText('Smart trainer · Searching…')).toBeNull()
+            expect(queryByLabelText('Close')).toBeNull()
+        })
+
+    it('on a phone the helper still turns the required row into status bars, as before', () => {
         setDimensions(...PHONE)
-        const onOK = jest.fn(async () => {})
-        const { getByText } = render(<PairingPageView {...props({
-            capabilities: MOCK_CAPABILITIES_SWITCHED_OFF,
-            pendingConflict: buildDetectionConflict(),
-            buttons: [{ label: 'OK', primary: true, onClick: onOK }],
-        })} />)
-        fireEvent.press(getByText('OK'))
-        expect(onOK).toHaveBeenCalledTimes(1)
+        const { UNSAFE_root } = render(<PairingPageView {...props({ helper: buildAsleepHelper() })} />)
+        expect(UNSAFE_root.findAllByType(CapabilityStatusBars)).toHaveLength(1)
+        expect(UNSAFE_root.findAllByType(CapabilityGrid)).toHaveLength(0)
     })
 
-    it('Done and ✕ go to the card\'s own handlers', () => {
+    it('Done, a tap outside and the back button go to the conflict\'s own handlers; there is no ✕', () => {
         setDimensions(...PHONE)
         const onDone = jest.fn()
         const onDismiss = jest.fn()
-        const { getByText, getByLabelText } = render(<PairingPageView {...props({ pendingConflict: buildDetectionConflict({ onDone, onDismiss }) })} />)
+        const { getByText, queryByLabelText, UNSAFE_root } = render(<PairingPageView {...props({ pendingConflict: buildDetectionConflict({ onDone, onDismiss }) })} />)
+        arm()
+
+        expect(queryByLabelText('Close')).toBeNull()
         fireEvent.press(getByText('Done'))
-        fireEvent.press(getByLabelText('Close'))
+        UNSAFE_root.findByType(Modal).props.onRequestClose()
+
         expect(onDone).toHaveBeenCalledTimes(1)
         expect(onDismiss).toHaveBeenCalledTimes(1)
     })
 
-    it('renders the card every time it is given, whatever else the page shows', () => {
+    it('renders the dialog every time it is given, whatever else the page shows', () => {
         setDimensions(...PHONE)
         const { getByText } = render(<PairingPageView {...props({
             capabilities: MOCK_CAPABILITIES_TRAINER_CONNECTING,
@@ -157,10 +179,33 @@ describe('PairingPageView conflict card', () => {
         expect(getByText('Tacx Neo 2T can also measure more')).toBeTruthy()
     })
 
-    it('without one, there is no card', () => {
+    it('without one, there is no dialog', () => {
         setDimensions(...PHONE)
-        const { queryByText } = render(<PairingPageView {...props()} />)
+        const { queryByText, UNSAFE_root } = render(<PairingPageView {...props()} />)
         expect(queryByText('Tacx Neo 2T can also measure more')).toBeNull()
+        expect(UNSAFE_root.findAllByType(Modal)).toHaveLength(0)
+    })
+
+    it('the Resistance list\'s own conflict step still opens and resolves in the list\'s dialog, apart from this one', () => {
+        setDimensions(...PHONE)
+        const stepDone = jest.fn()
+        const stepDismiss = jest.fn()
+        const listClose = jest.fn()
+        const { getByText, queryByText, UNSAFE_root } = render(<PairingPageView {...props({
+            deviceSelection: resistanceList({ onClose: listClose, conflictStep: buildManualConflict({ onDone: stepDone, onDismiss: stepDismiss }) }),
+        })} />)
+
+        expect(UNSAFE_root.findAllByType(Modal)).toHaveLength(1)
+        expect(getByText('Choose which device to use for each.')).toBeTruthy()
+        expect(queryByText('Just found Tacx Neo 2T. Nothing changes until you choose.')).toBeNull()
+
+        // no arming delay on the list's step: it only ever opens in answer to the rider's own pick
+        fireEvent.press(getByText('Done'))
+        UNSAFE_root.findByType(Modal).props.onRequestClose()
+
+        expect(stepDone).toHaveBeenCalledTimes(1)
+        expect(stepDismiss).toHaveBeenCalledTimes(1)
+        expect(listClose).not.toHaveBeenCalled()
     })
 })
 
@@ -175,12 +220,12 @@ describe('PairingPageView fallback', () => {
         expect(onAction).toHaveBeenCalledTimes(1)
     })
 
-    it('while the ride falls back, the dimmed Resistance bar beside a card shows its copy and a tap calls its onClick', () => {
+    it('while the ride falls back, the dimmed Resistance bar beside the helper shows its copy and a tap calls its onClick', () => {
         setDimensions(...PHONE)
         const onClick = jest.fn()
         const top = MOCK_CAPABILITIES_FALLBACK.top.map(t => (t.capability === 'control' ? { ...t, onClick } : t))
         const { getByText } = render(<PairingPageView {...props({
-            capabilities: { ...MOCK_CAPABILITIES_FALLBACK, top }, pendingConflict: buildDetectionConflict(),
+            capabilities: { ...MOCK_CAPABILITIES_FALLBACK, top }, helper: buildTrainerUnavailableHelper(),
         })} />)
 
         expect(getByText('Tacx Flux · Your trainer · Tap to use again')).toBeTruthy()
@@ -203,7 +248,7 @@ describe('PairingPageView never shows a "try again" button', () => {
         ['the fallback offered', { capabilities: MOCK_CAPABILITIES_TRAINER_UNAVAILABLE, helper: buildFallbackHelper() }],
         ['the ride falling back', { capabilities: MOCK_CAPABILITIES_FALLBACK }],
         ['Resistance switched off', { capabilities: MOCK_CAPABILITIES_SWITCHED_OFF }],
-        ['a conflict card', { pendingConflict: buildQueuedDetectionConflict() }],
+        ['a conflict found by the search', { pendingConflict: buildQueuedDetectionConflict() }],
         ['the Resistance list', { deviceSelection: resistanceList() }],
         ['the Resistance list\'s conflict step', { deviceSelection: resistanceList({ conflictStep: buildManualConflict() }) }],
     ]

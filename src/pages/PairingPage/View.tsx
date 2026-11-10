@@ -5,7 +5,7 @@ import type { PairingDisplayProps, InterfaceDisplayProps } from 'incyclist-servi
 import { colors, textSizes } from '../../theme'
 import {
     ButtonBar, CapabilityGrid, CapabilityStatusBars, MainBackground, InterfaceState, DeviceSelector,
-    PairingConflictCard, PairingHelperPanel, PairingStatusLine,
+    PairingConflictDialog, PairingHelperPanel, PairingStatusLine,
 } from '../../components'
 import { BleInterfaceSettings } from '../../components/BleInterfaceSettings'
 import { useScreenLayout } from '../../hooks'
@@ -27,19 +27,16 @@ export const PairingPageView = (props: PairingDisplayProps) => {
     const onStatusLink = useMemo(() => getStatusLinkHandler(status, helper, interfaces), [status, helper, interfaces])
 
     const helperOpen = helper !== undefined && helper.phase !== 'hidden'
-    // the panel beside the tiles holds one thing at a time: the helper, or a device-selection
-    // conflict. The page service only gives a conflict while the helper and the device lists are
-    // closed, so the conflict card is shown whenever it is given.
-    const conflictCard = helperOpen ? undefined : pendingConflict
-    const panelOpen = helperOpen || conflictCard !== undefined
-    // on a phone, the panel leaves too little room for tiles: the required row becomes status bars
-    const showBars = panelOpen && compact
+    // on a phone, the helper's panel leaves too little room for tiles: the required row becomes status bars
+    const showBars = helperOpen && compact
     const panelStyle = { width: compact ? PANEL_WIDTH_PHONE : PANEL_WIDTH_TABLET }
 
     return (
         <View style={styles.container}>
             <MainBackground>
                 {deviceSelection && <DeviceSelector {...deviceSelection} />}
+                {/* the page service only gives a conflict while the helper and the device lists are closed */}
+                {pendingConflict && <PairingConflictDialog conflict={pendingConflict} />}
 
                 <View style={styles.interfaceOverlay}>
                     {interfaces?.map((inter: InterfaceDisplayProps, index: number) => (
@@ -88,11 +85,9 @@ export const PairingPageView = (props: PairingDisplayProps) => {
                         </View>
                     </View>
 
-                    {panelOpen && (
+                    {helperOpen && (
                         <View style={[styles.panel, panelStyle]}>
-                            {helperOpen
-                                ? <PairingHelperPanel helper={helper} layout={panelLayout} />
-                                : conflictCard && <PairingConflictCard conflict={conflictCard} layout={panelLayout} />}
+                            <PairingHelperPanel helper={helper} layout={panelLayout} />
                         </View>
                     )}
                 </View>
