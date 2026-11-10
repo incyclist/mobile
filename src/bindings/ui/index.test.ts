@@ -2,7 +2,9 @@ import { Dimensions, PixelRatio } from 'react-native';
 import RNFS from 'react-native-fs';
 import { captureScreen } from 'react-native-view-shot';
 import { pickDirectory } from '@react-native-documents/picker';
+import { EventLogger } from 'gd-eventlog';
 import { UIBinding } from './index';
+import { resetPickerDiagnostics } from '../../utils/pickerDiagnostics';
 
 jest.mock('react-native-fs', () => ({
     __esModule: true,
@@ -157,5 +159,54 @@ describe('UIBinding.selectDirectory', () => {
         const result = await ui.selectDirectory();
 
         expect(result).toEqual({ canceled: true });
+    });
+
+    describe('picker diagnostics', () => {
+        let logEvent: jest.SpyInstance;
+
+        beforeEach(() => {
+            resetPickerDiagnostics();
+            logEvent = jest.spyOn(EventLogger.prototype, 'logEvent').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            logEvent.mockRestore();
+        });
+
+        it('a picker failure is still reported as canceled, but logged with its error code', async () => {
+            (pickDirectory as jest.Mock).mockRejectedValue({ code: 'NULL_PRESENTER', message: 'RCTPresentedViewController was nil' });
+
+            const result = await ui.selectDirectory();
+
+            expect(result).toEqual({ canceled: true });
+            expect(logEvent).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'picker failed',
+                pickerKind: 'directory',
+                errCode: 'NULL_PRESENTER',
+            }));
+        });
+
+        it('a user cancel is not logged as a failure', async () => {
+            (pickDirectory as jest.Mock).mockRejectedValue({ code: 'OPERATION_CANCELED' });
+
+            const result = await ui.selectDirectory();
+
+            expect(result).toEqual({ canceled: true });
+            expect(logEvent).not.toHaveBeenCalledWith(expect.objectContaining({ message: 'picker failed' }));
+        });
+
+        it('logs that the picker recovered after an earlier failure', async () => {
+            (pickDirectory as jest.Mock).mockRejectedValueOnce({ code: 'NULL_PRESENTER' });
+            await ui.selectDirectory();
+
+            (pickDirectory as jest.Mock).mockResolvedValueOnce({ uri: 'file:///picked/folder', bookmarkStatus: 'success', bookmark: 'b' });
+            await ui.selectDirectory();
+
+            expect(logEvent).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'picker recovered',
+                pickerKind: 'directory',
+                failures: 1,
+            }));
+        });
     });
 });
