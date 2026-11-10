@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, within } from '@testing-library/react-native';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as SafeAreaContext from 'react-native-safe-area-context';
 import { EventLogger } from 'gd-eventlog';
@@ -29,6 +29,18 @@ describe('Dialog', () => {
         );
 
         expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(0);
+    });
+
+    it('when scrollable=false, lets the content shrink to the space between header and footer, so a child that scrolls itself is bounded', () => {
+        const { getByTestId } = render(
+            <Dialog title="Test Dialog" scrollable={false}>
+                <Text>content</Text>
+            </Dialog>
+        );
+
+        const style = StyleSheet.flatten(getByTestId('dialog-content').props.style);
+        expect(style.flexShrink).toBe(1);
+        expect(style.minHeight).toBe(0);
     });
 
     it('still renders the children content when scrollable=false', () => {
@@ -223,5 +235,43 @@ describe('Dialog', () => {
                 safeAreaRight: 0,
             }));
         });
+    });
+});
+
+describe('Dialog footer note', () => {
+    const buttons = [{ id: 'done', label: 'Done', primary: true, onClick: () => {} }];
+
+    it('shows the note on the footer\'s line, with the buttons', () => {
+        const { getByTestId } = render(
+            <Dialog title="Test Dialog" buttons={buttons} footerNote="2 more to check">
+                <Text>content</Text>
+            </Dialog>
+        );
+
+        const footer = within(getByTestId('dialog-footer'));
+        expect(footer.getByText('2 more to check')).toBeTruthy();
+        expect(footer.getByText('Done')).toBeTruthy();
+        expect(StyleSheet.flatten(getByTestId('dialog-footer').props.style).flexDirection).toBe('row');
+    });
+
+    it('puts the note before the buttons, so it reads left of them', () => {
+        const { getByTestId } = render(
+            <Dialog title="Test Dialog" buttons={buttons} footerNote="2 more to check">
+                <Text>content</Text>
+            </Dialog>
+        );
+
+        const texts = within(getByTestId('dialog-footer')).getAllByText(/./).map(t => t.props.children);
+        expect(texts).toEqual(['2 more to check', 'Done']);
+    });
+
+    it('without a note, the footer holds just the buttons, as before', () => {
+        const { getByTestId } = render(
+            <Dialog title="Test Dialog" buttons={buttons}>
+                <Text>content</Text>
+            </Dialog>
+        );
+
+        expect(within(getByTestId('dialog-footer')).getAllByText(/./).map(t => t.props.children)).toEqual(['Done']);
     });
 });

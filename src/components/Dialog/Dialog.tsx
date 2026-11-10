@@ -48,8 +48,27 @@ interface DialogContentProps {
      *  inserting into a mounted one - see the FIXES_BACKLOG #52 comment on `buttonSignature`
      *  below for the RN Fabric defect this works around. */
     buttonSignature: string;
+    footerNote?: string;
     styles: ReturnType<typeof getStyles>;
 }
+
+interface DialogFooterWithNoteProps {
+    buttons: ButtonProps[];
+    note: string;
+    styles: ReturnType<typeof getStyles>;
+}
+
+// The note takes the left of the footer's line and an equal spacer the right, so the buttons stay
+// centered just as they are without a note.
+const DialogFooterWithNote = ({ buttons, note, styles }: DialogFooterWithNoteProps) => (
+    <>
+        <View style={styles.footerSide}>
+            <Text style={styles.footerNote}>{note}</Text>
+        </View>
+        <ButtonBar buttons={buttons} />
+        <View style={styles.footerSide} />
+    </>
+);
 
 /**
  * Header + scrollable body + footer, shared by both the `'full'` variant's Modal and the
@@ -57,7 +76,7 @@ interface DialogContentProps {
  * item #63 - SonarCloud duplication; also resolves the paired cognitive-complexity smell on
  * `Dialog`, typescript:S3776, since the two branches no longer duplicate this much logic inline).
  */
-const DialogContent = ({ title, titleStyle, scrollable, children, buttons, buttonSignature, styles }: DialogContentProps) => (
+const DialogContent = ({ title, titleStyle, scrollable, children, buttons, buttonSignature, footerNote, styles }: DialogContentProps) => (
     <>
         <View style={styles.header}>
             <Text style={[styles.title, titleStyle]}>{title}</Text>
@@ -73,15 +92,17 @@ const DialogContent = ({ title, titleStyle, scrollable, children, buttons, butto
             </ScrollView>
         ) : (
             <View style={styles.scrollArea}>
-                <View style={styles.content}>
+                <View testID="dialog-content" style={[styles.content, styles.contentBounded]}>
                     {children}
                 </View>
             </View>
         )}
 
         {buttons?.length ? (
-            <View key={buttonSignature} style={styles.footer}>
-                <ButtonBar buttons={buttons} />
+            <View key={buttonSignature} testID="dialog-footer" style={[styles.footer, footerNote ? styles.footerWithNote : undefined]}>
+                {footerNote
+                    ? <DialogFooterWithNote buttons={buttons} note={footerNote} styles={styles} />
+                    : <ButtonBar buttons={buttons} />}
             </View>
         ) : <></>}
     </>
@@ -99,6 +120,7 @@ export const Dialog = ({
     onOutsideClick,
     slideFrom,
     scrollable = true,
+    footerNote,
 }: PropsWithChildren<DialogProps>) => {
 
     const { logEvent } = useLogging('Incyclist');
@@ -254,6 +276,7 @@ export const Dialog = ({
                                     scrollable={scrollable}
                                     buttons={buttons}
                                     buttonSignature={buttonSignature}
+                                    footerNote={footerNote}
                                     styles={styles}
                                 >
                                     {children}
@@ -291,6 +314,7 @@ export const Dialog = ({
                                     scrollable={scrollable}
                                     buttons={buttons}
                                     buttonSignature={buttonSignature}
+                                    footerNote={footerNote}
                                     styles={styles}
                                 >
                                     {children}
@@ -370,9 +394,28 @@ const getStyles = ({ width, height, minWidth, minHeight, variant = 'details', is
             padding: 2,
             color: colors.text,
         },
+        // without Dialog's own ScrollView, the children scroll themselves: they need a bounded
+        // height, so the content shrinks to the space between header and footer instead of
+        // growing to the children's full height and running under the footer
+        contentBounded: {
+            flexShrink: 1,
+            minHeight: 0,
+        },
         footer: {
             borderTopWidth: 1,
             borderTopColor: colors.dialogBorder ?? 'rgba(255,255,255,0.1)',
+        },
+        footerWithNote: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        footerSide: {
+            flex: 1,
+            paddingHorizontal: 16,
+        },
+        footerNote: {
+            color: colors.text,
+            fontSize: textSizes.smallText,
         },
         fullScreenWrapper: {
             flex: 1,

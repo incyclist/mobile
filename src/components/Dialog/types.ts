@@ -28,4 +28,9 @@ export interface DialogProps {
      * behaviour for all other Dialog consumers.
      */
     scrollable?: boolean;
+    /**
+     * A short line on the footer's line, left of the buttons - e.g. how many more items wait for
+     * the action the primary button takes. Only shown together with `buttons`.
+     */
+    footerNote?: string;
 }
