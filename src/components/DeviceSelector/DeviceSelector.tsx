@@ -1,27 +1,15 @@
 import React, { FC, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import DeviceEntry from '../DeviceEntry';
-import { ConflictStepProps, DeviceSelectionItemProps, DeviceSelectionProps } from 'incyclist-services';
-import { colors, textSizes } from '../../theme';
+import { DeviceSelectionItemProps, DeviceSelectionProps } from 'incyclist-services';
+import { textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { Dialog } from '../Dialog';
 import { ButtonProps } from '../ButtonBar/types';
-import { ConflictStepRows } from '../ConflictStepRows';
+import { ConflictStepBody } from '../ConflictStepRows';
+import { getDeviceDialogWidth } from './utils';
 
 const DONE_LABEL = 'Done';
-
-interface ConflictStepBodyProps {
-    step: ConflictStepProps
-    compact: boolean
-}
-
-// the list's second step: which device each slot held by another device should use
-const ConflictStepBody = ({ step, compact }: ConflictStepBodyProps) => (
-    <View style={styles.stepView}>
-        <Text style={styles.stepSubline}>{compact ? step.subline.short : step.subline.full}</Text>
-        <ConflictStepRows rows={step.rows} onChoice={step.onChoice} />
-    </View>
-);
 
 /**
  * The device list of one capability. After a pick in the Resistance list that would take slots held
@@ -37,8 +25,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const compact = useScreenLayout() === 'compact';
 
-    const targetWidth = textSizes.listEntry * 0.6 * 40; // ~288dp
-    const dialogWidth = Math.min(0.9 * screenWidth, targetWidth);
+    const dialogWidth = getDeviceDialogWidth(screenWidth);
     const minHeightLeft = screenHeight - (textSizes.dialogTitle + 100 + 80 + 8);
     const deviceListMinHeight = Math.min(380, minHeightLeft);
 
@@ -74,7 +61,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
             scrollable={Boolean(conflictStep)}
         >
             {conflictStep ? (
-                <ConflictStepBody step={conflictStep} compact={compact} />
+                <ConflictStepBody step={conflictStep} compact={compact} onChoice={conflictStep.onChoice} />
             ) : (
                 <View style={styles.modalView}>
                     <ScrollView style={deviceListStyle}>
@@ -108,14 +95,5 @@ const styles = StyleSheet.create({
         flex: 1,
         maxHeight: 380,
         // Dynamic minHeight applied via inline style
-    },
-    stepView: {
-        paddingHorizontal: 8,
-        paddingTop: 4,
-    },
-    stepSubline: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-        marginBottom: 10,
     },
 });
