@@ -9,8 +9,15 @@ export interface OptionalSummaryItem {
 
 export const isSwitchedOff = (tile: CapabilityDisplayProps): boolean => Boolean(tile.deviceName) && Boolean(tile.disabled)
 
+/**
+ * A device is there but deliberately not used right now (the ride falls back to another device while
+ * the trainer isn't available). It looks like a switched-off tile, but it isn't switched off: it has
+ * no switch, and a tap does whatever the page service set as the tile's `onClick`.
+ */
+export const isDimmed = (tile: CapabilityDisplayProps): boolean => Boolean(tile.deviceName) && Boolean(tile.dimmed)
+
 export const isConnected =(tile: CapabilityDisplayProps): boolean =>
-    Boolean(tile.deviceName) && !tile.disabled && tile.connectState === 'connected'
+    Boolean(tile.deviceName) && !tile.disabled && !tile.dimmed && tile.connectState === 'connected'
 
 /**
  * The one state line of a status bar, from the same props the tile shows: the value, the device (or
@@ -23,6 +30,10 @@ export const getBarStateLine = (tile: CapabilityDisplayProps): string => {
     if (isSwitchedOff(tile))
         return [tile.deviceName, footer ?? tile.emptyFooter ?? 'Not used'].join(' · ')
 
+    // no value and no connect state: the device isn't used, the footer copy says what a tap does
+    if (isDimmed(tile))
+        return [tile.deviceName, tile.roleLabel, footer ?? tile.emptyFooter].filter(Boolean).join(' · ')
+
     if (!tile.deviceName)
         return [tile.helpText?.short, footer ?? tile.emptyFooter].filter(Boolean).join(' · ')
 
@@ -32,11 +43,12 @@ export const getBarStateLine = (tile: CapabilityDisplayProps): string => {
 }
 
 /**
- * The bar's look, in the tile colour language: green when connected, dimmed when switched off, the
- * amber outline while the page waits for it, grey otherwise.
+ * The bar's look, in the tile colour language: green when connected, dimmed when switched off or not
+ * used while the ride falls back to another device, the amber outline while the page waits for it,
+ * grey otherwise.
  */
 export const getBarLook = (tile: CapabilityDisplayProps): BarLook => {
-    if (isSwitchedOff(tile))
+    if (isSwitchedOff(tile) || isDimmed(tile))
         return 'dimmed'
     if (isConnected(tile))
         return 'connected'

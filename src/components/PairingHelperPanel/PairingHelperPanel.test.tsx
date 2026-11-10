@@ -1,8 +1,9 @@
 import React from 'react'
-import { render, fireEvent } from '@testing-library/react-native'
+import { render, fireEvent, within } from '@testing-library/react-native'
 import { PairingHelperPanel } from './PairingHelperPanel'
 import {
-    buildAsleepHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildResolvedHelper, buildTrainerUnavailableHelper,
+    MOCK_TIP_FALLBACK_POWER,
+    buildAsleepHelper, buildFallbackHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildResolvedHelper, buildTrainerUnavailableHelper,
 } from './PairingHelperPanel.mock'
 
 describe('PairingHelperPanel', () => {
@@ -55,6 +56,31 @@ describe('PairingHelperPanel', () => {
         const { getByText } = render(<PairingHelperPanel helper={buildTrainerUnavailableHelper()} layout="phone" />)
         expect(getByText("Can't connect to your trainer?")).toBeTruthy()
         expect(getByText("My trainer isn't available today")).toBeTruthy()
+    })
+
+    it('offers the fallback action with the label as given, pinned below the tip, and calls its handler', () => {
+        const onAction = jest.fn()
+        const { getByText, getByTestId, toJSON } = render(<PairingHelperPanel helper={buildFallbackHelper({ onAction })} layout="phone" />)
+
+        expect(getByText(MOCK_TIP_FALLBACK_POWER.shortText)).toBeTruthy()
+        const pinned = getByTestId('pairing-side-panel-pinned')
+        expect(within(pinned).getByText('Ride with power meter only')).toBeTruthy()
+        const tree = JSON.stringify(toJSON())
+        expect(tree.indexOf(MOCK_TIP_FALLBACK_POWER.shortText)).toBeLessThan(tree.indexOf('Ride with power meter only'))
+
+        fireEvent.press(getByText('Ride with power meter only'))
+        expect(onAction).toHaveBeenCalledTimes(1)
+    })
+
+    it('without a note, the action shows no line above it', () => {
+        const { getByTestId } = render(<PairingHelperPanel helper={buildFallbackHelper()} layout="phone" />)
+        const texts = within(getByTestId('pairing-side-panel-pinned')).queryAllByText(/./)
+        expect(texts.map(t => t.props.children)).toEqual(['Ride with power meter only'])
+    })
+
+    it('once resolved, the action is gone', () => {
+        const { queryByText } = render(<PairingHelperPanel helper={{ ...buildFallbackHelper(), phase: 'resolved', resolvedText: 'Found it! Ready to ride.' }} layout="phone" />)
+        expect(queryByText('Ride with power meter only')).toBeNull()
     })
 
     it('close dismisses the helper', () => {

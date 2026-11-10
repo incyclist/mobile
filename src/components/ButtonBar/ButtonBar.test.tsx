@@ -42,6 +42,17 @@ describe('Button', () => {
         expect(touchable?.props.hitSlop.right).toBeLessThan(8);
     });
 
+    // The compact button is about 34 high (14 text plus 8 padding above and below): with the
+    // vertical hitSlop, its touch target reaches the 48 dp minimum.
+    it('in compact layout, its touch target is at least 48 high', () => {
+        (useScreenLayout as jest.Mock).mockReturnValue('compact');
+
+        const { getByText } = render(<Button id="a" label="OK" onClick={jest.fn()} />);
+        const { top, bottom } = getByText('OK').parent?.parent?.props.hitSlop;
+
+        expect(34 + top + bottom).toBeGreaterThanOrEqual(48);
+    });
+
     it('still fires onClick when compact', () => {
         (useScreenLayout as jest.Mock).mockReturnValue('compact');
         const onClick = jest.fn();

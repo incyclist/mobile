@@ -5,7 +5,7 @@ import { fn } from 'storybook/test';
 import { PairingHelperPanel } from './PairingHelperPanel'
 import { colors } from '../../theme'
 import {
-    buildAsleepHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildResolvedHelper, buildTrainerUnavailableHelper,
+    buildAsleepHelper, buildFallbackHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildResolvedHelper, buildTrainerUnavailableHelper,
 } from './PairingHelperPanel.mock'
 
 const handlers = () => ({ onOpen: fn(), onDismiss: fn(), onSelect: fn(), onAction: fn() })
@@ -51,6 +51,14 @@ export const TrainerUnavailablePhone: Story = {
 
 export const TrainerUnavailableTablet: Story = {
     args: { helper: buildTrainerUnavailableHelper(handlers()), layout: 'tablet' },
+}
+
+export const FallbackPhone: Story = {
+    args: { helper: buildFallbackHelper(handlers()) },
+}
+
+export const FallbackTablet: Story = {
+    args: { helper: buildFallbackHelper(handlers()), layout: 'tablet' },
 }
 
 export const Resolved: Story = {

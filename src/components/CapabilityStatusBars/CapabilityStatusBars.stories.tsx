@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { CapabilityStatusBars } from './CapabilityStatusBars'
 import { colors } from '../../theme'
 import {
-    MOCK_CAPABILITIES_HEARTRATE_ONLY, MOCK_CAPABILITIES_SEARCHING, MOCK_CAPABILITIES_SWITCHED_OFF,
+    MOCK_CAPABILITIES_FALLBACK, MOCK_CAPABILITIES_HEARTRATE_ONLY, MOCK_CAPABILITIES_SEARCHING, MOCK_CAPABILITIES_SWITCHED_OFF,
     MOCK_CAPABILITIES_TRAINER_CONNECTING, MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
 } from './CapabilityStatusBars.mock'
 
@@ -42,6 +42,10 @@ export const TrainerUnavailable: Story = {
 
 export const SwitchedOff: Story = {
     args: { capabilities: MOCK_CAPABILITIES_SWITCHED_OFF },
+}
+
+export const Fallback: Story = {
+    args: { capabilities: MOCK_CAPABILITIES_FALLBACK },
 }
 
 // the space left beside the helper panel on a 667 x 375 phone

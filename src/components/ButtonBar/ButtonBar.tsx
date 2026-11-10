@@ -4,12 +4,13 @@ import { colors } from '../../theme'
 import { ButtonBarProps, ButtonProps } from './types'
 import { useLogging, useScreenLayout } from '../../hooks'
 
-// Compact mode's ~34px visible button is under the 44px touch-target guideline, but its small
+// Compact mode's ~34px visible button is under the 48dp touch-target guideline, but its small
 // footprint is intentional (saves vertical space in landscape on phones as short as ~320px tall)
-// - expand the tappable region via hitSlop instead of growing the button. Horizontal slop must
-// stay under btnCompact's 8px marginHorizontal (styles.btn) so adjacent buttons' hit-slop
-// regions can't overlap and turn near-misses into taps on the wrong button.
-const COMPACT_HIT_SLOP = { top: 5, bottom: 5, left: 6, right: 6 }
+// - expand the tappable region via hitSlop instead of growing the button: 8 above and below takes
+// it to ~50. That stays inside the bar's 12px vertical margin. Horizontal slop must stay under
+// btnCompact's 8px marginHorizontal (styles.btn) so adjacent buttons' hit-slop regions can't
+// overlap and turn near-misses into taps on the wrong button.
+const COMPACT_HIT_SLOP = { top: 8, bottom: 8, left: 6, right: 6 }
 
 export const Button = ({ id,label, primary,attention, disabled, onClick }:ButtonProps) => {
     const {logEvent} = useLogging('Incyclist')

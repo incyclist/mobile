@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
 
 import { colors, textSizes } from '../../theme'
 import { useLogging } from '../../hooks'
+import { PairingSidePanel, PairingSidePanelAction } from '../PairingSidePanel'
 import { ReasonRow } from './ReasonRow'
 import { getVisibleReasons } from './utils'
 import { PairingHelperPanelProps } from './types'
@@ -44,25 +45,23 @@ export const PairingHelperPanel = ({ helper, layout }: PairingHelperPanelProps) 
     const resolved = helper.phase === 'resolved'
     const tip = isPhone ? helper.tip?.shortText : helper.tip?.text
     const showFooterLine = !isPhone && !resolved
-    const showPinned = (!resolved && helper.action !== undefined) || showFooterLine
+    const action = resolved ? undefined : helper.action
+    const showPinned = action !== undefined || showFooterLine
+
+    const pinned = showPinned ? (
+        <>
+            {action ? <PairingSidePanelAction label={action.label} note={action.note} onPress={onAction} /> : null}
+            {showFooterLine ? <Text style={styles.footer}>{helper.footer}</Text> : null}
+        </>
+    ) : undefined
 
     return (
-        <View style={styles.panel}>
-            <View style={styles.header}>
-                <View style={styles.titleRow}>
-                    <Text style={styles.title} accessibilityRole="header">{helper.title}</Text>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Close"
-                        onPress={onClose}
-                        style={styles.close}
-                    >
-                        <Text style={styles.closeText}>✕</Text>
-                    </Pressable>
-                </View>
-                {!resolved && helper.subline ? <Text style={styles.subline}>{helper.subline}</Text> : null}
-            </View>
-
+        <PairingSidePanel
+            title={helper.title}
+            subline={resolved ? undefined : helper.subline}
+            onClose={onClose}
+            pinned={pinned}
+        >
             {resolved ? (
                 <View style={styles.resolved}>
                     <Text style={styles.resolvedText}>{helper.resolvedText}</Text>
@@ -79,61 +78,11 @@ export const PairingHelperPanel = ({ helper, layout }: PairingHelperPanelProps) 
                     )}
                 </ScrollView>
             )}
-
-            {showPinned && (
-                <View style={styles.pinned}>
-                    {!resolved && helper.action?.note ? <Text style={styles.note}>{helper.action.note}</Text> : null}
-                    {!resolved && helper.action ? (
-                        <Pressable accessibilityRole="button" onPress={onAction} style={styles.action}>
-                            <Text style={styles.actionText}>{helper.action.label}</Text>
-                        </Pressable>
-                    ) : null}
-                    {showFooterLine ? <Text style={styles.footer}>{helper.footer}</Text> : null}
-                </View>
-            )}
-        </View>
+        </PairingSidePanel>
     )
 }
 
 const styles = StyleSheet.create({
-    panel: {
-        flex: 1,
-        backgroundColor: colors.helperPanelBackground,
-        borderLeftWidth: 3,
-        borderLeftColor: colors.pairingWaiting,
-        borderTopLeftRadius: 8,
-        borderBottomLeftRadius: 8,
-    },
-    header: {
-        paddingLeft: 12,
-        paddingTop: 4,
-    },
-    titleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    title: {
-        flex: 1,
-        color: colors.text,
-        fontSize: textSizes.normalText,
-        fontWeight: '700',
-    },
-    close: {
-        width: MIN_TOUCH_SIZE,
-        height: MIN_TOUCH_SIZE,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    closeText: {
-        color: colors.text,
-        fontSize: textSizes.normalText,
-    },
-    subline: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-        paddingRight: 12,
-        paddingBottom: 6,
-    },
     body: {
         flex: 1,
     },
@@ -160,30 +109,6 @@ const styles = StyleSheet.create({
     resolvedText: {
         color: colors.success,
         fontSize: textSizes.normalText,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    pinned: {
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: colors.disabled,
-        padding: 10,
-    },
-    note: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-        marginBottom: 6,
-    },
-    action: {
-        minHeight: MIN_TOUCH_SIZE,
-        borderRadius: 6,
-        backgroundColor: colors.buttonPrimary,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 10,
-    },
-    actionText: {
-        color: colors.text,
-        fontSize: textSizes.subtitle,
         fontWeight: '700',
         textAlign: 'center',
     },

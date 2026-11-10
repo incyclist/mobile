@@ -47,8 +47,9 @@ export const CapabilityTile = ( props:PropsWithChildren<CapabilityTileProps>) =>
     const hasDevice = Boolean(props.deviceName)
     const switchedOff = isSwitchedOff(props)
     // only a connected device gets the in-use colour - the same rule as the status bars, so the grid
-    // and the bars always agree. A device that is still connecting or can't be reached, and a
-    // switched-off tile (T16), use the same muted look as an empty tile.
+    // and the bars always agree. A device that is still connecting or can't be reached, a
+    // switched-off tile, and a dimmed tile (not used while the ride falls back to another
+    // device) use the same muted look as an empty tile.
     const backgroundColor = isConnected(props) ? colors.tileActive : colors.tileEmpty
     // the page service decides which tiles the page waits for; the tile only renders the outline
     const waitingBorder = props.awaited ? { borderWidth: 3, borderColor: colors.pairingWaiting } : undefined
@@ -252,6 +253,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         stateText,
         value,
         disabled,
+        dimmed,
         unit,
         interface:ifName,
         size,
@@ -303,7 +305,7 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         return capabilityIconSize === undefined ? undefined : { width: capabilityIconSize, height: capabilityIconSize }
     }
 
-    if ( deviceName && !disabled) {
+    if ( deviceName && !disabled && !dimmed) {
         const activeFooter = getActiveFooter(footer, stateText, connectState)
         // a connected tile keeps its value column even before the first value arrives, so the icon
         // doesn't jump; any other tile has no value, and its icon has the row to itself, centred
@@ -360,9 +362,11 @@ const CapabilityTileView = React.memo ( (props: ComponentProps) => {
         )
     }
 
-    // T16: switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
-    // parent), with the device name and no value, and the toggle to turn it straight back on
-    if ( deviceName && disabled) {
+    // switched off, but a device is remembered - shown dimmed (muted tile colour, set by the
+    // parent), with the device name and no value, and the toggle to turn it straight back on.
+    // A dimmed tile (not used while the ride falls back to another device) looks the same; the page
+    // service sends it without switch handlers, so it gets no toggle, and its footer copy as given.
+    if ( deviceName && (disabled || dimmed)) {
         return (
             <SwitchedOffTileView
                 size={size} title={title} deviceName={deviceName} roleLabel={roleLabel} trainerRole={trainerRole}

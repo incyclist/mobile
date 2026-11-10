@@ -4,11 +4,15 @@ import { View as PairingPage } from 'react-native';
 import { PairingPageView } from './View';
 import { defaultArgs as deviceSelectorArgs } from '../../components/DeviceSelector/DeviceSelector.stories';
 import {
-    buildAsleepHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildTrainerUnavailableHelper,
+    buildAsleepHelper, buildFallbackHelper, buildNoDeviceHelper, buildNoTrainerHelper, buildTrainerUnavailableHelper,
 } from '../../components/PairingHelperPanel/PairingHelperPanel.mock';
 import {
-    MOCK_CAPABILITIES_HEARTRATE_ONLY, MOCK_CAPABILITIES_SEARCHING, MOCK_CAPABILITIES_TRAINER_CONNECTING, MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
+    MOCK_CAPABILITIES_FALLBACK, MOCK_CAPABILITIES_HEARTRATE_ONLY, MOCK_CAPABILITIES_SEARCHING, MOCK_CAPABILITIES_SWITCHED_OFF,
+    MOCK_CAPABILITIES_TRAINER_CONNECTING, MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
 } from '../../components/CapabilityStatusBars/CapabilityStatusBars.mock';
+import {
+    buildDetectionConflict, buildManualConflict, buildQueuedDetectionConflict, buildThreeRowDetectionConflict,
+} from '../../components/ConflictStepRows/ConflictStepRows.mock';
 import {
     MOCK_STATUS_STILL_SEARCHING, MOCK_STATUS_TRAINER_CONNECTING, MOCK_STATUS_TRAINER_UNAVAILABLE,
 } from '../../components/PairingStatusLine/PairingStatusLine.mock';
@@ -261,5 +265,62 @@ export const TrainerUnavailableHelper: Story = {
     args: {
         ...TrainerUnavailable.args,
         helper: buildTrainerUnavailableHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn(), onAction: fn() }),
+    } as any,
+};
+
+// The trainer can't be reached, a separate power meter is connected: the helper offers to ride with it
+export const FallbackOffered: Story = {
+    args: {
+        ...TrainerUnavailable.args,
+        helper: buildFallbackHelper({ onOpen: fn(), onDismiss: fn(), onSelect: fn(), onAction: fn() }),
+    } as any,
+};
+
+// The rider chose to ride with the power meter: the trainer's tiles are dimmed, a tap on Resistance takes it back
+export const FallingBack: Story = {
+    args: {
+        title: 'Devices',
+        capabilities: MOCK_CAPABILITIES_FALLBACK,
+        pairingCase: 'trainer-unavailable',
+        trainerPhase: 'unavailable',
+        interfaces: [{ name: 'ble', state: 'scanning', onClick: fn() }],
+        buttons: [{ label: 'Start', primary: true, onClick: fn() }],
+    } as any,
+};
+
+// A trainer found by the search wants slots other devices hold: a dialog over the tiles, which stay as they are
+export const ConflictDialog: Story = {
+    args: {
+        title: 'Devices',
+        capabilities: MOCK_CAPABILITIES_SWITCHED_OFF,
+        pendingConflict: buildDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+        interfaces: [{ name: 'ble', state: 'scanning', onClick: fn() }],
+        buttons: [{ label: 'OK', primary: true, onClick: fn() }],
+    } as any,
+};
+
+export const ConflictDialogMoreWaiting: Story = {
+    args: {
+        ...ConflictDialog.args,
+        pendingConflict: buildQueuedDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+    } as any,
+};
+
+export const ConflictDialogThreeRows: Story = {
+    args: {
+        ...ConflictDialog.args,
+        pendingConflict: buildThreeRowDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+    } as any,
+};
+
+// A pick in the Resistance list would take slots other devices hold: the list's second step
+export const ResistanceListConflictStep: Story = {
+    args: {
+        ...ConflictDialog.args,
+        pendingConflict: undefined,
+        deviceSelection: {
+            ...deviceSelectorArgs,
+            conflictStep: buildManualConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+        },
     } as any,
 };
