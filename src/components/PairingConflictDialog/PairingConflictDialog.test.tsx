@@ -1,6 +1,6 @@
 import React from 'react'
-import { act, render, fireEvent } from '@testing-library/react-native'
-import { Modal, TouchableWithoutFeedback } from 'react-native'
+import { act, render, fireEvent, within } from '@testing-library/react-native'
+import { Modal, ScrollView, TouchableWithoutFeedback } from 'react-native'
 import { PairingConflictDialog, ARMING_DELAY_MS } from './PairingConflictDialog'
 import {
     buildDetectionConflict, buildQueuedDetectionConflict, buildSingleRowDetectionConflict,
@@ -74,13 +74,25 @@ describe('PairingConflictDialog', () => {
         expect(getAllByRole('radio')).toHaveLength(2)
     })
 
-    it('says how many more conflicts wait, only when it is given', () => {
-        const queued = render(<PairingConflictDialog conflict={buildQueuedDetectionConflict()} />)
-        expect(queued.getByText('2 more')).toBeTruthy()
-        queued.unmount()
+    it('on a phone, says how many more wait in the footer, next to Done', () => {
+        const { getByTestId, queryByText } = render(<PairingConflictDialog conflict={buildQueuedDetectionConflict()} />)
 
-        const single = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
-        expect(single.queryByText(/^\d+ more$/)).toBeNull()
+        const footer = within(getByTestId('dialog-footer'))
+        expect(footer.getByText('2 more to check')).toBeTruthy()
+        expect(footer.getByText('Done')).toBeTruthy()
+        expect(queryByText('2 more')).toBeNull()
+    })
+
+    it('on a tablet, says it in full', () => {
+        setDimensions(...TABLET)
+        const { getByTestId } = render(<PairingConflictDialog conflict={buildQueuedDetectionConflict()} />)
+
+        expect(within(getByTestId('dialog-footer')).getByText('2 more devices to check')).toBeTruthy()
+    })
+
+    it('says nothing about more when none waits', () => {
+        const { queryByText } = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
+        expect(queryByText(/to check$/)).toBeNull()
     })
 
     it('marks each row\'s choice as given: Keep unless the rider picked otherwise', () => {
@@ -127,6 +139,11 @@ describe('PairingConflictDialog', () => {
 
         expect(onDismiss).toHaveBeenCalledTimes(1)
         expect(onDone).not.toHaveBeenCalled()
+    })
+
+    it('scrolls the rows in the body\'s own ScrollView, not the dialog\'s', () => {
+        const { UNSAFE_root } = render(<PairingConflictDialog conflict={buildDetectionConflict()} />)
+        expect(UNSAFE_root.findAllByType(ScrollView)).toHaveLength(1)
     })
 
     it('has no ✕: Done is its only button besides the rows', () => {

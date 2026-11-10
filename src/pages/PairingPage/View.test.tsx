@@ -134,7 +134,7 @@ describe('PairingPageView conflict dialog', () => {
     it('shows how many more wait', () => {
         setDimensions(...PHONE)
         const { getByText } = render(<PairingPageView {...props({ pendingConflict: buildQueuedDetectionConflict() })} />)
-        expect(getByText('2 more')).toBeTruthy()
+        expect(getByText('2 more to check')).toBeTruthy()
     })
 
     it.each([['phone', PHONE], ['tablet', TABLET]] as Array<[string, [number, number]]>)(

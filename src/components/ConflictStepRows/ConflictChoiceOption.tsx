@@ -14,10 +14,12 @@ interface ConflictChoiceOptionProps {
     label: string
     selected: boolean
     onChoice: ConflictStepProps['onChoice']
+    /** share a line's width equally with the other choice */
+    fill?: boolean
 }
 
 /** One of a slot's two choices: a radio-style row at least 48 high, the same as the helper's answers. */
-export const ConflictChoiceOption = ({ capability, capabilityTitle, choice, label, selected, onChoice }: ConflictChoiceOptionProps) => {
+export const ConflictChoiceOption = ({ capability, capabilityTitle, choice, label, selected, onChoice, fill = false }: ConflictChoiceOptionProps) => {
     const { logEvent } = useLogging('ConflictStepRows')
 
     const onPress = useCallback(() => {
@@ -31,7 +33,7 @@ export const ConflictChoiceOption = ({ capability, capabilityTitle, choice, labe
             accessibilityState={{ selected }}
             accessibilityLabel={`${capabilityTitle}: ${label}`}
             onPress={onPress}
-            style={[styles.option, selected && styles.optionSelected]}
+            style={[styles.option, fill && styles.optionFill, selected && styles.optionSelected]}
         >
             <View style={[styles.radio, selected && styles.radioSelected]}>
                 {selected && <View style={styles.radioDot} />}
@@ -52,6 +54,10 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         borderWidth: 1,
         borderColor: colors.disabled,
+    },
+    optionFill: {
+        flex: 1,
+        flexBasis: 0,
     },
     optionSelected: {
         borderColor: colors.pairingWaiting,

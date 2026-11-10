@@ -6,8 +6,8 @@ import { textSizes } from '../../theme';
 import { useScreenLayout } from '../../hooks';
 import { Dialog } from '../Dialog';
 import { ButtonProps } from '../ButtonBar/types';
-import { ConflictStepBody } from '../ConflictStepRows';
-import { getDeviceDialogWidth } from './utils';
+import { ConflictStepBody, getConflictQueuedNote } from '../ConflictStepRows';
+import { getConflictDialogStyle, getDeviceDialogWidth } from './utils';
 
 const DONE_LABEL = 'Done';
 
@@ -45,7 +45,7 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
         : undefined
     , [conflictStep]);
 
-    const dialogStyle = [styles.dialog, { width: dialogWidth }];
+    const dialogStyle = [styles.dialog, conflictStep ? getConflictDialogStyle(screenWidth, compact) : { width: dialogWidth }];
     const deviceListStyle = [styles.deviceList, { minHeight: deviceListMinHeight }];
 
     let title = isScanning ? 'Searching ...' : 'Select Device';
@@ -58,7 +58,9 @@ export const DeviceSelector: FC<DeviceSelectionProps> = ({
             title={title}
             onOutsideClick={onOutsideClick}
             buttons={stepButtons}
-            scrollable={Boolean(conflictStep)}
+            footerNote={conflictStep ? getConflictQueuedNote(conflictStep.queued, compact) : undefined}
+            // the list and the conflict step both scroll on their own
+            scrollable={false}
         >
             {conflictStep ? (
                 <ConflictStepBody step={conflictStep} compact={compact} onChoice={conflictStep.onChoice} />

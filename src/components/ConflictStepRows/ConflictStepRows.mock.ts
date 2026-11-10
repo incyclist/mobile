@@ -49,6 +49,17 @@ export const buildSingleRowDetectionConflict = (h: MockConflictHandlers = {}): C
     return { ...conflict, rows: conflict.rows.filter(r => r.capability === 'cadence') }
 }
 
+/** A trainer found by the search wants Power, Speed and Cadence, all held by other devices, with two more conflicts waiting. */
+export const buildThreeRowDetectionConflict = (h: MockConflictHandlers = {}): ConflictStepProps => {
+    const conflict = buildDetectionConflict(h)
+    return {
+        ...conflict,
+        rows: [conflict.rows[0], row('speed', 'Speed', 'Wahoo Speed'), conflict.rows[1]],
+        queued: 2,
+        queuedText: '2 more',
+    }
+}
+
 /** The same conflict, with two more waiting behind it. */
 export const buildQueuedDetectionConflict = (h: MockConflictHandlers = {}): ConflictStepProps => ({
     ...buildDetectionConflict(h),

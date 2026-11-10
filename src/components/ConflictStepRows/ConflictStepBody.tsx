@@ -1,37 +1,106 @@
-import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useCallback, useRef, useState } from 'react'
+import {
+    View, Text, ScrollView, StyleSheet, useWindowDimensions,
+    LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent,
+} from 'react-native'
 
 import { colors, textSizes } from '../../theme'
 import { ConflictStepRows } from './ConflictStepRows'
 import { ConflictStepBodyProps } from './types'
+import { hasMoreBelow, ScrollSizes } from './utils'
+
+const MORE_BELOW = 'More below ▾'
 
 /**
- * The body of a conflict dialog, under its title: how many more conflicts wait (when the page service
- * says so), the subline, and the rows. Both the device list's second step and the dialog for a device
- * found by the search show it, so the two look and read the same.
+ * The body of a conflict dialog, under its title: the subline, and the rows in a scroll view of
+ * their own, so the subline stays in view. While rows are hidden below, a hint at the bottom says
+ * so. In landscape, each row's two choices share one line. Both the device list's second step and
+ * the dialog for a device found by the search show it, so the two look and read the same; the
+ * dialog using it must not scroll its own content (`scrollable={false}`).
  */
-export const ConflictStepBody = ({ step, compact, onChoice }: ConflictStepBodyProps) => (
-    <View style={styles.body}>
-        {step.queuedText ? <Text style={styles.queued}>{step.queuedText}</Text> : null}
-        <Text style={styles.subline}>{compact ? step.subline.short : step.subline.full}</Text>
-        <ConflictStepRows rows={step.rows} onChoice={onChoice} />
-    </View>
-)
+export const ConflictStepBody = ({ step, compact, onChoice }: ConflictStepBodyProps) => {
+    const { width, height } = useWindowDimensions()
+    const sideBySide = width > height
+
+    const refSizes = useRef<ScrollSizes>({ viewHeight: 0, contentHeight: 0, offset: 0 })
+    const [moreBelow, setMoreBelow] = useState<boolean>(false)
+
+    const update = useCallback((changed: Partial<ScrollSizes>) => {
+        refSizes.current = { ...refSizes.current, ...changed }
+        setMoreBelow(hasMoreBelow(refSizes.current))
+    }, [])
+
+    const onLayout = useCallback((e: LayoutChangeEvent) => {
+        update({ viewHeight: e.nativeEvent.layout.height })
+    }, [update])
+
+    const onContentSizeChange = useCallback((_width: number, contentHeight: number) => {
+        update({ contentHeight })
+    }, [update])
+
+    const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+        update({ offset: e.nativeEvent.contentOffset.y })
+    }, [update])
+
+    return (
+        <View style={styles.body}>
+            <Text style={styles.subline}>{compact ? step.subline.short : step.subline.full}</Text>
+            <View style={styles.rowsArea}>
+                <ScrollView
+                    style={styles.rows}
+                    onLayout={onLayout}
+                    onContentSizeChange={onContentSizeChange}
+                    onScroll={onScroll}
+                    scrollEventThrottle={32}
+                    persistentScrollbar
+                    bounces={false}
+                >
+                    <ConflictStepRows rows={step.rows} onChoice={onChoice} sideBySide={sideBySide} />
+                </ScrollView>
+                {moreBelow ? (
+                    <View testID="conflict-more-below" style={styles.moreBelow}>
+                        <Text style={styles.moreBelowText}>{MORE_BELOW}</Text>
+                    </View>
+                ) : null}
+            </View>
+        </View>
+    )
+}
 
 const styles = StyleSheet.create({
     body: {
+        flex: 1,
         paddingHorizontal: 8,
         paddingTop: 4,
-    },
-    queued: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-        textAlign: 'right',
-        marginBottom: 4,
     },
     subline: {
         color: colors.text,
         fontSize: textSizes.smallText,
-        marginBottom: 10,
+        marginBottom: 8,
+    },
+    rowsArea: {
+        flex: 1,
+        minHeight: 0,
+    },
+    rows: {
+        flex: 1,
+    },
+    moreBelow: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        paddingVertical: 3,
+        backgroundColor: colors.dialogBackground[colors.dialogBackground.length - 1],
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.buttonPrimary,
+        // a hint only: taps go to the row under it
+        pointerEvents: 'none',
+    },
+    moreBelowText: {
+        color: colors.buttonPrimary,
+        fontSize: textSizes.smallText,
+        fontWeight: '700',
     },
 })

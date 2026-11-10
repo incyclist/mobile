@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, within } from '@testing-library/react-native';
 import { Modal, ScrollView } from 'react-native';
 import { DeviceSelector } from './DeviceSelector';
 import { DeviceSelectionItemProps, DeviceSelectionProps, TIncyclistCapability } from 'incyclist-services';
@@ -153,6 +153,19 @@ describe('DeviceSelector conflict step', () => {
         expect(onDismiss).toHaveBeenCalledTimes(1);
         expect(onDone).not.toHaveBeenCalled();
         expect(props.onClose).not.toHaveBeenCalled();
+    });
+
+    it('scrolls the rows in the step\'s own ScrollView, not the dialog\'s', () => {
+        const { UNSAFE_root } = render(<DeviceSelector {...buildProps(3, { conflictStep: buildManualConflict() })} />);
+
+        expect(UNSAFE_root.findAllByType(ScrollView).length).toBe(1);
+    });
+
+    it('says how many more wait in the footer, the same way as the dialog for a device found by the search', () => {
+        const conflictStep = { ...buildManualConflict(), queued: 1, queuedText: '1 more' };
+        const { getByTestId } = render(<DeviceSelector {...buildProps(3, { conflictStep })} />);
+
+        expect(within(getByTestId('dialog-footer')).getByText('1 more to check')).toBeTruthy();
     });
 
     it('has Done as its only button', () => {

@@ -5,8 +5,8 @@ import type { ConflictStepProps } from 'incyclist-services'
 import { useLogging, useScreenLayout } from '../../hooks'
 import { Dialog } from '../Dialog'
 import { ButtonProps } from '../ButtonBar/types'
-import { ConflictStepBody } from '../ConflictStepRows'
-import { getDeviceDialogWidth } from '../DeviceSelector/utils'
+import { ConflictStepBody, getConflictQueuedNote } from '../ConflictStepRows'
+import { getConflictDialogStyle } from '../DeviceSelector/utils'
 import { PairingConflictDialogProps } from './types'
 
 /**
@@ -64,7 +64,7 @@ export const PairingConflictDialog = ({ conflict }: PairingConflictDialogProps) 
         { id: 'conflict-done', label: DONE_LABEL, primary: true, onClick: onDone },
     ], [onDone])
 
-    const dialogStyle = { width: getDeviceDialogWidth(screenWidth) }
+    const dialogStyle = getConflictDialogStyle(screenWidth, compact)
 
     return (
         <Dialog
@@ -72,6 +72,9 @@ export const PairingConflictDialog = ({ conflict }: PairingConflictDialogProps) 
             title={conflict.title}
             onOutsideClick={onOutsideClick}
             buttons={buttons}
+            footerNote={getConflictQueuedNote(conflict.queued, compact)}
+            // the body scrolls its rows itself, below the subline
+            scrollable={false}
         >
             <ConflictStepBody step={conflict} compact={compact} onChoice={onChoice} />
         </Dialog>

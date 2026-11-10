@@ -11,7 +11,7 @@ import {
     MOCK_CAPABILITIES_TRAINER_CONNECTING, MOCK_CAPABILITIES_TRAINER_UNAVAILABLE,
 } from '../../components/CapabilityStatusBars/CapabilityStatusBars.mock';
 import {
-    buildDetectionConflict, buildManualConflict, buildQueuedDetectionConflict,
+    buildDetectionConflict, buildManualConflict, buildQueuedDetectionConflict, buildThreeRowDetectionConflict,
 } from '../../components/ConflictStepRows/ConflictStepRows.mock';
 import {
     MOCK_STATUS_STILL_SEARCHING, MOCK_STATUS_TRAINER_CONNECTING, MOCK_STATUS_TRAINER_UNAVAILABLE,
@@ -303,6 +303,13 @@ export const ConflictDialogMoreWaiting: Story = {
     args: {
         ...ConflictDialog.args,
         pendingConflict: buildQueuedDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
+    } as any,
+};
+
+export const ConflictDialogThreeRows: Story = {
+    args: {
+        ...ConflictDialog.args,
+        pendingConflict: buildThreeRowDetectionConflict({ onChoice: fn(), onDone: fn(), onDismiss: fn() }),
     } as any,
 };
 

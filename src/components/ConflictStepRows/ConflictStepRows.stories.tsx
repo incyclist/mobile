@@ -11,6 +11,7 @@ const meta: Meta<typeof ConflictStepRows> = {
     component: ConflictStepRows,
     args: {
         onChoice: fn(),
+        sideBySide: true,
     },
     decorators: [
         (Story) => (
@@ -33,10 +34,15 @@ export const OneReplaced: Story = {
     args: { rows: buildManualConflict({}, { speed: 'replace' }).rows },
 }
 
-// the width of the panel beside the tiles on a phone
+// where the dialog is too narrow for the two choices on one line
+export const Stacked: Story = {
+    args: { rows: buildDetectionConflict().rows, sideBySide: false },
+}
+
+// about the width of the rows in the conflict dialog on a phone
 const styles = StyleSheet.create({
     decorator: {
-        width: 300,
+        width: 440,
         padding: 12,
         backgroundColor: colors.helperPanelBackground,
     },

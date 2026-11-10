@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { PairingConflictDialog } from './PairingConflictDialog'
 import {
-    buildDetectionConflict, buildQueuedDetectionConflict, buildSingleRowDetectionConflict,
+    buildDetectionConflict, buildQueuedDetectionConflict, buildSingleRowDetectionConflict, buildThreeRowDetectionConflict,
 } from '../ConflictStepRows/ConflictStepRows.mock'
 
 // Like the device list's dialog, this one sizes itself to the window: resize the preview (or use the
@@ -41,6 +41,11 @@ export const OneReplaced: Story = {
 
 export const MoreWaiting: Story = {
     args: { conflict: buildQueuedDetectionConflict(handlers()) },
+}
+
+// the tallest case: three slots, and more waiting; on a phone the rows scroll under a "More below" hint
+export const ThreeRowsMoreWaiting: Story = {
+    args: { conflict: buildThreeRowDetectionConflict(handlers()) },
 }
 
 const styles = StyleSheet.create({

@@ -4,6 +4,8 @@ export interface ConflictStepRowsProps {
     /** one row per slot, as the page service gives them */
     rows: ReadonlyArray<ConflictStepRowProps>
     onChoice: ConflictStepProps['onChoice']
+    /** each row's Keep and Use on one line (landscape), instead of stacked */
+    sideBySide?: boolean
 }
 
 export interface ConflictStepBodyProps {

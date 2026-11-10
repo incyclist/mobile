@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, fireEvent } from '@testing-library/react-native'
+import { StyleSheet } from 'react-native'
+import { render, fireEvent, within } from '@testing-library/react-native'
 import { ConflictStepRows } from './ConflictStepRows'
 import { buildDetectionConflict, buildManualConflict } from './ConflictStepRows.mock'
 
@@ -49,6 +50,25 @@ describe('ConflictStepRows', () => {
 
         expect(onChoice).toHaveBeenCalledTimes(2)
         expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'button clicked', button: 'conflict choice', capability: 'cadence', choice: 'replace' }))
+    })
+
+    it('side by side: each row\'s Keep and Use share one line, Keep first', () => {
+        const { rows, onChoice } = buildManualConflict()
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} sideBySide />)
+
+        rows.forEach(row => {
+            const choices = getByTestId(`conflict-choices-${row.capability}`)
+            expect(StyleSheet.flatten(choices.props.style).flexDirection).toBe('row')
+            const labels = within(choices).getAllByRole('radio').map(r => r.props.accessibilityLabel)
+            expect(labels).toEqual([`${row.capabilityTitle}: ${row.keepLabel}`, `${row.capabilityTitle}: ${row.replaceLabel}`])
+        })
+    })
+
+    it('stacked: Keep above Use', () => {
+        const { rows, onChoice } = buildManualConflict()
+        const { getByTestId } = render(<ConflictStepRows rows={rows} onChoice={onChoice} sideBySide={false} />)
+
+        expect(StyleSheet.flatten(getByTestId('conflict-choices-power').props.style)?.flexDirection).not.toBe('row')
     })
 
     it('renders no buttons of its own beyond the two choices per row', () => {
