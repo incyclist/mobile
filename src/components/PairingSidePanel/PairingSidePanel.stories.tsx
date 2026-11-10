@@ -36,10 +36,6 @@ type Story = StoryObj<typeof PairingSidePanel>
 
 export const Plain: Story = {}
 
-export const WithTitleNote: Story = {
-    args: { titleNote: '1 more' },
-}
-
 export const WithPinnedAction: Story = {
     args: { pinned: <PairingSidePanelAction label="Do it" note="A line above the button." onPress={fn()} /> },
 }

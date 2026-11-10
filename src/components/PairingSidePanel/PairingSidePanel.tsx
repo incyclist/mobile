@@ -8,15 +8,14 @@ const MIN_TOUCH_SIZE = 48
 
 /**
  * The non-modal panel beside the tiles on the Pairing page: a header with the title and a close
- * button, the body, and an optional area pinned at the bottom. The page shows one panel at a time in
- * this slot - the helper or a device-selection conflict.
+ * button, the body, and an optional area pinned at the bottom. It holds the "can't find your
+ * trainer" helper.
  */
-export const PairingSidePanel = ({ title, titleNote, subline, onClose, children, pinned }: PairingSidePanelProps) => (
+export const PairingSidePanel = ({ title, subline, onClose, children, pinned }: PairingSidePanelProps) => (
     <View style={styles.panel}>
         <View style={styles.header}>
             <View style={styles.titleRow}>
                 <Text style={styles.title} accessibilityRole="header">{title}</Text>
-                {titleNote ? <Text style={styles.titleNote}>{titleNote}</Text> : null}
                 <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Close"
@@ -61,11 +60,6 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: textSizes.normalText,
         fontWeight: '700',
-    },
-    titleNote: {
-        color: colors.text,
-        fontSize: textSizes.smallText,
-        marginLeft: 6,
     },
     close: {
         width: MIN_TOUCH_SIZE,

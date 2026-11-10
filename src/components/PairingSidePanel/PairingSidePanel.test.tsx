@@ -5,14 +5,13 @@ import { PairingSidePanel } from './PairingSidePanel'
 import { PairingSidePanelAction } from './PairingSidePanelAction'
 
 describe('PairingSidePanel', () => {
-    it('shows the title, the note beside it, the subline and the body', () => {
+    it('shows the title, the subline and the body', () => {
         const { getByText } = render(
-            <PairingSidePanel title="A title" titleNote="2 more" subline="A subline" onClose={jest.fn()}>
+            <PairingSidePanel title="A title" subline="A subline" onClose={jest.fn()}>
                 <Text>Body</Text>
             </PairingSidePanel>
         )
         expect(getByText('A title')).toBeTruthy()
-        expect(getByText('2 more')).toBeTruthy()
         expect(getByText('A subline')).toBeTruthy()
         expect(getByText('Body')).toBeTruthy()
     })

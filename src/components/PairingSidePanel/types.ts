@@ -2,8 +2,6 @@ import type { ReactNode } from 'react'
 
 export interface PairingSidePanelProps {
     title: string
-    /** a short line beside the title, e.g. how many more are waiting */
-    titleNote?: string
     subline?: string
     /** the ✕ in the header */
     onClose: () => void
