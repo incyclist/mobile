@@ -6,13 +6,6 @@ import { colors, textSizes } from '../../theme';
 import { AppSettingsContext } from '../AppSettingsView/AppSettingsView';
 import { OAuthAppSettings } from '../OAuthAppSettings/OAuthAppSettings';
 import { KomootSettings } from '../KomootSettings/KomootSettings';
-import { OAuthAppKey } from '../OAuthAppSettings/types';
-
-const APP_SECTIONS = [
-    { key: 'strava', name: 'Strava' },
-    { key: 'intervals', name: 'Intervals.icu' },
-    { key: 'komoot', name: 'Komoot' },
-];
 
 // Stable reference so AppSettingsContext.Provider (rendered inside a .map() below, where
 // useMemo can't be used) doesn't re-trigger consumers on every render — see SonarCloud
@@ -35,8 +28,9 @@ export const AppsDialogView = ({
         if (key === 'komoot') {
             return <KomootSettings onBack={onBack} />;
         }
-        return <OAuthAppSettings appKey={key as OAuthAppKey} onBack={onBack} />;
-    }, []);
+        const name = apps.find(a => a.key === key)?.name;
+        return <OAuthAppSettings appKey={key} name={name} onBack={onBack} />;
+    }, [apps]);
 
     const renderApp = renderAppProp || defaultRenderApp;
 
@@ -53,12 +47,11 @@ export const AppsDialogView = ({
             buttons={dialogButtons}
         >
             <View style={styles.container}>
-                {APP_SECTIONS.map((section) => {
-                    const appData = apps.find(a => a.key === section.key);
-                    const isConnected = appData?.isConnected ?? false;
-                    const isExpanded = expandedKey === section.key;
+                {apps.map((app) => {
+                    const isConnected = app.isConnected ?? false;
+                    const isExpanded = expandedKey === app.key;
 
-                    const handlePress = () => handleToggle(section.key);
+                    const handlePress = () => handleToggle(app.key);
 
                     const badgeStyle = [
                         styles.badge,
@@ -66,14 +59,14 @@ export const AppsDialogView = ({
                     ];
 
                     return (
-                        <View key={section.key} style={styles.section}>
+                        <View key={app.key} style={styles.section}>
                             <TouchableOpacity
                                 style={styles.header}
                                 onPress={handlePress}
                                 activeOpacity={0.7}
                             >
                                 <View style={styles.headerLeft}>
-                                    <Text style={styles.appName}>{section.name}</Text>
+                                    <Text style={styles.appName}>{app.name}</Text>
                                     <View style={badgeStyle} />
                                 </View>
                                 <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
@@ -84,7 +77,7 @@ export const AppsDialogView = ({
                             {isExpanded && (
                                 <View style={styles.body}>
                                     <AppSettingsContext.Provider value={NON_STANDALONE_CONTEXT_VALUE}>
-                                        {renderApp(section.key, onClose, false)}
+                                        {renderApp(app.key, onClose, false)}
                                     </AppSettingsContext.Provider>
                                 </View>
                             )}

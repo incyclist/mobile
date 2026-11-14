@@ -57,9 +57,9 @@ const meta: Meta<typeof AppsDialogView> = {
         visible: true,
         onClose: fn(),
         apps: [
-            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
-            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
-            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
+            { name: 'Strava', key: 'strava', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', isConnected: false },
+            { name: 'Komoot', key: 'komoot', isConnected: false },
         ],
         renderApp: (key) => <MockAppContent appKey={key} isConnected={key === 'strava'} />,
     },
@@ -74,9 +74,9 @@ export const Default: Story = {};
 export const AllDisconnected: Story = {
     args: {
         apps: [
-            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: false },
-            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
-            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
+            { name: 'Strava', key: 'strava', isConnected: false },
+            { name: 'Intervals.icu', key: 'intervals', isConnected: false },
+            { name: 'Komoot', key: 'komoot', isConnected: false },
         ],
         renderApp: (key) => <MockAppContent appKey={key} isConnected={false} />,
     },
@@ -85,9 +85,9 @@ export const AllDisconnected: Story = {
 export const AllConnected: Story = {
     args: {
         apps: [
-            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
-            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: true },
-            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: true },
+            { name: 'Strava', key: 'strava', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', isConnected: true },
+            { name: 'Komoot', key: 'komoot', isConnected: true },
         ],
         renderApp: (key) => <MockAppContent appKey={key} isConnected={true} />,
     },
@@ -96,9 +96,9 @@ export const AllConnected: Story = {
 export const StravaConnected: Story = {
     args: {
         apps: [
-            { name: 'Strava', key: 'strava', iconUrl: '', isConnected: true },
-            { name: 'Intervals.icu', key: 'intervals', iconUrl: '', isConnected: false },
-            { name: 'Komoot', key: 'komoot', iconUrl: '', isConnected: false },
+            { name: 'Strava', key: 'strava', isConnected: true },
+            { name: 'Intervals.icu', key: 'intervals', isConnected: false },
+            { name: 'Komoot', key: 'komoot', isConnected: false },
         ],
         renderApp: (key) => <MockAppContent appKey={key} isConnected={key === 'strava'} />,
     },

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Linking, StyleSheet, TouchableOpacity } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 import { useAppsService } from 'incyclist-services';
 import type { AppsOperation } from 'incyclist-services';
@@ -14,7 +14,7 @@ import type { OAuthAppSettingsProps } from './types';
 const OAUTH_BASE = 'https://auth.incyclist.com';
 const REDIRECT_URI = 'incyclist://oauth/callback';
 
-const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
+const OAuthAppSettings = ({ appKey, name, onBack }: OAuthAppSettingsProps) => {
     const service = useAppsService();
     const { logEvent, logError } = useLogging('OAuthAppSettings');
 
@@ -100,6 +100,8 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
                 accesstoken: parsed.searchParams.get('accesstoken'),
                 refreshtoken: parsed.searchParams.get('refreshtoken'),
                 id: parsed.searchParams.get('id'),
+                // same contract for all apps: whatever the auth-server provides is passed on, services handles the formats
+                expiration: parsed.searchParams.get('expiration'),
             };
 
             await service.connect(appKey, credentials);
@@ -146,22 +148,19 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
         [onConnect, isConnecting],
     );
 
-    const intervalsConnectButton = useCallback(
+    const title = name ?? appKey;
+
+    const genericConnectButton = useCallback(
         () => (
-            <TouchableOpacity onPress={onConnect} disabled={isConnecting} style={styles.intervalsButton}>
-                {React.createElement(
-                    require('react-native').Text,
-                    { style: styles.intervalsButtonText },
-                    'Connect with Intervals.icu',
-                )}
+            <TouchableOpacity onPress={onConnect} disabled={isConnecting} style={styles.connectButton}>
+                <Text style={styles.connectButtonText}>{`Connect with ${title}`}</Text>
             </TouchableOpacity>
         ),
-        [onConnect, isConnecting],
+        [onConnect, isConnecting, title],
     );
 
-    const connectButton = appKey === 'strava' ? stravaConnectButton : intervalsConnectButton;
-
-    const title = appKey === 'strava' ? 'Strava' : 'Intervals.icu';
+    // Strava requires its official "Connect with Strava" button
+    const connectButton = appKey === 'strava' ? stravaConnectButton : genericConnectButton;
 
     return (
         <AppSettingsView
@@ -178,14 +177,14 @@ const OAuthAppSettings = ({ appKey, onBack }: OAuthAppSettingsProps) => {
 };
 
 const styles = StyleSheet.create({
-    intervalsButton: {
+    connectButton: {
         backgroundColor: colors.buttonPrimary,
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 4,
         alignItems: 'center',
     },
-    intervalsButtonText: {
+    connectButtonText: {
         color: colors.text,
         fontSize: textSizes.normalText,
         fontWeight: '600',

@@ -9,9 +9,9 @@ jest.mock('incyclist-services', () => {
         connected: Record<string, boolean> = { strava: false, intervals: false, komoot: false };
 
         openSettings = jest.fn(() => ([
-            { name: 'Strava', key: 'strava', iconUrl: 's.svg', isConnected: this.connected.strava },
-            { name: 'Intervals.icu', key: 'intervals', iconUrl: 'i.svg', isConnected: this.connected.intervals },
-            { name: 'Komoot', key: 'komoot', iconUrl: 'k.svg', isConnected: this.connected.komoot },
+            { name: 'Strava', key: 'strava', isConnected: this.connected.strava },
+            { name: 'Intervals.icu', key: 'intervals', isConnected: this.connected.intervals },
+            { name: 'Komoot', key: 'komoot', isConnected: this.connected.komoot },
         ]));
     }
 
