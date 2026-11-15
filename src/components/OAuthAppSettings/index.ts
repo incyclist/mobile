@@ -1,2 +1,2 @@
 export { OAuthAppSettings } from './OAuthAppSettings';
-export type { OAuthAppSettingsProps, OAuthAppKey } from './types';
+export type { OAuthAppSettingsProps } from './types';

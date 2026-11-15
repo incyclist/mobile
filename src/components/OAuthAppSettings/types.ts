@@ -1,9 +1,10 @@
 import type { AppsOperation } from 'incyclist-services';
 
-export type OAuthAppKey = 'strava' | 'intervals';
-
 export interface OAuthAppSettingsProps {
-    appKey: OAuthAppKey;
+    /** Key of the app as provided by the AppsService (e.g. 'strava', 'intervals', 'trainingpeaks') */
+    appKey: string;
+    /** Display name of the app, as provided by the AppsService. Falls back to the key */
+    name?: string;
     onBack?: () => void;
 }
 
