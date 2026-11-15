@@ -94,4 +94,51 @@ describe('AppsDialogView', () => {
         // If it doesn't crash, the test passes.
         expect(getByText('Strava')).toBeTruthy();
     });
+
+    describe('accessibility', () => {
+        it('every entry is a button that tells the name of the app and its connection state', () => {
+            const { getByRole } = render(<AppsDialogView {...MOCK_PROPS} />);
+
+            expect(getByRole('button', { name: 'Strava, connected' })).toBeTruthy();
+            expect(getByRole('button', { name: 'Intervals.icu, not connected' })).toBeTruthy();
+            expect(getByRole('button', { name: 'Komoot, not connected' })).toBeTruthy();
+        });
+
+        it('the entry tells whether it is expanded', () => {
+            const { getByLabelText } = render(<AppsDialogView {...MOCK_PROPS} />);
+
+            expect(getByLabelText('Strava, connected').props.accessibilityState).toMatchObject({ expanded: false });
+
+            fireEvent.press(getByLabelText('Strava, connected'));
+
+            expect(getByLabelText('Strava, connected').props.accessibilityState).toMatchObject({ expanded: true });
+            expect(getByLabelText('Komoot, not connected').props.accessibilityState).toMatchObject({ expanded: false });
+        });
+
+        it('collapsing an entry is reported as well', () => {
+            const { getByLabelText } = render(<AppsDialogView {...MOCK_PROPS} />);
+
+            fireEvent.press(getByLabelText('Strava, connected'));
+            fireEvent.press(getByLabelText('Strava, connected'));
+
+            expect(getByLabelText('Strava, connected').props.accessibilityState).toMatchObject({ expanded: false });
+        });
+
+        it('the label follows a change of the connection state', () => {
+            const { getByLabelText, rerender } = render(<AppsDialogView {...MOCK_PROPS} />);
+            const connectedKomoot = MOCK_APPS.map(a => a.key === 'komoot' ? { ...a, isConnected: true } : a);
+
+            rerender(<AppsDialogView {...MOCK_PROPS} apps={connectedKomoot} />);
+
+            expect(getByLabelText('Komoot, connected')).toBeTruthy();
+        });
+
+        it('the chevron is not read by screen readers', () => {
+            const { queryAllByText } = render(<AppsDialogView {...MOCK_PROPS} />);
+
+            // one chevron per entry, none of them is visible to screen readers
+            expect(queryAllByText('>', { includeHiddenElements: false })).toHaveLength(0);
+            expect(queryAllByText('>', { includeHiddenElements: true })).toHaveLength(MOCK_APPS.length);
+        });
+    });
 });

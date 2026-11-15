@@ -53,6 +53,9 @@ export const AppsDialogView = ({
 
                     const handlePress = () => handleToggle(app.key);
 
+                    // the status is only shown as colour of the badge: screen readers get it as part of the label
+                    const accessibilityLabel = `${app.name}, ${isConnected ? 'connected' : 'not connected'}`;
+
                     const badgeStyle = [
                         styles.badge,
                         { backgroundColor: isConnected ? colors.success : colors.disabled }
@@ -64,12 +67,19 @@ export const AppsDialogView = ({
                                 style={styles.header}
                                 onPress={handlePress}
                                 activeOpacity={0.7}
+                                accessibilityRole="button"
+                                accessibilityLabel={accessibilityLabel}
+                                accessibilityState={{ expanded: isExpanded }}
                             >
                                 <View style={styles.headerLeft}>
                                     <Text style={styles.appName}>{app.name}</Text>
                                     <View style={badgeStyle} />
                                 </View>
-                                <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
+                                <Text
+                                    style={[styles.chevron, isExpanded && styles.chevronExpanded]}
+                                    accessibilityElementsHidden
+                                    importantForAccessibility="no-hide-descendants"
+                                >
                                     {'>'}
                                 </Text>
                             </TouchableOpacity>
