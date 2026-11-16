@@ -4,93 +4,81 @@ import { useScheduledWorkoutPrompt } from './useScheduledWorkoutPrompt';
 
 const mockNavigate = jest.fn();
 
-let appStateStore: Record<string, any>;
-const mockGetState = jest.fn((key: string) => appStateStore[key]);
-const mockSetState = jest.fn((key: string, value: any) => {
-    if (value === null) delete appStateStore[key];
-    else appStateStore[key] = value;
-});
-
-class FakeWorkoutCalendar extends EventEmitter {
-    getScheduledToday = jest.fn();
+// Fake prompt page service: the once-per-session guard and the calendar lookup live in the
+// service, so here `show` just returns what the service would decide.
+class FakePromptService extends EventEmitter {
+    show = jest.fn();
+    onYes = jest.fn((prompt: any) => ({ page: 'workouts', autoOpenDetailsId: prompt.workoutId }));
+    onNo = jest.fn();
+    onCheckWorkouts = jest.fn(() => ({ page: 'workouts' }));
 }
-let mockCalendar: FakeWorkoutCalendar;
+let mockService: FakePromptService;
 
 jest.mock('incyclist-services', () => ({
-    useAppState: () => ({ getState: mockGetState, setState: mockSetState }),
-    useWorkoutCalendar: () => mockCalendar,
+    getScheduledWorkoutPromptPageService: () => mockService,
 }));
 
 jest.mock('../../services', () => ({
     navigate: (...args: any[]) => mockNavigate(...args),
 }));
 
-jest.mock('../logging', () => ({
-    useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
-}));
-
-const SCHEDULED = {
-    id: 'intervals:cal-entry-99',      // calendar-entry composite id - must NOT be what's navigated with
-    name: 'VO2 Max Intervals',
-    type: 'scheduled',
-    workoutId: 'workout-42',
-    workout: { id: 'workout-42', name: 'VO2 Max Intervals' },
-};
+const PROMPT = { title: 'VO2 Max Intervals', workoutId: 'workout-42' };
 
 describe('useScheduledWorkoutPrompt', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        appStateStore = {};
-        mockCalendar = new FakeWorkoutCalendar();
+        mockService = new FakePromptService();
     });
 
     it('shows nothing when no workout is scheduled today', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(undefined);
+        mockService.show.mockReturnValue(null);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
         expect(result.current.prompt).toBeNull();
     });
 
     it('shows the prompt immediately when a workout is already scheduled at mount', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
         expect(result.current.prompt).toEqual({ title: 'VO2 Max Intervals' });
     });
 
     it('sets the once-per-session guard as soon as the prompt is triggered', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        // the guard is owned by the service: the hook must ask the service exactly once at mount
+        mockService.show.mockReturnValue(PROMPT);
         renderHook(() => useScheduledWorkoutPrompt());
-        expect(mockSetState).toHaveBeenCalledWith('scheduledPromptShown', true);
+        expect(mockService.show).toHaveBeenCalledTimes(1);
     });
 
     it('does not show the prompt again once the guard is already set', () => {
-        appStateStore.scheduledPromptShown = true;
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        // service returns null once its guard is set
+        mockService.show.mockReturnValue(null);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
         expect(result.current.prompt).toBeNull();
     });
 
     it('reacts to the calendar emitting "scheduled" after mount (async preload arrival)', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(undefined);
+        mockService.show.mockReturnValue(null);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
         expect(result.current.prompt).toBeNull();
 
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         act(() => {
-            mockCalendar.emit('scheduled', SCHEDULED);
+            mockService.emit('scheduled', PROMPT);
         });
 
         expect(result.current.prompt).toEqual({ title: 'VO2 Max Intervals' });
     });
 
     it('does nothing while disabled (enabled=false), even with a workout scheduled and no guard', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         const { result } = renderHook(() => useScheduledWorkoutPrompt(false));
         expect(result.current.prompt).toBeNull();
-        expect(mockSetState).not.toHaveBeenCalled();
+        expect(mockService.show).not.toHaveBeenCalled();
+        expect(mockService.listenerCount('scheduled')).toBe(0);
     });
 
     it('onYes navigates to workouts with the workout content id (not the calendar entry id) and clears the prompt', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
 
         act(() => {
@@ -102,7 +90,7 @@ describe('useScheduledWorkoutPrompt', () => {
     });
 
     it('onNo just dismisses without navigating', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
 
         act(() => {
@@ -114,7 +102,7 @@ describe('useScheduledWorkoutPrompt', () => {
     });
 
     it('onCheckWorkouts navigates to workouts with no auto-open param and dismisses', () => {
-        mockCalendar.getScheduledToday.mockReturnValue(SCHEDULED);
+        mockService.show.mockReturnValue(PROMPT);
         const { result } = renderHook(() => useScheduledWorkoutPrompt());
 
         act(() => {

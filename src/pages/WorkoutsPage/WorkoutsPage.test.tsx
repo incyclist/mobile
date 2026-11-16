@@ -36,11 +36,10 @@ jest.mock('incyclist-services', () => ({
         onImportOpen: mockOnImportOpen,
         onSelectGroup: mockOnSelectGroup,
     }),
-    // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
-    // WorkoutsPage - now calls.
-    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
-    useWorkoutCalendar: () => ({
-        getScheduledToday: jest.fn(),
+    // Needed by useScheduledWorkoutPrompt, which every content page - including
+    // WorkoutsPage - calls.
+    getScheduledWorkoutPromptPageService: () => ({
+        show: jest.fn(),
         on: jest.fn(),
         off: jest.fn(),
     }),

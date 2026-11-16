@@ -39,9 +39,8 @@ jest.mock('incyclist-services', () => ({
         onDownloadDelete: mockOnDownloadDelete,
         onDownloadKeepInstead: mockOnDownloadKeepInstead,
     }),
-    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
-    useWorkoutCalendar: () => ({
-        getScheduledToday: jest.fn(),
+    getScheduledWorkoutPromptPageService: () => ({
+        show: jest.fn(),
         on: jest.fn(),
         off: jest.fn(),
     }),
