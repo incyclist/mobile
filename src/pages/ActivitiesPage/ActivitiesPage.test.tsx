@@ -27,11 +27,10 @@ jest.mock('incyclist-services', () => ({
         onCloseActivity: () => {},
         onDeleteActivity: (id: string) => mockOnDeleteActivity(id),
     }),
-    // Needed by useScheduledWorkoutPrompt (session 5.7), which every content page - including
-    // ActivitiesPage - now calls.
-    useAppState: () => ({ getState: jest.fn(), setState: jest.fn() }),
-    useWorkoutCalendar: () => ({
-        getScheduledToday: jest.fn(),
+    // Needed by useScheduledWorkoutPrompt, which every content page - including
+    // ActivitiesPage - calls.
+    getScheduledWorkoutPromptPageService: () => ({
+        show: jest.fn(),
         on: jest.fn(),
         off: jest.fn(),
     }),
