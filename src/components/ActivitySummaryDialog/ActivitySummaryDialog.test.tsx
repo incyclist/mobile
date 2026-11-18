@@ -1,4 +1,5 @@
 import React from 'react';
+import { Linking } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { useActivityRide } from 'incyclist-services';
 import { ActivitySummaryDialog } from './ActivitySummaryDialog';
@@ -22,8 +23,15 @@ jest.mock('../../hooks', () => ({
 jest.mock('./ActivitySummaryDialogView', () => {
     const { TouchableOpacity, Text } = require('react-native');
     return {
-        ActivitySummaryDialogView: ({ onDeleteConfirm, videoRemoval, onVideoKeepInstead }: any) => (
+        ActivitySummaryDialogView: ({ onDeleteConfirm, videoRemoval, onVideoKeepInstead, donation, onDonateClicked, onDonateHidden }: any) => (
             <>
+                {donation && (
+                    <>
+                        <Text>donation</Text>
+                        <TouchableOpacity onPress={() => onDonateClicked('paypal')}><Text>DonatePaypal</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={onDonateHidden}><Text>HideDonation</Text></TouchableOpacity>
+                    </>
+                )}
                 <TouchableOpacity onPress={onDeleteConfirm}>
                     <Text>ConfirmDelete</Text>
                 </TouchableOpacity>
@@ -132,6 +140,73 @@ describe('ActivitySummaryDialog', () => {
         it('renders nothing extra when videoRemoval is absent (the normal case)', () => {
             const { queryByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
             expect(queryByText(/^videoRemoval:/)).toBeNull();
+        });
+    });
+
+    describe('donation line', () => {
+        const donation = {
+            text: 'long',
+            shortText: 'short',
+            links: [{ id: 'paypal', label: 'PayPal', url: 'https://paypal.example/incyclist' }],
+            hideLabel: 'Hide',
+        };
+
+        it('passes no donation to the view when the service supplies none', () => {
+            mockUseActivityRide.mockReturnValue({
+                getActivitySummaryDisplayProperties: () => baseDisplayProps,
+                save: jest.fn(),
+                delete: jest.fn(),
+            });
+            const { queryByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
+            expect(queryByText('donation')).toBeNull();
+        });
+
+        it('opens the channel url and reports the click to the service', async () => {
+            const onDonateClicked = jest.fn();
+            const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+            mockUseActivityRide.mockReturnValue({
+                getActivitySummaryDisplayProperties: () => ({ ...baseDisplayProps, donation }),
+                onDonateClicked,
+                save: jest.fn(),
+                delete: jest.fn(),
+            });
+            const { getByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
+            fireEvent.press(getByText('DonatePaypal'));
+
+            expect(onDonateClicked).toHaveBeenCalledWith('paypal');
+            await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://paypal.example/incyclist'));
+        });
+
+        it('still reports the click when opening the url fails', async () => {
+            const onDonateClicked = jest.fn();
+            jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('no browser'));
+            mockUseActivityRide.mockReturnValue({
+                getActivitySummaryDisplayProperties: () => ({ ...baseDisplayProps, donation }),
+                onDonateClicked,
+                save: jest.fn(),
+                delete: jest.fn(),
+            });
+            const { getByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
+            fireEvent.press(getByText('DonatePaypal'));
+            expect(onDonateClicked).toHaveBeenCalledWith('paypal');
+        });
+
+        it('Hide calls the service and the line disappears once the props are re-read', () => {
+            let hidden = false;
+            const onDonateHidden = jest.fn(() => { hidden = true; });
+            mockUseActivityRide.mockReturnValue({
+                getActivitySummaryDisplayProperties: () => (hidden ? baseDisplayProps : { ...baseDisplayProps, donation }),
+                onDonateHidden,
+                save: jest.fn(),
+                delete: jest.fn(),
+            });
+            const { getByText, queryByText } = render(<ActivitySummaryDialog onClose={onClose} onExit={onExit} />);
+            expect(getByText('donation')).toBeTruthy();
+
+            fireEvent.press(getByText('HideDonation'));
+
+            expect(onDonateHidden).toHaveBeenCalledTimes(1);
+            expect(queryByText('donation')).toBeNull();
         });
     });
 });

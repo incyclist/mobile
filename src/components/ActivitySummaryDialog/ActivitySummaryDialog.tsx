@@ -1,5 +1,6 @@
 import React, { useState, useCallback} from 'react';
-import { useActivityRide  } from 'incyclist-services';
+import { Linking } from 'react-native';
+import { useActivityRide, DonationChannelId } from 'incyclist-services';
 import Share from 'react-native-share';
 import { ActivitySummaryDialogProps, ActivitySummaryDialogViewProps } from './types';
 import { ActivitySummaryDialogView } from './ActivitySummaryDialogView';
@@ -67,6 +68,24 @@ export const ActivitySummaryDialog = ({ onClose, onExit, videoRemoval, onVideoKe
     const handleDeleteCancel = useCallback(() => {
         setShowDeleteConfirm(false);
     }, []);
+
+    const donationLinks = displayProps?.donation?.links;
+
+    const handleDonateClicked = useCallback(async (channelId: DonationChannelId) => {
+        const link = donationLinks?.find(l => l.id === channelId);
+        service.onDonateClicked(channelId);
+        if (!link) return;
+        try {
+            await Linking.openURL(link.url);
+        } catch (err: unknown) {
+            logError(err as Error, 'handleDonateClicked');
+        }
+    }, [service, donationLinks, logError]);
+
+    const handleDonateHidden = useCallback(() => {
+        service.onDonateHidden();
+        setDisplayProps(service.getActivitySummaryDisplayProperties());
+    }, [service]);
 
     const handleShareFile = useCallback(async (path: string) => {
         logEvent({ message: 'share file', path });
@@ -146,6 +165,9 @@ export const ActivitySummaryDialog = ({ onClose, onExit, videoRemoval, onVideoKe
                     onShareFile={handleShareFile}
                     videoRemoval={videoRemoval}
                     onVideoKeepInstead={onVideoKeepInstead}
+                    donation={displayProps.donation}
+                    onDonateClicked={handleDonateClicked}
+                    onDonateHidden={handleDonateHidden}
                 />
             </ErrorBoundary>
         );

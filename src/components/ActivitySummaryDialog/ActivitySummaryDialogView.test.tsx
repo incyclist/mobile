@@ -190,6 +190,44 @@ describe('ActivitySummaryDialogView', () => {
         });
     });
 
+    describe('donation line', () => {
+        const DONATION = {
+            text: 'Long donation text',
+            shortText: 'Short donation text',
+            links: [
+                { id: 'paypal' as const, label: 'PayPal', url: 'https://paypal.example' },
+                { id: 'github-sponsors' as const, label: 'GitHub Sponsors', url: 'https://github.example' },
+            ],
+            hideLabel: 'Hide',
+        };
+
+        it('shows nothing without donation', () => {
+            const { queryByText } = render(<ActivitySummaryDialogView {...MOCK_PROPS} />);
+            expect(queryByText('PayPal')).toBeNull();
+            expect(queryByText('Hide')).toBeNull();
+        });
+
+        it('shows the long text on tablet and the short text on phone', () => {
+            const tablet = render(<ActivitySummaryDialogView {...MOCK_PROPS} donation={DONATION} compact={false} />);
+            expect(tablet.getByText('Long donation text')).toBeTruthy();
+            tablet.unmount();
+            const phone = render(<ActivitySummaryDialogView {...MOCK_PROPS} donation={DONATION} compact />);
+            expect(phone.getByText('Short donation text')).toBeTruthy();
+        });
+
+        it('reports the clicked channel and Hide', () => {
+            const onDonateClicked = jest.fn();
+            const onDonateHidden = jest.fn();
+            const { getByText } = render(
+                <ActivitySummaryDialogView {...MOCK_PROPS} donation={DONATION} onDonateClicked={onDonateClicked} onDonateHidden={onDonateHidden} />
+            );
+            fireEvent.press(getByText('GitHub Sponsors'));
+            expect(onDonateClicked).toHaveBeenCalledWith('github-sponsors');
+            fireEvent.press(getByText('Hide'));
+            expect(onDonateHidden).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('route-less workout summary', () => {
         const MOCK_WORKOUT_GRAPH = {
             plan: { bars: [], ftp: 200, ftpLine: 200, domain: { x: [0, 60], y: [0, 220] } },

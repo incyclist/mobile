@@ -39,6 +39,35 @@ export const Compact: Story = {
     },
 };
 
+const donation = {
+    text: "Incyclist is free and stays free. If you'd like to help with server and app-store costs:",
+    shortText: 'Incyclist is free and stays free. Like to help with costs?',
+    links: [
+        { id: 'paypal' as const, label: 'PayPal', url: 'https://www.paypal.com/paypalme/incyclist' },
+        { id: 'github-sponsors' as const, label: 'GitHub Sponsors', url: 'https://github.com/sponsors/incyclist' },
+    ],
+    hideLabel: 'Hide',
+};
+
+export const WithDonation: Story = {
+    args: {
+        isSaved: true,
+        donation,
+        onDonateClicked: fn(),
+        onDonateHidden: fn(),
+    },
+};
+
+export const WithDonationCompact: Story = {
+    args: {
+        isSaved: true,
+        compact: true,
+        donation,
+        onDonateClicked: fn(),
+        onDonateHidden: fn(),
+    },
+};
+
 export const Saving: Story = {
     args: {
         isSaving: true,
