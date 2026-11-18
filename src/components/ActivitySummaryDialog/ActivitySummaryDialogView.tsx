@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { formatTime, useUnitConverter } from 'incyclist-services';
 import { Dialog } from '../Dialog';
@@ -6,6 +6,7 @@ import { FreeMap } from '../FreeMap';
 import { ActivityGraph } from '../ActivityGraph';
 import { WorkoutGraph } from '../WorkoutGraph';
 import { ActivitySummaryDialogViewProps, VideoRemovalNotice } from './types';
+import type { ActivitySummaryDonation, DonationChannelId } from 'incyclist-services';
 import { isFormattedNumber } from '../../utils/formattedNumber';
 import { ButtonProps } from '../ButtonBar/types';
 import { colors, textSizes } from '../../theme';
@@ -69,6 +70,47 @@ const VideoRemovalLine = ({ videoRemoval, isCompact, onVideoKeepInstead }: {
     );
 };
 
+const DonationLinkButton = ({ id, label, onDonateClicked }: {
+    id: DonationChannelId;
+    label: string;
+    onDonateClicked?: (channelId: DonationChannelId) => void;
+}) => {
+    const handlePress = useCallback(() => onDonateClicked?.(id), [onDonateClicked, id]);
+    return (
+        <TouchableOpacity onPress={handlePress} accessibilityRole="link" accessibilityLabel={label} style={styles.donationHitArea}>
+            <Text style={styles.donationLink}>{label}</Text>
+        </TouchableOpacity>
+    );
+};
+
+// One quiet line under the start time (same slot and style as the video-removal notice): short
+// text, a link per donation channel and a Hide action. Rendered only when the service supplies
+// `donation`.
+const DonationLine = ({ donation, isCompact, onDonateClicked, onDonateHidden }: {
+    donation?: ActivitySummaryDonation;
+    isCompact: boolean;
+    onDonateClicked?: (channelId: DonationChannelId) => void;
+    onDonateHidden?: () => void;
+}) => {
+    if (!donation)
+        return null;
+
+    return (
+        <View style={styles.donationRow}>
+            <Text style={styles.donationText}>{isCompact ? donation.shortText : donation.text}</Text>
+            {donation.links.map((link, index) => (
+                <View key={link.id} style={styles.donationLinkItem}>
+                    {index > 0 && <Text style={styles.donationText}>·</Text>}
+                    <DonationLinkButton id={link.id} label={link.label} onDonateClicked={onDonateClicked} />
+                </View>
+            ))}
+            <TouchableOpacity onPress={onDonateHidden} accessibilityRole="button" accessibilityLabel={donation.hideLabel} style={[styles.donationHitArea, styles.donationHide]}>
+                <Text style={styles.donationHideText}>{donation.hideLabel}</Text>
+            </TouchableOpacity>
+        </View>
+    );
+};
+
 const safeNum = (v: any): number | undefined => {
     try {
         if (v === undefined || v === null) return undefined;
@@ -101,6 +143,9 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
         compact,
         videoRemoval,
         onVideoKeepInstead,
+        donation,
+        onDonateClicked,
+        onDonateHidden,
     } = props;
 
     const layout = useScreenLayout();
@@ -238,6 +283,7 @@ export const ActivitySummaryDialogView = (props: ActivitySummaryDialogViewProps)
             <Text style={styles.startTime}>{new Date(activity.startTime).toLocaleString()}</Text>
 
             <VideoRemovalLine videoRemoval={videoRemoval} isCompact={isCompact} onVideoKeepInstead={onVideoKeepInstead} />
+            <DonationLine donation={donation} isCompact={isCompact} onDonateClicked={onDonateClicked} onDonateHidden={onDonateHidden} />
 
             <View style={styles.keyFactsSection}>
                 {renderKeyFact('Distance', activity.distance, 'distance')}
@@ -432,6 +478,40 @@ const styles = StyleSheet.create({
         fontSize: textSizes.smallText,
         color: colors.tileIdle,
         fontWeight: '600',
+    },
+    donationRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 12,
+        columnGap: 8,
+    },
+    donationText: {
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
+    },
+    donationLinkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        columnGap: 8,
+    },
+    donationHitArea: {
+        minHeight: 44,
+        minWidth: 44,
+        justifyContent: 'center',
+    },
+    donationLink: {
+        fontSize: textSizes.smallText,
+        color: colors.tileIdle,
+        fontWeight: '600',
+    },
+    donationHide: {
+        marginLeft: 'auto',
+        alignItems: 'flex-end',
+    },
+    donationHideText: {
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
     },
     keyFactsSection: {
         flexDirection: 'row',

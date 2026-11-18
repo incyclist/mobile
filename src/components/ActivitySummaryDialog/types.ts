@@ -1,4 +1,4 @@
-import { ActivityDetailsUI, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
+import { ActivityDetailsUI, ActivitySummaryDonation, DonationChannelId, WorkoutGraphActuals, WorkoutGraphPlan } from 'incyclist-services';
 
 /** Whether this ride's video was downloaded just for this ride and is due to be removed again
  *  when the rider leaves - forwarded from RidePageService.menuProps.videoRemoval via RideMenu. */
@@ -44,4 +44,8 @@ export interface ActivitySummaryDialogViewProps {
     compact?: boolean;
     videoRemoval?: VideoRemovalNotice;
     onVideoKeepInstead?: () => void;
+    // present only when the service decides the donation line may be shown
+    donation?: ActivitySummaryDonation;
+    onDonateClicked?: (channelId: DonationChannelId) => void;
+    onDonateHidden?: () => void;
 }
