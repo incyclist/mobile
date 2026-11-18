@@ -1,4 +1,4 @@
-import type { SupportSettingsDialogDisplayProps } from 'incyclist-services';
+import type { SupportSettingsDisplayProps } from 'incyclist-services';
 
 const appInfo = {
     title: 'App info',
@@ -29,7 +29,7 @@ const EMAIL_BODY = [
     `UI version: ${appInfo.uiVersion}`,
 ].join('\r\n');
 
-const helpLinks: SupportSettingsDialogDisplayProps['helpLinks'] = [
+const helpLinks: SupportSettingsDisplayProps['helpLinks'] = [
     { id: 'strava', label: 'Incyclist Strava Club', shortLabel: 'Strava club', url: 'https://strava.com/clubs/1029407' },
     { id: 'slack', label: 'Incyclist Slack Workspace', shortLabel: 'Slack', url: 'https://slack.incyclist.com' },
     {
@@ -57,7 +57,23 @@ const common = {
     ],
 };
 
-export const SUPPORT_DIRECT_PROPS: SupportSettingsDialogDisplayProps = {
+// Flat fields of the service's display props that the mobile view does not use
+const flat = {
+    uuid: appInfo.uuid,
+    appVersion: appInfo.appVersion,
+    uiVersion: appInfo.uiVersion,
+    privacyUrl: appInfo.privacyUrl,
+    supportUrls: [
+        { label: 'Slack', text: 'Incyclist Slack Workspace', url: 'https://slack.incyclist.com' },
+        { label: 'Strava', text: 'Incyclist Strava Club', url: 'https://strava.com/clubs/1029407' },
+        { label: 'Email', text: 'support@incyclist.com', url: 'mailto:support@incyclist.com' },
+    ],
+    gitHubUrl: 'https://github.com/incyclist',
+    donationUrl: 'https://incyclist.com/#support',
+};
+
+export const SUPPORT_DIRECT_PROPS: SupportSettingsDisplayProps = {
+    ...flat,
     appInfo,
     helpTitle: 'Need help?',
     helpLinks,
@@ -72,7 +88,8 @@ export const SUPPORT_DIRECT_PROPS: SupportSettingsDialogDisplayProps = {
     },
 };
 
-export const SUPPORT_WEBSITE_PROPS: SupportSettingsDialogDisplayProps = {
+export const SUPPORT_WEBSITE_PROPS: SupportSettingsDisplayProps = {
+    ...flat,
     appInfo,
     helpTitle: 'Need help?',
     helpLinks,

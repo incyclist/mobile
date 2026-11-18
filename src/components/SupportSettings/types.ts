@@ -1,11 +1,11 @@
 import type {
     DonationClickId,
     SupportLinkClickId,
-    SupportSettingsDialogDisplayProps,
+    SupportSettingsDisplayProps,
 } from 'incyclist-services';
 
 export interface SupportSettingsViewProps {
-    displayProps: SupportSettingsDialogDisplayProps | null;
+    displayProps: SupportSettingsDisplayProps | null;
     /** Overrides the phone/tablet detection (used by stories and tests) */
     compact?: boolean;
     onClose: () => void;
