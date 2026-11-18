@@ -16,8 +16,6 @@ import { SupportSettingsViewProps } from './types';
 type OpenUrl = (url: string, id: SupportLinkClickId) => void;
 type Donate = (id: DonationClickId, url: string) => void;
 
-const otherLinkId = (label: string): SupportLinkClickId => (/github/i.test(label) ? 'github' : 'strava');
-
 const LinkText = ({ label, url, id, onOpenUrl }: { label: string; url: string; id: SupportLinkClickId; onOpenUrl: OpenUrl }) => {
     const handlePress = useCallback(() => onOpenUrl(url, id), [onOpenUrl, url, id]);
     return (
@@ -34,23 +32,23 @@ const InfoRow = ({ label, children }: { label: string; children: React.ReactNode
     </View>
 );
 
-const ShareUuidButton = ({ onShareUuid }: { onShareUuid: () => void }) => (
+const ShareUuidButton = ({ label, onShareUuid }: { label: string; onShareUuid: () => void }) => (
     <TouchableOpacity onPress={onShareUuid} accessibilityRole="button" style={styles.linkHitArea}>
-        <Text style={styles.linkText}>Share</Text>
+        <Text style={styles.linkText}>{label}</Text>
     </TouchableOpacity>
 );
 
 const AppInfoTablet = ({ appInfo, onShareUuid, onOpenUrl }: { appInfo: SupportAppInfoDisplayProps; onShareUuid: () => void; onOpenUrl: OpenUrl }) => (
     <>
         <Text style={styles.sectionHeader}>{appInfo.title}</Text>
-        <InfoRow label="App version"><Text style={styles.infoValue}>{appInfo.appVersion}</Text></InfoRow>
-        <InfoRow label="UI version"><Text style={styles.infoValue}>{appInfo.uiVersion}</Text></InfoRow>
-        <InfoRow label="UUID">
+        <InfoRow label={appInfo.labels.appVersion}><Text style={styles.infoValue}>{appInfo.appVersion}</Text></InfoRow>
+        <InfoRow label={appInfo.labels.uiVersion}><Text style={styles.infoValue}>{appInfo.uiVersion}</Text></InfoRow>
+        <InfoRow label={appInfo.labels.uuid}>
             <Text style={styles.infoValue} selectable={true}>{appInfo.uuid}</Text>
-            <ShareUuidButton onShareUuid={onShareUuid} />
+            <ShareUuidButton label={appInfo.uuidActionLabel} onShareUuid={onShareUuid} />
         </InfoRow>
-        <InfoRow label="Privacy">
-            <LinkText label="Privacy Policy" url={appInfo.privacyUrl} id="privacy" onOpenUrl={onOpenUrl} />
+        <InfoRow label={appInfo.labels.privacy}>
+            <LinkText label={appInfo.labels.privacyLink} url={appInfo.privacyUrl} id="privacy" onOpenUrl={onOpenUrl} />
         </InfoRow>
     </>
 );
@@ -73,12 +71,12 @@ const AppInfoPhone = ({ appInfo, helpTitle, helpLinks, onShareUuid, onOpenUrl }:
 }) => (
     <>
         <Text style={styles.sectionHeader}>{appInfo.title}</Text>
-        <Text style={styles.infoValueLeft}>{`App ${appInfo.appVersion} · UI ${appInfo.uiVersion}`}</Text>
+        <Text style={styles.infoValueLeft}>{appInfo.compactVersionText}</Text>
         <View style={styles.phoneUuidRow}>
             <Text style={styles.phoneUuid} selectable={true}>{appInfo.uuid}</Text>
-            <ShareUuidButton onShareUuid={onShareUuid} />
+            <ShareUuidButton label={appInfo.uuidActionLabel} onShareUuid={onShareUuid} />
         </View>
-        <LinkText label="Privacy Policy" url={appInfo.privacyUrl} id="privacy" onOpenUrl={onOpenUrl} />
+        <LinkText label={appInfo.labels.privacyLink} url={appInfo.privacyUrl} id="privacy" onOpenUrl={onOpenUrl} />
 
         <Text style={styles.sectionHeader}>{helpTitle}</Text>
         <View style={styles.chipRow}>
@@ -159,7 +157,7 @@ const DonationCard = ({ donation, stacked, onDonate, onOpenUrl }: {
         <Text style={styles.note}>{donation.note}</Text>
         <View style={styles.otherLinks}>
             {donation.otherHelpLinks.map(link => (
-                <LinkText key={link.url} label={link.label} url={link.url} id={otherLinkId(link.label)} onOpenUrl={onOpenUrl} />
+                <LinkText key={link.url} label={link.label} url={link.url} id={link.id} onOpenUrl={onOpenUrl} />
             ))}
         </View>
     </View>

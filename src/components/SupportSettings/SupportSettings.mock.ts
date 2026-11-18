@@ -6,6 +6,15 @@ const appInfo = {
     uiVersion: '26.10.1',
     uuid: '1f3a9c0e-5d1b-4e7a-9a3c-2c8e0f4b77b2',
     privacyUrl: 'https://incyclist.com/privacy',
+    labels: {
+        appVersion: 'App version',
+        uiVersion: 'UI version',
+        uuid: 'UUID',
+        privacy: 'Privacy',
+        privacyLink: 'Privacy Policy',
+    },
+    compactVersionText: 'Version: App 1.2.3 · UI 26.10.1',
+    uuidActionLabel: 'Share',
 };
 
 const EMAIL_BODY = [
@@ -43,8 +52,8 @@ const common = {
     promise: 'Incyclist is free and stays free. There is no subscription and nothing to unlock.',
     note: 'Donating is entirely voluntary and changes nothing in the app. You can also help by answering questions in the Strava club or contributing on GitHub.',
     otherHelpLinks: [
-        { label: 'Incyclist Strava Club', url: 'https://strava.com/clubs/1029407' },
-        { label: 'GitHub', url: 'https://github.com/incyclist' },
+        { id: 'strava' as const, label: 'Incyclist Strava Club', url: 'https://strava.com/clubs/1029407' },
+        { id: 'github' as const, label: 'GitHub', url: 'https://github.com/incyclist' },
     ],
 };
 

@@ -77,8 +77,26 @@ describe('SupportSettingsView', () => {
         });
     });
 
+    it('renders labels from the service display props', () => {
+        const { getByText } = render(<SupportSettingsView {...defaultProps} />);
+        expect(getByText('App version')).toBeTruthy();
+        expect(getByText('UI version')).toBeTruthy();
+        expect(getByText('UUID')).toBeTruthy();
+    });
+
+    it('tapping the GitHub link calls onOpenUrl with the github id', () => {
+        const { getByText } = render(<SupportSettingsView {...defaultProps} />);
+        fireEvent.press(getByText('GitHub'));
+        expect(defaultProps.onOpenUrl).toHaveBeenCalledWith('https://github.com/incyclist', 'github');
+    });
+
     describe('phone', () => {
         const phoneProps = { ...defaultProps, compact: true };
+
+        it('shows the compact version text from the service', () => {
+            const { getByText } = render(<SupportSettingsView {...phoneProps} />);
+            expect(getByText('Version: App 1.2.3 · UI 26.10.1')).toBeTruthy();
+        });
 
         it('shows the need-help links as chips, without Share details', () => {
             const { getByText, queryByText } = render(<SupportSettingsView {...phoneProps} />);

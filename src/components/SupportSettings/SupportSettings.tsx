@@ -53,8 +53,11 @@ export const SupportSettings = ({ onClose }: SupportSettingsProps) => {
     const shareDetails = useCallback(async (trigger: 'button' | 'fallback') => {
         if (!emailDetails) return;
         try {
-            await Share.share({ message: emailDetails.copyText });
-            service.onDetailsCopied(trigger, 'success');
+            const result = await Share.share({ message: emailDetails.copyText });
+            // The service has no 'cancelled' result type, so a dismissed sheet is not reported as success
+            if (result.action !== Share.dismissedAction) {
+                service.onDetailsCopied(trigger, 'success');
+            }
         } catch {
             service.onDetailsCopied(trigger, 'failed');
         }
