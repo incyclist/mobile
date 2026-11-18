@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Share, Linking } from 'react-native';
 import {
-    getSupportSettingsPageService,
-    MobileSupportSettingsPageService,
-    SupportSettingsPageDisplayProps,
+    getSupportSettingsDialogService,
+    MobileSupportSettingsDialogService,
+    SupportSettingsDialogDisplayProps,
     SupportLinkClickId,
     DonationClickId,
 } from 'incyclist-services';
@@ -20,20 +20,20 @@ const errorMessage = (err: unknown): string => {
 };
 
 export const SupportSettings = ({ onClose }: SupportSettingsProps) => {
-    const [displayProps, setDisplayProps] = useState<SupportSettingsPageDisplayProps | null>(null);
+    const [displayProps, setDisplayProps] = useState<SupportSettingsDialogDisplayProps | null>(null);
     const refInitialized = useRef(false);
-    const service = useMemo(() => getSupportSettingsPageService() as MobileSupportSettingsPageService, []);
+    const service = useMemo(() => getSupportSettingsDialogService() as MobileSupportSettingsDialogService, []);
     const { logEvent } = useLogging('SupportSettingsPage');
 
     useEffect(() => {
         if (refInitialized.current) return;
-        service.openPage();
-        setDisplayProps(service.getPageDisplayProps());
+        service.openDialog();
+        setDisplayProps(service.getDialogDisplayProps());
         refInitialized.current = true;
     }, [service]);
 
     useUnmountEffect(() => {
-        service.closePage();
+        service.closeDialog();
     });
 
     const emailDetails = displayProps?.helpLinks.find(l => l.id === 'email')?.email;
