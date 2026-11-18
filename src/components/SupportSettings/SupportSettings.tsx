@@ -14,7 +14,10 @@ interface SupportSettingsProps {
     onClose: () => void;
 }
 
-const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+const errorMessage = (err: unknown): string => {
+    if (err instanceof Error) return err.message;
+    return typeof err === 'string' ? err : 'unknown error';
+};
 
 export const SupportSettings = ({ onClose }: SupportSettingsProps) => {
     const [displayProps, setDisplayProps] = useState<SupportSettingsPageDisplayProps | null>(null);
