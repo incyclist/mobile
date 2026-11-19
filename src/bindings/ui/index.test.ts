@@ -25,6 +25,10 @@ jest.mock('../../services', () => ({
     navigate: jest.fn(),
 }));
 
+jest.mock('../../services/SessionDiagnostics', () => ({
+    markSessionClean: jest.fn(),
+}));
+
 jest.mock('react-native-share', () => ({
     __esModule: true,
     default: { open: jest.fn() },
@@ -208,5 +212,13 @@ describe('UIBinding.selectDirectory', () => {
                 failures: 1,
             }));
         });
+    });
+});
+
+describe('UIBinding.quit', () => {
+    it('marks the session as cleanly ended', () => {
+        const { markSessionClean } = require('../../services/SessionDiagnostics');
+        new UIBinding().quit();
+        expect(markSessionClean).toHaveBeenCalled();
     });
 });

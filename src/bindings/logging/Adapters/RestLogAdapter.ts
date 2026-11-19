@@ -9,6 +9,8 @@ export type RestLogAdapterProps = {
     url?: string;
     cacheDir?: string;
     sendInterval?: number;
+    /** Called after the backend accepted at least one event of a batch. */
+    onDelivered?: () => void;
 };
 
 export class RestLogAdapter extends BaseAdapter {
@@ -20,6 +22,7 @@ export class RestLogAdapter extends BaseAdapter {
     protected headers: any;
     protected logger: EventLogger;
     protected api: ApiClient;
+    protected onDelivered: (() => void) | undefined;
 
     constructor(opts: RestLogAdapterProps = {}) {
         super();
@@ -36,6 +39,7 @@ export class RestLogAdapter extends BaseAdapter {
 
         // copy parameters from opts
         this.cacheDir = opts.cacheDir;
+        this.onDelivered = opts.onDelivered;
         this.sendInterval = (opts.sendInterval ?? DEFAULT_SEND_INTERVAL) * 1000;
 
         this.api = new ApiClient();
@@ -115,6 +119,12 @@ export class RestLogAdapter extends BaseAdapter {
 
                     let processed = 0;
                     processed = stats.processed = res.count ?? 0;
+
+                    if (processed > 0) {
+                        try {
+                            this.onDelivered?.();
+                        } catch {}
+                    }
 
                     if (processed !== events.length) {
                         // trigger resending of events

@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
 import { AppFeatures, IncyclistBindings } from 'incyclist-services';
-import { ApiConfiguration, flushLogs, useIncyclist } from './services';
+import { ApiConfiguration, flushLogs, notifySessionAppState, useIncyclist } from './services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json';
 import { useLogging, useUnmountEffect } from './hooks';
@@ -75,6 +75,10 @@ export const App = ({ secretsStatus }: AppProps) => {
             // which only fire on a boundary crossing to/from 'active') — kept for diagnosing
             // page/session state changes that happen while the app is backgrounded
             logEvent({ message: 'AppState changed', from: lastState, to: nextState });
+
+            // records the state and flushes the log queue when leaving the foreground, so the
+            // transition is not lost to the batching interval if the process is killed next
+            notifySessionAppState(nextState);
 
             if (lastState === 'active' && nextState !== 'active') {
                 service.onAppPause()

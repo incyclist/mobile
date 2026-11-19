@@ -9,6 +9,7 @@ export * from './Navigation';
 export * from './IncyclistApi';
 export * from './RestLogging';
 export * from './CrashReporting';
+export * from './SessionDiagnostics';
 
 let currentSecretsStatus: SecretsStatus = 'missing';
 
