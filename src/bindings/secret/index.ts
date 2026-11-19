@@ -36,7 +36,13 @@ interface Removable { remove: () => void }
 
 const str = (value: unknown): string => {
     if (value === undefined || value === null) return '';
-    return typeof value === 'string' ? value : String(value);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+    try {
+        return JSON.stringify(value) ?? '';
+    } catch {
+        return '';
+    }
 };
 
 /**
@@ -181,7 +187,7 @@ class SecretBinding {
     }
 
     protected retry(trigger: RetryTrigger) {
-        if (!this.recoveryPending || this.initPromise) return;
+        if (!this.recoveryPending || this.initPromise !== null) return;
 
         clearTimeout(this.retryTimer);
         this.retryTimer = undefined;
