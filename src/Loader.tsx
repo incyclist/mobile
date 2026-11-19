@@ -14,6 +14,7 @@ import app from '../app.json'
 import DefaultPreference from 'react-native-default-preference';
 import { UpdateService } from './services/UpdateManager';
 import { getSecret, getSecretsStatus, initSecrets } from './bindings/secret';
+import { registerSecretsRecovery } from './bindings/secret/recovery';
 import { SecretsStatus } from './bindings/secret/types';
 import { getUserSettingsBinding } from './bindings/user-settings';
 import { getAppVersion } from './bindings/appInfo';
@@ -91,6 +92,7 @@ export const Loader = () =>{
             await initLogging()
 
             setStatusMessage('Setting up infrastructure...');
+            registerSecretsRecovery();
             await initSecrets({ timeout: 7000 });
             const status = getSecretsStatus()
             setSecretsStatus(status);
