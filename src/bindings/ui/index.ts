@@ -1,5 +1,6 @@
 import { INativeUI, SelectDirectoryOptions, SelectDirectoryResult, TakeScreenshotProps } from "incyclist-services";
 import { navigate } from "../../services";
+import { markSessionClean } from "../../services/SessionDiagnostics";
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { BackHandler, Dimensions, Linking, NativeModules, PixelRatio, Platform } from "react-native";
@@ -39,6 +40,9 @@ export class UIBinding implements INativeUI {
 
     
     quit(): void {
+        // every orderly exit path ends here, so this is where the session is marked clean
+        markSessionClean();
+
         if (Platform.OS === 'android') {
 
             const { ExitModule } = NativeModules;

@@ -6,6 +6,7 @@ import { getAppInfoBinding, getChannel, isProdVariant} from "../../bindings/appI
 import { getUserSettingsBinding } from "../../bindings/user-settings";
 import { getLogBacklog } from "../../bindings/logging/Adapters/BacklogAdapter";
 import { getRestLogFallbackStore } from "../../bindings/logging/Adapters/RestLogFallbackStore";
+import { markLogDelivered } from "../SessionDiagnostics/store";
 
 
 const DEFAULT_LOG_URL = 'https://analytics.incyclist.com/api/v1'
@@ -134,7 +135,7 @@ export const initRestLogging = async () => {
             apiConfig.addHeader('x-channel', getChannel())
             
 
-            restAdapter = new RestLogAdapter({url:logUrl,sendInterval});
+            restAdapter = new RestLogAdapter({url:logUrl,sendInterval,onDelivered:markLogDelivered});
             EventLogger.registerAdapter(restAdapter, restLogFilter)
         }
         else {

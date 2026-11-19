@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { App } from './App'; // This is your actual application
-import { ApiConfiguration, initRestLogging  } from './services';
+import { ApiConfiguration, initRestLogging, startSessionDiagnostics } from './services';
 
 import { EventLogger, LogAdapter } from 'gd-eventlog';
 import { getLogBacklog } from './bindings/logging/Adapters/BacklogAdapter';
@@ -57,6 +57,10 @@ export const Loader = () =>{
 
         const logAdapter  = new RNConsoleAdapter( {depth:1}) as LogAdapter
         EventLogger.registerAdapter(logAdapter)
+
+        // Started before initRestLogging(): the previous-session report has to read the last
+        // delivery time before this session's first batch overwrites it. Never throws.
+        startSessionDiagnostics()
 
         initRestLogging()
 
