@@ -256,3 +256,36 @@ describe('Video load retry (iOS, server not correctly configured)', () => {
         expect(() => act(() => { jest.advanceTimersByTime(VIDEO_LOAD_RETRY_DELAY_MS * 2); })).not.toThrow();
     });
 });
+
+describe('Video without a src', () => {
+
+    const originalOS = Platform.OS;
+    const requestAccess = jest.fn();
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        const { getFileSystemBinding } = jest.requireMock('../../bindings/fs');
+        getFileSystemBinding.mockReturnValue({ requestAccess, releaseAccess: jest.fn() });
+    });
+
+    afterEach(() => {
+        Platform.OS = originalOS;
+    });
+
+    test.each(['ios', 'android'] as const)('does not throw and renders no player on %s', (os) => {
+        Platform.OS = os;
+
+        expect(() => render(<Video src={undefined} width={100} height={100} />)).not.toThrow();
+        expect(VideoView).not.toHaveBeenCalled();
+        expect(requestAccess).not.toHaveBeenCalled();
+    });
+
+    test('does not throw when the src is blanked while mounted, and does not play it', () => {
+        Platform.OS = 'ios';
+        const { rerender } = render(<Video src={SRC} width={100} height={100} />);
+        (VideoView as unknown as jest.Mock).mockClear();
+
+        expect(() => rerender(<Video src={undefined} width={100} height={100} />)).not.toThrow();
+        expect(VideoView).not.toHaveBeenCalled();
+    });
+});

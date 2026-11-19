@@ -23,7 +23,7 @@ export interface VideoBufferRange {
 }
 
 export interface VideoProps {
-    src: string;
+    src?: string;             // undefined while the video is not (yet) playable: nothing is rendered
     startTime?: number;
     observer?: IObserver;
     width: number | string;

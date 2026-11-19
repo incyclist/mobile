@@ -168,7 +168,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const mainContent = (
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
-                {video && (
+                {video?.src && (
                     <Video
                         key={video.src}
                         width='100%'
@@ -176,7 +176,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         {...video}
                     />
                 )}
-                {videos?.map(v => {
+                {videos?.filter(v => !!v.src).map(v => {
                     return (
                     <Video
                         key={v.src}

@@ -55,7 +55,9 @@ export const Video = (props: VideoProps) => {
     const [internalHidden, setInternalHidden] = useState(true);
     const [paused, setPaused] = useState(false);
     const [rate, setRate] = useState(0);
-    const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || src.startsWith('http') )
+    // src can be undefined while the ride's video availability is being (re-)checked
+    const isRemote = src?.startsWith('http') ?? false
+    const [hasAccess,setHasAccess] = useState( Platform.OS!=='ios' || isRemote )
     const [reloadKey, setReloadKey] = useState(0);
 
     const refVideo = useRef<any>(null);
@@ -251,11 +253,11 @@ export const Video = (props: VideoProps) => {
 
     const canRetryLoad = useCallback((error: OnVideoErrorData): boolean => {
         return Platform.OS === 'ios'
-            && src.startsWith('http')
+            && isRemote
             && !refInfo.current.loaded
             && refRetries.current < VIDEO_LOAD_MAX_RETRIES
             && isServerMisconfiguredError(error);
-    }, [src]);
+    }, [isRemote]);
 
     // Loads the same source again. Reports what the server answers to the player's first request,
     // to find out why the player rejected it (see probeVideoSource).
@@ -264,7 +266,7 @@ export const Video = (props: VideoProps) => {
         const attempt = refRetries.current;
         logEvent({message:'load retry', attempt, errorCode:error.error.code})
 
-        probeVideoSource(encodeUriIdempotent(src)).then(({
+        probeVideoSource(encodeUriIdempotent(src ?? '')).then(({
             elapsedMs, status, contentRange, contentLength, acceptRanges, finalUrl, server, cfRay, cfCacheStatus, error: probeError
         }) => {
             logEvent({
@@ -342,7 +344,7 @@ export const Video = (props: VideoProps) => {
     }, [logEvent,loop, onEnded]);
 
     useEffect(() => {
-        if (refInitialized.current) {
+        if (refInitialized.current || !src) {
             return;
         }
         refInitialized.current = true;
@@ -360,6 +362,10 @@ export const Video = (props: VideoProps) => {
 
 
         if (!hasAccess)  {
+            if (isRemote) {
+                setHasAccess(true)
+                return
+            }
             getFileSystemBinding().requestAccess(src)
                 .then((isGranted) => { 
                     if (isGranted) {
@@ -368,7 +374,7 @@ export const Video = (props: VideoProps) => {
                     }
                 })
         }
-    }, [observer, handleRateChangeRequest, seekTo, hasAccess, src]);
+    }, [observer, handleRateChangeRequest, seekTo, hasAccess, src, isRemote]);
 
     useEffect(() => {
         if (!refInfo.current.loaded) {
@@ -397,13 +403,13 @@ export const Video = (props: VideoProps) => {
         refInfo.current.currentRate = 0;
         setPaused(true);
 
-        if (refHasGrant.current) {
+        if (refHasGrant.current && src) {
             getFileSystemBinding().releaseAccess(src)
             refHasGrant.current = false
         }
     });
 
-    if (typeof src !== 'string' || !hasAccess) {
+    if (typeof src !== 'string' || !src || !hasAccess) {
         return false;
     }
 
