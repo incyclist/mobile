@@ -4,7 +4,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { RideOverlay, RideOverlayProps, PREV_RIDES_TABLET_WIDTH } from './RideOverlay';
 import { MOCK_DASHBOARD_MID_INTERVAL } from '../WorkoutDashboard/WorkoutDashboard.mock';
 import { MOCK_ROWS } from '../PrevRides/PrevRidesRow.mock';
-import { MOCK_ROWS as MOCK_NEARBY_ROWS } from '../NearbyRiders/NearbyRiderRow.mock';
+import { MOCK_ROWS as MOCK_NEARBY_ROWS, MOCK_ROW_AHEAD, MOCK_ROW_USER } from '../NearbyRiders/NearbyRiderRow.mock';
 import { SLOT_GAP } from '../../hooks/render/useRideOverlayLayout';
 import { ROW_MARGIN_BOTTOM } from '../PrevRides';
 
@@ -454,6 +454,18 @@ describe('RideOverlay — nearby-riders overlay wiring', () => {
         expect(getByTestId('ride-overlay-map')).toBeTruthy();
         expect(getByTestId('nearby-riders-tablet-list')).toBeTruthy();
         expect(getAllByTestId('nearby-rider-row')).toHaveLength(MOCK_NEARBY_ROWS.length);
+    });
+
+    it('limits the rows to what the free band holds and keeps the current rider\'s own row visible (last row used to be clipped mid-row)', () => {
+        setDimensions(1400, 900);
+        const others = Array.from({ length: 11 }, (_, i) => ({ ...MOCK_ROW_AHEAD, name: `Rider ${i}` }));
+        const rows = [...others, MOCK_ROW_USER];
+        const { getAllByTestId, getByText } = render(<RideOverlay {...nearbyRidersProps} nearbyRiders={rows} />);
+
+        const rendered = getAllByTestId('nearby-rider-row').length;
+        expect(rendered).toBeGreaterThanOrEqual(1);
+        expect(rendered).toBeLessThan(rows.length);
+        expect(getByText(MOCK_ROW_USER.name)).toBeTruthy();
     });
 
     // design doc §5.2 "Correction 3" (2026-08-31): same gap, same fix, as PrevRides' tablet ear

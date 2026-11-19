@@ -59,4 +59,43 @@ describe('NearbyRidersTabletList', () => {
 
         expect(onFirstRowLayout).toHaveBeenCalledTimes(1);
     });
+
+    describe('maxRows', () => {
+        const others = (n: number) => Array.from({ length: n }, (_, i) => ({ ...MOCK_ROW_AHEAD, name: `Rider ${i}` }));
+
+        it('renders every row when they all fit', () => {
+            const { queryAllByTestId } = render(<NearbyRidersTabletList rows={others(3)} maxRows={5} />);
+
+            expect(queryAllByTestId('nearby-rider-row')).toHaveLength(3);
+        });
+
+        it('limits the rows to maxRows', () => {
+            const { queryAllByTestId } = render(<NearbyRidersTabletList rows={others(7)} maxRows={5} />);
+
+            expect(queryAllByTestId('nearby-rider-row')).toHaveLength(5);
+        });
+
+        it("keeps the current rider's row visible when it is the last of many rows (clipped-row bug)", () => {
+            const rows = [...others(6), MOCK_ROW_USER];
+            const { getByText } = render(<NearbyRidersTabletList rows={rows} maxRows={5} />);
+
+            expect(getByText(MOCK_ROW_USER.name)).toBeTruthy();
+        });
+
+        it("centres the window on the current rider's row when it is in the middle", () => {
+            const rows = [...others(3), MOCK_ROW_USER, ...others(3).map((r, i) => ({ ...r, name: `After ${i}` }))];
+            const { getByText, queryByText } = render(<NearbyRidersTabletList rows={rows} maxRows={3} />);
+
+            expect(getByText(MOCK_ROW_USER.name)).toBeTruthy();
+            expect(getByText('Rider 2')).toBeTruthy();
+            expect(getByText('After 0')).toBeTruthy();
+            expect(queryByText('Rider 0')).toBeNull();
+        });
+
+        it('shows at least one row even when maxRows is 0', () => {
+            const { queryAllByTestId } = render(<NearbyRidersTabletList rows={others(3)} maxRows={0} />);
+
+            expect(queryAllByTestId('nearby-rider-row')).toHaveLength(1);
+        });
+    });
 });

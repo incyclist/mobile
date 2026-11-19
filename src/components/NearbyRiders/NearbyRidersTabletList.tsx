@@ -38,7 +38,25 @@ export interface NearbyRidersTabletListProps {
      *  `PrevRidesTabletList`'s `onFirstRowLayout` feeds `RideOverlay.tsx`'s `visibleRows` math.
      *  Measured, not guessed, per design doc §5.2 / the As-built reuse note this mirrors. */
     onFirstRowLayout?: (e: LayoutChangeEvent) => void;
+    /** How many rows fit the caller's free vertical band (at least 1 is always shown). When there
+     *  are more rows than that, a contiguous window is rendered, centred on the current rider's
+     *  own row so it never ends up below the fold. Without it every row is rendered and the
+     *  caller's `maxHeight` simply clips whatever does not fit. */
+    maxRows?: number;
 }
+
+/** Contiguous window of at most `maxRows` rows, centred on the current rider's row (if any). */
+const selectVisibleRows = (rows: NearbyRiderRowProps[], maxRows?: number): NearbyRiderRowProps[] => {
+    if (maxRows === undefined) return rows;
+
+    const limit = Math.max(1, Math.floor(maxRows));
+    if (rows.length <= limit) return rows;
+
+    const userIndex = rows.findIndex((row) => row.isUser);
+    const centre = userIndex === -1 ? 0 : userIndex - Math.floor(limit / 2);
+    const start = Math.min(Math.max(0, centre), rows.length - limit);
+    return rows.slice(start, start + limit);
+};
 
 /**
  * Tablet (non-compact) nearby-riders list — the left-ear counterpart to `PrevRides`' right-ear
@@ -60,12 +78,12 @@ export interface NearbyRidersTabletListProps {
  * inline there (or lifting it into a shared helper) the way `RideOverlay.tsx` already does for
  * `PrevRides`.
  */
-export const NearbyRidersTabletList = ({ rows, style, onFirstRowLayout }: NearbyRidersTabletListProps) => (
+export const NearbyRidersTabletList = ({ rows, style, onFirstRowLayout, maxRows }: NearbyRidersTabletListProps) => (
     <View testID="nearby-riders-tablet-list" style={style}>
         <Text testID="nearby-riders-tablet-list-header" style={styles.header}>
             Incyclists Nearby
         </Text>
-        {rows.map((row, index) => {
+        {selectVisibleRows(rows, maxRows).map((row, index) => {
             const rowKey = `${row.name}-${index}`;
             const rowElement = <NearbyRiderRow {...row} />;
             return index === 0 ? (

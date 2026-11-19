@@ -48,6 +48,10 @@ const clampVisibleRows = (value: number): number =>
  */
 const TABLET_LIST_HEADER_HEIGHT = 22;
 
+// NearbyRiderRow's tablet-tier row.marginBottom (kept equal to its compact tier on purpose, see
+// NearbyRiderRow.tsx) - onLayout reports the row's own box, so the margin is added separately.
+const NEARBY_ROW_MARGIN_BOTTOM = 3;
+
 // The fallback corner slot's fixed height (FALLBACK_ELEVATION_HEIGHT_RATIO) was tuned for the
 // elevation-preview graph, which scales down cleanly — it does not, e.g. on a real ~390dp-tall
 // phone screen only room for one WorkoutStepsList row survives, silently clipping the upcoming-
@@ -341,6 +345,21 @@ export const RideOverlay = (props: RideOverlayProps) => {
         ? inputs.screenHeight - BOTTOM_BAR_RATIO * inputs.screenHeight - nearbyRidersAnchorBottom - 2 * SLOT_GAP
         : undefined;
 
+    // Same measured-row-height approach as PrevRides above: without a row limit the list rendered
+    // every rider and its maxHeight just clipped the overflow, so with enough riders nearby the
+    // last row (typically the current rider's own) was cut off mid-row. Limiting the row count to
+    // what the free band holds - and letting the list centre that window on the current rider -
+    // keeps whole rows only.
+    const [measuredNearbyRowHeight, setMeasuredNearbyRowHeight] = useState<number | undefined>(undefined);
+    const onNearbyFirstRowLayout = useCallback((e: LayoutChangeEvent) => {
+        const height = e.nativeEvent.layout.height;
+        setMeasuredNearbyRowHeight((prev) => (prev === height ? prev : height));
+    }, []);
+    const nearbyRowSpacing = (measuredNearbyRowHeight ?? PREV_RIDES_ROW_HEIGHT_FALLBACK) + NEARBY_ROW_MARGIN_BOTTOM;
+    const nearbyRidersTabletMaxRows = nearbyRidersFreeBand !== undefined
+        ? Math.max(1, Math.floor((nearbyRidersFreeBand - TABLET_LIST_HEADER_HEIGHT) / nearbyRowSpacing))
+        : undefined;
+
     // Phone-only: PrevRides wins the single shared corner slot when both features are eligible
     // at once (design doc §5.2, "Resolved (repo owner decision, 2026-08-31)"). Same eligibility
     // check the phone PrevRidesCornerPanel mount condition below already uses — named here so the
@@ -407,6 +426,8 @@ export const RideOverlay = (props: RideOverlayProps) => {
                     <Dynamic observer={rideObserver ?? undefined} event="nearby-riders-update" prop="rows" transform={extractNearbyRiderRows}>
                         <NearbyRidersTabletList
                             rows={nearbyRiders}
+                            maxRows={nearbyRidersTabletMaxRows}
+                            onFirstRowLayout={onNearbyFirstRowLayout}
                             style={[
                                 styles.cornerWidget,
                                 {
