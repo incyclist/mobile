@@ -114,6 +114,7 @@ export const ElevationGraphView = memo((props: ElevationGraphViewProps) => {
                         markers={markers}
                         xScale={xScale}
                         lapMode={lapMode}
+                        lapLength={props.routeData?.distance}
                     />
                 </Svg>
             </View>
