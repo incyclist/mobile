@@ -66,7 +66,7 @@ export const Loader = () =>{
         initRestLogging()
 
         // Fire and forget: reports why earlier processes ended (Android 11+ only), never throws
-        void logPreviousProcessExits()
+        logPreviousProcessExits().catch(() => { /* diagnostics must never affect startup */ })
 
     }
 
