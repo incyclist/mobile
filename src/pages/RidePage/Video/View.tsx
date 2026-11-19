@@ -195,6 +195,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                         observer={rideObserver ?? undefined}
                         range={2000}
                         lapMode={lapMode}
+                        currentAvatar={currentAvatar}
                         showLine={true}
                         showColors={true}
                         showXAxis={!isCompact}
@@ -222,6 +223,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                                     followPosition={true}
                                     colorActive='blue'
                                     colorInactive='rgba(255,255,255,0.4)'
+                                    markerAvatar={currentAvatar}
                                 />
                             </Dynamic>
                         </ErrorBoundary>

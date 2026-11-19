@@ -329,6 +329,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                                         followPosition={true}
                                         colorActive='blue'
                                         colorInactive='rgba(255,255,255,0.4)'
+                                        markerAvatar={currentAvatar}
                                     />
                                 </Dynamic>
                             </ErrorBoundary>
@@ -353,6 +354,7 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                             observer={rideObserver ?? undefined}
                             range={2000}
                             lapMode={lapMode}
+                            currentAvatar={currentAvatar}
                             showLine={true}
                             showColors={true}
                             showXAxis={!isCompact}

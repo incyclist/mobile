@@ -17,6 +17,8 @@ jest.mock('incyclist-services', () => ({
 
 const mockStartRideDisplay = jest.fn();
 const mockRideOverlay = jest.fn();
+const mockElevationGraph = jest.fn();
+const mockFreeMap = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
@@ -24,9 +26,15 @@ jest.mock('../../../components', () => ({
     Button: () => null,
     Dynamic: ({ children }: any) => children,
     ErrorBoundary: ({ children }: any) => children,
-    ElevationGraph: () => null,
+    ElevationGraph: (props: any) => {
+        mockElevationGraph(props);
+        return null;
+    },
     InfoText: () => null,
-    FreeMap: () => null,
+    FreeMap: (props: any) => {
+        mockFreeMap(props);
+        return null;
+    },
     MainBackground: () => null,
     RideDashboard: () => null,
     RideMenu: () => null,
@@ -417,6 +425,34 @@ describe('VideoRidePageView — currentAvatar resolution', () => {
         expect(getByText('ride-overlay')).toBeTruthy();
         const overlayProps = mockRideOverlay.mock.calls.at(-1)?.[0];
         expect(overlayProps.currentAvatar).toEqual(avatarToConfig({ helmet: 'blue', shirt: 'red' }));
+    });
+});
+
+describe('VideoRidePageView — route-only avatar consistency', () => {
+    beforeEach(() => {
+        mockElevationGraph.mockClear();
+        mockFreeMap.mockClear();
+    });
+
+    it('gives the 2km elevation preview and the corner map the same current avatar as the overlay path', () => {
+        render(
+            <VideoRidePageView
+                {...baseProps}
+                displayProps={{
+                    ...baseProps.displayProps,
+                    startOverlayProps: undefined,
+                    route: {
+                        description: { hasGpx: true, isLoop: true },
+                        details: { distance: 5000, points: [{ lat: 1, lng: 2, routeDistance: 0, elevation: 0 }] },
+                    },
+                }}
+            />
+        );
+
+        const expected = avatarToConfig({ helmet: 'blue', shirt: 'red' });
+        const preview = mockElevationGraph.mock.calls.find(c => c[0].range === 2000)?.[0];
+        expect(preview.currentAvatar).toEqual(expected);
+        expect(mockFreeMap.mock.calls.at(-1)?.[0].markerAvatar).toEqual(expected);
     });
 });
 

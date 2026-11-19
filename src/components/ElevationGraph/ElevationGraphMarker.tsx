@@ -22,7 +22,29 @@ interface ElevationGraphMarkerProps {
     currentAvatar?: AvatarConfig;
     markers?: RiderMarker[];
     lapMode?: boolean;
+    lapLength?: number; // Length of one lap in raw meters (required for lapMode to take effect)
 }
+
+/**
+ * Position as shown on the graph. Positions keep accumulating over laps (lap 2 starts at
+ * routeDistance > lapLength), while the graph x-axis spans a single lap. A windowed preview
+ * can also straddle the lap boundary (domain beyond lapLength), so both the lap-relative
+ * position and its position one lap later are candidates; the one inside the domain wins.
+ */
+const resolveLapPosition = (
+    position: number,
+    domainRaw: { min: number; max: number },
+    lapMode?: boolean,
+    lapLength?: number,
+): number => {
+    if (!lapMode || !lapLength || lapLength <= 0) return position;
+
+    const inLap = position % lapLength;
+    if (inLap >= domainRaw.min && inLap <= domainRaw.max) return inLap;
+    const nextLap = inLap + lapLength;
+    if (nextLap >= domainRaw.min && nextLap <= domainRaw.max) return nextLap;
+    return inLap;
+};
 
 export const ElevationGraphMarker = ({
     domain,
@@ -34,8 +56,12 @@ export const ElevationGraphMarker = ({
     markerPosition,
     currentAvatar,
     markers,
-    lapMode: _lapMode,
+    lapMode,
+    lapLength,
 }: ElevationGraphMarkerProps) => {
+    const domainRaw = { min: domain.xMin / xScale.value, max: domain.xMax / xScale.value };
+    const toGraphPosition = (position: number) => resolveLapPosition(position, domainRaw, lapMode, lapLength);
+
     // Helper to get interpolated Y domain value at a given scaled X domain value
     const getElevationYDomainAtXDomain = (targetXDomain: number): number | null => {
         if (graphPoints.length === 0) {
@@ -86,7 +112,7 @@ export const ElevationGraphMarker = ({
 
     // Process current user's marker
     if (markerPosition !== undefined && markerPosition !== null) {
-        const xRaw = markerPosition;
+        const xRaw = toGraphPosition(markerPosition);
         const xDomainScaled = xRaw * xScale.value;
 
         if (xDomainScaled >= domain.xMin && xDomainScaled <= domain.xMax) {
@@ -107,7 +133,7 @@ export const ElevationGraphMarker = ({
 
     // Process other riders' markers
     markers?.forEach((marker) => {
-        const xRaw = marker.position;
+        const xRaw = toGraphPosition(marker.position);
         const xDomainScaled = xRaw * xScale.value;
 
         if (xDomainScaled >= domain.xMin && xDomainScaled <= domain.xMax) {
