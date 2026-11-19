@@ -36,6 +36,7 @@ class MainApplication : Application(), ReactApplication {
                 packages.add(SatelliteViewPackage())
                 packages.add(MapAvailabilityPackage())
                 packages.add(AudioCuePackage())
+                packages.add(ExitReasonPackage())
 
                 return packages
             }
@@ -120,6 +121,7 @@ class MainApplication : Application(), ReactApplication {
         packages.add(SatelliteViewPackage())
         packages.add(MapAvailabilityPackage())
         packages.add(AudioCuePackage())
+        packages.add(ExitReasonPackage())
 
         getDefaultReactHost(
             context = applicationContext,
