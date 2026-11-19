@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { App } from './App'; // This is your actual application
 import { ApiConfiguration, initRestLogging, startSessionDiagnostics } from './services';
+import { logPreviousProcessExits } from './services/ExitReasons';
 
 import { EventLogger, LogAdapter } from 'gd-eventlog';
 import { getLogBacklog } from './bindings/logging/Adapters/BacklogAdapter';
@@ -63,6 +64,9 @@ export const Loader = () =>{
         startSessionDiagnostics()
 
         initRestLogging()
+
+        // Fire and forget: reports why earlier processes ended (Android 11+ only), never throws
+        logPreviousProcessExits().catch(() => { /* diagnostics must never affect startup */ })
 
     }
 
