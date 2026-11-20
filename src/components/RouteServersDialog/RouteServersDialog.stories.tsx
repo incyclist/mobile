@@ -75,9 +75,6 @@ const KNOWN = [KNOWN_AVAILABLE, KNOWN_ADDED, KNOWN_CHECKING];
 
 export const TabletList: Story = { args: { displayProps: listProps(SERVERS) } };
 export const PhoneList: Story = { args: { ...PHONE, displayProps: listProps(SERVERS) } };
-export const TabletListHighlightsNewServer: Story = {
-    args: { displayProps: listProps([SERVER_ALPINE, SERVER_LOADING], { highlightKey: 'Flanders Classics' }) },
-};
 export const TabletEmpty: Story = { args: { displayProps: listProps([]) } };
 export const PhoneEmpty: Story = { args: { ...PHONE, displayProps: listProps([]) } };
 

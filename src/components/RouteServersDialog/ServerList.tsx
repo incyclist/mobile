@@ -49,11 +49,10 @@ const StatusDot = ({ status }: { status: RouteServerItem['status'] }) => {
 interface ServerRowProps {
     server: RouteServerItem;
     compact: boolean;
-    highlighted: boolean;
     onRemove: (key: string) => void;
 }
 
-const ServerRow = ({ server, compact, highlighted, onRemove }: ServerRowProps) => {
+const ServerRow = ({ server, compact, onRemove }: ServerRowProps) => {
     const handleRemove = useCallback(() => onRemove(server.key), [onRemove, server.key]);
 
     // the dot is only a colour: screen readers get the status as part of one combined label
@@ -69,7 +68,7 @@ const ServerRow = ({ server, compact, highlighted, onRemove }: ServerRowProps) =
 
     return (
         <View
-            style={[styles.row, highlighted && styles.rowHighlighted]}
+            style={styles.row}
             accessible
             accessibilityLabel={label}
         >
@@ -87,7 +86,7 @@ const ServerRow = ({ server, compact, highlighted, onRemove }: ServerRowProps) =
 };
 
 export const ServerList = ({ compact, displayProps, onAddServer, onRemove }: ServerListProps) => {
-    const { servers, isEmpty, emptyState, highlightKey } = displayProps;
+    const { servers, isEmpty, emptyState } = displayProps;
 
     return (
         <View>
@@ -96,7 +95,6 @@ export const ServerList = ({ compact, displayProps, onAddServer, onRemove }: Ser
                     key={server.key}
                     server={server}
                     compact={compact}
-                    highlighted={highlightKey === server.key}
                     onRemove={onRemove}
                 />
             ))}
@@ -122,9 +120,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
-    },
-    rowHighlighted: {
-        backgroundColor: 'rgba(76, 175, 80, 0.15)',
     },
     dot: {
         width: 10,
