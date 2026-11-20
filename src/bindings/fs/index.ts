@@ -156,6 +156,12 @@ export class FileSystemBinding implements IFileSystem {
         return await RNFS.exists(placeholderPath(path));
     }
 
+    async stat(path: string): Promise<{ size: number }> {
+        const plain = path.startsWith('file://') ? path.slice('file://'.length) : path;
+        const info = await RNFS.stat(plain);
+        return { size: Number(info.size) };
+    }
+
     async existsDir(path: string): Promise<boolean> {
         return await RNFS.exists(path);
     }

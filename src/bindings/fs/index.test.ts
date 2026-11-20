@@ -239,6 +239,27 @@ describe('FileSystemBinding', () => {
         });
     });
 
+    // ─── stat ──────────────────────────────────────────────────────────────────
+
+    describe('stat', () => {
+        it('returns the size of a file', async () => {
+            (rnfs as any).stat = jest.fn().mockResolvedValue({ size: 1234 });
+            expect(await fs.stat('/some/video.mp4')).toEqual({ size: 1234 });
+            expect((rnfs as any).stat).toHaveBeenCalledWith('/some/video.mp4');
+        });
+
+        it('strips a file:// scheme and converts a string size', async () => {
+            (rnfs as any).stat = jest.fn().mockResolvedValue({ size: '99' });
+            expect(await fs.stat('file:///some/video.mp4')).toEqual({ size: 99 });
+            expect((rnfs as any).stat).toHaveBeenCalledWith('/some/video.mp4');
+        });
+
+        it('rejects if the file can not be read', async () => {
+            (rnfs as any).stat = jest.fn().mockRejectedValue(new Error('nope'));
+            await expect(fs.stat('/missing')).rejects.toThrow('nope');
+        });
+    });
+
     // ─── existsFile ────────────────────────────────────────────────────────────
 
     describe('existsFile', () => {
