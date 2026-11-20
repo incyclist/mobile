@@ -36,7 +36,8 @@ const MOCK_OPTIONS = {
     countries: ['Belgium', 'Germany'],
     contentTypes: ['Video', 'GPX'],
     routeTypes: ['Loop', 'Point to Point'],
-    routeSources: ['Local', 'Online'],
+    routeSources: ['Local', 'EbelingHoppe'],
+    routeSourceLabels: { Local: 'Local', EbelingHoppe: 'Ebeling Hoppe' },
     maxDistance: { value: 200, unit: 'km' },
     maxElevation: { value: 3000, unit: 'm' },
 } as unknown as FilterPanelProps['options'];
@@ -179,6 +180,26 @@ describe('FilterPanel', () => {
             const { getByText } = render(<FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />);
             fireEvent.press(getByText('Video'));
             expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ contentType: 'Video' }));
+        });
+
+        it('shows the Source label but stores the option value when selected', () => {
+            const onFilterChanged = jest.fn();
+            const { getByText, queryByText } = render(<FilterPanel {...COMPACT_PROPS} onFilterChanged={onFilterChanged} />);
+            expect(queryByText('EbelingHoppe')).toBeNull();
+            fireEvent.press(getByText('Ebeling Hoppe'));
+            expect(onFilterChanged).toHaveBeenCalledWith(expect.objectContaining({ routeSource: 'EbelingHoppe' }));
+        });
+
+        it('shows the Source label on the active-filter chip', () => {
+            const { getAllByText, queryByText } = render(<FilterPanel {...COMPACT_PROPS} filters={{ routeSource: 'EbelingHoppe' }} />);
+            expect(getAllByText('Ebeling Hoppe').length).toBeGreaterThanOrEqual(2);
+            expect(queryByText('EbelingHoppe')).toBeNull();
+        });
+
+        it('falls back to the value when no label is provided', () => {
+            const options = { ...MOCK_OPTIONS, routeSourceLabels: undefined } as FilterPanelProps['options'];
+            const { getByText } = render(<FilterPanel {...COMPACT_PROPS} options={options} />);
+            expect(getByText('EbelingHoppe')).toBeTruthy();
         });
 
         it('clears every filter via the "Clear all" footer button', () => {
