@@ -4,12 +4,12 @@ import type {
     RouteServersSettingsDisplayProps,
 } from 'incyclist-services';
 
-/** Smart wrapper's public props: the display props come from the page service. */
+/** Smart wrapper's public props: the display props come from the dialog service. */
 export interface RouteServersDialogProps {
     /** where the user came from: 'settings' starts with the list, 'import' with the add view */
     origin: RouteServersOrigin;
     /**
-     * called when the page service closes the page, with the reason it reports:
+     * called when the dialog service closes the dialog, with the reason it reports:
      * 'done' (server added from the Import dialog), 'back' (Back from the first view), 'cancel' (Close)
      */
     onClose: (reason: RouteServersCloseReason) => void;

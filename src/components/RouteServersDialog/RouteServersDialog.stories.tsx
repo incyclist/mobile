@@ -54,7 +54,7 @@ const PHONE = { compact: true };
 
 // On a device the confirmation is presented after the list; mounting both at once would stack
 // the (translucent) list over the confirmation in the browser. Open it a moment later, as the
-// page service does after a tap on Remove.
+// dialog service does after a tap on Remove.
 const WithDelayedRemoveDialog = (props: React.ComponentProps<typeof RouteServersDialogView>) => {
     const [show, setShow] = useState(false);
     useEffect(() => {

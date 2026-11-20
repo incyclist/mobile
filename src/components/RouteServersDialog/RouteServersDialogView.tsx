@@ -16,7 +16,7 @@ const getTitle = (view: 'list' | 'add' | 'add-manual', compact: boolean): string
 
 /**
  * Pure view of the Route Servers screen (Settings) and of its add view (also reached from
- * the Import Routes dialog). What is shown comes ready-made from the page service.
+ * the Import Routes dialog). What is shown comes ready-made from the dialog service.
  */
 export const RouteServersDialogView = (props: RouteServersDialogViewProps) => {
     const { compact, displayProps, visible = true, ...actions } = props;

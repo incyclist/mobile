@@ -105,7 +105,7 @@ describe('RouteServersDialogView', () => {
     });
 
     describe('remove confirmation', () => {
-        it('is shown with the texts of the page service and reports the choice', () => {
+        it('is shown with the texts of the dialog service and reports the choice', () => {
             const { getByText, props } = setup({
                 displayProps: listProps([SERVER_ALPINE], { removeDialog: REMOVE_WITH_ROUTES }),
             });
@@ -162,7 +162,7 @@ describe('RouteServersDialogView', () => {
             expect(queryByText('Known servers')).toBeNull();
         });
 
-        it('checks and adds in one step, only if the page service allows it', () => {
+        it('checks and adds in one step, only if the dialog service allows it', () => {
             const enabled = setup({ displayProps: addProps([], { url: 'a.example', name: 'A', canSubmit: true }) });
             fireEvent.press(enabled.getByText('Check and add'));
             expect(enabled.props.onCheckAndAdd).toHaveBeenCalled();

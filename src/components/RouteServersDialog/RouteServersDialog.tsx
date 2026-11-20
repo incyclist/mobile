@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    getRouteServersSettingsPageService,
+    useRouteServersSettingsDisplay,
     IObserver,
     RouteServersClosedEvent,
     RouteServersSettingsDisplayProps,
@@ -10,13 +10,13 @@ import { RouteServersDialogView } from './RouteServersDialogView';
 import { useScreenLayout } from '../../hooks';
 
 /**
- * Smart wrapper of the Route Servers screen. Opens the page service, follows its `page-update`
- * events and forwards the user's actions. The page service closes itself (Back from its first
+ * Smart wrapper of the Route Servers screen. Opens the dialog service, follows its `changed`
+ * events and forwards the user's actions. The dialog service closes itself (Back from its first
  * view, or after a server was added from the Import dialog) and then reports `closed` with the reason.
  */
 export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps) => {
     const compact = useScreenLayout() === 'compact';
-    const service = getRouteServersSettingsPageService();
+    const service = useRouteServersSettingsDisplay();
     const [displayProps, setDisplayProps] = useState<RouteServersSettingsDisplayProps>();
     const refOnClose = useRef(onClose);
     refOnClose.current = onClose;
@@ -27,7 +27,7 @@ export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps)
 
         const handleUpdate = () => {
             if (!finished) {
-                setDisplayProps(service.getPageDisplayProps());
+                setDisplayProps(service.getDisplayProps());
             }
         };
         const handleClosed = (event?: RouteServersClosedEvent) => {
@@ -35,20 +35,20 @@ export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps)
                 return;
             }
             finished = true;
-            // the page service decides why it closed; the app only follows
+            // the dialog service decides why it closed; the app only follows
             refOnClose.current(event?.reason ?? 'cancel');
         };
 
-        observer.on('page-update', handleUpdate);
+        observer.on('changed', handleUpdate);
         observer.on('closed', handleClosed);
         handleUpdate();
 
         return () => {
             finished = true;
-            observer.off('page-update', handleUpdate);
+            observer.off('changed', handleUpdate);
             observer.off('closed', handleClosed);
-            // closed by the parent: the page service must not keep listening for status changes
-            if (service.getPageObserver() === observer) {
+            // closed by the parent: the dialog service must not keep listening for status changes
+            if (service.getObserver() === observer) {
                 service.close();
             }
         };

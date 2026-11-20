@@ -7,8 +7,8 @@ const mockService = {
     observer: undefined as any,
     open: jest.fn(),
     close: jest.fn(),
-    getPageObserver: jest.fn(),
-    getPageDisplayProps: jest.fn(),
+    getObserver: jest.fn(),
+    getDisplayProps: jest.fn(),
     back: jest.fn(),
     showAdd: jest.fn(),
     requestRemove: jest.fn(),
@@ -17,7 +17,7 @@ const mockService = {
 };
 
 jest.mock('incyclist-services', () => ({
-    getRouteServersSettingsPageService: () => mockService,
+    useRouteServersSettingsDisplay: () => mockService,
 }));
 
 jest.mock('../Dialog', () => {
@@ -44,37 +44,37 @@ describe('RouteServersDialog', () => {
         jest.clearAllMocks();
         mockService.observer = newObserver();
         mockService.open.mockReturnValue(mockService.observer);
-        mockService.getPageObserver.mockReturnValue(mockService.observer);
-        mockService.getPageDisplayProps.mockReturnValue(listProps([SERVER_ALPINE]));
+        mockService.getObserver.mockReturnValue(mockService.observer);
+        mockService.getDisplayProps.mockReturnValue(listProps([SERVER_ALPINE]));
     });
 
-    it('opens the page service with the origin and renders its display props', () => {
+    it('opens the dialog service with the origin and renders its display props', () => {
         const { getByText } = render(<RouteServersDialog origin="import" onClose={jest.fn()} />);
 
         expect(mockService.open).toHaveBeenCalledWith('import');
         expect(getByText('Alpine Videos')).toBeTruthy();
     });
 
-    it('re-renders on page-update', () => {
+    it('re-renders on changed', () => {
         const { getByText, queryByText } = render(<RouteServersDialog origin="settings" onClose={jest.fn()} />);
         expect(queryByText('Ride with Jan')).toBeNull();
 
-        mockService.getPageDisplayProps.mockReturnValue(
+        mockService.getDisplayProps.mockReturnValue(
             listProps([SERVER_ALPINE, { ...SERVER_ALPINE, key: 'Ride with Jan', name: 'Ride with Jan' }])
         );
-        act(() => mockService.observer.emit('page-update'));
+        act(() => mockService.observer.emit('changed'));
 
         expect(getByText('Ride with Jan')).toBeTruthy();
     });
 
-    it('forwards user actions to the page service', () => {
+    it('forwards user actions to the dialog service', () => {
         const { getByText } = render(<RouteServersDialog origin="settings" onClose={jest.fn()} />);
 
         fireEvent.press(getByText('Remove'));
         expect(mockService.requestRemove).toHaveBeenCalledWith('Alpine Videos');
     });
 
-    it.each(['done', 'back', 'cancel'] as const)('forwards the reason %s when the page service closes the page', reason => {
+    it.each(['done', 'back', 'cancel'] as const)('forwards the reason %s when the dialog service closes the dialog', reason => {
         const onClose = jest.fn();
         render(<RouteServersDialog origin="import" onClose={onClose} />);
 
@@ -95,7 +95,7 @@ describe('RouteServersDialog', () => {
     });
 
     it('calls cancelAddEmpty when "Add anyway?" is cancelled', () => {
-        mockService.getPageDisplayProps.mockReturnValue(
+        mockService.getDisplayProps.mockReturnValue(
             addProps([], { state: 'confirm-empty', message: 'No routes. Add it anyway?' })
         );
         const { getByText } = render(<RouteServersDialog origin="import" onClose={jest.fn()} />);
@@ -106,22 +106,22 @@ describe('RouteServersDialog', () => {
         expect(mockService.setManualUrl).not.toHaveBeenCalled();
     });
 
-    it('unsubscribes and closes the page service when unmounted while still open', () => {
+    it('unsubscribes and closes the dialog service when unmounted while still open', () => {
         const onClose = jest.fn();
         const { unmount } = render(<RouteServersDialog origin="settings" onClose={onClose} />);
 
         unmount();
 
-        expect(mockService.observer.count('page-update')).toBe(0);
+        expect(mockService.observer.count('changed')).toBe(0);
         expect(mockService.observer.count('closed')).toBe(0);
         expect(mockService.close).toHaveBeenCalledTimes(1);
         expect(onClose).not.toHaveBeenCalled();
     });
 
-    it('does not close the page service again when it was closed by the service itself', () => {
+    it('does not close the dialog service again when it was closed by the service itself', () => {
         const { unmount } = render(<RouteServersDialog origin="settings" onClose={jest.fn()} />);
 
-        mockService.getPageObserver.mockReturnValue(undefined);
+        mockService.getObserver.mockReturnValue(undefined);
         unmount();
 
         expect(mockService.close).not.toHaveBeenCalled();

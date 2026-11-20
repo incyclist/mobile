@@ -15,7 +15,7 @@ interface ServerTextFieldProps {
 }
 
 /**
- * A text field whose value follows the page service (which may rewrite it, e.g. a suggested name)
+ * A text field whose value follows the dialog service (which may rewrite it, e.g. a suggested name)
  * but keeps the typed text locally, so the cursor does not jump while the service updates.
  */
 export const ServerTextField = ({
