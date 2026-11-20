@@ -57,7 +57,7 @@ export const KnownServers = ({ known, knownNote, onAdd, onRetry }: KnownServersP
         {known.map(item => (
             <KnownRow key={item.id} item={item} onAdd={onAdd} onRetry={onRetry} />
         ))}
-        {knownNote && <Text style={styles.note}>{knownNote}</Text>}
+        {!!knownNote && <Text style={styles.note}>{knownNote}</Text>}
     </View>
 );
 

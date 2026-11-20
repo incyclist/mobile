@@ -46,11 +46,11 @@ export const RemoveServerDialog = ({ dialog, onSetRemoveRoutes, onConfirm, onCan
     return (
         <Dialog title={dialog.title} variant="info" visible onOutsideClick={onCancel} buttons={buttons}>
             <View style={styles.content}>
-                {dialog.text && <Text style={styles.text}>{dialog.text}</Text>}
-                {dialog.keepLabel && (
+                {!!dialog.text && <Text style={styles.text}>{dialog.text}</Text>}
+                {!!dialog.keepLabel && (
                     <Radio label={dialog.keepLabel} selected={!dialog.removeRoutes} value={false} onSelect={onSetRemoveRoutes} />
                 )}
-                {dialog.removeRoutesLabel && (
+                {!!dialog.removeRoutesLabel && (
                     <Radio
                         label={dialog.removeRoutesLabel}
                         selected={dialog.removeRoutes}

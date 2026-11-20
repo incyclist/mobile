@@ -41,7 +41,7 @@ export const ServerTextField = ({
 
     return (
         <View style={inline ? styles.inline : styles.container}>
-            {label && <Text style={styles.label}>{label}</Text>}
+            {!!label && <Text style={styles.label}>{label}</Text>}
             <TextInput
                 style={[styles.input, error && styles.inputError, readOnly && styles.inputReadOnly]}
                 value={text}

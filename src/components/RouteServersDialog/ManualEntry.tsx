@@ -19,6 +19,10 @@ interface ManualEntryComponentProps {
     onCancelAddEmpty: () => void;
 }
 
+/** each variant only takes the props it uses */
+type WideEntryProps = Omit<ManualEntryComponentProps, 'compact' | 'onCheck'>;
+type CompactEntryProps = Omit<ManualEntryComponentProps, 'compact' | 'onCheckAndAdd' | 'onAdd'>;
+
 const NAME_LABEL = 'Name (shown in your route list) *';
 
 const isLocked = (state: ManualEntryProps['state']) => state !== 'idle' && state !== 'error';
@@ -27,10 +31,10 @@ const Message = ({ manual }: { manual: ManualEntryProps }) => {
     const { message, state, resolvedUrl, url } = manual;
     return (
         <>
-            {resolvedUrl && resolvedUrl !== url && (
+            {!!resolvedUrl && resolvedUrl !== url && (
                 <Text style={styles.hint}>{`Address: ${resolvedUrl}`}</Text>
             )}
-            {message && (
+            {!!message && (
                 <Text style={state === 'confirm-empty' ? styles.hint : styles.success}>
                     {state === 'confirm-empty' ? message : `✓ ${message}`}
                 </Text>
@@ -63,7 +67,7 @@ const WideEntry = ({
     onAdd,
     onConfirmAddEmpty,
     onCancelAddEmpty,
-}: ManualEntryComponentProps) => {
+}: WideEntryProps) => {
     const { state, canSubmit } = manual;
     const locked = isLocked(state);
     let action: React.ReactNode = null;
@@ -88,8 +92,8 @@ const WideEntry = ({
                 readOnly={locked}
                 onChangeText={onSetUrl}
             />
-            {manual.localNote && <Text style={styles.hint}>{manual.localNote}</Text>}
-            {manual.urlError && <Text style={styles.error}>{manual.urlError}</Text>}
+            {!!manual.localNote && <Text style={styles.hint}>{manual.localNote}</Text>}
+            {!!manual.urlError && <Text style={styles.error}>{manual.urlError}</Text>}
             <ServerTextField
                 label={NAME_LABEL}
                 value={manual.name}
@@ -97,7 +101,7 @@ const WideEntry = ({
                 readOnly={state === 'checking' || state === 'success'}
                 onChangeText={onSetName}
             />
-            {manual.nameError && <Text style={styles.error}>{manual.nameError}</Text>}
+            {!!manual.nameError && <Text style={styles.error}>{manual.nameError}</Text>}
             <Message manual={manual} />
             <Text style={styles.trust}>{trustNote}</Text>
             <View style={styles.action}>{action}</View>
@@ -114,7 +118,7 @@ const CompactEntry = ({
     onCheck,
     onConfirmAddEmpty,
     onCancelAddEmpty,
-}: ManualEntryComponentProps) => {
+}: CompactEntryProps) => {
     const { state } = manual;
     const checked = state === 'checked' || state === 'confirm-empty' || state === 'success';
 
@@ -139,8 +143,8 @@ const CompactEntry = ({
                     />
                 )}
             </View>
-            {manual.localNote && <Text style={styles.hint}>{manual.localNote}</Text>}
-            {manual.urlError && <Text style={styles.error}>{manual.urlError}</Text>}
+            {!!manual.localNote && <Text style={styles.hint}>{manual.localNote}</Text>}
+            {!!manual.urlError && <Text style={styles.error}>{manual.urlError}</Text>}
             <Message manual={manual} />
             {checked && (
                 <>
@@ -151,7 +155,7 @@ const CompactEntry = ({
                         readOnly={state === 'success'}
                         onChangeText={onSetName}
                     />
-                    {manual.nameError && <Text style={styles.error}>{manual.nameError}</Text>}
+                    {!!manual.nameError && <Text style={styles.error}>{manual.nameError}</Text>}
                 </>
             )}
             {state === 'confirm-empty' && (
@@ -162,8 +166,8 @@ const CompactEntry = ({
     );
 };
 
-export const ManualEntry = (props: ManualEntryComponentProps) =>
-    props.compact ? <CompactEntry {...props} /> : <WideEntry {...props} />;
+export const ManualEntry = ({ compact, ...props }: ManualEntryComponentProps) =>
+    compact ? <CompactEntry {...props} /> : <WideEntry {...props} />;
 
 const styles = StyleSheet.create({
     inlineRow: {

@@ -76,8 +76,8 @@ const ServerRow = ({ server, compact, onRemove }: ServerRowProps) => {
             <View style={styles.rowText}>
                 <Text style={styles.name}>{server.name}</Text>
                 {meta.length > 0 && <Text style={styles.host}>{meta}</Text>}
-                {server.note && <Text style={styles.host}>{server.note}</Text>}
-                {secondLine && <Text style={statusStyle}>{secondLine}</Text>}
+                {!!server.note && <Text style={styles.host}>{server.note}</Text>}
+                {!!secondLine && <Text style={statusStyle}>{secondLine}</Text>}
             </View>
             {!compact && <Text style={statusStyle}>{server.statusText}</Text>}
             {server.canRemove && <LinkButton label="Remove" onPress={handleRemove} />}
