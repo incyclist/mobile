@@ -76,11 +76,28 @@ jest.mock('./RouteImportDialogView', () => ({
                 <RNTouchableOpacity testID="select-folder" onPress={props.onSelectFolder}>
                     <RNText>Select Folder</RNText>
                 </RNTouchableOpacity>
+                <RNTouchableOpacity testID="add-route-server" onPress={props.onAddRouteServer}>
+                    <RNText>Add Route Server</RNText>
+                </RNTouchableOpacity>
                 <RNText testID="show-video-route-option">{String(props.showVideoRouteOption)}</RNText>
             </RNView>
         );
     },
 }));
+
+// Stub the route servers page: lets the test report the reason it closed with
+jest.mock('../RouteServersDialog', () => {
+    const { TouchableOpacity, Text, View } = require('react-native');
+    return {
+        RouteServersDialog: ({ onClose }: any) => (
+            <View>
+                <TouchableOpacity testID="servers-done" onPress={() => onClose('done')}><Text>done</Text></TouchableOpacity>
+                <TouchableOpacity testID="servers-back" onPress={() => onClose('back')}><Text>back</Text></TouchableOpacity>
+                <TouchableOpacity testID="servers-cancel" onPress={() => onClose('cancel')}><Text>cancel</Text></TouchableOpacity>
+            </View>
+        ),
+    };
+});
 
 const fileInfo = {
     type: 'file',
@@ -249,5 +266,38 @@ describe('RouteImportDialog - folder selection forwards the access grant', () =>
 
         await waitFor(() => expect(mockSelectDirectory).toHaveBeenCalledTimes(1));
         expect(mockPageService.startLibraryScan).not.toHaveBeenCalled();
+    });
+});
+
+describe('RouteImportDialog - route servers page closes with a reason', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockPageService.getImportDisplayProps.mockReturnValue({ phase: 'landing', routes: [] });
+    });
+
+    const openServers = () => {
+        const onClose = jest.fn();
+        const utils = render(<RouteImportDialog onClose={onClose} />);
+        fireEvent.press(utils.getByTestId('add-route-server'));
+        return { ...utils, onClose };
+    };
+
+    it("closes the import dialog when a server was added (reason 'done', manual or known)", () => {
+        const { getByTestId, onClose } = openServers();
+
+        fireEvent.press(getByTestId('servers-done'));
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(mockOnImportClosed).toHaveBeenCalled();
+    });
+
+    it.each(['servers-back', 'servers-cancel'])('returns to the landing view on %s', testID => {
+        const { getByTestId, queryByTestId, onClose } = openServers();
+
+        fireEvent.press(getByTestId(testID));
+
+        expect(onClose).not.toHaveBeenCalled();
+        expect(queryByTestId('servers-done')).toBeNull();
+        expect(getByTestId('add-route-server')).toBeTruthy();
     });
 });

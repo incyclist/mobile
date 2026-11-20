@@ -41,3 +41,26 @@ describe('LandingView', () => {
         expect(onAddVideoRoute).toHaveBeenCalledTimes(1);
     });
 });
+describe('LandingView route server tile', () => {
+    const props = {
+        compact: false,
+        onAddGpx: jest.fn(),
+        onAddVideoRoute: jest.fn(),
+        onSelectFolder: jest.fn(),
+        showVideoRouteOption: false,
+    };
+
+    it('is not shown without a handler', () => {
+        const { queryByText } = render(<LandingView {...props} />);
+        expect(queryByText('Add Route Server')).toBeNull();
+    });
+
+    it('is shown with its subline and opens the add view when pressed', () => {
+        const onAddRouteServer = jest.fn();
+        const { getByText } = render(<LandingView {...props} onAddRouteServer={onAddRouteServer} />);
+
+        expect(getByText('Collections from other riders')).toBeTruthy();
+        fireEvent.press(getByText('Add Route Server'));
+        expect(onAddRouteServer).toHaveBeenCalledTimes(1);
+    });
+});

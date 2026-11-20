@@ -24,7 +24,7 @@ const APPLY_DEBOUNCE_MS = 300;
 /**
  * Helper to generate descriptive text for active filters
  */
-const getFilterPills = (f: SearchFilter): string[] => {
+const getFilterPills = (f: SearchFilter, routeSourceLabels?: Record<string, string>): string[] => {
     const pills: string[] = [];
     if (!f) {
         return [];
@@ -33,7 +33,7 @@ const getFilterPills = (f: SearchFilter): string[] => {
     if (f.title) pills.push(`*${f.title}*`);
     if (f.contentType) pills.push(f.contentType);
     if (f.routeType) pills.push(f.routeType);
-    if (f.routeSource) pills.push(f.routeSource);
+    if (f.routeSource) pills.push(routeSourceLabels?.[f.routeSource] ?? f.routeSource);
     if (f.country) pills.push(f.country);
     if (f.distance?.min) pills.push(`dist:>${isFormattedNumber(f.distance.min) ? f.distance.min.value : f.distance.min}${isFormattedNumber(f.distance.min) ? f.distance.min.unit : ''}`);
     if (f.distance?.max) pills.push(`dist:<${isFormattedNumber(f.distance.max) ? f.distance.max.value : f.distance.max}${isFormattedNumber(f.distance.max) ? f.distance.max.unit : ''}`);
@@ -140,10 +140,13 @@ const FilterInput = ({ value, placeholder, max, fieldName, onValueChange, large,
 const FilterSelect = (props: any) => {
     const {
         label, value, options, fieldName, onSelect,
-        logEvent, isHalf, isOpen: open, onOpen, maxHeight
+        logEvent, isHalf, isOpen: open, onOpen, maxHeight, labels
     } = props;
+    // `labels` maps an option value to the text shown for it; the value itself is what is selected
+    const labelOf = (v: string): string => labels?.[v] ?? v;
 
     const displayValue = value || 'All';
+    const displayText = labelOf(displayValue);
     // `options` can be transiently undefined (e.g. filterOptions not loaded yet right after
     // navigating to the page). The list below renders inside a Modal, whose children mount on
     // every render regardless of `visible` — so this must never crash even while closed.
@@ -187,7 +190,7 @@ const FilterSelect = (props: any) => {
                 style={styles.selectTrigger}
                 onPress={handleOpen}
             >
-                <Text style={styles.selectText}>{displayValue}</Text>
+                <Text style={styles.selectText}>{displayText}</Text>
                 <Text style={styles.dropdownArrow}>{open ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             <Modal
@@ -223,7 +226,7 @@ const FilterSelect = (props: any) => {
                                             styles.optionText,
                                             item === displayValue && styles.optionSelected
                                         ]}>
-                                            {item}
+                                            {labelOf(item)}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
@@ -240,21 +243,27 @@ const FilterSelect = (props: any) => {
  *  dialog for the small option sets (Content/Type/Source) in place of FilterSelect's Modal, which
  *  is fragile nested inside the dialog's own full-screen Modal on iOS. `dense` drops ChipSelect's
  *  own vertical margin, since the dialog's column layout budgets each row's height itself. */
-const FilterChips = ({ label, value, options, onSelect }: { label: string, value?: string, options?: string[], onSelect: (v: string | undefined) => void }) => (
-    <ChipSelect
-        label={label}
-        labelWidth={88}
-        dense
-        // Matches styles.label (the Title/Dist/Elev/Country labels) - without this override,
-        // ChipSelect's own default label size (textSizes.normalText, 16) reads visibly larger
-        // than every other label in the same dialog.
-        labelTextStyle={styles.label}
-        options={['All', ...(options ?? [])]}
-        selected={value ?? 'All'}
-        chipMinHeight={44}
-        onValueChange={(v) => onSelect(v === 'All' ? undefined : v)}
-    />
-);
+const FilterChips = ({ label, value, options, labels, onSelect }: { label: string, value?: string, options?: string[], labels?: Record<string, string>, onSelect: (v: string | undefined) => void }) => {
+    // ChipSelect works on display strings: show the label, map the chosen label back to its value
+    const labelOf = (v: string): string => labels?.[v] ?? v;
+    const valueOf = (text: string): string => (options ?? []).find(o => labelOf(o) === text) ?? text;
+
+    return (
+        <ChipSelect
+            label={label}
+            labelWidth={88}
+            dense
+            // Matches styles.label (the Title/Dist/Elev/Country labels) - without this override,
+            // ChipSelect's own default label size (textSizes.normalText, 16) reads visibly larger
+            // than every other label in the same dialog.
+            labelTextStyle={styles.label}
+            options={['All', ...(options ?? []).map(labelOf)]}
+            selected={value ? labelOf(value) : 'All'}
+            chipMinHeight={44}
+            onValueChange={(v) => onSelect(v === 'All' ? undefined : valueOf(v))}
+        />
+    );
+};
 
 /**
  * Country's own full-screen picker, nested inside the phone filter dialog's own full-screen
@@ -315,6 +324,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
         contentTypes,
         routeTypes,
         routeSources,
+        routeSourceLabels,
         maxDistance,
         maxElevation
     } = options??{};
@@ -414,7 +424,8 @@ export const FilterPanel = (props: FilterPanelProps) => {
         });
     };
 
-    const activeFilterCount = getFilterPills(localFilters).length;
+    const filterPills = getFilterPills(localFilters, routeSourceLabels);
+    const activeFilterCount = filterPills.length;
 
     const toggleRow = (
         <TouchableOpacity style={styles.toggleRow} onPress={handleToggle} activeOpacity={0.8}>
@@ -431,7 +442,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                 )}
             </View>
             <View style={styles.pillsRow}>
-                {getFilterPills(localFilters).map((pill, i) => (
+                {filterPills.map((pill, i) => (
                     <View key={i} style={styles.pill}>
                         <Text style={styles.pillText}>{pill}</Text>
                     </View>
@@ -514,7 +525,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                         <View style={styles.dialogColumnRight}>
                             <FilterChips label="Content" value={localFilters.contentType} options={contentTypes} onSelect={(v) => applyFilter({ ...localFiltersRef.current, contentType: v })} />
                             <FilterChips label="Type" value={localFilters.routeType} options={routeTypes} onSelect={(v) => applyFilter({ ...localFiltersRef.current, routeType: v })} />
-                            <FilterChips label="Source" value={localFilters.routeSource} options={routeSources} onSelect={(v) => applyFilter({ ...localFiltersRef.current, routeSource: v })} />
+                            <FilterChips label="Source" value={localFilters.routeSource} options={routeSources} labels={routeSourceLabels} onSelect={(v) => applyFilter({ ...localFiltersRef.current, routeSource: v })} />
 
                             <View style={styles.inlineFieldRow}>
                                 <Text style={[styles.label, styles.inlineLabel]} numberOfLines={1}>Country</Text>
@@ -625,7 +636,7 @@ export const FilterPanel = (props: FilterPanelProps) => {
                             onSelect={(v: any) => applyFilter({ ...localFiltersRef.current, routeType: v })}
                         />
                         <FilterSelect
-                            label="Source" value={localFilters.routeSource} options={routeSources}
+                            label="Source" value={localFilters.routeSource} options={routeSources} labels={routeSourceLabels}
                             fieldName="routeSource" logEvent={logEvent} isHalf
                             isOpen={openField === 'routeSource'} onOpen={setOpenField} maxHeight={dropdownMaxHeight}
                             onSelect={(v: any) => applyFilter({ ...localFiltersRef.current, routeSource: v })}

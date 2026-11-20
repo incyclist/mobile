@@ -6,6 +6,7 @@ import {
     ParsedRoute,
     ScannedRoute,
     IObserver,
+    RouteServersCloseReason,
 } from 'incyclist-services';
 import { RouteImportDialogView } from './RouteImportDialogView';
 import { RouteImportDialogProps, ExtendedImportDisplayProps } from './types';
@@ -13,6 +14,7 @@ import { useScreenLayout, useLogging, useUnmountEffect } from '../../hooks';
 import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { RouteServersDialog } from '../RouteServersDialog';
 
 /**
  * Smart component for the Import Routes dialog.
@@ -34,6 +36,8 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     );
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isSingleImporting, setIsSingleImporting] = useState(false);
+    // the add view of the route servers replaces the import dialog in place (no second modal stacked)
+    const [showRouteServers, setShowRouteServers] = useState(false);
 
     const refParsedRoutes = useRef<ParsedRoute[]>([]);
     const refInitialized = useRef(false);
@@ -287,6 +291,19 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         onUpdate();
     }, [selectedIds, onIngestProgress, onIngestComplete, onUpdate]);
 
+    const onAddRouteServer = useCallback(() => setShowRouteServers(true), []);
+    // the route servers page reports why it closed: 'done' (a server was added) finishes the import dialog,
+    // 'back' and 'cancel' return to the landing view
+    const onRouteServersClosed = useCallback(
+        (reason: RouteServersCloseReason) => {
+            setShowRouteServers(false);
+            if (reason === 'done') {
+                onDone();
+            }
+        },
+        [onDone]
+    );
+
     // Handle 'Try Again' by triggering the GPX picker again if in result phase
     const handleTryAgain = useCallback(() => {
         onAddGpx();
@@ -386,6 +403,14 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         onSelectFolder,
     ]);
 
+    if (showRouteServers) {
+        return (
+            <ErrorBoundary>
+                <RouteServersDialog origin="import" onClose={onRouteServersClosed} />
+            </ErrorBoundary>
+        );
+    }
+
     return (
         <ErrorBoundary>
             <RouteImportDialogView
@@ -400,6 +425,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
                 onAddGpx={onAddGpx}
                 onAddVideoRoute={onAddVideoRoute}
                 onSelectFolder={onSelectFolder}
+                onAddRouteServer={onAddRouteServer}
                 onToggleRoute={onToggleRoute}
                 onSelectAll={onSelectAll}
                 onDeselectAll={onDeselectAll}

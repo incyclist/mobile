@@ -8,6 +8,7 @@ import { SettingsSectionItem } from './types';
 const MOCK_SECTIONS: SettingsSectionItem[] = [
     { label: 'Gear',    onPress: jest.fn() },
     { label: 'Ride',    onPress: jest.fn() },
+    { label: 'Routes',  onPress: jest.fn() },
     { label: 'Apps',    onPress: jest.fn() },
     { label: 'Support', onPress: jest.fn() },
 ];

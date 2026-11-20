@@ -10,6 +10,7 @@ import { SettingsPlaceholder } from '../SettingsPlaceholder';
 import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
+import { RouteServersDialog } from '../RouteServersDialog';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 import { useLogging } from '../../hooks';
 
@@ -25,6 +26,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showGear, setShowGear] = useState(false);
     const [showRideSettings, setShowRideSettings] = useState(false);
     const [showAppsDialog, setShowAppsDialog] = useState(false);
+    const [showRouteServers, setShowRouteServers] = useState(false);
 
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;
@@ -42,6 +44,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
             setShowSettings(prev => {
                 if (prev) {
                     setShowAppsDialog(false);
+                    setShowRouteServers(false);
                 }
                 return !prev;
             });
@@ -54,6 +57,9 @@ export const NavigationBar = (props: NavigationBarProps) => {
         switch (label) {
             case 'Apps':
                 setShowAppsDialog(true);
+                break;
+            case 'Routes':
+                setShowRouteServers(true);
                 break;
             case 'Support':
                 setShowSettings(false);
@@ -79,6 +85,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const handleSettingsClose = useCallback(() => {
         setShowSettings(false);
         setShowAppsDialog(false);
+        setShowRouteServers(false);
     }, []);
 
     const handleSupportClose = useCallback(() => setShowSupport(false), []);
@@ -90,6 +97,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
         () => [
             { label: 'Gear', onPress: () => handleSectionPress('Gear') },
             { label: 'Ride', onPress: () => handleSectionPress('Ride') },
+            { label: 'Routes', onPress: () => handleSectionPress('Routes') },
             { label: 'Apps', onPress: () => handleSectionPress('Apps') },
             { label: 'Support', onPress: () => handleSectionPress('Support') },
         ],
@@ -135,6 +143,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 visible={showAppsDialog}
                 onClose={handleSettingsClose}
             />
+            {showRouteServers && <RouteServersDialog origin="settings" onClose={handleSettingsClose} />}
         </>
     );
 };

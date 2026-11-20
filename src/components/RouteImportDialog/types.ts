@@ -21,6 +21,7 @@ export interface RouteImportDialogViewProps {
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;
+    onAddRouteServer?: () => void;
     onToggleRoute: (id: string) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;

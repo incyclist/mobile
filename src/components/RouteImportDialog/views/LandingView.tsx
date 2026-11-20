@@ -10,6 +10,8 @@ interface LandingViewProps {
     onAddGpx: () => void;
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;
+    /** Opens the route server add view. The tile is only shown if provided. */
+    onAddRouteServer?: () => void;
     /** Whether the "Add Video Route" option tile should be shown - driven by the
      * VIDEO_ROUTE feature toggle (and platform support) in the parent smart component. */
     showVideoRouteOption: boolean;
@@ -49,6 +51,7 @@ export const LandingView = ({
     onAddGpx,
     onAddVideoRoute,
     onSelectFolder,
+    onAddRouteServer,
     showVideoRouteOption,
 }: LandingViewProps) => {
     const { logEvent } = useLogging('LandingView');
@@ -67,6 +70,11 @@ export const LandingView = ({
         logEvent({ message: 'button clicked', button: 'import-library', eventSource: 'user' });
         onSelectFolder();
     }, [logEvent, onSelectFolder]);
+
+    const handleAddRouteServer = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'add-route-server', eventSource: 'user' });
+        onAddRouteServer?.();
+    }, [logEvent, onAddRouteServer]);
 
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
@@ -94,6 +102,15 @@ export const LandingView = ({
                     onPress={handleSelectFolder} 
                     compact={compact} 
                 />
+                {onAddRouteServer && (
+                    <OptionTile
+                        icon='plus'
+                        title='Add Route Server'
+                        subtitle='Collections from other riders'
+                        onPress={handleAddRouteServer}
+                        compact={compact}
+                    />
+                )}
             </View>
         </View>
     );

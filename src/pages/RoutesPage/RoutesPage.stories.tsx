@@ -50,13 +50,15 @@ const mockFilterOptions: {
     contentTypes: string[];
     routeTypes: string[];
     routeSources: string[];
+    routeSourceLabels: Record<string, string>;
     maxDistance: { value: number; unit: Unit };
     maxElevation: { value: number; unit: Unit };
 } = {
     countries: ['FR', 'IT', 'DE', 'ES', 'CH', 'AU', 'BE'],
     contentTypes: ['Video', 'GPX'],
     routeTypes: ['Loop', 'Point to Point'],
-    routeSources: ['Incyclist', 'Local'],
+    routeSources: ['Incyclist', 'EbelingHoppe', 'Local'],
+    routeSourceLabels: { Incyclist: 'Incyclist', EbelingHoppe: 'Ebeling Hoppe', Local: 'Local' },
     maxDistance: { value: 200, unit: 'km' as Unit },
     maxElevation: { value: 5000, unit: 'm' as Unit },
 };

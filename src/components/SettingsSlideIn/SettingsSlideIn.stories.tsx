@@ -31,6 +31,7 @@ type Story = StoryObj<typeof SettingsSlideIn>;
 const MOCK_SECTIONS = [
     { label: 'Gear', onPress: () => {} },
     { label: 'Ride', onPress: () => {} },
+    { label: 'Routes',  onPress: () => {} },
     { label: 'Apps', onPress: () => {} },
     { label: 'Support', onPress: () => {} },
 ];
