@@ -6,6 +6,7 @@ import {
     addProps,
     listProps,
     KNOWN_ADDED,
+    KNOWN_CHECKING,
     KNOWN_AVAILABLE,
     KNOWN_ERROR,
     REMOVE_WITH_ROUTES,
@@ -133,6 +134,19 @@ describe('RouteServersDialogView', () => {
             expect(getByText('Added ✓ · 12 routes')).toBeTruthy();
             fireEvent.press(getByText('Add'));
             expect(props.onAddKnown).toHaveBeenCalledWith(KNOWN_AVAILABLE.id);
+        });
+
+        it('renders the ready-made status text of a known server as it is', () => {
+            const { getByText, queryByText } = setup({
+                displayProps: addProps([
+                    { ...KNOWN_ADDED, routeCount: 3, statusText: 'Added ✓' },
+                    { ...KNOWN_CHECKING, statusText: 'Checking now…' },
+                ]),
+            });
+
+            expect(getByText('Added ✓')).toBeTruthy();
+            expect(queryByText(/routes?$/)).toBeNull();
+            expect(getByText('Checking now…')).toBeTruthy();
         });
 
         it('offers a retry for a known server that failed', () => {

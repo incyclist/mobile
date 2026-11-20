@@ -19,14 +19,11 @@ const KnownStatus = ({ item, onAdd, onRetry }: KnownRowProps) => {
             return (
                 <View style={styles.statusRow}>
                     <ActivityIndicator size="small" color={colors.text} />
-                    <Text style={styles.statusText}>Checking…</Text>
+                    <Text style={styles.statusText}>{item.statusText}</Text>
                 </View>
             );
-        case 'added': {
-            const count = item.routeCount;
-            const suffix = count === undefined ? '' : ` · ${count} ${count === 1 ? 'route' : 'routes'}`;
-            return <Text style={styles.addedText}>{`Added ✓${suffix}`}</Text>;
-        }
+        case 'added':
+            return <Text style={styles.addedText}>{item.statusText}</Text>;
         case 'error':
             return <Button label="Try again" onClick={handleRetry} />;
         default:

@@ -1,4 +1,5 @@
 import type {
+    RouteServersCloseReason,
     RouteServersOrigin,
     RouteServersSettingsDisplayProps,
 } from 'incyclist-services';
@@ -7,8 +8,11 @@ import type {
 export interface RouteServersDialogProps {
     /** where the user came from: 'settings' starts with the list, 'import' with the add view */
     origin: RouteServersOrigin;
-    /** called when the page service closes the page (Back from its first view, Close, or an add from the Import dialog) */
-    onClose: () => void;
+    /**
+     * called when the page service closes the page, with the reason it reports:
+     * 'done' (server added from the Import dialog), 'back' (Back from the first view), 'cancel' (Close)
+     */
+    onClose: (reason: RouteServersCloseReason) => void;
 }
 
 /** Callbacks the view reports to its smart wrapper. */

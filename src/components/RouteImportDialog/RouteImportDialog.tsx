@@ -6,6 +6,7 @@ import {
     ParsedRoute,
     ScannedRoute,
     IObserver,
+    RouteServersCloseReason,
 } from 'incyclist-services';
 import { RouteImportDialogView } from './RouteImportDialogView';
 import { RouteImportDialogProps, ExtendedImportDisplayProps } from './types';
@@ -291,7 +292,17 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     }, [selectedIds, onIngestProgress, onIngestComplete, onUpdate]);
 
     const onAddRouteServer = useCallback(() => setShowRouteServers(true), []);
-    const onRouteServersClosed = useCallback(() => setShowRouteServers(false), []);
+    // the route servers page reports why it closed: 'done' (a server was added) finishes the import dialog,
+    // 'back' and 'cancel' return to the landing view
+    const onRouteServersClosed = useCallback(
+        (reason: RouteServersCloseReason) => {
+            setShowRouteServers(false);
+            if (reason === 'done') {
+                onDone();
+            }
+        },
+        [onDone]
+    );
 
     // Handle 'Try Again' by triggering the GPX picker again if in result phase
     const handleTryAgain = useCallback(() => {

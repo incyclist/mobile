@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, act, fireEvent } from '@testing-library/react-native';
 import { RouteServersDialog } from './RouteServersDialog';
-import { listProps, SERVER_ALPINE } from './RouteServersDialog.mock';
+import { addProps, listProps, SERVER_ALPINE } from './RouteServersDialog.mock';
 
 const mockService = {
     observer: undefined as any,
@@ -13,6 +13,7 @@ const mockService = {
     showAdd: jest.fn(),
     requestRemove: jest.fn(),
     setManualUrl: jest.fn(),
+    cancelAddEmpty: jest.fn(),
 };
 
 jest.mock('incyclist-services', () => ({
@@ -33,7 +34,7 @@ const newObserver = () => {
         off: jest.fn((event: string, fn: () => void) => {
             handlers[event] = (handlers[event] ?? []).filter(h => h !== fn);
         }),
-        emit: (event: string) => (handlers[event] ?? []).forEach(h => h()),
+        emit: (event: string, ...args: any[]) => (handlers[event] ?? []).forEach(h => (h as any)(...args)),
         count: (event: string) => (handlers[event] ?? []).length,
     };
 };
@@ -73,13 +74,36 @@ describe('RouteServersDialog', () => {
         expect(mockService.requestRemove).toHaveBeenCalledWith('Alpine Videos');
     });
 
-    it('calls onClose when the page service closes the page', () => {
+    it.each(['done', 'back', 'cancel'] as const)('forwards the reason %s when the page service closes the page', reason => {
         const onClose = jest.fn();
-        render(<RouteServersDialog origin="settings" onClose={onClose} />);
+        render(<RouteServersDialog origin="import" onClose={onClose} />);
 
-        act(() => mockService.observer.emit('closed'));
+        act(() => mockService.observer.emit('closed', { reason }));
 
         expect(onClose).toHaveBeenCalledTimes(1);
+        expect(onClose).toHaveBeenCalledWith(reason);
+    });
+
+    it('reports onClose only once', () => {
+        const onClose = jest.fn();
+        render(<RouteServersDialog origin="import" onClose={onClose} />);
+
+        act(() => mockService.observer.emit('closed', { reason: 'done' }));
+        act(() => mockService.observer.emit('closed', { reason: 'back' }));
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls cancelAddEmpty when "Add anyway?" is cancelled', () => {
+        mockService.getPageDisplayProps.mockReturnValue(
+            addProps([], { state: 'confirm-empty', message: 'No routes. Add it anyway?' })
+        );
+        const { getByText } = render(<RouteServersDialog origin="import" onClose={jest.fn()} />);
+
+        fireEvent.press(getByText('Cancel'));
+
+        expect(mockService.cancelAddEmpty).toHaveBeenCalledTimes(1);
+        expect(mockService.setManualUrl).not.toHaveBeenCalled();
     });
 
     it('unsubscribes and closes the page service when unmounted while still open', () => {

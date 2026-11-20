@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { getRouteServersSettingsPageService, IObserver, RouteServersSettingsDisplayProps } from 'incyclist-services';
+import {
+    getRouteServersSettingsPageService,
+    IObserver,
+    RouteServersClosedEvent,
+    RouteServersSettingsDisplayProps,
+} from 'incyclist-services';
 import { RouteServersDialogProps } from './types';
 import { RouteServersDialogView } from './RouteServersDialogView';
 import { useScreenLayout } from '../../hooks';
@@ -7,7 +12,7 @@ import { useScreenLayout } from '../../hooks';
 /**
  * Smart wrapper of the Route Servers screen. Opens the page service, follows its `page-update`
  * events and forwards the user's actions. The page service closes itself (Back from its first
- * view, or after a server was added from the Import dialog) and then reports `closed`.
+ * view, or after a server was added from the Import dialog) and then reports `closed` with the reason.
  */
 export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps) => {
     const compact = useScreenLayout() === 'compact';
@@ -25,12 +30,13 @@ export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps)
                 setDisplayProps(service.getPageDisplayProps());
             }
         };
-        const handleClosed = () => {
+        const handleClosed = (event?: RouteServersClosedEvent) => {
             if (finished) {
                 return;
             }
             finished = true;
-            refOnClose.current();
+            // the page service decides why it closed; the app only follows
+            refOnClose.current(event?.reason ?? 'cancel');
         };
 
         observer.on('page-update', handleUpdate);
@@ -60,11 +66,7 @@ export const RouteServersDialog = ({ origin, onClose }: RouteServersDialogProps)
     const handleCheck = useCallback(() => service.check(), [service]);
     const handleAdd = useCallback(() => service.add(), [service]);
     const handleConfirmAddEmpty = useCallback(() => service.confirmAddEmpty(), [service]);
-    // there is no dedicated action: entering the address again starts over with the check
-    const handleCancelAddEmpty = useCallback(
-        () => service.setManualUrl(service.getPageDisplayProps().manual.url),
-        [service]
-    );
+    const handleCancelAddEmpty = useCallback(() => service.cancelAddEmpty(), [service]);
     const handleRequestRemove = useCallback((key: string) => service.requestRemove(key), [service]);
     const handleSetRemoveRoutes = useCallback((remove: boolean) => service.setRemoveRoutes(remove), [service]);
     const handleConfirmRemove = useCallback(() => service.confirmRemove(), [service]);

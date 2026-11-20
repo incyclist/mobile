@@ -74,6 +74,7 @@ export const KNOWN_ADDED: KnownServerItem = {
     operator: 'VZW Kassei',
     state: 'added',
     routeCount: 12,
+    statusText: 'Added ✓ · 12 routes',
 };
 
 export const KNOWN_CHECKING: KnownServerItem = {
@@ -82,6 +83,7 @@ export const KNOWN_CHECKING: KnownServerItem = {
     description: 'Atlantic coast, flat and fast',
     operator: 'Coast Riders',
     state: 'checking',
+    statusText: 'Checking…',
 };
 
 export const KNOWN_ERROR: KnownServerItem = {
