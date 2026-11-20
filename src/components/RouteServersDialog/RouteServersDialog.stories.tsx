@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RouteServersDialogView } from './RouteServersDialogView';
@@ -50,6 +51,23 @@ export default meta;
 type Story = StoryObj<typeof RouteServersDialogView>;
 
 const PHONE = { compact: true };
+
+// On a device the confirmation is presented after the list; mounting both at once would stack
+// the (translucent) list over the confirmation in the browser. Open it a moment later, as the
+// page service does after a tap on Remove.
+const WithDelayedRemoveDialog = (props: React.ComponentProps<typeof RouteServersDialogView>) => {
+    const [show, setShow] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setShow(true), 600);
+        return () => clearTimeout(timer);
+    }, []);
+    const withoutDialog = { ...props.displayProps, removeDialog: undefined };
+    return <RouteServersDialogView {...props} displayProps={show ? props.displayProps : withoutDialog} />;
+};
+
+const renderWithDelayedRemoveDialog = (args: React.ComponentProps<typeof RouteServersDialogView>) => (
+    <WithDelayedRemoveDialog {...args} />
+);
 const SERVERS = [SERVER_ALPINE, SERVER_UNREACHABLE, SERVER_LOADING, SERVER_LOCAL];
 const KNOWN = [KNOWN_AVAILABLE, KNOWN_ADDED, KNOWN_CHECKING];
 
@@ -66,12 +84,15 @@ export const PhoneEmpty: Story = { args: { ...PHONE, displayProps: listProps([])
 // ---- remove ----
 
 export const TabletRemoveWithRoutes: Story = {
+    render: renderWithDelayedRemoveDialog,
     args: { displayProps: listProps(SERVERS, { removeDialog: REMOVE_WITH_ROUTES }) },
 };
 export const TabletRemoveWithoutRoutes: Story = {
+    render: renderWithDelayedRemoveDialog,
     args: { displayProps: listProps(SERVERS, { removeDialog: REMOVE_WITHOUT_ROUTES }) },
 };
 export const PhoneRemoveWithRoutes: Story = {
+    render: renderWithDelayedRemoveDialog,
     args: { ...PHONE, displayProps: listProps(SERVERS, { removeDialog: REMOVE_WITH_ROUTES }) },
 };
 
