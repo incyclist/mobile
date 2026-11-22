@@ -24,7 +24,6 @@ const make = (extra: Record<string, unknown> = {}) => ({
     onStart: noop,
     onRetry: noop,
     onCancel: noop,
-    onIgnore: noop,
     ...extra,
 }) as unknown as StartRideDisplayProps;
 
@@ -214,13 +213,6 @@ describe('StartRideDisplay (phased)', () => {
             const { queryByText, getByText } = render(<StartRideDisplay {...props} />);
             expect(queryByText('Could not start Sensor(s)')).toBeNull();
             expect(getByText('Not connected')).toBeTruthy();
-        });
-
-        it('renders the legacy overlay when startPhase is undefined', () => {
-            const props = make({ startPhase: undefined, devices: [trainer({ startState: undefined }), hrm({ startState: undefined })] });
-            const { getByText, queryByText } = render(<StartRideDisplay {...props} />);
-            expect(getByText('Starting activity ...')).toBeTruthy();
-            expect(queryByText('Optional')).toBeNull();
         });
     });
 });

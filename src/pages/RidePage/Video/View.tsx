@@ -333,7 +333,6 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     {...startOverlayProps}
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
-                    onIgnore={onIgnoreStart}
                     onRetryDevice={onRetryStartDevice}
                     onIgnoreDevice={onIgnoreStartDevice}
                     onCancel={onCancelStart}

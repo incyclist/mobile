@@ -211,7 +211,6 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                     {...startOverlayProps}
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
-                    onIgnore={onIgnoreStart}
                     onRetryDevice={onRetryStartDevice}
                     onIgnoreDevice={onIgnoreStartDevice}
                     onCancel={onCancelStart}

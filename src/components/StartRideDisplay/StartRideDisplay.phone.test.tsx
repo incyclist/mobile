@@ -26,7 +26,7 @@ const make = (extra: Record<string, unknown> = {}) => ({
     devices: [trainer(), h6m(), bikeControl()],
     startContent: { kind: 'map', label: 'Map', state: 'ready' },
     startReadyInfo: { pendingSensors: ['H6M 58398'], notConnectedSensors: ['BikeControl 2161'], viewFallback: false },
-    onStart: noop, onRetry: noop, onCancel: noop, onIgnore: noop,
+    onStart: noop, onRetry: noop, onCancel: noop,
     onRetryDevice: noop, onIgnoreDevice: noop,
     ...extra,
 }) as unknown as StartRideDisplayProps;

@@ -14,10 +14,9 @@ export type StartCancelReason = {
 }
 
 /*
- * Start overlay v2 contract. These mirror the optional fields that newer versions of
- * incyclist-services add to the start overlay props. They are declared here as well so that this
- * component compiles against (and tolerates) a services version that does not provide them yet:
- * when `startPhase` is undefined the legacy rendering path is used.
+ * Start overlay contract. These mirror the fields that incyclist-services adds to the start overlay
+ * props. They are declared here as well (optional) so that this component compiles against the
+ * pinned services version; services always emits them, the component defaults `startPhase`.
  */
 export type StartPhase = 'devices' | 'content' | 'ready'
 export type StartDeviceState = 'starting' | 'uploading' | 'started' | 'not-connected' | 'failed' | 'ignored'
@@ -49,7 +48,6 @@ export type StartRideDisplayProps = (StartOverlayProps | GPXStartOverlayProps | 
     onStart: ()=>void,
     onRetry: ()=>void,
     onCancel: (reason?:StartCancelReason)=>void,
-    onIgnore: ()=>void,
     /** Street View only - lets the rider skip a slow/failing Street View start. */
     onStartWithMap?: ()=>void,
     /** Start overlay v2: restart only this device */

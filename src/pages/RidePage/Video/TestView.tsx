@@ -79,7 +79,6 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         onMenuClose,
         onCloseRidePage,
         onRetryStart,
-        onIgnoreStart,
         onRetryStartDevice,
         onIgnoreStartDevice,
         onCancelStart,
@@ -256,7 +255,6 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                     {...startOverlayProps}
                     onStart={noop}
                     onRetry={onRetryStart}
-                    onIgnore={onIgnoreStart}
                     onRetryDevice={onRetryStartDevice}
                     onIgnoreDevice={onIgnoreStartDevice}
                     onCancel={onCancelStart}

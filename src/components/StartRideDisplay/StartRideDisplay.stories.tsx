@@ -9,7 +9,6 @@ const meta: Meta<typeof StartRideDisplay> = {
         onStart: fn(),
         onRetry: fn(),
         onCancel: fn(),
-        onIgnore: fn(),
         onRetryDevice: fn(),
         onIgnoreDevice: fn(),
     },
@@ -18,65 +17,6 @@ const meta: Meta<typeof StartRideDisplay> = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-export const Starting: Story = {
-    args: {
-        mode: 'Free-Ride',
-        rideState: 'Starting',
-        devices: [],
-        readyToStart: false,
-    } as any,
-};
-
-export const StartingWithDevices: Story = {
-    args: {
-        mode: 'Free-Ride',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'Daum 8080', isControl: true, status: 'Starting', capabilities: ['control'] },
-            { udid: '2', name: 'Polar Hrm', isControl: false, status: 'Starting', capabilities: ['heartrate'] },
-        ],
-        readyToStart: false,
-    } as any,
-};
-
-export const StartingReadyToStart: Story = {
-    args: {
-        mode: 'Free-Ride',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'Daum 8080', isControl: true, status: 'Started', capabilities: ['control'] },
-            { udid: '2', name: 'Polar Hrm', isControl: false, status: 'Starting', capabilities: ['heartrate'] },
-        ],
-        readyToStart: true,
-    } as any,
-};
-
-export const VideoBuffering: Story = {
-    args: {
-        mode: 'Video',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'Daum 8080', isControl: true, status: 'Starting', capabilities: ['control'] },
-            { udid: '2', name: 'Polar Hrm', isControl: false, status: 'Starting', capabilities: ['heartrate'] },
-        ],
-        readyToStart: false,
-        videoState: 'Bufering (50s) ',
-        videoProgress: { loaded: true, bufferTime: 0 },
-    } as any,
-};
-
-export const SensorError: Story = {
-    args: {
-        mode: 'Free-Ride',
-        rideState: 'Error',
-        devices: [
-            { udid: '1', name: 'ANT+FE 5797', isControl: true, status: 'Started', capabilities: ['control'] },
-            { udid: '2', name: 'ANT+HR 1234', isControl: false, status: 'Error', capabilities: ['heartrate'] },
-        ],
-        readyToStart: true,
-    } as any,
-};
 
 export const DeviceError: Story = {
     args: {
@@ -117,70 +57,7 @@ export const MapError: Story = {
     } as any,
 };
 
-// Street View-specific states, gated on `viewState`. Every story above has no
-// `viewState` and is the acceptance reference for "unchanged".
-
-export const StreetViewPreparing: Story = {
-    args: {
-        mode: 'GPX',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
-            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Started', capabilities: ['heartrate'] },
-        ],
-        readyToStart: false,
-        mapType: 'Street View',
-        viewState: 'loading',
-    } as any,
-};
-
-export const StreetViewSlow: Story = {
-    args: {
-        mode: 'GPX',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
-            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Started', capabilities: ['heartrate'] },
-        ],
-        readyToStart: false,
-        mapType: 'Street View',
-        viewState: 'slow',
-        onStartWithMap: fn(),
-    } as any,
-};
-
-export const StreetViewFallbackWithFailedSensor: Story = {
-    args: {
-        mode: 'GPX',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', capabilities: ['control'] },
-            { udid: '2', name: 'HRM-Pro', isControl: false, status: 'Error', capabilities: ['heartrate'] },
-        ],
-        readyToStart: true,
-        mapType: 'Street View',
-        viewState: 'unavailable',
-        viewFallbackCause: 'timeout',
-    } as any,
-};
-
-export const StartingFiveSensors: Story = {
-    args: {
-        mode: 'Free-Ride',
-        rideState: 'Starting',
-        devices: [
-            { udid: '1', name: 'Daum 8080',    isControl: true,  status: 'Started',  capabilities: ['control'] },
-            { udid: '2', name: 'Polar Hrm',    isControl: false, status: 'Starting', capabilities: ['heartrate'] },
-            { udid: '3', name: 'Garmin Cadence', isControl: false, status: 'Starting', capabilities: ['cadence'] },
-            { udid: '4', name: 'Wahoo Power',  isControl: false, status: 'Starting', capabilities: ['power'] },
-            { udid: '5', name: 'Garmin Speed', isControl: false, status: 'Starting', capabilities: ['speed'] },
-        ],
-        readyToStart: true,
-    } as any,
-};
-
-// Start overlay v2: phased rendering, keyed on `startPhase`. The legacy stories above have no
-// `startPhase` and stay the reference for the unchanged path.
+// Phased start rendering, keyed on `startPhase` (services always provides it).
 
 const kickr = (extra = {}) => ({ udid: '1', name: 'KICKR CORE', isControl: true, status: 'Started', startState: 'started', capabilities: ['control'], ...extra });
 const hrmPro = (extra = {}) => ({ udid: '2', name: 'HRM-Pro', isControl: false, status: 'Starting', startState: 'starting', capabilities: ['heartrate'], ...extra });

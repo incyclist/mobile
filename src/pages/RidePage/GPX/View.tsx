@@ -537,7 +537,6 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     {...startOverlayProps}
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
-                    onIgnore={onIgnoreStart}
                     onRetryDevice={onRetryStartDevice}
                     onIgnoreDevice={onIgnoreStartDevice}
                     onStartWithMap={onStartWithMap}
