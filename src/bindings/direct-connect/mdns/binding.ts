@@ -179,6 +179,8 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
 
             this.activeKey = next.key
             this.logger.logEvent({ message: 'start scan', type: next.type, protocol: next.protocol, domain: next.domain })
+            // Note: scan() cancels any prior scan on the same browser on both platforms,
+            // which is why only one browser is scanned at a time (see stopActive above)
             next.browser.scan(next.type, next.protocol, next.domain)
 
             // with a single browser there is nothing to alternate with
