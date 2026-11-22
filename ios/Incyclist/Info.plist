@@ -45,9 +45,10 @@
 	<array>
         <string>_wahoo-fitness-tnp._tcp</string>
         <string>_openbikecontrol._tcp</string>
+        <string>_incyclist._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Incyclist uses the local network to discover and connect to fitness devices such as smart trainers.</string>
+	<string>Incyclist uses the local network to discover and connect to fitness devices such as smart trainers, and to connect to your computer to use its route library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Incyclist uses your photo library to allow you to save and share ride data and screenshots.</string>	
     <key>NSLocationWhenInUseUsageDescription</key>
