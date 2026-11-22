@@ -278,11 +278,41 @@ export const PhasedReadyTwoSensorsOneFailed: Story = {
         startPhase: 'ready',
         devices: [
             kickr(),
-            { udid: '2', name: 'BikeControl 2161', isControl: false, status: 'Error', startState: 'not-connected', canRetry: true, canIgnore: true, capabilities: ['heartrate'] },
+            { udid: '2', name: 'BikeControl 2161', isControl: false, status: 'Error', startState: 'not-connected', canRetry: true, canIgnore: true, capabilities: ['app_control'] },
             { udid: '3', name: 'H6M 58398', isControl: false, status: 'Starting', startState: 'starting', slow: true, canRetry: true, canIgnore: true, capabilities: ['heartrate'] },
         ],
         startContent: { kind: 'map', label: 'Map', state: 'ready' },
         startReadyInfo: { pendingSensors: ['H6M 58398'], notConnectedSensors: ['BikeControl 2161'], viewFallback: false },
+    } as any,
+};
+
+export const PhasedReadyOneConnecting: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        readyToStart: true,
+        startPhase: 'ready',
+        devices: [kickr(), hrmPro({ canRetry: true, canIgnore: true })],
+        startContent: { kind: 'map', label: 'Map', state: 'ready' },
+        startReadyInfo: { pendingSensors: ['HRM-Pro'], notConnectedSensors: [], viewFallback: false },
+    } as any,
+};
+
+export const PhasedReadyFourSensors: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        readyToStart: true,
+        startPhase: 'ready',
+        devices: [
+            kickr(),
+            hrmPro({ canRetry: true, canIgnore: true }),
+            { udid: '3', name: 'Garmin Speed', isControl: false, status: 'Starting', startState: 'starting', canRetry: true, canIgnore: true, capabilities: ['speed'] },
+            { udid: '4', name: 'Wahoo Power', isControl: false, status: 'Error', startState: 'not-connected', canRetry: true, canIgnore: true, capabilities: ['power'] },
+            { udid: '5', name: 'Garmin Cadence', isControl: false, status: 'Error', startState: 'not-connected', canRetry: true, canIgnore: true, capabilities: ['cadence'] },
+        ],
+        startContent: { kind: 'map', label: 'Map', state: 'ready' },
+        startReadyInfo: { pendingSensors: ['HRM-Pro', 'Garmin Speed'], notConnectedSensors: ['Wahoo Power', 'Garmin Cadence'], viewFallback: false },
     } as any,
 };
 
