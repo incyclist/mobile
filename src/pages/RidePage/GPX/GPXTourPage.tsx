@@ -25,6 +25,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
         onMenuClose,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         onStartWithMap,
         getGraphActuals,
     } = useRidePageLifecycle<GPXRidePageDisplayProps>({ simulate, onRideTypeChange });
@@ -86,6 +88,8 @@ export const GPXTourPage = ({ simulate = false, onRideTypeChange, onCancelStart,
                 onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
+                onRetryStartDevice={onRetryStartDevice}
+                onIgnoreStartDevice={onIgnoreStartDevice}
                 onStartWithMap={onStartWithMap}
                 onCancelStart={onCancelStart}
                 getGraphActuals={getGraphActuals}

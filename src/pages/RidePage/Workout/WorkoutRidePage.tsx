@@ -37,6 +37,8 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
         onMenuClose,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         getGraphActuals,
     } = useRidePageLifecycle<WorkoutRidePageDisplayProps>({ simulate, onRideTypeChange });
 
@@ -78,6 +80,8 @@ export const WorkoutRidePage = ({ simulate = false, onRideTypeChange, onCancelSt
                 onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
+                onRetryStartDevice={onRetryStartDevice}
+                onIgnoreStartDevice={onIgnoreStartDevice}
                 onCancelStart={onCancelStart}
                 onGestureHintDismissed={onGestureHintDismissed}
             />

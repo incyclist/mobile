@@ -14,6 +14,9 @@ export interface RideViewActionProps {
     onCloseRidePage: () => void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
+    /** Start overlay v2: per-device Retry / Ignore (optional, needs a services version that provides them) */
+    onRetryStartDevice?: (udid: string) => void;
+    onIgnoreStartDevice?: (udid: string) => void;
     onCancelStart: () => void;
     /** Street View only - lets the rider skip a slow/failing Street View start.
      *  Optional: only GPX rides (the only ride type that can be a Street View start) wire it. */

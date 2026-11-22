@@ -19,10 +19,10 @@ const baseProps = {
     devices: [trainer('Starting'), hrm('Starting')],
     mapType: 'Street View',
     mapState: 'Loaded',
+    startPhase: 'devices',
     onStart: noop,
     onRetry: noop,
     onCancel: noop,
-    onIgnore: noop,
 } as unknown as StartRideDisplayProps;
 
 describe('StartRideDisplay', () => {
@@ -44,72 +44,65 @@ describe('StartRideDisplay', () => {
         expect(getByText('Cancel')).toBeTruthy();
     });
 
-    // FIXES_BACKLOG #52 — the reported iOS scenario: a non-control device (HRM) fails while the
-    // control device (trainer) has already started. `rideState` stays 'Starting' (not 'Error'),
-    // so the sensor-error dialog must not take over — the 'starting' dialog stays up and, once
-    // `readyToStart` flips true, must offer the Start button so the rider can proceed without the
-    // failed sensor. This drives the exact prop transition from the backlog's captured log:
-    //   1. trainer Started, HRM Starting,  readyToStart:true
-    //   2. trainer Started, HRM Error,     readyToStart:true
+    // FIXES_BACKLOG #52 - the reported iOS scenario: a non-control device (HRM) fails while the
+    // control device (trainer) has already started. `rideState` stays 'Starting', and once
+    // `readyToStart` flips true the Start button must be offered so the rider can proceed without
+    // the failed sensor; the failed sensor is shown inline, never as a separate error dialog.
     it('re-renders to show the Start button when props update from readyToStart:false to true with a failed non-control device', () => {
         const devicesHrmStarting = [trainer('Starting'), hrm('Starting')];
         const devicesHrmError = [trainer('Started'), hrm('Error')];
 
         const { getByText, queryByText, rerender } = render(
-            <StartRideDisplay
-                {...baseProps}
-                devices={devicesHrmStarting}
-                rideState="Starting"
-                readyToStart={false}
-            />
+            <StartRideDisplay {...baseProps} devices={devicesHrmStarting} rideState="Starting" readyToStart={false} />
         );
 
         expect(queryByText('Start')).toBeNull();
 
-        // trainer Started, HRM Starting, readyToStart:true (first logged update)
         rerender(
-            <StartRideDisplay
-                {...baseProps}
-                devices={devicesHrmStarting}
-                rideState="Starting"
-                readyToStart={true}
-            />
+            <StartRideDisplay {...baseProps} devices={devicesHrmStarting} rideState="Starting" readyToStart={true} />
         );
         expect(getByText('Start')).toBeTruthy();
 
-        // trainer Started, HRM Error, readyToStart:true (second logged update) - still 'Starting',
-        // so the sensor-error dialog (Retry/Ignore/Cancel) must NOT take over; Start must remain.
         rerender(
-            <StartRideDisplay
-                {...baseProps}
-                devices={devicesHrmError}
-                rideState="Starting"
-                readyToStart={true}
-            />
+            <StartRideDisplay {...baseProps} devices={devicesHrmError} rideState="Starting" readyToStart={true} />
         );
         expect(getByText('Start')).toBeTruthy();
         expect(queryByText('Retry')).toBeNull();
         expect(queryByText('Ignore')).toBeNull();
     });
 
-    it('shows the sensor-error dialog (not the starting dialog) once rideState actually becomes Error', () => {
+    it('keeps a failed sensor inline (no sensor-error dialog) even when rideState is Error', () => {
         const devices = [trainer('Started'), hrm('Error')];
 
         const { getByText, queryByText } = render(
             <StartRideDisplay {...baseProps} devices={devices} rideState="Error" readyToStart={true} />
         );
 
-        expect(getByText('Retry')).toBeTruthy();
-        expect(getByText('Ignore')).toBeTruthy();
-        expect(queryByText('Start')).toBeNull();
+        expect(queryByText('Could not start Sensor(s)')).toBeNull();
+        expect(getByText('Start')).toBeTruthy();
     });
 
-    // Street View-specific content, gated on `viewState`. Every test above has no
-    // `viewState` and is the acceptance reference for "unchanged".
+    it('shows the device-error dialog for a failed control device', () => {
+        const devices = [trainer('Error'), hrm('Starting')];
+        const { getByText } = render(
+            <StartRideDisplay {...baseProps} devices={devices} rideState="Error" readyToStart={false} />
+        );
+
+        expect(getByText('Start failed')).toBeTruthy();
+        expect(getByText('Retry')).toBeTruthy();
+    });
+
+    // Street View-specific content, gated on `viewState`.
     describe('Street View start', () => {
+        const make = (extra: Record<string, unknown>) => ({ ...baseProps, ...extra }) as unknown as StartRideDisplayProps;
+        const streetView = {
+            startPhase: 'content',
+            startContent: { kind: 'streetview', label: 'Street View', state: 'loading' },
+        };
+
         it('shows "Preparing Street View ..." and "Loading ..." while loading, no Start with Map yet', () => {
             const { getByText, queryByText } = render(
-                <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={false} viewState="loading" />
+                <StartRideDisplay {...make({ ...streetView, rideState: 'Starting', readyToStart: false, viewState: 'loading' })} />
             );
 
             expect(getByText('Preparing Street View ...')).toBeTruthy();
@@ -117,45 +110,26 @@ describe('StartRideDisplay', () => {
             expect(queryByText('Start with Map')).toBeNull();
         });
 
-        it('shows "Still loading ..." and a Start with Map button once slow', () => {
+        it('offers a Start with Map button once slow', () => {
             const onStartWithMap = jest.fn();
             const { getByText } = render(
                 <StartRideDisplay
-                    {...baseProps}
-                    rideState="Starting"
-                    readyToStart={false}
-                    viewState="slow"
-                    onStartWithMap={onStartWithMap}
+                    {...make({ ...streetView, rideState: 'Starting', readyToStart: false, viewState: 'slow', onStartWithMap })}
                 />
             );
 
             expect(getByText('Preparing Street View ...')).toBeTruthy();
-            expect(getByText('Still loading ...')).toBeTruthy();
 
             fireEvent.press(getByText('Start with Map'));
             expect(onStartWithMap).toHaveBeenCalled();
         });
 
-        it('shows the amber fallback row and today\'s heading once unavailable', () => {
-            const { getByText, queryByText } = render(
-                <StartRideDisplay {...baseProps} rideState="Starting" readyToStart={true} viewState="unavailable" />
+        it('does not offer Start with Map once unavailable', () => {
+            const { queryByText } = render(
+                <StartRideDisplay {...make({ startPhase: 'ready', rideState: 'Starting', readyToStart: true, viewState: 'unavailable' })} />
             );
 
-            // heading returns to the default once resolved (loaded or unavailable)
-            expect(getByText('Starting activity ...')).toBeTruthy();
-            expect(getByText('Unavailable – using Map')).toBeTruthy();
             expect(queryByText('Start with Map')).toBeNull();
-        });
-
-        it('leaves device rows, sensor-error and device-error handling untouched on a Street View start', () => {
-            const devices = [trainer('Started'), hrm('Error')];
-            const { getByText, queryByText } = render(
-                <StartRideDisplay {...baseProps} devices={devices} rideState="Error" readyToStart={true} viewState="loaded" />
-            );
-
-            expect(getByText('Retry')).toBeTruthy();
-            expect(getByText('Ignore')).toBeTruthy();
-            expect(queryByText('Start')).toBeNull();
         });
     });
 });

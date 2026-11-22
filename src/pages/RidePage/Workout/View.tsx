@@ -55,6 +55,8 @@ export interface WorkoutRidePageViewProps {
     onCloseRidePage: () => void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
+    onRetryStartDevice?: (udid: string) => void;
+    onIgnoreStartDevice?: (udid: string) => void;
     onCancelStart: () => void;
     onGestureHintDismissed: (props: { dontShowAgain: boolean }) => void;
 }
@@ -88,6 +90,8 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
         onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         onCancelStart,
         onGestureHintDismissed,
     } = props;
@@ -207,7 +211,8 @@ export const WorkoutRidePageView = (props: WorkoutRidePageViewProps) => {
                     {...startOverlayProps}
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
-                    onIgnore={onIgnoreStart}
+                    onRetryDevice={onRetryStartDevice}
+                    onIgnoreDevice={onIgnoreStartDevice}
                     onCancel={onCancelStart}
                 />
             )}
