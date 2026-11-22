@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { Dialog } from '../../components/Dialog';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useWhyDidYouRender } from '../../hooks';
 import { PhasedStartContent, ContentRowInfo } from './PhasedStartContent';
-import { contentRowStatus, deviceRowStatus, lineSlot, phaseHeading, splitDevices } from './phasedStart';
+import { contentRowStatus, deviceRowStatus, lineSlot, phaseHeading } from './phasedStart';
+import { usePhasedStartModel } from './usePhasedStartModel';
 import {
     CurrentRideDeviceInfo,
     StartDeviceInfo,
@@ -25,6 +26,9 @@ const viewStateText = (viewState: SvViewState | undefined) => {
         default: return { text: 'Waiting', color: colors.text };
     }
 };
+
+// phones shorter than this show the notice's first line only
+const SHORT_SCREEN_HEIGHT = 340;
 
 const startingTitle = (viewState: SvViewState | undefined) =>
     viewState === 'loading' || viewState === 'slow' ? 'Preparing Street View ...' : 'Starting activity ...';
@@ -56,6 +60,15 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     useWhyDidYouRender('StartRideDisplay', props, true);
 
     const layout = useScreenLayout();
+    const { height: screenHeight } = useWindowDimensions();
+    const compact = layout === 'compact';
+    const phasedModel = usePhasedStartModel({
+        devices: (devices ?? []) as StartDeviceInfo[],
+        phase: startPhase,
+        content: startContent,
+        readyInfo: startReadyInfo,
+        collapseResolved: compact,
+    });
 
     const isVideoRide = 'videoState' in props;
     const isGPXRide = 'mapType' in props;
@@ -121,15 +134,10 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return undefined;
     };
 
-    // on a phone the ready-phase helper is dropped: the row itself shows the missing sensor and
-    // the vertical space is needed to keep all sensor rows visible
-    const getLine = (): string | undefined => {
-        if (!startPhase || (layout === 'compact' && startPhase === 'ready')) return undefined;
-        return lineSlot(startPhase, startSlow, startContent, startReadyInfo);
-    };
+    const getLine = (): string | undefined => startPhase ? lineSlot(startPhase, startSlow, startContent) : undefined;
 
     const getContentRow =(): ContentRowInfo | undefined => {
-        if (!startContent) return undefined;
+        if (!startContent || !phasedModel.showContentRow) return undefined;
         return { label: startContent.label, status: contentRowStatus(startContent, getLoadingText()) };
     };
 
@@ -163,7 +171,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         </View>
     );
 
-    const minWidth = layout === 'compact' ? '80%' : '40%';
+    const minWidth = compact ? '80%' : '40%';
 
     if (displayState === 'device-error') {
         const failedDevice = devices.find(d => d.isControl && d.status === 'Error');
@@ -257,21 +265,24 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     }
 
     if (isPhased) {
-        const { controls, sensors } = splitDevices(devices as StartDeviceInfo[]);
-        const content = getContentRow();
         return (
             <Dialog
                 title={phaseHeading(startPhase, startContent)}
                 variant="info"
                 minWidth={minWidth}
+                scrollable={false}
+                footerNote={phasedModel.footerNote}
                 buttons={startingButtons(readyToStart || startPhase === 'ready', viewState, onStart, onStartWithMap, onCancel)}
             >
                 <PhasedStartContent
                     line={getLine()}
-                    compact={layout === 'compact'}
-                    controls={controls}
-                    sensors={sensors}
-                    content={content}
+                    notice={phasedModel.notice}
+                    shortScreen={screenHeight < SHORT_SCREEN_HEIGHT}
+                    compact={compact}
+                    controls={phasedModel.controls}
+                    sensors={phasedModel.sensors}
+                    content={getContentRow()}
+                    showDivider={phasedModel.showDivider}
                     statusOf={deviceRowStatus}
                     onRetryDevice={onRetryDevice}
                     onIgnoreDevice={onIgnoreDevice}

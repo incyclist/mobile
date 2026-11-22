@@ -66,14 +66,23 @@ describe('StartRideDisplay (phased)', () => {
     });
 
     describe('line slot', () => {
-        it('prefers the slow line over the AVI line and the helper', () => {
+        it('prefers the slow line over the AVI line', () => {
             const props = make({
-                startPhase: 'ready', startSlow: true, readyToStart: true,
+                startPhase: 'content', startSlow: true,
                 startContent: { kind: 'video', label: 'Video', state: 'loading', progress: { convertPct: 10 } },
-                startReadyInfo: { pendingSensors: ['HRM-Pro'], notConnectedSensors: [], viewFallback: false },
             });
             const { getByTestId } = render(<StartRideDisplay {...props} />);
             expect(getByTestId('start-line').props.children).toBe('This is taking longer than usual.');
+        });
+
+        it('shows the notice instead of a line in the ready phase', () => {
+            const props = make({
+                startPhase: 'ready', startSlow: true, readyToStart: true,
+                startReadyInfo: { pendingSensors: ['HRM-Pro'], notConnectedSensors: [], viewFallback: false },
+            });
+            const { queryByTestId, getByTestId } = render(<StartRideDisplay {...props} />);
+            expect(queryByTestId('start-line')).toBeNull();
+            expect(getByTestId('start-notice')).toBeTruthy();
         });
 
         it('shows the AVI expectation line when not slow', () => {
@@ -85,14 +94,14 @@ describe('StartRideDisplay (phased)', () => {
         });
 
         it.each([
-            [{ pendingSensors: ['HRM-Pro'], notConnectedSensors: [], viewFallback: false }, 'HRM-Pro is still connecting. You can start without it.'],
-            [{ pendingSensors: [], notConnectedSensors: ['HRM-Pro'], viewFallback: false }, "HRM-Pro isn't connected. You can start without it."],
-            [{ pendingSensors: ['A'], notConnectedSensors: ['B'], viewFallback: false }, "Some sensors aren't connected yet. You can start without them."],
-            [{ pendingSensors: [], notConnectedSensors: [], viewFallback: true }, "Street View isn't available right now. You'll ride with the Map."],
-        ])('shows the ready helper %#', (info, text) => {
+            [{ pendingSensors: ['HRM-Pro'], notConnectedSensors: [], viewFallback: false }, 'Heart rate sensor is still connecting'],
+            [{ pendingSensors: [], notConnectedSensors: ['HRM-Pro'], viewFallback: false }, "Heart rate sensor isn't connected"],
+            [{ pendingSensors: ['A'], notConnectedSensors: ['B'], viewFallback: false }, "2 sensors aren't connected yet"],
+            [{ pendingSensors: [], notConnectedSensors: [], viewFallback: true }, "Street View isn't available right now"],
+        ])('shows the ready notice %#', (info, title) => {
             const props = make({ startPhase: 'ready', readyToStart: true, startReadyInfo: info });
             const { getByTestId } = render(<StartRideDisplay {...props} />);
-            expect(getByTestId('start-line').props.children).toBe(text);
+            expect(getByTestId('start-notice-title').props.children).toBe(title);
         });
 
         it('renders no line when there is nothing to say', () => {

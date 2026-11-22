@@ -23,7 +23,6 @@ export const GLYPH_TEXT: Record<Exclude<RowGlyph, 'spinner'>, string> = {
 
 export const AVI_LINE = 'This video has to be prepared before it can play. This can take a minute.';
 export const SLOW_LINE = 'This is taking longer than usual.';
-export const VIEW_FALLBACK_LINE = "Street View isn't available right now. You'll ride with the Map.";
 
 export const phaseHeading = (phase: StartPhase, content?: StartContentInfo): string => {
     if (phase === 'devices') return 'Starting devices ...';
@@ -82,30 +81,168 @@ export const contentRowStatus = (content: StartContentInfo, loadingText?: string
 
 const sensorCount = (info: StartReadyInfo) => info.pendingSensors.length + info.notConnectedSensors.length;
 
-export const readyHelperLine = (info: StartReadyInfo | undefined): string | undefined => {
-    if (!info) return undefined;
-    const count = sensorCount(info);
-    if (count === 0) return info.viewFallback ? VIEW_FALLBACK_LINE : undefined;
-    if (count > 1) return "Some sensors aren't connected yet. You can start without them.";
-    if (info.pendingSensors.length === 1) return `${info.pendingSensors[0]} is still connecting. You can start without it.`;
-    return `${info.notConnectedSensors[0]} isn't connected. You can start without it.`;
-};
-
-/** One line slot: slow > AVI expectation > ready helper */
+/** One line slot (devices / content phase): slow > AVI expectation. The ready phase uses the notice instead. */
 export const lineSlot = (
     phase: StartPhase,
     slow: boolean | undefined,
     content: StartContentInfo | undefined,
-    readyInfo: StartReadyInfo | undefined,
 ): string | undefined => {
+    if (phase === 'ready') return undefined;
     if (slow) return SLOW_LINE;
     if (content?.kind === 'video' && content.progress && content.state !== 'ready') return AVI_LINE;
-    if (phase === 'ready') return readyHelperLine(readyInfo);
     return undefined;
 };
 
-/** control devices (trainer first), then sensors, each in the original order */
-export const splitDevices = (devices: StartDeviceInfo[]) => ({
-    controls: devices.filter(d => d.isControl),
-    sensors: devices.filter(d => !d.isControl),
-});
+const effectiveState = (device: StartDeviceInfo) => device.startState ?? fallbackStartState(device);
+
+export const isResolvedDevice = (device: StartDeviceInfo): boolean => effectiveState(device) === 'started';
+
+/** control devices (trainer first), then sensors, each in the original order; resolved vs. open split on top */
+export const splitDevices = (devices: StartDeviceInfo[]) => {
+    const controls = devices.filter(d => d.isControl);
+    const sensors = devices.filter(d => !d.isControl);
+    return {
+        controls,
+        sensors,
+        openControls: controls.filter(d => !isResolvedDevice(d)),
+        resolvedControls: controls.filter(isResolvedDevice),
+        openSensors: sensors.filter(d => !isResolvedDevice(d)),
+        resolvedSensors: sensors.filter(isResolvedDevice),
+    };
+};
+
+// ---- problems first: severity, ratchet rank, ordering -------------------------------------------
+
+export type RankMap = Map<string, number>;
+
+/** not connected 3 > slow 2 > still starting 1; everything else (ignored, started) adds none */
+export const severity = (device: StartDeviceInfo): number => {
+    switch (effectiveState(device)) {
+        case 'not-connected':
+        case 'failed': return 3;
+        case 'starting': return device.slow ? 2 : 1;
+        case 'uploading': return 1;
+        default: return 0;
+    }
+};
+
+/** Raises (never lowers) the rank of every device and returns the rank of the given one. */
+const ratchet = (ranks: RankMap, device: StartDeviceInfo): number => {
+    const rank = Math.max(ranks.get(device.udid) ?? 0, severity(device));
+    ranks.set(device.udid, rank);
+    return rank;
+};
+
+/**
+ * Open sensor rows, worst first. The rank is the highest severity a row has had while the overlay
+ * was open (kept in `ranks`), so a Retry or Ignore never moves a row; ties keep pairing order.
+ */
+export const orderOpenSensors = (sensors: StartDeviceInfo[], ranks: RankMap): StartDeviceInfo[] =>
+    sensors
+        .map((device, index) => ({ device, index, rank: ratchet(ranks, device) }))
+        .sort((a, b) => b.rank - a.rank || a.index - b.index)
+        .map(entry => entry.device);
+
+// ---- notice -------------------------------------------------------------------------------------
+
+/** `idle`: info without a spinner (nothing is being waited for) */
+export type StartNoticeInfo = { tone: 'warning' | 'info'; title: string; detail?: string; idle?: boolean };
+
+const KIND_BY_CAPABILITY: [string, string][] = [
+    ['heartrate', 'Heart rate sensor'],
+    ['power', 'Power meter'],
+    ['cadence', 'Cadence sensor'],
+    ['speed', 'Speed sensor'],
+    ['app_control', 'Controller'],
+];
+
+/** What kind of device this is, in words a rider knows (first matching capability wins) */
+export const deviceKind = (device: Pick<StartDeviceInfo, 'capabilities'> | undefined): string => {
+    const caps: string[] = (device?.capabilities as string[] | undefined) ?? [];
+    return KIND_BY_CAPABILITY.find(([cap]) => caps.includes(cap))?.[1] ?? 'Sensor';
+};
+
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+
+const kindList = (kinds: string[]): string => {
+    const unique = kinds.filter((kind, i) => kinds.indexOf(kind) === i);
+    return unique.map((kind, i) => (i === 0 ? kind : lowerFirst(kind))).join(', ');
+};
+
+const outstandingNames = (info: StartReadyInfo, devices: StartDeviceInfo[], ranks?: RankMap): string[] => {
+    const names = [...info.notConnectedSensors, ...info.pendingSensors];
+    const rankOf = (name: string) => {
+        const device = devices.find(d => d.name === name);
+        return device ? (ranks?.get(device.udid) ?? severity(device)) : 0;
+    };
+    return names
+        .map((name, index) => ({ name, index, rank: rankOf(name) }))
+        .sort((a, b) => b.rank - a.rank || a.index - b.index)
+        .map(entry => entry.name);
+};
+
+const singleNotice = (info: StartReadyInfo, kind: string, name: string): StartNoticeInfo => {
+    if (info.notConnectedSensors.length === 1) {
+        return { tone: 'warning', title: `${kind} isn't connected`, detail: `${name} · Tap Retry, or start without it.` };
+    }
+    return {
+        tone: 'info',
+        title: `${kind} is still connecting`,
+        detail: `${name} · The ride starts when it connects, or start now without it.`,
+    };
+};
+
+/** The pinned ready-phase summary of everything that is not started yet (mobile only) */
+export const startNotice = (
+    devices: StartDeviceInfo[],
+    info: StartReadyInfo | undefined,
+    ranks?: RankMap,
+): StartNoticeInfo | undefined => {
+    if (!info) return undefined;
+    const count = sensorCount(info);
+    if (count === 0) {
+        return info.viewFallback
+            ? { tone: 'info', title: "Street View isn't available right now", detail: "You'll ride with the Map.", idle: true }
+            : undefined;
+    }
+
+    const names = outstandingNames(info, devices, ranks);
+    const kinds = names.map(name => deviceKind(devices.find(d => d.name === name)));
+    if (count === 1) return singleNotice(info, kinds[0], names[0]);
+
+    const tone = info.notConnectedSensors.length > 0 ? 'warning' : 'info';
+    const title = tone === 'warning' ? `${count} sensors aren't connected yet` : `${count} sensors are still connecting`;
+    return { tone, title, detail: `${kindList(kinds)} · You can start without them.` };
+};
+
+// ---- footer summary ------------------------------------------------------------------------------
+
+const MAX_SUMMARY_NAMES = 3;
+
+/** `✓ KICKR CORE · Map`; more than 3 names: the first 2 and `+N`. Undefined when nothing is resolved. */
+export const resolvedSummary = (
+    controls: StartDeviceInfo[],
+    content: StartContentInfo | undefined,
+    sensors: StartDeviceInfo[],
+): string | undefined => {
+    const names = [
+        ...controls.map(d => d.name),
+        ...(content?.state === 'ready' ? [content.label] : []),
+        ...sensors.map(d => d.name),
+    ];
+    if (names.length === 0) return undefined;
+    if (names.length <= MAX_SUMMARY_NAMES) return `✓ ${names.join(' · ')}`;
+    return `✓ ${names.slice(0, 2).join(' · ')} +${names.length - 2}`;
+};
+
+/** The "Optional" divider separates blocking rows from sensor rows; on a phone in `ready` every row is optional */
+export const showOptionalDivider = (
+    collapseResolved: boolean,
+    phase: StartPhase | undefined,
+    blockingRows: number,
+    sensorRows: number,
+): boolean => {
+    if (sensorRows === 0) return false;
+    if (!collapseResolved) return true;
+    return phase !== 'ready' && blockingRows > 0;
+};
