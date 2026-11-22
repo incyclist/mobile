@@ -270,6 +270,22 @@ export const PhasedReadyNotConnected: Story = {
     } as any,
 };
 
+export const PhasedReadyTwoSensorsOneFailed: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        readyToStart: true,
+        startPhase: 'ready',
+        devices: [
+            kickr(),
+            { udid: '2', name: 'BikeControl 2161', isControl: false, status: 'Error', startState: 'not-connected', canRetry: true, canIgnore: true, capabilities: ['heartrate'] },
+            { udid: '3', name: 'H6M 58398', isControl: false, status: 'Starting', startState: 'starting', slow: true, canRetry: true, canIgnore: true, capabilities: ['heartrate'] },
+        ],
+        startContent: { kind: 'map', label: 'Map', state: 'ready' },
+        startReadyInfo: { pendingSensors: ['H6M 58398'], notConnectedSensors: ['BikeControl 2161'], viewFallback: false },
+    } as any,
+};
+
 export const PhasedReadyIgnored: Story = {
     args: {
         mode: 'GPX',

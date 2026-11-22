@@ -121,7 +121,14 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return undefined;
     };
 
-    const getContentRow = (): ContentRowInfo | undefined => {
+    // on a phone the ready-phase helper is dropped: the row itself shows the missing sensor and
+    // the vertical space is needed to keep all sensor rows visible
+    const getLine = (): string | undefined => {
+        if (!startPhase || (layout === 'compact' && startPhase === 'ready')) return undefined;
+        return lineSlot(startPhase, startSlow, startContent, startReadyInfo);
+    };
+
+    const getContentRow =(): ContentRowInfo | undefined => {
         if (!startContent) return undefined;
         return { label: startContent.label, status: contentRowStatus(startContent, getLoadingText()) };
     };
@@ -260,7 +267,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
                 buttons={startingButtons(readyToStart || startPhase === 'ready', viewState, onStart, onStartWithMap, onCancel)}
             >
                 <PhasedStartContent
-                    line={lineSlot(startPhase, startSlow, startContent, startReadyInfo)}
+                    line={getLine()}
                     compact={layout === 'compact'}
                     controls={controls}
                     sensors={sensors}

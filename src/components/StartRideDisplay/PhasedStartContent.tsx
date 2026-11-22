@@ -109,7 +109,7 @@ export const PhasedStartContent = ({
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingVertical: 4,
     },
     line: {
         color: colors.disabled,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        paddingVertical: 4,
+        paddingVertical: 2,
         alignItems: 'center',
         minHeight: 28,
     },
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
+        paddingVertical: 2,
     },
     dividerLine: {
         flex: 1,
