@@ -1,6 +1,6 @@
 import { createDownloadTask } from '@kesha-antonov/react-native-background-downloader';
 import RNFS from 'react-native-fs';
-import { buildVideoUrl, MobileDownloadSession } from './index';
+import { buildVideoUrl, MobileDownloadSession, MobileDownloadManager, toDownloadError } from './index';
 
 jest.mock('react-native-fs', () => ({
     __esModule: true,
@@ -9,6 +9,7 @@ jest.mock('react-native-fs', () => ({
         exists: jest.fn().mockResolvedValue(false),
         unlink: jest.fn().mockResolvedValue(undefined),
         moveFile: jest.fn().mockResolvedValue(undefined),
+        getFSInfo: jest.fn(),
         ExternalDirectoryPath: '/storage/emulated/0/Android/data/com.incyclist.app/files',
         DocumentDirectoryPath: '/data/user/0/com.incyclist.app/files',
     },
@@ -51,6 +52,7 @@ describe('MobileDownloadSession', () => {
         stop: jest.Mock,
     };
     let doneCallback: () => void;
+    let errorCallback: (e: { error: string, errorCode: number }) => void;
 
     const url = 'https://cdn.example.com/routes/FR_Galibier_Demo.mp4';
     const fileName = '/storage/emulated/0/Android/data/com.incyclist.app/files/videos/FR_Galibier_Demo.mp4';
@@ -62,7 +64,7 @@ describe('MobileDownloadSession', () => {
             begin: jest.fn().mockReturnThis(),
             progress: jest.fn().mockReturnThis(),
             done: jest.fn((cb: () => void) => { doneCallback = cb; return task; }),
-            error: jest.fn().mockReturnThis(),
+            error: jest.fn((cb: typeof errorCallback) => { errorCallback = cb; return task; }),
             start: jest.fn(),
             stop: jest.fn(),
         };
@@ -148,5 +150,53 @@ describe('MobileDownloadSession', () => {
 
         expect(emitSpy).toHaveBeenCalledWith('error', moveError);
         expect(emitSpy).not.toHaveBeenCalledWith('done', expect.anything());
+    });
+
+    test('an out-of-space failure of the transfer is reported with a message that names it', async () => {
+        const session = new MobileDownloadSession(url, fileName);
+        const onError = jest.fn();
+        session.on('error', onError);
+        session.start();
+        await flushPromises();
+
+        errorCallback({ error: 'Download failed', errorCode: 1006 });
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0][0].message).toMatch(/no space/i);
+    });
+
+    test('stop removes the partial file', async () => {
+        const session = new MobileDownloadSession(url, fileName);
+        session.start();
+        await flushPromises();
+
+        session.stop();
+
+        expect(task.stop).toHaveBeenCalled();
+        expect(RNFS.unlink).toHaveBeenCalledWith(tempFileName);
+    });
+});
+
+describe('toDownloadError', () => {
+    test('keeps other failures unchanged', () => {
+        expect(toDownloadError('connection reset', 1004).message).toBe('connection reset');
+        const err = new Error('ENOSPC: no space left on device');
+        expect(toDownloadError(err)).toBe(err);
+    });
+
+    test('does not repeat an out-of-space text that is already there', () => {
+        expect(toDownloadError('ENOSPC', 1006).message).toBe('ENOSPC');
+    });
+});
+
+describe('MobileDownloadManager.getFreeSpace', () => {
+    test('returns the free bytes of the app storage', async () => {
+        (RNFS.getFSInfo as jest.Mock).mockResolvedValue({ freeSpace: 5_000_000_000, totalSpace: 64_000_000_000 });
+        await expect(new MobileDownloadManager().getFreeSpace()).resolves.toBe(5_000_000_000);
+    });
+
+    test('returns undefined when the storage can not be read', async () => {
+        (RNFS.getFSInfo as jest.Mock).mockRejectedValue(new Error('denied'));
+        await expect(new MobileDownloadManager().getFreeSpace('/x')).resolves.toBeUndefined();
     });
 });

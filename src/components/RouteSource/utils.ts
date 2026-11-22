@@ -1,5 +1,6 @@
 import type { RouteItemProps } from 'incyclist-services';
 import type { RouteSourceProps } from './types';
+import { formatBytes } from '../DownloadModal/format';
 
 type UnavailableReason = NonNullable<RouteItemProps['unavailableReason']>;
 
@@ -52,12 +53,13 @@ export const getWhatToDoText = ({ unavailableReason, sourceLabel }: RouteSourceP
 export const getPlaysFromText = (sourceLabel?: string): string | undefined =>
     sourceLabel ? `Plays from ${sourceLabel}` : undefined;
 
-/** The grey hint of a route that plays from a computer. */
-export const getHintText = (sourceLabel: string | undefined, short: boolean): string => {
+/** The grey hint of a route that plays from a computer; the size of the copy is named once it is known. */
+export const getHintText = (sourceLabel: string | undefined, short: boolean, sizeBytes?: number): string => {
     const name = sourceLabel ?? 'your computer';
-    return short
-        ? `Download to ride without ${name}.`
-        : `Plays only while ${name} is on and you're on the same Wi‑Fi. Download it to ride anywhere.`;
+    const size = formatBytes(sizeBytes);
+    if (short)
+        return size ? `Download (${size}) to ride without ${name}.` : `Download to ride without ${name}.`;
+    return `Plays only while ${name} is on and you're on the same Wi‑Fi. Download it${size ? ` (${size})` : ''} to ride anywhere.`;
 };
 
 /** The line under the filter row; `undefined` while there is nothing to explain. */

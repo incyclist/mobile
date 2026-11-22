@@ -141,6 +141,10 @@ export interface RouteDetailsViewProps extends SmoothingPreviewProps {
     onDownloadStop?: (routeId: string) => void;
     onDownloadRetry?: (routeId: string) => void;
     onDownloadDelete?: (routeId: string) => void;
+    /** Why the copy of the video from a computer to this device failed, when it did. */
+    copyFailureText?: string;
+    /** Size of the video on the computer, named in the hint to download it. */
+    copySizeBytes?: number;
 
     /**
      * Everything about the route's own video file: which state it is in, which buttons apply,

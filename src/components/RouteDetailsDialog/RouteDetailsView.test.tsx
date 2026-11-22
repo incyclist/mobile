@@ -6,7 +6,7 @@ import { ChipSelect } from '../ChipSelect';
 import {
     MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
     MOCK_SMOOTHED_GRADIENT, MOCK_BARELY_VISIBLE_GRADIENT,
-    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE,
+    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE, MOCK_COPY_NO_SPACE,
 } from './RouteDetailsView.mock';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
@@ -700,6 +700,17 @@ describe('RouteDetailsView', () => {
         it('keeps the cached thumbnail of the computer, so the route looks asleep and not broken', () => {
             const { getByTestId } = render(<RouteDetailsView {...UNAVAILABLE} />);
             expect(getByTestId('preview-still').props.thumbnailLink).toEqual({ linkId: 'link-1', thumbHandle: 'thumb-1' });
+        });
+
+        it.each([false, true])('names the size of the copy in the hint once it is known (compact %s)', (compact) => {
+            const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} {...MOCK_SOURCE_FROM_LINK} copySizeBytes={4_200_000_000} compact={compact} />);
+            expect(getByText(/Download it \(4\.2 GB\) to ride anywhere\./)).toBeTruthy();
+        });
+
+        it.each([false, true])('shows why the copy to this device failed (compact %s)', (compact) => {
+            const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} {...MOCK_COPY_NO_SPACE} compact={compact} />);
+            expect(getByText('Not enough space on this device. This route needs 4.2 GB; 1.1 GB is free.')).toBeTruthy();
+            expect(getByText('Retry Download')).toBeTruthy();
         });
 
         it('adds nothing for a route that is on this device', () => {

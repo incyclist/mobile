@@ -67,7 +67,19 @@ const mockRouteListService = {
     getRouteDetails: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockRouteCopy = {
+    getState: jest.fn((): any => ({ status: 'idle' })),
+    on: jest.fn(),
+    off: jest.fn(),
+    copyToDevice: jest.fn().mockResolvedValue({ status: 'idle' }),
+    cancel: jest.fn(),
+    clear: jest.fn(),
+};
+const mockSharingClient = { getRowsForRoute: jest.fn((): any[] => []) };
+
 jest.mock('incyclist-services', () => ({
+    useRouteCopy: () => mockRouteCopy,
+    useRouteSharingClient: () => mockSharingClient,
     useRouteList: () => mockRouteListService,
     useActivityList: () => ({ getPastActivitiesWithDetails: jest.fn().mockResolvedValue([]) }),
     getRoutesPageService: () => mockPageService,

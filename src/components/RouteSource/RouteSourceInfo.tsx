@@ -11,7 +11,7 @@ import { getHintText, getPlaysFromText, getUnavailableText, getWhatToDoText } fr
  * Renders only what the page service reported.
  */
 export const RouteSourceInfo = (props: RouteSourceInfoProps) => {
-    const { availability, sourceLabel, shortHint, reasonShown } = props;
+    const { availability, sourceLabel, shortHint, sizeBytes, reasonShown } = props;
 
     if (availability === 'fromLink') {
         return (
@@ -20,7 +20,7 @@ export const RouteSourceInfo = (props: RouteSourceInfoProps) => {
                     <Icon name="monitor" size={14} color={colors.tileIdle} />
                     <Text style={styles.source}>{getPlaysFromText(sourceLabel) ?? 'Plays from a computer'}</Text>
                 </View>
-                <Text style={styles.hint}>{getHintText(sourceLabel, !!shortHint)}</Text>
+                <Text style={styles.hint}>{getHintText(sourceLabel, !!shortHint, sizeBytes)}</Text>
             </View>
         );
     }

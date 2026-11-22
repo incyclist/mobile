@@ -27,6 +27,7 @@ const mockPageService = {
     getRouteDetailsProps: mockGetRouteDetailsProps,
     getPageObserver: jest.fn(() => mockPageObserver),
     onClearWorkoutSelection: mockOnClearWorkoutSelection,
+    deleteLocalCopy: jest.fn().mockResolvedValue(true),
 };
 
 const mockCardProps: any = {
@@ -92,7 +93,19 @@ const mockActivityListService = {
 
 const mockOnlineStatusMonitor = { onlineStatus: true };
 
+const mockRouteCopy = {
+    getState: jest.fn((): any => ({ status: 'idle' })),
+    on: jest.fn(),
+    off: jest.fn(),
+    copyToDevice: jest.fn().mockResolvedValue({ status: 'idle' }),
+    cancel: jest.fn(),
+    clear: jest.fn(),
+};
+const mockSharingClient = { getRowsForRoute: jest.fn((): any[] => []) };
+
 jest.mock('incyclist-services', () => ({
+    useRouteCopy: () => mockRouteCopy,
+    useRouteSharingClient: () => mockSharingClient,
     useRouteList: () => mockRouteListService,
     useActivityList: () => mockActivityListService,
     getRoutesPageService: () => mockPageService,
@@ -571,5 +584,66 @@ describe('RouteDetailsDialog - canStart refresh on download completion', () => {
         expect(queryAllByText('Start').length).toBe(startCountBeforeDownload + 1);
         expect(getByText('Add Workout')).toBeTruthy();
         expect(getByText('Downloaded ✓')).toBeTruthy();
+    });
+});
+
+
+describe('RouteDetailsDialog - copy to device', () => {
+    const fromLink = () => baseRouteDetailsProps({ availability: 'fromLink', sourceLabel: 'Den PC' });
+    let onChange: ((ev: any) => void) | undefined;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockRouteData.description.linkShared = true;
+        mockCard.openSettings.mockReturnValue(mockCardProps);
+        mockGetRouteDetailsProps.mockReturnValue(fromLink());
+        mockRouteCopy.getState.mockReturnValue({ status: 'idle' });
+        mockSharingClient.getRowsForRoute.mockReturnValue([{ size: 4_200_000_000 }, { size: 4_000_000_000 }]);
+        onChange = undefined;
+        mockRouteCopy.on.mockImplementation((_ev: string, cb: any) => { onChange = cb; });
+    });
+
+    afterEach(() => {
+        delete mockRouteData.description.linkShared;
+    });
+
+    it('names the size of the video in the hint and offers Download', () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText(/Download it \(4\.2 GB\) to ride anywhere\./)).toBeTruthy();
+        expect(getByText('Download')).toBeTruthy();
+    });
+
+    it('starts the copy through the copy service, not a server download', () => {
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        fireEvent.press(getByText('Download'));
+        expect(mockRouteCopy.copyToDevice).toHaveBeenCalledWith('r1');
+        expect(mockCard.download).not.toHaveBeenCalled();
+    });
+
+    it('shows progress on the button while copying', () => {
+        mockRouteCopy.getState.mockReturnValue({ status: 'copying', progress: 10 });
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('Downloading…')).toBeTruthy();
+    });
+
+    it('shows the not-enough-space message when the copy was refused', () => {
+        mockRouteCopy.getState.mockReturnValue({ status: 'failed', reason: 'no-space', sizeBytes: 4_200_000_000, freeBytes: 1_100_000_000 });
+        const { getByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(getByText('Not enough space on this device. This route needs 4.2 GB; 1.1 GB is free.')).toBeTruthy();
+        expect(getByText('Retry Download')).toBeTruthy();
+    });
+
+    it('follows the state changes of its own route only', () => {
+        const { getByText, queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        act(() => { onChange?.({ routeKey: 'other', state: { status: 'copying', progress: 1 } }); });
+        expect(queryByText('Downloading…')).toBeNull();
+        act(() => { onChange?.({ routeKey: 'r1', state: { status: 'copying', progress: 1 } }); });
+        expect(getByText('Downloading…')).toBeTruthy();
+    });
+
+    it('does not offer a copy for a route that is not shared by a computer', () => {
+        mockRouteData.description.linkShared = false;
+        const { queryByText } = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+        expect(queryByText('Download')).toBeNull();
     });
 });

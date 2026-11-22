@@ -12,6 +12,8 @@ export type RouteSourceSublineProps = Pick<RouteSourceProps, 'availability' | 's
 export interface RouteSourceInfoProps extends RouteSourceProps {
     /** phone with less than 360 of height: the short hint */
     shortHint?: boolean;
+    /** size of the copy on this device, when known */
+    sizeBytes?: number;
     /** the layout has its own place for the reason (the can-not-start line); only the lines below it are shown */
     reasonShown?: boolean;
 }

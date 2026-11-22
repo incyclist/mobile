@@ -5,7 +5,7 @@ import { fn } from 'storybook/test';
 import { RouteDetailsView } from './RouteDetailsView';
 import {
     MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
-    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE,
+    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE, MOCK_COPY_RUNNING, MOCK_COPY_NO_SPACE,
 } from './RouteDetailsView.mock';
 import { MainBackground } from '../../components';
 
@@ -368,6 +368,22 @@ export const SmoothingUnavailable: Story = {
 
 export const PlaysFromComputer: Story = {
     args: mockRouteProps({ ...MOCK_SOURCE_FROM_LINK }),
+};
+
+export const PlaysFromComputerWithSize: Story = {
+    args: mockRouteProps({ ...MOCK_SOURCE_FROM_LINK, copySizeBytes: 4_200_000_000, downloadButtonLabel: 'Download' }),
+};
+
+export const CopyingToDevice: Story = {
+    args: mockRouteProps({ ...MOCK_COPY_RUNNING }),
+};
+
+export const CopyNotEnoughSpace: Story = {
+    args: mockRouteProps({ ...MOCK_COPY_NO_SPACE }),
+};
+
+export const CompactCopyNotEnoughSpace: Story = {
+    args: mockRouteProps({ ...MOCK_COPY_NO_SPACE, compact: true }),
 };
 
 export const CompactPlaysFromComputer: Story = {

@@ -443,7 +443,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
-        onDownloadStop, onDownloadRetry, onDownloadDelete,
+        onDownloadStop, onDownloadRetry, onDownloadDelete, copyFailureText, copySizeBytes,
         video, deviceWord = DEFAULT_DEVICE_WORD, videoNow,
         onVideoDownloadPressed, onVideoDownloadConfirmed, onVideoDownloadDismissed,
         onVideoRetry, onVideoStop, onVideoConfirmAccess, onVideoKeepInstead,
@@ -753,6 +753,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 sourceLabel={sourceLabel}
                 unavailableReason={unavailableReason}
                 shortHint={screenHeight < MIN_HEIGHT_FOR_LONG_COPY}
+                sizeBytes={copySizeBytes}
                 reasonShown
             />
         );
@@ -768,6 +769,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
                 {infoBar}
                 {sourceInfo}
+                {!!copyFailureText && <Text style={styles.errorText}>{copyFailureText}</Text>}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         <ScrollView
@@ -819,6 +821,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     onStop={onDownloadStop ?? (() => {})}
                     onRetry={onDownloadRetry ?? (() => {})}
                     onDelete={onDownloadDelete ?? (() => {})}
+                    failedText={copyFailureText}
                     onClose={onDownloadModalClose ?? (() => {})}
                 />
                 {videoDialogs}
@@ -910,8 +913,10 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 availability={availability}
                 sourceLabel={sourceLabel}
                 unavailableReason={unavailableReason}
+                sizeBytes={copySizeBytes}
                 reasonShown
             />
+            {!!copyFailureText && <Text style={styles.fullErrorText}>{copyFailureText}</Text>}
             <DownloadModalView
                 visible={!!showDownloadModal}
                 rows={downloadRows ?? []}
@@ -919,6 +924,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 onStop={onDownloadStop ?? (() => {})}
                 onRetry={onDownloadRetry ?? (() => {})}
                 onDelete={onDownloadDelete ?? (() => {})}
+                    failedText={copyFailureText}
                 onClose={onDownloadModalClose ?? (() => {})}
             />
             {videoDialogs}

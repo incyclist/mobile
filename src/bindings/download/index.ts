@@ -32,6 +32,22 @@ export const buildVideoUrl = (filePath: string): string => {
     return `video://${filePath}`;
 }
 
+// Android DownloadManager.ERROR_INSUFFICIENT_SPACE
+const ANDROID_ERROR_INSUFFICIENT_SPACE = 1006;
+const OUT_OF_SPACE_TEXT = /ENOSPC|no space|not enough (space|storage)|out of space|NSFileWriteOutOfSpace/i;
+
+/**
+ * Makes a failed transfer recognisable as "the device is full": the native layers report that
+ * differently (an Android error code, an ENOSPC errno text, an iOS NSFileWriteOutOfSpace error),
+ * and the caller classifies on the message only.
+ */
+export const toDownloadError = (error: unknown, errorCode?: number): Error => {
+    const message = typeof error === 'string' ? error : (error as Error | undefined)?.message ?? '';
+    if (errorCode === ANDROID_ERROR_INSUFFICIENT_SPACE && !OUT_OF_SPACE_TEXT.test(message))
+        return new Error(`no space left on device (code ${errorCode}) ${message}`.trim());
+    return error instanceof Error ? error : new Error(message);
+};
+
 export class MobileDownloadSession extends EventEmitter implements IDownloadSession {
     private task?: any;
     private lastUpdate: number = 0;
@@ -103,6 +119,7 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
         if (this.task) {
             this.task.stop();
         }
+        this.removeTempFile();
         this.emit('stopped')
     }
 
@@ -152,12 +169,18 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
             .error(({ error, errorCode }: { error: string, errorCode: number }) => {
                 this.logger.logEvent({message: 'DownloadSession error', url: this.url, error, errorCode})
                 if (this.stopped) return;
-                this.emit('error', new Error(error));
+                this.emit('error', toDownloadError(error, errorCode));
             })
 
         this.logger.logEvent({message: 'DownloadSession start download', url: this.url})
 
         this.task.start()
+    }
+
+    // A stopped transfer must not leave its partial file behind: only the destination is known to
+    // the caller, so the temp file is ours to remove.
+    private removeTempFile(): void {
+        RNFS.unlink(this.tempFileName).catch(() => { /* nothing was written yet */ });
     }
 
     // Relocates the completed download from the temp path to the real
@@ -181,7 +204,7 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
         }
         catch (err: any) {
             this.logger.logEvent({message: 'DownloadSession finalize error', url: this.url, error: err.message})
-            this.emit('error', err);
+            this.emit('error', toDownloadError(err));
         }
     }
 }
@@ -192,6 +215,20 @@ export class MobileDownloadManager implements IDownloadManager {
     public createSession(url: string, fileName: string, _props?: DownloadProps): IDownloadSession {
         this.logger.logEvent({message: 'DownloadManager createSession', url, fileName})
         return new MobileDownloadSession(url, fileName);
+    }
+
+    public async getFreeSpace(volumePath?: string): Promise<number | undefined> {
+        try {
+            // react-native-fs reports the volume of the app's storage, which is where the videos go
+            const info = await RNFS.getFSInfo();
+            const free = info?.freeSpace;
+            this.logger.logEvent({message: 'DownloadManager getFreeSpace', path: volumePath, freeBytes: free})
+            return typeof free === 'number' && free >= 0 ? free : undefined;
+        }
+        catch (err: any) {
+            this.logger.logEvent({message: 'DownloadManager getFreeSpace failed', error: err?.message})
+            return undefined;
+        }
     }
 
     public getVideoDir(): string {

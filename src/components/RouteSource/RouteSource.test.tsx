@@ -41,6 +41,8 @@ describe('RouteSource copy', () => {
         expect(getPlaysFromText()).toBeUndefined();
         expect(getHintText('Den PC', false)).toBe("Plays only while Den PC is on and you're on the same Wi‑Fi. Download it to ride anywhere.");
         expect(getHintText('Den PC', true)).toBe('Download to ride without Den PC.');
+        expect(getHintText('Den PC', false, 4_200_000_000)).toBe("Plays only while Den PC is on and you're on the same Wi‑Fi. Download it (4.2 GB) to ride anywhere.");
+        expect(getHintText('Den PC', true, 850_000_000)).toBe('Download (850 MB) to ride without Den PC.');
     });
 
     test('explainer', () => {
