@@ -19,6 +19,7 @@ import { getFormBinding } from './form';
 import { MobileDownloadManager } from './download';
 import { getMapAvailabilityBinding } from './mapAvailability';
 import { getFileAccessBinding } from './fileAccess';
+import { getSecureStorageBinding } from './secureStorage';
 
 
 let _bindings:IncyclistBindings|undefined
@@ -50,6 +51,7 @@ export const initBindings = async  ()=> {
     bindings.fetch = getFetchBinding()
     bindings.form = getFormBinding()
     bindings.downloadManager = new MobileDownloadManager()
+    bindings.secureStorage = getSecureStorageBinding()
 
     // Access to files outside the app sandbox (iCloud/picked folders). iOS only - there is no
     // Android or web-ui/desktop implementation, so the binding stays absent everywhere else.

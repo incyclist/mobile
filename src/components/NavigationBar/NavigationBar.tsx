@@ -11,8 +11,18 @@ import { GearSettings } from '../GearSettings';
 import { RideSettings } from '../RideSettings';
 import { AppsDialog } from '../AppsDialog';
 import { RouteServersDialog } from '../RouteServersDialog';
+import { RouteSharingSettings } from '../RouteSharingSettings';
+import { useAppState } from 'incyclist-services';
 import { useScreenLayout } from '../../hooks/render/useScreenLayout';
 import { useLogging } from '../../hooks';
+
+const useHasBridgeMode = (): boolean => {
+    try {
+        return useAppState().hasFeature('BRIDGE_MODE') === true;
+    } catch {
+        return false;
+    }
+};
 
 export const NavigationBar = (props: NavigationBarProps) => {
     const { selected, onClick, compact, disabled } = props;
@@ -27,6 +37,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
     const [showRideSettings, setShowRideSettings] = useState(false);
     const [showAppsDialog, setShowAppsDialog] = useState(false);
     const [showRouteServers, setShowRouteServers] = useState(false);
+    const [showRouteSharing, setShowRouteSharing] = useState(false);
 
     const isCompact = screenLayout === 'compact';
     const verticalNavWidth = compact ? 70 : 150;
@@ -61,6 +72,10 @@ export const NavigationBar = (props: NavigationBarProps) => {
             case 'Routes':
                 setShowRouteServers(true);
                 break;
+            case 'Route Sharing':
+                setShowSettings(false);
+                setShowRouteSharing(true);
+                break;
             case 'Support':
                 setShowSettings(false);
                 setShowSupport(true);
@@ -88,20 +103,26 @@ export const NavigationBar = (props: NavigationBarProps) => {
         setShowRouteServers(false);
     }, []);
 
+    const handleRouteSharingClose = useCallback(() => setShowRouteSharing(false), []);
     const handleSupportClose = useCallback(() => setShowSupport(false), []);
     const handlePlaceholderClose = useCallback(() => setShowPlaceholder(false), []);
     const handleGearClose = useCallback(() => setShowGear(false), []);
     const handleRideSettingsClose = useCallback(() => setShowRideSettings(false), []);
+
+    // The row is absent while BRIDGE_MODE is off; with it on, an app that is too old gets the
+    // update prompt inside the dialog.
+    const hasRouteSharing = useHasBridgeMode();
 
     const sections: SettingsSectionItem[] = useMemo(
         () => [
             { label: 'Gear', onPress: () => handleSectionPress('Gear') },
             { label: 'Ride', onPress: () => handleSectionPress('Ride') },
             { label: 'Routes', onPress: () => handleSectionPress('Routes') },
+            ...(hasRouteSharing ? [{ label: 'Route Sharing', onPress: () => handleSectionPress('Route Sharing') }] : []),
             { label: 'Apps', onPress: () => handleSectionPress('Apps') },
             { label: 'Support', onPress: () => handleSectionPress('Support') },
         ],
-        [handleSectionPress]
+        [handleSectionPress, hasRouteSharing]
     );
 
     return (
@@ -135,6 +156,7 @@ export const NavigationBar = (props: NavigationBarProps) => {
                 onClose={handleSettingsClose}
                 onSectionPress={handleSectionPress}
             />
+            {showRouteSharing && <RouteSharingSettings onClose={handleRouteSharingClose} />}
             {showSupport && <SupportSettings onClose={handleSupportClose} />}
             {showPlaceholder && <SettingsPlaceholder onClose={handlePlaceholderClose} />}
             {showRideSettings && <RideSettings onClose={handleRideSettingsClose} />}

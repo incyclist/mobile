@@ -10,6 +10,7 @@ jest.mock('../SupportSettings', () => ({ SupportSettings: () => null }));
 jest.mock('../SettingsPlaceholder', () => ({ SettingsPlaceholder: () => null }));
 jest.mock('../GearSettings', () => ({ GearSettings: () => null }));
 jest.mock('../RideSettings', () => ({ RideSettings: () => null }));
+jest.mock('../RouteSharingSettings', () => ({ RouteSharingSettings: () => null }));
 
 const mockAppsDialog = jest.fn((_props: Record<string, unknown>) => null);
 jest.mock('../AppsDialog', () => ({

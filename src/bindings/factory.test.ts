@@ -23,6 +23,7 @@ jest.mock('./fetch', () => ({ getFetchBinding: jest.fn(() => ({ fetch: true })) 
 jest.mock('./form', () => ({ getFormBinding: jest.fn(() => ({ form: true })) }));
 jest.mock('./download', () => ({ MobileDownloadManager: jest.fn().mockImplementation(() => ({ downloadManager: true })) }));
 jest.mock('./mapAvailability', () => ({ getMapAvailabilityBinding: jest.fn(() => ({ start: jest.fn() })) }));
+jest.mock('./secureStorage', () => ({ getSecureStorageBinding: jest.fn(() => ({ secureStorage: true })) }));
 jest.mock('./fileAccess', () => ({ getFileAccessBinding: jest.fn(() => ({ isSupported: () => true })) }));
 
 describe('bindings/factory initBindings', () => {
@@ -72,5 +73,6 @@ describe('bindings/factory initBindings', () => {
         expect(bindings.fs).toBeDefined();
         expect(bindings.downloadManager).toBeDefined();
         expect(bindings.mapAvailability).toBeDefined();
+        expect(bindings.secureStorage).toBeDefined();
     });
 });
