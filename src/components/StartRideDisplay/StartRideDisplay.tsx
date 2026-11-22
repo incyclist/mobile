@@ -3,8 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Dialog } from '../../components/Dialog';
 import { colors, textSizes } from '../../theme';
 import { useScreenLayout, useWhyDidYouRender } from '../../hooks';
+import { PhasedStartContent, ContentRowInfo } from './PhasedStartContent';
+import { contentRowStatus, deviceRowStatus, lineSlot, phaseHeading, splitDevices } from './phasedStart';
 import {
     CurrentRideDeviceInfo,
+    StartDeviceInfo,
     GPXStartOverlayProps,
     RideMapState,
     StartRideDisplayProps,
@@ -39,7 +42,10 @@ const startingButtons = (
 ];
 
 export const StartRideDisplay = (props: StartRideDisplayProps) => {
-    const { devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, onStartWithMap } = props;
+    const {
+        devices, rideState, readyToStart, onStart, onRetry, onCancel, onIgnore, onStartWithMap,
+        startPhase, startSlow, startContent, startReadyInfo, onRetryDevice, onIgnoreDevice,
+    } = props;
 
     // FIXES_BACKLOG #52 — iOS start overlay was reported stuck showing Cancel-only although
     // services logged readyToStart:true. No re-render/memoization bug was found while tracing the
@@ -64,7 +70,10 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
     const controlDeviceError = (devices??[]).find(d => d.isControl && d.status === 'Error');
     const mapError = isGPXRide && (props as any).mapStateError;
     const videoError = isVideoRide && (props as any).videoState === 'Start:Failed';
-    const sensorError = rideState === 'Error' && devices.find(d => !d.isControl && d.status === 'Error');
+    // start overlay v2 (startPhase provided) shows a failed sensor inline, the separate sensor-error
+    // screen is only kept for the legacy path
+    const isPhased = startPhase !== undefined;
+    const sensorError = !isPhased && rideState === 'Error' && devices.find(d => !d.isControl && d.status === 'Error');
 
     let displayState: 'device-error' | 'map-error' | 'video-error' | 'sensor-error' | 'starting' = 'starting';
 
@@ -225,6 +234,36 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
                         <Text style={styles.bodyText}>{(props as any).mapStateError}</Text>
                     </View>
                 </View>
+            </Dialog>
+        );
+    }
+
+    if (isPhased) {
+        const { controls, sensors } = splitDevices(devices as StartDeviceInfo[]);
+        let content: ContentRowInfo | undefined;
+        if (startContent) {
+            const loadingText = isVideoRide
+                ? videoStateText(props as VideoStartOverlayProps).text
+                : (isStreetViewStart ? viewStateText(viewState).text : undefined);
+            content = { label: startContent.label, status: contentRowStatus(startContent, loadingText) };
+        }
+        return (
+            <Dialog
+                title={phaseHeading(startPhase, startContent)}
+                variant="info"
+                minWidth={minWidth}
+                buttons={startingButtons(readyToStart || startPhase === 'ready', viewState, onStart, onStartWithMap, onCancel)}
+            >
+                <PhasedStartContent
+                    line={lineSlot(startPhase, startSlow, startContent, startReadyInfo)}
+                    compact={layout === 'compact'}
+                    controls={controls}
+                    sensors={sensors}
+                    content={content}
+                    statusOf={deviceRowStatus}
+                    onRetryDevice={onRetryDevice}
+                    onIgnoreDevice={onIgnoreDevice}
+                />
             </Dialog>
         );
     }
