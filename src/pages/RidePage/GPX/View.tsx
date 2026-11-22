@@ -76,6 +76,8 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
         onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         onStartWithMap,
         onCancelStart,
         getGraphActuals,
@@ -536,6 +538,8 @@ export const GPXTourPageView = (props: GPXTourPageViewProps) => {
                     onStart={onIgnoreStart}
                     onRetry={onRetryStart}
                     onIgnore={onIgnoreStart}
+                    onRetryDevice={onRetryStartDevice}
+                    onIgnoreDevice={onIgnoreStartDevice}
                     onStartWithMap={onStartWithMap}
                     onCancel={onCancelStart}
                 />

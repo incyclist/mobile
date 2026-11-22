@@ -9,6 +9,12 @@ import {
 } from 'incyclist-services';
 import { useUnmountEffect } from '../../../hooks';
 
+/** Per-device start actions, present on newer incyclist-services versions only */
+type StartDeviceActions = {
+    onRetryStartDevice?: (udid: string) => void;
+    onIgnoreStartDevice?: (udid: string) => void;
+};
+
 const EMPTY_ACTUALS: WorkoutGraphActuals = { power: [], heartrate: [], position: 0 };
 
 interface UseRidePageLifecycleParams {
@@ -77,6 +83,9 @@ export function useRidePageLifecycle<T extends AnyRidePageDisplayProps>({
     const onMenuClose = useCallback(() => refService.current?.onMenuClose(), []);
     const onRetryStart = useCallback(() => refService.current?.onRetryStart(), []);
     const onIgnoreStart = useCallback(() => refService.current?.onIgnoreStart(), []);
+    // Start overlay v2 per-device actions. Optional-called: an older services version does not have them.
+    const onRetryStartDevice = useCallback((udid: string) => (refService.current as StartDeviceActions | null)?.onRetryStartDevice?.(udid), []);
+    const onIgnoreStartDevice = useCallback((udid: string) => (refService.current as StartDeviceActions | null)?.onIgnoreStartDevice?.(udid), []);
     // Street View only - lets the rider skip a slow/failing Street View start.
     const onStartWithMap = useCallback(() => refService.current?.onStartWithMap(), []);
     const getGraphActuals = useCallback(() => refService.current?.getGraphActuals() ?? EMPTY_ACTUALS, []);
@@ -89,6 +98,8 @@ export function useRidePageLifecycle<T extends AnyRidePageDisplayProps>({
         onMenuClose,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         onStartWithMap,
         getGraphActuals,
     };

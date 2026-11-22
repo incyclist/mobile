@@ -31,6 +31,8 @@ interface VideoRidePageViewProps {
     onCloseRidePage: ()=>void;
     onRetryStart: () => void;
     onIgnoreStart: () => void;
+    onRetryStartDevice?: (udid: string) => void;
+    onIgnoreStartDevice?: (udid: string) => void;
     onCancelStart: () => void;
     /** Overrides the 7-tile default — pass `MOCK_DASHBOARD_ITEMS_VIRTUAL_SHIFTING` to show the
      *  8th Gear tile (`ride-overlay-layout-design.md` §1.2's virtual-shifting-adds-a-tile case). */
@@ -78,6 +80,8 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
         onCloseRidePage,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         onCancelStart,
         dashboardItems = MOCK_DASHBOARD_ITEMS,
         workoutGraph,
@@ -253,6 +257,8 @@ export const VideoRidePageTestView = (props: VideoRidePageViewProps) => {
                     onStart={noop}
                     onRetry={onRetryStart}
                     onIgnore={onIgnoreStart}
+                    onRetryDevice={onRetryStartDevice}
+                    onIgnoreDevice={onIgnoreStartDevice}
                     onCancel={onCancelStart}
                 />
             )}

@@ -26,6 +26,8 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
         onMenuClose,
         onRetryStart,
         onIgnoreStart,
+        onRetryStartDevice,
+        onIgnoreStartDevice,
         getGraphActuals,
     } = useRidePageLifecycle<VideoRidePageDisplayProps>({ simulate, onRideTypeChange });
 
@@ -74,6 +76,8 @@ export const VideoRidePage = ({ simulate = false, onRideTypeChange, onCancelStar
                 onCloseRidePage={onClose}
                 onRetryStart={onRetryStart}
                 onIgnoreStart={onIgnoreStart}
+                onRetryStartDevice={onRetryStartDevice}
+                onIgnoreStartDevice={onIgnoreStartDevice}
                 onCancelStart={onCancelStart}
                 getGraphActuals={getGraphActuals}
                 onToggleCornerWidget={onToggleCornerWidget}
