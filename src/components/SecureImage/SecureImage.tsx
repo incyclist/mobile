@@ -2,8 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image, Platform, ImageProps } from 'react-native';
 import { getFileSystemBinding } from '../../bindings/fs';
 import { useUnmountEffect } from '../../hooks';
+import { useCachedThumbnail } from '../../hooks/thumbnail/useCachedThumbnail';
 
-export type SecureImageProps = ImageProps;
+export type SecureImageProps = ImageProps & {
+    /**
+     * Stable identity of the route this image is the thumbnail of. When set and the source is an
+     * http(s) URL, the thumbnail is kept on the device permanently: shown from there if present,
+     * otherwise fetched for next time while the original source is shown.
+     */
+    thumbnailRouteKey?: string;
+};
 
 /**
  * SecureImage is a drop-in replacement for React Native's <Image> that handles
@@ -13,7 +21,8 @@ export type SecureImageProps = ImageProps;
  * FileSystem binding before rendering the image, and releases access on unmount.
  * On all other platforms or for non-file URIs, it renders the standard Image component.
  */
-export const SecureImage = (props: SecureImageProps) => {
+export const SecureImage = (allProps: SecureImageProps) => {
+    const { thumbnailRouteKey, ...props } = allProps;
     const { source } = props;
 
     const uri = typeof source === 'object' && !Array.isArray(source)
@@ -52,8 +61,14 @@ export const SecureImage = (props: SecureImageProps) => {
         }
     });
 
-    if (!hasAccess) {
+    const { ready, cachedUri, onCacheError } = useCachedThumbnail(thumbnailRouteKey, uri);
+
+    if (!hasAccess || !ready) {
         return null;
+    }
+
+    if (cachedUri) {
+        return <Image {...props} source={{ uri: cachedUri }} onError={onCacheError} />;
     }
 
     return <Image {...props} />;

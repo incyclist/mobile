@@ -1,11 +1,16 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 import { render, act } from '@testing-library/react-native';
 import { SecureImage } from './SecureImage';
 import { getFileSystemBinding } from '../../bindings/fs';
+import { useCachedThumbnail } from '../../hooks/thumbnail/useCachedThumbnail';
 
 jest.mock('../../bindings/fs', () => ({
     getFileSystemBinding: jest.fn(),
+}));
+
+jest.mock('../../hooks/thumbnail/useCachedThumbnail', () => ({
+    useCachedThumbnail: jest.fn(() => ({ ready: true, cachedUri: undefined, onCacheError: jest.fn() })),
 }));
 
 const MOCK_HTTPS_SOURCE = { uri: 'https://example.com/preview.jpg' };
@@ -81,5 +86,36 @@ describe('SecureImage', () => {
         const { toJSON } = render(<SecureImage source={MOCK_FILE_SOURCE} />);
         expect(toJSON()).not.toBeNull();
         expect(mockFS.requestAccess).not.toHaveBeenCalled();
+    });
+
+    describe('thumbnail cache', () => {
+        const mockHook = useCachedThumbnail as jest.Mock;
+
+        it('shows the cached file instead of the network source', () => {
+            mockHook.mockReturnValue({ ready: true, cachedUri: 'file:///app/thumbnails/x.img', onCacheError: jest.fn() });
+            const { UNSAFE_getByType } = render(<SecureImage source={MOCK_HTTPS_SOURCE} thumbnailRouteKey="r1" />);
+            expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'file:///app/thumbnails/x.img' });
+            expect(mockHook).toHaveBeenCalledWith('r1', MOCK_HTTPS_SOURCE.uri);
+        });
+
+        it('shows the original source when nothing is cached', () => {
+            mockHook.mockReturnValue({ ready: true, cachedUri: undefined, onCacheError: jest.fn() });
+            const { UNSAFE_getByType } = render(<SecureImage source={MOCK_HTTPS_SOURCE} thumbnailRouteKey="r1" />);
+            expect(UNSAFE_getByType(Image).props.source).toEqual(MOCK_HTTPS_SOURCE);
+        });
+
+        it('renders nothing until the local lookup has finished', () => {
+            mockHook.mockReturnValue({ ready: false, cachedUri: undefined, onCacheError: jest.fn() });
+            const { toJSON } = render(<SecureImage source={MOCK_HTTPS_SOURCE} thumbnailRouteKey="r1" />);
+            expect(toJSON()).toBeNull();
+        });
+
+        it('reports a cached file that fails to display', () => {
+            const onCacheError = jest.fn();
+            mockHook.mockReturnValue({ ready: true, cachedUri: 'file:///app/thumbnails/x.img', onCacheError });
+            const { UNSAFE_getByType } = render(<SecureImage source={MOCK_HTTPS_SOURCE} thumbnailRouteKey="r1" />);
+            UNSAFE_getByType(Image).props.onError();
+            expect(onCacheError).toHaveBeenCalled();
+        });
     });
 });

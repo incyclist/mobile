@@ -643,7 +643,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const renderPreview = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (previewUrl) {
-            return <SecureImage source={{ uri: previewUrl }} style={styles.fullMedia} resizeMode="cover" />;
+            return <SecureImage source={{ uri: previewUrl }} thumbnailRouteKey={routeData?.id} style={styles.fullMedia} resizeMode="cover" />;
         }
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };

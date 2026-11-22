@@ -47,7 +47,7 @@ export const RouteItemView = (props: RouteItemViewProps) => {
     const renderMedia = () => {
 
         if (hasVideo && previewUrl) {
-            return <SecureImage source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
+            return <SecureImage source={{ uri: previewUrl }} thumbnailRouteKey={id} style={styles.media} resizeMode="cover" />;
         }
 
         if (points && points.length > 0) {
