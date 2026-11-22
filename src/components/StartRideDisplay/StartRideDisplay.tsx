@@ -115,6 +115,17 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return { text: mapState as string, color: colors.text };
     };
 
+    const getLoadingText = (): string | undefined => {
+        if (isVideoRide) return videoStateText(props as VideoStartOverlayProps).text;
+        if (isStreetViewStart) return viewStateText(viewState).text;
+        return undefined;
+    };
+
+    const getContentRow = (): ContentRowInfo | undefined => {
+        if (!startContent) return undefined;
+        return { label: startContent.label, status: contentRowStatus(startContent, getLoadingText()) };
+    };
+
     const renderDeviceList = () => (
         <View style={styles.listContainer}>
             {devices.map(device => {
@@ -240,13 +251,7 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
 
     if (isPhased) {
         const { controls, sensors } = splitDevices(devices as StartDeviceInfo[]);
-        let content: ContentRowInfo | undefined;
-        if (startContent) {
-            const loadingText = isVideoRide
-                ? videoStateText(props as VideoStartOverlayProps).text
-                : (isStreetViewStart ? viewStateText(viewState).text : undefined);
-            content = { label: startContent.label, status: contentRowStatus(startContent, loadingText) };
-        }
+        const content = getContentRow();
         return (
             <Dialog
                 title={phaseHeading(startPhase, startContent)}
