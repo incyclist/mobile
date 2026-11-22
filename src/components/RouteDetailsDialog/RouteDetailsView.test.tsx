@@ -6,6 +6,7 @@ import { ChipSelect } from '../ChipSelect';
 import {
     MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
     MOCK_SMOOTHED_GRADIENT, MOCK_BARELY_VISIBLE_GRADIENT,
+    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE,
 } from './RouteDetailsView.mock';
 import type { UIRouteSettings, UIStartSettings } from 'incyclist-services';
 
@@ -658,6 +659,52 @@ describe('RouteDetailsView', () => {
                 await selectLevel(getByText, '3');
                 expect(queryByText('FreeMap')).toBeTruthy();
             });
+        });
+    });
+
+    describe('where the route plays from', () => {
+        const UNAVAILABLE = {
+            ...MOCK_PROPS, ...MOCK_SOURCE_UNAVAILABLE, canStart: false,
+            canNotStartReason: "Needs Den PC — can't reach it right now",
+        };
+
+        it.each([false, true])('names the computer and hints at downloading for a route that plays from it (compact %s)', (compact) => {
+            const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} {...MOCK_SOURCE_FROM_LINK} compact={compact} />);
+            expect(getByText('Plays from Den PC')).toBeTruthy();
+            expect(getByText(/Plays only while Den PC is on/)).toBeTruthy();
+        });
+
+        it('gives phones that are shorter than 360 the short hint', () => {
+            const dims = jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({ width: 568, height: 320, scale: 1, fontScale: 1 });
+            const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} {...MOCK_SOURCE_FROM_LINK} compact={true} />);
+            expect(getByText('Download to ride without Den PC.')).toBeTruthy();
+            dims.mockRestore();
+        });
+
+        it.each([false, true])('shows the reason once and what to do for a route that can not be started (compact %s)', (compact) => {
+            const { getAllByText, getByText, queryByText } = render(<RouteDetailsView {...UNAVAILABLE} compact={compact} />);
+            expect(getAllByText("Needs Den PC — can't reach it right now")).toHaveLength(1);
+            expect(getByText(/Open Incyclist on Den PC/)).toBeTruthy();
+            expect(queryByText('Add Workout')).toBeNull();
+        });
+
+        it('shows Download but disabled for a route that can not be started', () => {
+            const onDownloadPress = jest.fn();
+            const { getByText } = render(
+                <RouteDetailsView {...UNAVAILABLE} downloadButtonLabel="Download" onDownloadPress={onDownloadPress} />
+            );
+            fireEvent.press(getByText('Download'));
+            expect(onDownloadPress).not.toHaveBeenCalled();
+        });
+
+        it('keeps the cached thumbnail of the computer, so the route looks asleep and not broken', () => {
+            const { getByTestId } = render(<RouteDetailsView {...UNAVAILABLE} />);
+            expect(getByTestId('preview-still').props.thumbnailLink).toEqual({ linkId: 'link-1', thumbHandle: 'thumb-1' });
+        });
+
+        it('adds nothing for a route that is on this device', () => {
+            const { queryByText } = render(<RouteDetailsView {...MOCK_PROPS} availability="local" />);
+            expect(queryByText(/Plays from/)).toBeNull();
         });
     });
 });

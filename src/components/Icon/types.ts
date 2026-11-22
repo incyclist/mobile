@@ -17,6 +17,8 @@ export type IconName =
     | 'gear'
     | 'distance'
     | 'elevation'
+    | 'monitor'
+    | 'monitor-off'
     ;
 
 export interface IconProps {

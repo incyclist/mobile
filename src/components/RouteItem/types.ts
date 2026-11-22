@@ -16,4 +16,6 @@ export interface RouteItemViewProps extends RouteItemDisplayProps {
     onLoadDetails?: () => void;
     onSelect:(id:string)=>void
     onDelete:(id:string)=>void
+    /** removes the video copy of a route that a computer shares, not the route */
+    onDeleteLocalCopy?:(id:string)=>void
 }

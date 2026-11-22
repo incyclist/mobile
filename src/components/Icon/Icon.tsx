@@ -57,6 +57,19 @@ const icons: Record<IconName, (color: string, size: number) => React.ReactElemen
             />
         </Svg>
     ),
+    'monitor': (color: string, size: number) => (
+        <Svg viewBox='0 0 24 24' width={size} height={size}>
+            <Rect x='2' y='4' width='20' height='13' rx='2' stroke={color} strokeWidth={2} fill='none' />
+            <Path d='M8 21h8M12 17v4' stroke={color} strokeWidth={2} strokeLinecap='round' fill='none' />
+        </Svg>
+    ),
+    'monitor-off': (color: string, size: number) => (
+        <Svg viewBox='0 0 24 24' width={size} height={size}>
+            <Rect x='2' y='4' width='20' height='13' rx='2' stroke={color} strokeWidth={2} fill='none' />
+            <Path d='M8 21h8M12 17v4' stroke={color} strokeWidth={2} strokeLinecap='round' fill='none' />
+            <Path d='M3 3l18 18' stroke={color} strokeWidth={2.5} strokeLinecap='round' fill='none' />
+        </Svg>
+    ),
     'plus': (color: string, size: number) => (
         <Svg viewBox='0 0 24 24' width={size} height={size}>
             <Path 

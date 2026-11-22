@@ -64,4 +64,37 @@ describe('useCachedThumbnail', () => {
         expect(result.current.cachedUri).toBeUndefined();
         expect(cache.invalidate).toHaveBeenCalledWith({ routeKey: 'r1', url: URL });
     });
+
+    describe('thumbnail of a computer', () => {
+        const link = { linkId: 'l1', thumbHandle: 't1' };
+
+        it('is shown from the device when it is cached there', async () => {
+            cache.getCached.mockResolvedValue('file:///app/thumbnails/x.img');
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.ready).toBe(true));
+            expect(result.current.cachedUri).toBe('file:///app/thumbnails/x.img');
+            expect(cache.getCached).toHaveBeenCalledWith({ routeKey: 'r1', url: undefined, link });
+            expect(cache.cache).not.toHaveBeenCalled();
+        });
+
+        it('is fetched and shown as soon as the computer has delivered it, as there is no original', async () => {
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.cachedUri).toBe('file:///app/thumbnails/x.img'));
+            expect(cache.cache).toHaveBeenCalledWith({ routeKey: 'r1', url: undefined, link });
+        });
+
+        it('stays without a thumbnail when the computer does not deliver', async () => {
+            cache.cache.mockResolvedValue(undefined);
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(cache.cache).toHaveBeenCalled());
+            expect(result.current.ready).toBe(true);
+            expect(result.current.cachedUri).toBeUndefined();
+        });
+
+        it('is not looked up without a route key or a handle', () => {
+            renderHook(() => useCachedThumbnail(undefined, undefined, link));
+            renderHook(() => useCachedThumbnail('r1', undefined, { linkId: 'l1', thumbHandle: '' }));
+            expect(cache.getCached).not.toHaveBeenCalled();
+        });
+    });
 });

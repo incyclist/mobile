@@ -21,10 +21,11 @@ class FakeObserver {
 const mockGetRouteDetails = jest.fn().mockResolvedValue(undefined);
 const mockOnSelect = jest.fn();
 const mockOnDelete = jest.fn();
+const mockDeleteLocalCopy = jest.fn().mockResolvedValue(true);
 
 jest.mock('incyclist-services', () => ({
     useRouteList: () => ({ getRouteDetails: mockGetRouteDetails }),
-    getRoutesPageService: () => ({ onSelect: mockOnSelect, onDelete: mockOnDelete }),
+    getRoutesPageService: () => ({ onSelect: mockOnSelect, onDelete: mockOnDelete, deleteLocalCopy: mockDeleteLocalCopy }),
 }));
 
 let lastViewProps: any;
@@ -88,5 +89,31 @@ describe('RouteItem', () => {
         });
 
         expect(getByTestId('pill').props.children).toBe('none');
+    });
+
+    // Where a route plays from is computed for the whole list, not by the card, so an update
+    // that comes through the card's own observer must not drop it.
+    test('keeps where the route plays from when an update arrives through its own observer', () => {
+        const observer = new FakeObserver();
+        const props = { ...baseProps(observer), availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' };
+        render(<RouteItem {...props} />);
+
+        act(() => {
+            observer.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, videoPill: 'downloading' });
+        });
+
+        expect(lastViewProps.videoPill).toBe('downloading');
+        expect(lastViewProps).toMatchObject({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' });
+    });
+
+    test('deleting the copy of a computer route goes through the page service and keeps the row', () => {
+        const observer = new FakeObserver();
+        const { getByTestId } = render(<RouteItem {...baseProps(observer)} />);
+
+        act(() => { lastViewProps.onDeleteLocalCopy('r1'); });
+
+        expect(mockDeleteLocalCopy).toHaveBeenCalledWith('r1');
+        expect(mockOnDelete).not.toHaveBeenCalled();
+        expect(getByTestId('pill')).toBeTruthy();
     });
 });

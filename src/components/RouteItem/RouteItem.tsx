@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { getRoutesPageService, RouteDetailUIItem, useRouteList } from 'incyclist-services';
 import { RouteItemView } from './RouteItemView';
 import { useLogging } from '../../hooks';
@@ -9,7 +9,9 @@ const detailsCache = new Map<string, RouteDetailUIItem>();
 
 
 
-export const RouteItem = (props: RouteItemDisplayProps) => {
+// memoised: a change in one route of a list of thousands must not render every row again - the page
+// service keeps the identity of the fields of unchanged routes, so the shallow comparison holds
+export const RouteItem = memo((props: RouteItemDisplayProps) => {
     const { id, loaded, outsideFold } = props;
     
     const [details, setDetails] = useState<RouteDetailUIItem | undefined>(undefined);
@@ -79,12 +81,23 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
         setDeleted(true)
     } ,[logEvent, id, title, page])
 
+    const onDeleteLocalCopy = useCallback( (routeId:string) => {
+        logEvent({message:'local copy deleted', id, title, eventSource:'user' })
+        page.deleteLocalCopy(routeId)?.catch( (err:Error) => logError(err,'deleteLocalCopy'))
+    } ,[logEvent, logError, id, title, page])
+
     const points = details?.points ?? props.points;
     const previewUrl = details?.previewUrl ?? props.previewUrl;
     
     const displayProps = updated? 
     {
         ...updated,
+        // where the route plays from is computed for the whole list, not by the card
+        availability: props.availability,
+        sourceLabel: props.sourceLabel,
+        unavailableReason: props.unavailableReason,
+        thumbnailLink: props.thumbnailLink,
+        linkShared: updated.linkShared ?? props.linkShared,
         points: updated.points??details?.points??props.points,
         loaded: loaded || !!points || !!previewUrl,
         outsideFold,
@@ -101,5 +114,5 @@ export const RouteItem = (props: RouteItemDisplayProps) => {
     if(deleted)
         return null;
 
-    return <RouteItemView {...displayProps} onSelect={onSelect} onDelete={onDelete} />;
-};
+    return <RouteItemView {...displayProps} onSelect={onSelect} onDelete={onDelete} onDeleteLocalCopy={onDeleteLocalCopy} />;
+});

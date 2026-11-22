@@ -5,6 +5,7 @@ import { fn } from 'storybook/test';
 import { RouteDetailsView } from './RouteDetailsView';
 import {
     MOCK_ROUTE_DATA, MOCK_ROUTE_POINTS, MOCK_SMOOTHED_POINTS, MOCK_SMOOTHED_ELEVATION,
+    MOCK_SOURCE_FROM_LINK, MOCK_SOURCE_UNAVAILABLE,
 } from './RouteDetailsView.mock';
 import { MainBackground } from '../../components';
 
@@ -363,4 +364,40 @@ export const CompactSmoothingOn: Story = {
 export const SmoothingUnavailable: Story = {
     args: smoothableProps({ smoothingAvailable: false }),
     parameters: { viewport: { defaultViewport: 'ipadAir' }, layout: 'fullscreen' },
+};
+
+export const PlaysFromComputer: Story = {
+    args: mockRouteProps({ ...MOCK_SOURCE_FROM_LINK }),
+};
+
+export const CompactPlaysFromComputer: Story = {
+    args: mockRouteProps({ ...MOCK_SOURCE_FROM_LINK, compact: true }),
+};
+
+export const NeedsComputerUnreachable: Story = {
+    args: mockRouteProps({
+        ...MOCK_SOURCE_UNAVAILABLE,
+        canStart: false,
+        canNotStartReason: "Needs Den PC — can't reach it right now",
+        downloadButtonLabel: 'Download',
+        downloadButtonDisabled: true,
+    }),
+};
+
+export const CompactNeedsComputerUnreachable: Story = {
+    args: mockRouteProps({
+        ...MOCK_SOURCE_UNAVAILABLE,
+        compact: true,
+        canStart: false,
+        canNotStartReason: "Needs Den PC — can't reach it right now",
+    }),
+};
+
+export const NeedsComputerNeverReached: Story = {
+    args: mockRouteProps({
+        ...MOCK_SOURCE_UNAVAILABLE,
+        unavailableReason: 'linkNeverReached',
+        canStart: false,
+        canNotStartReason: 'Needs Den PC — this device has never been able to reach it',
+    }),
 };

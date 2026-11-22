@@ -5,17 +5,22 @@ import { useLogging, useUnmountEffect, useIsTablet, useScreenLayout } from '../.
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';
 import { navigate } from '../../services';
+import { getUnavailableText } from '../RouteSource/utils';
+import type { RouteSourceProps } from '../RouteSource/types';
 
 /**
  * Explains a Start button that is actually unavailable. Being offline is not by itself a reason -
  * a downloaded video plays from local storage and starts fine offline - so this only ever
  * describes a route that genuinely cannot be started. AVI takes precedence when both apply.
  */
-const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnline: boolean }): string | undefined => {
-    const { canStart, isAvi, isOnline } = props;
+const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnline: boolean, source: RouteSourceProps }): string | undefined => {
+    const { canStart, isAvi, isOnline, source } = props;
 
     if (canStart)
         return undefined;
+    // a route that no source can deliver right now: the reason comes from the page service's state
+    if (source.availability === 'unavailable')
+        return getUnavailableText(source);
     if (isAvi)
         return 'AVI videos are not supported on mobile';
     if (!isOnline)
@@ -274,9 +279,14 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     const downloadStatus = downloadRow?.status ?? 'none'
     // Nothing is startable on provisional settings - a GPX route has no points to ride yet, and
     // for a video route the location of the video is still unknown.
-    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading' && !loading;
+    const source: RouteSourceProps = {
+        availability: routeDetailsProps.availability,
+        sourceLabel: routeDetailsProps.sourceLabel,
+        unavailableReason: routeDetailsProps.unavailableReason,
+    };
+    const canStart = !isAvi && (cardCanStart ?? true) && source.availability !== 'unavailable' && downloadStatus !== 'downloading' && !loading;
     const isOnline = onlineStatusMonitor.onlineStatus;
-    const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline });
+    const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline, source });
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
     const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
@@ -341,6 +351,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             hasGpx={hasGpx ?? false}
             points={points}
             previewUrl={previewUrl}
+            thumbnailLink={routeDetailsProps.thumbnailLink}
+            availability={source.availability}
+            sourceLabel={source.sourceLabel}
+            unavailableReason={source.unavailableReason}
             routeData={routeData}
             isOnline={isOnline}
             totalDistance={totalDistance}

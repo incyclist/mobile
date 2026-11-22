@@ -95,7 +95,7 @@ describe('SecureImage', () => {
             mockHook.mockReturnValue({ ready: true, cachedUri: 'file:///app/thumbnails/x.img', onCacheError: jest.fn() });
             const { UNSAFE_getByType } = render(<SecureImage source={MOCK_HTTPS_SOURCE} thumbnailRouteKey="r1" />);
             expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'file:///app/thumbnails/x.img' });
-            expect(mockHook).toHaveBeenCalledWith('r1', MOCK_HTTPS_SOURCE.uri);
+            expect(mockHook).toHaveBeenCalledWith('r1', MOCK_HTTPS_SOURCE.uri, undefined);
         });
 
         it('shows the original source when nothing is cached', () => {
@@ -117,5 +117,23 @@ describe('SecureImage', () => {
             UNSAFE_getByType(Image).props.onError();
             expect(onCacheError).toHaveBeenCalled();
         });
+    });
+
+    it('passes the computer the thumbnail comes from to the thumbnail cache', () => {
+        const link = { linkId: 'l1', thumbHandle: 't1' };
+        render(<SecureImage thumbnailRouteKey="r1" thumbnailLink={link} />);
+        expect(useCachedThumbnail).toHaveBeenCalledWith('r1', undefined, link);
+    });
+
+    it('shows nothing for a thumbnail that is neither cached nor has another source', () => {
+        (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: undefined, onCacheError: jest.fn() });
+        const { toJSON } = render(<SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} />);
+        expect(toJSON()).toBeNull();
+    });
+
+    it('shows the cached thumbnail of a computer', () => {
+        (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: 'file:///thumb.img', onCacheError: jest.fn() });
+        const { UNSAFE_getByType } = render(<SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} />);
+        expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'file:///thumb.img' });
     });
 });

@@ -17,6 +17,7 @@ jest.mock('incyclist-services', () => ({
 
 const mockStartRideDisplay = jest.fn();
 const mockRideOverlay = jest.fn();
+const mockInfoText = jest.fn();
 const mockElevationGraph = jest.fn();
 const mockFreeMap = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
@@ -30,7 +31,10 @@ jest.mock('../../../components', () => ({
         mockElevationGraph(props);
         return null;
     },
-    InfoText: () => null,
+    InfoText: (props: any) => {
+        mockInfoText(props);
+        return null;
+    },
     FreeMap: (props: any) => {
         mockFreeMap(props);
         return null;
@@ -560,5 +564,28 @@ describe('VideoRidePageView — nearby-riders overlay wiring', () => {
             expect(queryByText('ride-overlay') !== null).toBe(expected);
             unmount();
         });
+    });
+});
+
+
+describe('VideoRidePageView — video source lost notice', () => {
+    beforeEach(() => {
+        mockInfoText.mockClear();
+    });
+
+    const withVideo = (video: any) => ({ ...baseProps, displayProps: { ...baseProps.displayProps, video } });
+
+    it('tells that the computer is not reachable and that the ride is still recorded', () => {
+        render(<VideoRidePageView {...withVideo({ sourceLost: { computerName: 'Den PC' } })} />);
+
+        const props = mockInfoText.mock.calls.at(-1)?.[0];
+        expect(props.text).toBe("Video stopped — Den PC isn't reachable.<br>Your ride is still being recorded.");
+        expect(props.timeout).toBe(10000);
+    });
+
+    it('shows the route\'s own info text while the source is not lost', () => {
+        render(<VideoRidePageView {...withVideo({ info: { text: 'Hello', routeDistance: 10 } })} />);
+
+        expect(mockInfoText.mock.calls.at(-1)?.[0].text).toBe('Hello');
     });
 });

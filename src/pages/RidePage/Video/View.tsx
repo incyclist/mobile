@@ -15,6 +15,7 @@ import {
     RideSwipeFeedback,
     ErrorBoundary,
 } from '../../../components';
+import { getSourceLostText, SOURCE_LOST_TIMEOUT_MS } from '../../../components/RouteSource/utils';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
@@ -76,6 +77,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const lapMode = route?.description?.isLoop;
     const currentVideo = video ?? videos?.find(v => !v.hidden);
     const infoText = currentVideo?.info;
+    // the computer the video streams from stopped delivering it: told for a while, observation only
+    const sourceLostText = currentVideo?.sourceLost ? getSourceLostText(currentVideo.sourceLost.computerName) : undefined;
 
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
@@ -267,7 +270,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     />
                 )}
 
-                {infoText && <InfoText {...infoText} />}
+                {sourceLostText ? <InfoText text={sourceLostText} timeout={SOURCE_LOST_TIMEOUT_MS} /> : infoText && <InfoText {...infoText} />}
 
                 {/* Bottom bar: Menu button + Full route elevation, plus the Ride Menu it opens */}
                 <RideBottomBarAndMenu
