@@ -32,6 +32,41 @@ export const buildVideoUrl = (filePath: string): string => {
     return `video://${filePath}`;
 }
 
+const PRIVATE_IPV4 = /^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.)/;
+
+const isPrivateHost = (host: string): boolean => {
+    const h = host.toLowerCase().replace(/^\[|\]$/g, '');
+    return h === 'localhost' || h.endsWith('.local') || PRIVATE_IPV4.test(h)
+        || h === '::1' || /^(fc|fd|fe80)/.test(h) || (!h.includes('.') && !h.includes(':'));
+};
+
+/**
+ * Returns a form of a URL that is safe to write to logs: no query string, fragment or userinfo.
+ * For http(s) URLs on private/loopback hosts (e.g. the local-link media listener, whose URL carries
+ * a media token and the LAN address) the host is omitted too and only the path shape is kept,
+ * without the handle value: `/v/<redacted>`.
+ */
+export const toLogSafeUrl = (url: string | undefined): string => {
+    if (!url) return '';
+    const m = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)([^?#]*)/i.exec(url);
+    if (!m) return url.split(/[?#]/)[0];
+    const scheme = m[1].toLowerCase();
+    const host = m[2].slice(m[2].lastIndexOf('@') + 1);
+    const hostname = host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.split(':')[0];
+    const pathname = m[3];
+    if ((scheme === 'http' || scheme === 'https') && isPrivateHost(hostname)) {
+        const segments = pathname.split('/').filter(Boolean);
+        return segments.length === 0 ? '/' : '/' + [segments[0], ...segments.slice(1).map(() => '<redacted>')].join('/');
+    }
+    return `${scheme}://${host}${pathname}`;
+};
+
+/** Replaces URLs (and stray `t=` token values) in free text, e.g. an error message, by their log-safe form. */
+export const scrubLogText = (text: string): string =>
+    text
+        .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>)\]]+/gi, (u) => toLogSafeUrl(u))
+        .replace(/([?&;\s]t=)[^&\s'"]+/g, '$1<redacted>');
+
 // Android DownloadManager.ERROR_INSUFFICIENT_SPACE
 const ANDROID_ERROR_INSUFFICIENT_SPACE = 1006;
 const OUT_OF_SPACE_TEXT = /ENOSPC|no space|not enough (space|storage)|out of space|NSFileWriteOutOfSpace/i;
@@ -42,10 +77,13 @@ const OUT_OF_SPACE_TEXT = /ENOSPC|no space|not enough (space|storage)|out of spa
  * and the caller classifies on the message only.
  */
 export const toDownloadError = (error: unknown, errorCode?: number): Error => {
-    const message = typeof error === 'string' ? error : (error as Error | undefined)?.message ?? '';
+    const raw = typeof error === 'string' ? error : (error as Error | undefined)?.message ?? '';
+    // the native message may embed the request URL (media token, LAN address): it gets logged/emitted
+    const message = scrubLogText(raw);
     if (errorCode === ANDROID_ERROR_INSUFFICIENT_SPACE && !OUT_OF_SPACE_TEXT.test(message))
         return new Error(`no space left on device (code ${errorCode}) ${message}`.trim());
-    return error instanceof Error ? error : new Error(message);
+    if (error instanceof Error && message === raw) return error;
+    return new Error(message);
 };
 
 export class MobileDownloadSession extends EventEmitter implements IDownloadSession {
@@ -74,14 +112,16 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
     // the buggy cleanup runs, the temp path is already empty/gone and the real
     // bytes live somewhere DownloadManager has no record of.
     private readonly tempFileName: string;
+    private readonly logUrl: string;
 
     constructor(private url: string, private fileName: string) {
         super();
         this.tempFileName = `${fileName}.part`;
+        this.logUrl = toLogSafeUrl(url);
     }
 
     public start(): void {
-        this.logger.logEvent({message: 'DownloadSession start', url: this.url})
+        this.logger.logEvent({message: 'DownloadSession start', url: this.logUrl})
 
         if (this.task) {
             this.attachHandlers();
@@ -108,13 +148,13 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
                 this.attachHandlers();
             })
             .catch((err) => {
-                this.logger.logEvent({message: 'DownloadSession mkdir error', error: err.message})
+                this.logger.logEvent({message: 'DownloadSession mkdir error', error: scrubLogText(String(err?.message))})
                 this.emit('error', err);
             });
     }
 
     public stop(): void {
-        this.logger.logEvent({message: 'DownloadSession stop', url: this.url})
+        this.logger.logEvent({message: 'DownloadSession stop', url: this.logUrl})
         this.stopped = true;
         if (this.task) {
             this.task.stop();
@@ -130,7 +170,7 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
 
         this.task
             .begin(({ expectedBytes: _expectedBytes }: { expectedBytes: number }) => {
-                this.logger.logEvent({message: 'DownloadSession download has started', url: this.url})
+                this.logger.logEvent({message: 'DownloadSession download has started', url: this.logUrl})
                 if (this.stopped) return;
                 this.emit('started');
             })
@@ -162,17 +202,17 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
                 this.emit('progress', pct, speed, bytesDownloaded);
             })
             .done(() => {
-                this.logger.logEvent({message: 'DownloadSession done', url: this.url})
+                this.logger.logEvent({message: 'DownloadSession done', url: this.logUrl})
                 if (this.stopped) return;
                 this.finalizeDownload();
             })
             .error(({ error, errorCode }: { error: string, errorCode: number }) => {
-                this.logger.logEvent({message: 'DownloadSession error', url: this.url, error, errorCode})
+                this.logger.logEvent({message: 'DownloadSession error', url: this.logUrl, error: scrubLogText(String(error)), errorCode})
                 if (this.stopped) return;
                 this.emit('error', toDownloadError(error, errorCode));
             })
 
-        this.logger.logEvent({message: 'DownloadSession start download', url: this.url})
+        this.logger.logEvent({message: 'DownloadSession start download', url: this.logUrl})
 
         this.task.start()
     }
@@ -199,11 +239,11 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
 
             await RNFS.moveFile(this.tempFileName, this.fileName);
 
-            this.logger.logEvent({message: 'DownloadSession finalized', url: this.url, fileName: this.fileName})
+            this.logger.logEvent({message: 'DownloadSession finalized', url: this.logUrl, fileName: this.fileName})
             this.emit('done', buildVideoUrl(this.fileName));
         }
         catch (err: any) {
-            this.logger.logEvent({message: 'DownloadSession finalize error', url: this.url, error: err.message})
+            this.logger.logEvent({message: 'DownloadSession finalize error', url: this.logUrl, error: scrubLogText(String(err?.message))})
             this.emit('error', toDownloadError(err));
         }
     }
@@ -213,7 +253,7 @@ export class MobileDownloadManager implements IDownloadManager {
     protected logger = new EventLogger('DownloadManager')
 
     public createSession(url: string, fileName: string, _props?: DownloadProps): IDownloadSession {
-        this.logger.logEvent({message: 'DownloadManager createSession', url, fileName})
+        this.logger.logEvent({message: 'DownloadManager createSession', url: toLogSafeUrl(url), fileName})
         return new MobileDownloadSession(url, fileName);
     }
 
