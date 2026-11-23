@@ -28,6 +28,7 @@ jest.mock('./form', () => ({ getFormBinding: jest.fn(() => ({ form: true })) }))
 jest.mock('./download', () => ({ MobileDownloadManager: jest.fn().mockImplementation(() => ({ downloadManager: true })) }));
 jest.mock('./mapAvailability', () => ({ getMapAvailabilityBinding: jest.fn(() => ({ start: jest.fn() })) }));
 jest.mock('./secureStorage', () => ({ getSecureStorageBinding: jest.fn(() => ({ secureStorage: true })) }));
+jest.mock('./loopbackPipe', () => ({ getLoopbackPipeBinding: jest.fn(() => ({ loopbackPipe: true })) }));
 jest.mock('./fileAccess', () => ({ getFileAccessBinding: jest.fn(() => ({ isSupported: () => true })) }));
 
 describe('bindings/factory initBindings', () => {
@@ -78,6 +79,7 @@ describe('bindings/factory initBindings', () => {
         expect(bindings.downloadManager).toBeDefined();
         expect(bindings.mapAvailability).toBeDefined();
         expect(bindings.secureStorage).toBeDefined();
+        expect(bindings.loopbackPipe).toBeDefined();
     });
 
     it('a failing optional binding is logged and left absent, initBindings still resolves', async () => {
@@ -87,12 +89,14 @@ describe('bindings/factory initBindings', () => {
         const { MobileDownloadManager } = require('./download');
         getSecureStorageBinding.mockImplementationOnce(() => { throw new Error('keychain boom'); });
         MobileDownloadManager.mockImplementationOnce(() => { throw new Error('dm boom'); });
+        require('./loopbackPipe').getLoopbackPipeBinding.mockImplementationOnce(() => { throw new Error('pipe boom'); });
 
         const { initBindings } = require('./factory');
         const bindings = await initBindings();
 
         expect(bindings.secureStorage).toBeUndefined();
         expect(bindings.downloadManager).toBeUndefined();
+        expect(bindings.loopbackPipe).toBeUndefined();
         expect(bindings.logging).toBeDefined();
         expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'initBindings.secureStorage', error: 'keychain boom' }));
         expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ fn: 'initBindings.downloadManager' }));

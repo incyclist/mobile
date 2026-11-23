@@ -20,6 +20,7 @@ import { MobileDownloadManager } from './download';
 import { getMapAvailabilityBinding } from './mapAvailability';
 import { getFileAccessBinding } from './fileAccess';
 import { getSecureStorageBinding } from './secureStorage';
+import { getLoopbackPipeBinding } from './loopbackPipe';
 import { EventLogger } from 'gd-eventlog';
 
 const logError = (err: any, fn: string): void => {
@@ -72,6 +73,12 @@ export const initBindings = async  ()=> {
     }
     catch (err: any) {
         logError(err, 'initBindings.secureStorage')
+    }
+    try {
+        bindings.loopbackPipe = getLoopbackPipeBinding()
+    }
+    catch (err: any) {
+        logError(err, 'initBindings.loopbackPipe')
     }
 
     // Access to files outside the app sandbox (iCloud/picked folders). iOS only - there is no
