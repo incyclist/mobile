@@ -81,6 +81,12 @@ describe('RouteItemView route source', () => {
         }));
     });
 
+    it('hands the route shape to the thumbnail as its fallback', () => {
+        mockSecureImage.mockClear();
+        render(<RouteItemView {...ROUTE_ITEM_UNAVAILABLE} {...HANDLERS} />);
+        expect(mockSecureImage.mock.calls[0][0]).toHaveProperty('fallback');
+    });
+
     it('renders a route that has a copy on this device', () => {
         const onDeleteLocalCopy = jest.fn();
         render(<RouteItemView {...ROUTE_ITEM_LOCAL_COPY} {...HANDLERS} onDeleteLocalCopy={onDeleteLocalCopy} />);

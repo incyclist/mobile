@@ -8,9 +8,39 @@ export interface CachedThumbnail {
     cachedUri?: string;
     /** false while the local lookup is still running; true immediately if the request is not cacheable */
     ready: boolean;
+    /** true once there is no thumbnail to show and none to come (link-only thumbnail that could not be fetched or displayed) */
+    failed: boolean;
     /** call when the cached file could not be displayed: drops it, so the caller falls back to the original source */
     onCacheError: () => void;
 }
+
+// Outcome counts are logged in aggregate (a list mounts many rows at once), never per row.
+const OUTCOME_LOG_DELAY_MS = 5000;
+const outcomes = { ready: 0, failed: 0 };
+let outcomeTimer: ReturnType<typeof setTimeout> | undefined;
+
+const countOutcome = (kind: 'ready' | 'failed', logEvent?: (event: Record<string, unknown>) => void) => {
+    try {
+        outcomes[kind]++;
+        if (outcomeTimer) {
+            return;
+        }
+        outcomeTimer = setTimeout(() => {
+            outcomeTimer = undefined;
+            const { ready, failed } = outcomes;
+            outcomes.ready = 0;
+            outcomes.failed = 0;
+            try {
+                logEvent?.({ message: 'computer thumbnails', ready, failed });
+            } catch {
+                // logging must never break rendering
+            }
+        }, OUTCOME_LOG_DELAY_MS);
+        (outcomeTimer as { unref?: () => void }).unref?.();
+    } catch {
+        // counting is best effort
+    }
+};
 
 const isCacheable = (request?: ThumbnailRequest): request is ThumbnailRequest =>
     !!request && (/^https?:\/\//i.test(request.url ?? '') || !!request.link);
@@ -24,8 +54,11 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
     const hasUrl = /^https?:\/\//i.test(url ?? '');
     const linkOnly = !hasUrl && !!link?.linkId && !!link?.thumbHandle;
     const enabled = !!routeKey && (hasUrl || linkOnly);
-    const { logError } = useLogging('useCachedThumbnail');
-    const [state, setState] = useState<{ id?: string; cachedUri?: string }>({});
+    const { logError, logEvent: logEventFn } = useLogging('useCachedThumbnail');
+    const logEventRef = useRef(logEventFn);
+    logEventRef.current = logEventFn;
+    const logEvent = useCallback((event: Record<string, unknown>) => logEventRef.current?.(event), []);
+    const [state, setState] = useState<{ id?: string; cachedUri?: string; failed?: boolean }>({});
     const requestRef = useRef<ThumbnailRequest | undefined>(undefined);
     const linkId = link?.linkId;
     const thumbHandle = link?.thumbHandle;
@@ -61,12 +94,23 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
             try {
                 // there is no original to show: the thumbnail appears as soon as the computer has delivered it
                 const fetched = await useRouteThumbnailCache().cache(request);
-                if (!cancelled && fetched) {
+                if (cancelled) {
+                    return;
+                }
+                if (fetched) {
                     setState({ id, cachedUri: fetched });
+                    countOutcome('ready', logEvent);
+                } else {
+                    setState({ id, failed: true });
+                    countOutcome('failed', logEvent);
                 }
             } catch (err: any) {
-                // the row keeps looking as it does
+                // the caller shows its fallback
                 logError(err, 'useCachedThumbnail.fetch');
+                if (!cancelled) {
+                    setState({ id, failed: true });
+                    countOutcome('failed', logEvent);
+                }
             }
         };
 
@@ -75,6 +119,9 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
                 const cachedUri = await lookup();
                 if (!cancelled) {
                     setState({ id, cachedUri });
+                }
+                if (cachedUri && linkOnly) {
+                    countOutcome('ready', logEvent);
                 }
                 if (!cachedUri && linkOnly) {
                     await fetchForLinkOnly();
@@ -88,11 +135,11 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
         return () => {
             cancelled = true;
         };
-    }, [id, routeKey, url, hasUrl, linkOnly, linkId, thumbHandle, logError]);
+    }, [id, routeKey, url, hasUrl, linkOnly, linkId, thumbHandle, logError, logEvent]);
 
     const onCacheError = useCallback(() => {
         const request = requestRef.current;
-        setState(prev => ({ ...prev, cachedUri: undefined }));
+        setState(prev => ({ ...prev, cachedUri: undefined, failed: linkOnly ? true : prev.failed }));
         if (isCacheable(request)) {
             try {
                 useRouteThumbnailCache().invalidate(request).catch((err: any) => logError(err, 'useCachedThumbnail.invalidate'));
@@ -101,10 +148,11 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
                 logError(err, 'useCachedThumbnail.onCacheError');
             }
         }
-    }, [logError]);
+    }, [logError, linkOnly]);
 
     if (!id) {
-        return { ready: true, onCacheError };
+        return { ready: true, failed: false, onCacheError };
     }
-    return { ready: state.id === id, cachedUri: state.id === id ? state.cachedUri : undefined, onCacheError };
+    const current = state.id === id;
+    return { ready: current, cachedUri: current ? state.cachedUri : undefined, failed: current && !!state.failed, onCacheError };
 };

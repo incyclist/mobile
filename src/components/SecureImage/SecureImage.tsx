@@ -16,6 +16,8 @@ export type SecureImageProps = Omit<ImageProps, 'source'> & {
     thumbnailRouteKey?: string;
     /** The paired computer (and handle) the thumbnail can be fetched from, as reported by the page service. */
     thumbnailLink?: ThumbnailLinkSource;
+    /** Shown instead of the image when the thumbnail of a computer could not be fetched or displayed. */
+    fallback?: React.ReactNode;
 };
 
 /**
@@ -27,7 +29,7 @@ export type SecureImageProps = Omit<ImageProps, 'source'> & {
  * On all other platforms or for non-file URIs, it renders the standard Image component.
  */
 export const SecureImage = (allProps: SecureImageProps) => {
-    const { thumbnailRouteKey, thumbnailLink, ...props } = allProps;
+    const { thumbnailRouteKey, thumbnailLink, fallback, ...props } = allProps;
     const { source } = props;
     const { logError } = useLogging('SecureImage');
 
@@ -78,7 +80,7 @@ export const SecureImage = (allProps: SecureImageProps) => {
         }
     });
 
-    const { ready, cachedUri, onCacheError } = useCachedThumbnail(thumbnailRouteKey, uri, thumbnailLink);
+    const { ready, cachedUri, failed, onCacheError } = useCachedThumbnail(thumbnailRouteKey, uri, thumbnailLink);
 
     if (!hasAccess || !ready) {
         return null;
@@ -86,6 +88,10 @@ export const SecureImage = (allProps: SecureImageProps) => {
 
     if (cachedUri) {
         return <Image {...props} source={{ uri: cachedUri }} onError={onCacheError} />;
+    }
+
+    if (failed) {
+        return <>{fallback ?? null}</>;
     }
 
     if (!props.source) {

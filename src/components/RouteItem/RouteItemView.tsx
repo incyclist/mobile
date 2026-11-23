@@ -60,9 +60,22 @@ export const RouteItemView = (props: RouteItemViewProps) => {
 
         if (hasVideo && (previewUrl || thumbnailLink)) {
             const source = previewUrl ? { uri: previewUrl } : undefined;
-            return <SecureImage source={source} thumbnailRouteKey={id} thumbnailLink={thumbnailLink} style={styles.media} resizeMode="cover" />;
+            return (
+                <SecureImage
+                    source={source}
+                    thumbnailRouteKey={id}
+                    thumbnailLink={thumbnailLink}
+                    fallback={renderShape()}
+                    style={styles.media}
+                    resizeMode="cover"
+                />
+            );
         }
+        return renderShape();
+    };
 
+    // the route's shape; also what a thumbnail that could not be fetched is replaced with
+    const renderShape = () => {
         if (points && points.length > 0) {
             return (
                 <FreeMap

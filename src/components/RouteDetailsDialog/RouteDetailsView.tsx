@@ -646,7 +646,16 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         if (loading) return <ActivityIndicator color={colors.text} />;
         if (previewUrl || thumbnailLink) {
             const source = previewUrl ? { uri: previewUrl } : undefined;
-            return <SecureImage source={source} thumbnailRouteKey={routeData?.id} thumbnailLink={thumbnailLink} style={styles.fullMedia} resizeMode="cover" />;
+            return (
+                <SecureImage
+                    source={source}
+                    thumbnailRouteKey={routeData?.id}
+                    thumbnailLink={thumbnailLink}
+                    fallback={<Text style={styles.placeholderText}>No preview available</Text>}
+                    style={styles.fullMedia}
+                    resizeMode="cover"
+                />
+            );
         }
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };

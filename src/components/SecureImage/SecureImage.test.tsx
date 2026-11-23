@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Platform } from 'react-native';
+import { Image, Platform, Text } from 'react-native';
 import { render, act } from '@testing-library/react-native';
 import { SecureImage } from './SecureImage';
 import { getFileSystemBinding } from '../../bindings/fs';
@@ -129,6 +129,28 @@ describe('SecureImage', () => {
         (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: undefined, onCacheError: jest.fn() });
         const { toJSON } = render(<SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} />);
         expect(toJSON()).toBeNull();
+    });
+
+    it('shows the fallback when the thumbnail of a computer failed', () => {
+        (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: undefined, failed: true, onCacheError: jest.fn() });
+        const { getByText } = render(
+            <SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} fallback={<Text>FALLBACK</Text>} />
+        );
+        expect(getByText('FALLBACK')).toBeTruthy();
+    });
+
+    it('shows nothing, not an error, when it failed and there is no fallback', () => {
+        (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: undefined, failed: true, onCacheError: jest.fn() });
+        const { toJSON } = render(<SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} />);
+        expect(toJSON()).toBeNull();
+    });
+
+    it('does not show the fallback while the thumbnail is still on its way', () => {
+        (useCachedThumbnail as jest.Mock).mockReturnValueOnce({ ready: true, cachedUri: undefined, failed: false, onCacheError: jest.fn() });
+        const { queryByText } = render(
+            <SecureImage thumbnailRouteKey="r1" thumbnailLink={{ linkId: 'l1', thumbHandle: 't1' }} fallback={<Text>FALLBACK</Text>} />
+        );
+        expect(queryByText('FALLBACK')).toBeNull();
     });
 
     it('shows the cached thumbnail of a computer', () => {

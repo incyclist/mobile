@@ -115,6 +115,46 @@ describe('useCachedThumbnail', () => {
             expect(result.current.cachedUri).toBeUndefined();
         });
 
+        it('reports failed when the computer does not deliver and there is no original', async () => {
+            cache.cache.mockResolvedValue(undefined);
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.failed).toBe(true));
+            expect(result.current.cachedUri).toBeUndefined();
+        });
+
+        it('reports failed when the fetch rejects', async () => {
+            cache.cache.mockRejectedValue(new Error('down'));
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.failed).toBe(true));
+        });
+
+        it('is not failed when the thumbnail arrives', async () => {
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.cachedUri).toBeDefined());
+            expect(result.current.failed).toBe(false);
+        });
+
+        it('is not failed while the lookup or fetch is still running', async () => {
+            cache.cache.mockReturnValue(new Promise(() => undefined));
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(cache.cache).toHaveBeenCalled());
+            expect(result.current.failed).toBe(false);
+        });
+
+        it('a cached file that cannot be displayed and has no original is failed', async () => {
+            cache.getCached.mockResolvedValue('file:///app/thumbnails/x.img');
+            const { result } = renderHook(() => useCachedThumbnail('r1', undefined, link));
+            await waitFor(() => expect(result.current.cachedUri).toBeDefined());
+            act(() => result.current.onCacheError());
+            expect(result.current.failed).toBe(true);
+        });
+
+        it('with an original (url) the thumbnail is never failed', async () => {
+            const { result } = renderHook(() => useCachedThumbnail('r1', URL));
+            await waitFor(() => expect(result.current.ready).toBe(true));
+            expect(result.current.failed).toBe(false);
+        });
+
         it('is not looked up without a route key or a handle', () => {
             renderHook(() => useCachedThumbnail(undefined, undefined, link));
             renderHook(() => useCachedThumbnail('r1', undefined, { linkId: 'l1', thumbHandle: '' }));

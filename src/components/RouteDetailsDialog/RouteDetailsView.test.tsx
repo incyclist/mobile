@@ -702,6 +702,11 @@ describe('RouteDetailsView', () => {
             expect(getByTestId('preview-still').props.thumbnailLink).toEqual({ linkId: 'link-1', thumbHandle: 'thumb-1' });
         });
 
+        it('gives the thumbnail the no-preview text as its fallback', () => {
+            const { getByTestId } = render(<RouteDetailsView {...UNAVAILABLE} />);
+            expect(getByTestId('preview-still').props.fallback).toBeDefined();
+        });
+
         it.each([false, true])('names the size of the copy in the hint once it is known (compact %s)', (compact) => {
             const { getByText } = render(<RouteDetailsView {...MOCK_PROPS} {...MOCK_SOURCE_FROM_LINK} copySizeBytes={4_200_000_000} compact={compact} />);
             expect(getByText(/Download it \(4\.2 GB\) to ride anywhere\./)).toBeTruthy();
