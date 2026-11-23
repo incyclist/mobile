@@ -22,6 +22,7 @@ import { RootNavigator } from './pages/RootNavigator';
 import { getUIBinding } from './bindings/ui';
 import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
+import { useLocalLinkNetworkChange } from './hooks/network/useLocalLinkNetworkChange';
 import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
@@ -68,6 +69,7 @@ export const App = ({ secretsStatus }: AppProps) => {
 
     const { stopMonitoring } = useOnlineStatusMonitoringInit();
     const refStopMonitoring = useRef<() => void>(stopMonitoring);
+    useLocalLinkNetworkChange();
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {

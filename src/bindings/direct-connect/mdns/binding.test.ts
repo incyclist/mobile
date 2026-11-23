@@ -354,30 +354,34 @@ describe('ReactNativeMdnsBinding', () => {
     })
 
     describe('connect()', () => {
-        test('connect() while connected tears down previous searches', () => {
-            const oldCb = jest.fn()
+        test('connect() while connected is idempotent: running searches and the rotation stay', () => {
+            const cb = jest.fn()
             binding.connect()
-            binding.find({ type: 'svc-a' }, oldCb)
-            binding.find({ type: 'svc-b' }, oldCb)
-            const [oldA, oldB] = MockZeroconf.instances
+            binding.find({ type: 'svc-a' }, cb)
+            binding.find({ type: 'svc-b' }, jest.fn())
+            const [a, b] = MockZeroconf.instances
+            const scans = a.scan.mock.calls.length + b.scan.mock.calls.length
 
             binding.connect()
+            binding.connect()
 
-            expect(jest.getTimerCount()).toBe(0)
-            expect(oldA.listenerCount('resolved')).toBe(0)
-            expect(oldB.listenerCount('resolved')).toBe(0)
-
-            oldA.emit('resolved', service('stale'))
-            expect(oldCb).not.toHaveBeenCalled()
+            expect(jest.getTimerCount()).toBe(1)
+            expect(a.listenerCount('resolved')).toBe(1)
+            expect(b.listenerCount('resolved')).toBe(1)
+            expect(a.stop.mock.calls.length + b.stop.mock.calls.length).toBe(1)
+            expect(a.scan.mock.calls.length + b.scan.mock.calls.length).toBe(scans)
+            a.emit('resolved', service('still-there'))
+            expect(cb).toHaveBeenCalledTimes(1)
         })
 
-        test('a search after a reconnect creates fresh browsers and only reaches the new callback', () => {
+        test('a search after a disconnect and connect creates fresh browsers and only reaches the new callback', () => {
             const oldCb = jest.fn()
             const newCb = jest.fn()
             binding.connect()
             binding.find({ type: 'svc-a' }, oldCb)
             const oldBrowser = browserFor(0)
 
+            binding.disconnect()
             binding.connect()
             binding.find({ type: 'svc-a' }, newCb)
             const newBrowser = browserFor(1)
@@ -390,6 +394,111 @@ describe('ReactNativeMdnsBinding', () => {
             expect(oldCb).not.toHaveBeenCalled()
             expect(newCb).toHaveBeenCalledTimes(1)
             expect(newCb.mock.calls[0][0].name).toBe('y')
+        })
+    })
+
+    describe('stopFind()', () => {
+        const onupA = jest.fn()
+        const onupB = jest.fn()
+        const onupC = jest.fn()
+
+        beforeEach(() => {
+            [onupA, onupB, onupC].forEach(f => f.mockClear())
+            binding.connect()
+        })
+
+        test('stops only the browser of that type and leaves the others running', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            binding.find({ type: 'svc-b' }, onupB)
+            binding.find({ type: 'svc-c' }, onupC)
+            const [a, b, c] = MockZeroconf.instances
+
+            binding.stopFind('svc-b')
+
+            expect(b.stop).toHaveBeenCalled()
+            expect(b.listenerCount('resolved')).toBe(0)
+            expect(a.listenerCount('resolved')).toBe(1)
+            expect(c.listenerCount('resolved')).toBe(1)
+            a.emit('resolved', service('a1'))
+            c.emit('resolved', service('c1'))
+            b.emit('resolved', service('b1'))
+            expect(onupA).toHaveBeenCalledTimes(1)
+            expect(onupC).toHaveBeenCalledTimes(1)
+            expect(onupB).not.toHaveBeenCalled()
+        })
+
+        test('the rotation goes on with the remaining types, with a slice for two', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            binding.find({ type: 'svc-b' }, onupB)
+            binding.find({ type: 'svc-c' }, onupC)
+            const [a, b, c] = MockZeroconf.instances
+            expect(b.scan).toHaveBeenCalledTimes(1)   // B is the active browser
+            expect(a.scan).toHaveBeenCalledTimes(1)
+
+            binding.stopFind('svc-b')   // the active one: the next browser takes over right away
+            expect(b.stop).toHaveBeenCalled()
+            expect(a.scan).toHaveBeenCalledTimes(2)
+
+            jest.advanceTimersByTime(SCAN_WINDOW / 2)
+            expect(c.scan).toHaveBeenCalledTimes(1)
+            jest.advanceTimersByTime(SCAN_WINDOW / 2)
+            expect(a.scan).toHaveBeenCalledTimes(3)
+            expect(b.scan).toHaveBeenCalledTimes(1)
+        })
+
+        test('stopping the last browser clears the rotation but keeps the connection', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            binding.find({ type: 'svc-b' }, onupB)
+            binding.stopFind('svc-a')
+            binding.stopFind('svc-b')
+
+            expect(jest.getTimerCount()).toBe(0)
+            binding.find({ type: 'svc-a' }, onupA)
+            expect(MockZeroconf.instances).toHaveLength(3)
+            expect(MockZeroconf.instances[2].scan).toHaveBeenCalledTimes(1)
+        })
+
+        test('a type that is not browsed (or browsed twice) is ignored', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            expect(() => binding.stopFind('unknown')).not.toThrow()
+            binding.stopFind('svc-a')
+            expect(() => binding.stopFind('svc-a')).not.toThrow()
+            expect(() => new ReactNativeMdnsBinding().stopFind('svc-a')).not.toThrow()
+        })
+
+        test('the protocol is part of the key, default tcp', () => {
+            binding.find({ type: 'svc-a', protocol: 'udp' }, onupA)
+            binding.stopFind('svc-a')
+            expect(browserFor(0).stop).not.toHaveBeenCalled()
+            binding.stopFind('svc-a', 'udp')
+            expect(browserFor(0).stop).toHaveBeenCalled()
+        })
+
+        test('find() of a type that is already browsed does not restart its scan (idempotent re-arm)', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            binding.find({ type: 'svc-a' }, onupA)
+            binding.find({ type: 'svc-a' }, onupA)
+            expect(browserFor(0).scan).toHaveBeenCalledTimes(1)
+            expect(browserFor(0).stop).not.toHaveBeenCalled()
+        })
+
+        test('a throwing stop() of the browser does not throw out of stopFind', () => {
+            binding.find({ type: 'svc-a' }, onupA)
+            browserFor(0).stop.mockImplementation(() => { throw new Error('boom') })
+            expect(() => binding.stopFind('svc-a')).not.toThrow()
+            expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'stopFind' }))
+        })
+
+        test('the type of a link watch joins an existing trainer rotation and leaves it again, nothing else changes', () => {
+            binding.find({ type: 'dc' }, onupA)
+            binding.find({ type: 'obc' }, onupB)
+            const dcScans = browserFor(0).scan.mock.calls.length
+            binding.find({ type: 'incyclist' }, onupC)
+            binding.stopFind('incyclist')
+            expect(browserFor(0).listenerCount('resolved')).toBe(1)
+            expect(browserFor(1).listenerCount('resolved')).toBe(1)
+            expect(browserFor(0).scan.mock.calls.length).toBeGreaterThanOrEqual(dcScans)
+            expect(jest.getTimerCount()).toBe(1)
         })
     })
 

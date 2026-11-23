@@ -20,18 +20,17 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
     private rotationTimer?: ReturnType<typeof setTimeout>
     private activeKey?: string
 
+    /**
+     * Idempotent: the trainer discovery and the link watch both call it, and neither may reset the
+     * browsers the other has registered. Release browsers with {@link stopFind} (one type) or
+     * {@link disconnect} (all).
+     */
     connect(): void {
         try {
-            let log = true
-            if (this._connected) {
-                this.disconnect()
-                log = false
-            }
+            if (this._connected)
+                return
             this._connected = true
-
-            if (log)
-                this.logger.logEvent({ message: 'Connect to bonjour ' })
-            return
+            this.logger.logEvent({ message: 'Connect to bonjour ' })
         }
         catch (err: any) {
             this.logError(err, 'connect')
@@ -86,6 +85,7 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
 
             const key = `${type}:${protocol}:${domain}`
             let entry = this.browsers.get(key)
+            const isNew = !entry
 
             if (!entry) {
                 this.logger.logEvent({ message: 'create new scanner', type })
@@ -97,10 +97,56 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
                 entry.onup = onup
             }
 
-            this.startRotation()
+            // an existing browser must not restart a scan that is already running (idempotent re-arm)
+            if (isNew || (!this.activeKey && !this.rotationTimer))
+                this.startRotation()
         }
         catch (err: any) {
             this.logError(err, 'find')
+        }
+    }
+
+    /**
+     * Stops the browser of one service type and leaves all other browsers (and the connection) alone.
+     * Safe to call for a type that is not browsed.
+     * @param type service type as passed to find()
+     * @param protocol defaults to 'tcp'
+     */
+    stopFind(type: string, protocol: 'tcp' | 'udp' = 'tcp'): void {
+        try {
+            const key = `${type}:${protocol}:local.`
+            const entry = this.browsers.get(key)
+            if (!entry)
+                return
+
+            const wasActive = this.activeKey === key
+            this.browsers.delete(key)
+            try {
+                entry.browser.stop()
+                entry.browser.removeAllListeners()
+            }
+            catch (err: any) {
+                this.logError(err, 'stopFind')
+            }
+
+            if (wasActive)
+                this.activeKey = undefined
+
+            if (this.browsers.size === 0) {
+                this.stopRotation()
+                return
+            }
+            // the slice that was running ended with its browser: continue with the next one right away
+            if (wasActive) {
+                if (this.rotationTimer) {
+                    clearTimeout(this.rotationTimer)
+                    this.rotationTimer = undefined
+                }
+                this.scanNext()
+            }
+        }
+        catch (err: any) {
+            this.logError(err, 'stopFind')
         }
     }
 
