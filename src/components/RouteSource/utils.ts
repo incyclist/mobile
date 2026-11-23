@@ -40,12 +40,12 @@ export const getUnavailableText = ({ unavailableReason, sourceLabel }: RouteSour
 /** The grey what-to-do line that follows the reason. */
 export const getWhatToDoText = ({ unavailableReason, sourceLabel }: RouteSourceProps): string | undefined => {
     if (unavailableReason === 'linkUnreachable') {
-        return `Open Incyclist on ${sourceLabel ?? 'your computer'} and use the same Wi‑Fi on both, then pull the list down. More help: Settings › Route Sharing.`;
+        return `Open Incyclist on ${sourceLabel ?? 'your computer'} and use the same Wi‑Fi on both, then pull the list down. More help: Settings › Routes › Route Sharing.`;
     }
     if (unavailableReason === 'linkNeverReached') {
         return sourceLabel
-            ? `See Settings › Route Sharing › ${sourceLabel} for what to check.`
-            : 'See Settings › Route Sharing for what to check.';
+            ? `See Settings › Routes › Route Sharing › ${sourceLabel} for what to check.`
+            : 'See Settings › Routes › Route Sharing for what to check.';
     }
     return undefined;
 };

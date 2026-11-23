@@ -29,10 +29,10 @@ describe('RouteSource copy', () => {
 
     test('what to do', () => {
         expect(getWhatToDoText({ unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' }))
-            .toBe('Open Incyclist on Den PC and use the same Wi‑Fi on both, then pull the list down. More help: Settings › Route Sharing.');
+            .toBe('Open Incyclist on Den PC and use the same Wi‑Fi on both, then pull the list down. More help: Settings › Routes › Route Sharing.');
         expect(getWhatToDoText({ unavailableReason: 'linkNeverReached', sourceLabel: 'Den PC' }))
-            .toBe('See Settings › Route Sharing › Den PC for what to check.');
-        expect(getWhatToDoText({ unavailableReason: 'linkNeverReached' })).toBe('See Settings › Route Sharing for what to check.');
+            .toBe('See Settings › Routes › Route Sharing › Den PC for what to check.');
+        expect(getWhatToDoText({ unavailableReason: 'linkNeverReached' })).toBe('See Settings › Routes › Route Sharing for what to check.');
         expect(getWhatToDoText({ unavailableReason: 'noSource' })).toBeUndefined();
     });
 

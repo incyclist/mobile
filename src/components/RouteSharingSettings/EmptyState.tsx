@@ -6,7 +6,7 @@ import type { RouteSharingPlatform } from './types';
 const INTRO = "Ride the video routes you've added to Incyclist on your computer — including ones stored on a NAS or an external drive — without copying them to this device.";
 const INTRO_PHONE = "Ride the video routes you've added to Incyclist on your computer, without copying them to this device.";
 const STEPS = [
-    'On your computer, open Incyclist and go to Settings › Route Sharing.',
+    'On your computer, open Incyclist and go to Settings › Routes › Route Sharing.',
     'Click "Connect your phone or tablet".',
     'Here, tap Add Computer.',
 ];

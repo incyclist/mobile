@@ -34,7 +34,7 @@ describe('AddComputerDialogView', () => {
         const props = { ...baseProps(), discovery: mock.SEARCHING_WITH_RESULTS };
         const { getByText } = render(<AddComputerDialogView {...props} />);
         expect(getByText('Looking for computers on your Wi‑Fi…')).toBeTruthy();
-        expect(getByText('On the computer, Settings › Route Sharing › Connect your phone or tablet must be open.')).toBeTruthy();
+        expect(getByText('On the computer, Settings › Routes › Route Sharing › Connect your phone or tablet must be open.')).toBeTruthy();
         expect(getByText('✓ Already connected')).toBeTruthy();
         fireEvent.press(getByText('Home PC'));
         expect(props.onSelect).toHaveBeenCalledWith(mock.HOME_PC.id);

@@ -7,7 +7,7 @@ import { RouteSharingChecklist } from '../RouteSharingChecklist';
 import { CodeEntry } from './CodeEntry';
 import { getFailureMessage, getWrongCodeMessage } from './utils';
 
-const PREREQUISITE = 'On the computer, Settings › Route Sharing › Connect your phone or tablet must be open.';
+const PREREQUISITE = 'On the computer, Settings › Routes › Route Sharing › Connect your phone or tablet must be open.';
 const MAX_NAME_LENGTH = 40;
 
 export const Heading = ({ title, text }: { title: string, text?: string }) => (
@@ -103,7 +103,7 @@ export const ConnectingScreen = ({ name }: { name: string }) => (
 export const NotReadyScreen = ({ name }: { name: string }) => (
     <Heading
         title={`${name} isn't ready to connect`}
-        text={`On ${name}, open Settings › Route Sharing and click "Connect your phone or tablet". Keep that window open, then tap Try Again.`}
+        text={`On ${name}, open Settings › Routes › Route Sharing and click "Connect your phone or tablet". Keep that window open, then tap Try Again.`}
     />
 );
 

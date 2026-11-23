@@ -12,13 +12,13 @@ export const getChecklistItems = (variant: RouteSharingChecklistProps['variant']
         const computer = name ?? 'this computer';
         return [
             `Is Incyclist open on ${computer}? Routes are shared only while the app is open.`,
-            `Is Route Sharing switched on? On ${computer}: Settings › Route Sharing.`,
+            `Is Route Sharing switched on? On ${computer}: Settings › Routes › Route Sharing.`,
             SAME_WIFI,
             WINDOWS,
         ];
     }
     return [
-        'On the computer, is Incyclist open with Settings › Route Sharing › "Connect your phone or tablet" open?',
+        'On the computer, is Incyclist open with Settings › Routes › Route Sharing › "Connect your phone or tablet" open?',
         SAME_WIFI,
         WINDOWS,
         'Did the computer ask whether Incyclist may use the network? It needs "Allow".',
