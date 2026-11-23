@@ -6,6 +6,7 @@ import {Platform} from 'react-native';
 import {v4} from 'uuid';
 import DefaultPreference from 'react-native-default-preference';
 import settings from '@settings';
+import { hasNativeFeature } from '../nativeCapabilities';
 
 export const getOS = () => {
     const arch = 'react-native';
@@ -60,6 +61,7 @@ export const getAppInfoBinding = async () => {
         getTempDir:()=>RNFS.TemporaryDirectoryPath,
         isApp:()=>false,
         getChannel:()=>getChannel(),
+        hasNativeFeature,
         session
     }
 
