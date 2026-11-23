@@ -10,6 +10,9 @@ import Foundation
  * - 'local-link': the control connection and discovery can work, i.e. Info.plist declares the
  *   Bonjour service `_incyclist._tcp` in NSBonjourServices (without it iOS silently blocks
  *   browsing). Read from the real Info.plist, so it cannot drift from the binary.
+ *
+ * Nothing here can throw into JS: every Info.plist access is optional-chained or conditionally
+ * cast, and a missing or malformed entry reports no capability.
  */
 @objc(NativeCapabilities)
 class NativeCapabilitiesModule: NSObject {

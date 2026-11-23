@@ -1,5 +1,6 @@
 package com.incyclist.app
 
+import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.module.annotations.ReactModule
@@ -22,9 +23,14 @@ class NativeCapabilitiesModule(reactContext: ReactApplicationContext) :
 
     override fun getName(): String = NAME
 
-    override fun getConstants(): MutableMap<String, Any> = hashMapOf(
-        "capabilities" to listOf("local-link"),
-    )
+    // Never throws into the bridge: on any failure the binary reports no capability.
+    override fun getConstants(): MutableMap<String, Any> =
+        try {
+            hashMapOf<String, Any>("capabilities" to listOf("local-link"))
+        } catch (e: Throwable) {
+            Log.e(NAME, "getConstants failed", e)
+            hashMapOf<String, Any>("capabilities" to emptyList<String>())
+        }
 
     companion object {
         const val NAME = "NativeCapabilities"

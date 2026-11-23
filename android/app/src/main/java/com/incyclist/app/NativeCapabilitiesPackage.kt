@@ -1,5 +1,6 @@
 package com.incyclist.app
 
+import android.util.Log
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
@@ -9,7 +10,14 @@ import com.facebook.react.uimanager.ViewManager
 class NativeCapabilitiesPackage : ReactPackage {
     override fun createNativeModules(
         reactContext: ReactApplicationContext,
-    ): List<NativeModule> = listOf(NativeCapabilitiesModule(reactContext))
+    ): List<NativeModule> =
+        try {
+            listOf(NativeCapabilitiesModule(reactContext))
+        } catch (e: Throwable) {
+            // the module is optional: without it JS sees no capability
+            Log.e(NativeCapabilitiesModule.NAME, "module creation failed", e)
+            emptyList()
+        }
 
     override fun createViewManagers(
         reactContext: ReactApplicationContext,
