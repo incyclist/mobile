@@ -1,9 +1,16 @@
+const mockLogEvent = jest.fn();
+jest.mock('gd-eventlog', () => ({
+    EventLogger: jest.fn().mockImplementation(() => ({ logEvent: mockLogEvent })),
+}));
+
 import { NativeModules, Platform } from 'react-native';
 import { getNativeCapabilities, hasNativeFeature, resetNativeCapabilitiesCache } from './index';
 
 describe('nativeCapabilities', () => {
     const modules = NativeModules as Record<string, unknown>;
     const originalOS = Platform.OS;
+
+    beforeEach(() => mockLogEvent.mockClear());
 
     afterEach(() => {
         delete modules.NativeCapabilities;
@@ -36,6 +43,15 @@ describe('nativeCapabilities', () => {
     test('a throwing module accessor never throws', () => {
         Object.defineProperty(modules, 'NativeCapabilities', { configurable: true, get: () => { throw new Error('boom'); } });
         expect(hasNativeFeature('local-link')).toBe(false);
+        expect(getNativeCapabilities()).toEqual([]);
+        expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'readCapabilities', error: 'boom' }));
+    });
+
+    test('a throwing logger does not make the lookup throw', () => {
+        Object.defineProperty(modules, 'NativeCapabilities', { configurable: true, get: () => { throw new Error('boom'); } });
+        mockLogEvent.mockImplementation(() => { throw new Error('log down'); });
+        expect(hasNativeFeature('local-link')).toBe(false);
+        mockLogEvent.mockReset();
     });
 
     test('the list is read once', () => {

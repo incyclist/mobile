@@ -113,21 +113,31 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
         const { type, protocol, domain, browser } = entry
 
         browser.on('resolved', (service: any) => {
-            if (!service.addresses?.length) return
+            try {
+                if (!service?.addresses?.length) return
 
-            this.logger.logEvent({ message: 'got announcement', type, protocol, domain, service })
+                this.logger.logEvent({ message: 'got announcement', type, protocol, domain, service })
 
-            const announcement: MulticastDnsAnnouncement = {
-                type,
-                address: service.addresses[0],
-                port: service.port,
-                name: service.name,
-                serialNo: service.txt?.serialNo,
-                serviceUUIDs: service.txt?.['ble-service-uuids']?.split(','),
-                transport: 'tcp'
+                const announcement: MulticastDnsAnnouncement = {
+                    type,
+                    address: service.addresses[0],
+                    port: service.port,
+                    name: service.name,
+                    serialNo: service.txt?.serialNo,
+                    serviceUUIDs: service.txt?.['ble-service-uuids']?.split(','),
+                    transport: 'tcp'
+                }
+
+                entry.onup?.(announcement)
             }
+            catch (err: any) {
+                this.logError(err, 'onResolved')
+            }
+        })
 
-            entry.onup?.(announcement)
+        // an 'error' event without a listener would throw inside the native event handler
+        browser.on('error', (err: any) => {
+            this.logError(err, 'onBrowserError')
         })
     }
 
@@ -200,6 +210,11 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
     }
 
     protected logError(err: any, fn: string) {
-        this.logger.logEvent({ message: 'error', fn, error: err.message, stack: err.stack })
+        try {
+            this.logger.logEvent({ message: 'error', fn, error: err?.message ?? String(err), stack: err?.stack })
+        }
+        catch {
+            // nothing left to report to
+        }
     }
 }

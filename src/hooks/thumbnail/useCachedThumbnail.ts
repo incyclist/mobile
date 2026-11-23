@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouteThumbnailCache } from 'incyclist-services';
 import type { ThumbnailLinkSource, ThumbnailRequest } from 'incyclist-services';
+import { useLogging } from '../logging';
 
 export interface CachedThumbnail {
     /** `file://` URI of the cached thumbnail, once there is one */
@@ -23,6 +24,7 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
     const hasUrl = /^https?:\/\//i.test(url ?? '');
     const linkOnly = !hasUrl && !!link?.linkId && !!link?.thumbHandle;
     const enabled = !!routeKey && (hasUrl || linkOnly);
+    const { logError } = useLogging('useCachedThumbnail');
     const [state, setState] = useState<{ id?: string; cachedUri?: string }>({});
     const requestRef = useRef<ThumbnailRequest | undefined>(undefined);
     const linkId = link?.linkId;
@@ -40,51 +42,66 @@ export const useCachedThumbnail = (routeKey: string | undefined, url: string | u
         requestRef.current = request;
         let cancelled = false;
 
-        const run = async () => {
-            let cachedUri: string | undefined;
+        const lookup = async (): Promise<string | undefined> => {
             try {
                 const cache = useRouteThumbnailCache();
-                cachedUri = await cache.getCached(request);
+                const cachedUri = await cache.getCached(request);
                 if (!cachedUri && !linkOnly) {
                     // not shown now (the original is), stored for the next time
-                    cache.cache(request).catch(() => undefined);
+                    cache.cache(request).catch((err: any) => logError(err, 'useCachedThumbnail.cache'));
                 }
-            } catch {
-                cachedUri = undefined;
-            }
-            if (!cancelled) {
-                setState({ id, cachedUri });
-            }
-            if (!cachedUri && linkOnly) {
-                // there is no original to show: the thumbnail appears as soon as the computer has delivered it
-                try {
-                    const fetched = await useRouteThumbnailCache().cache(request);
-                    if (!cancelled && fetched) {
-                        setState({ id, cachedUri: fetched });
-                    }
-                } catch {
-                    // the row keeps looking as it does
-                }
+                return cachedUri;
+            } catch (err: any) {
+                logError(err, 'useCachedThumbnail.lookup');
+                return undefined;
             }
         };
-        run();
+
+        const fetchForLinkOnly = async () => {
+            try {
+                // there is no original to show: the thumbnail appears as soon as the computer has delivered it
+                const fetched = await useRouteThumbnailCache().cache(request);
+                if (!cancelled && fetched) {
+                    setState({ id, cachedUri: fetched });
+                }
+            } catch (err: any) {
+                // the row keeps looking as it does
+                logError(err, 'useCachedThumbnail.fetch');
+            }
+        };
+
+        const run = async () => {
+            try {
+                const cachedUri = await lookup();
+                if (!cancelled) {
+                    setState({ id, cachedUri });
+                }
+                if (!cachedUri && linkOnly) {
+                    await fetchForLinkOnly();
+                }
+            } catch (err: any) {
+                logError(err, 'useCachedThumbnail.run');
+            }
+        };
+        run().catch((err: any) => logError(err, 'useCachedThumbnail.run'));
 
         return () => {
             cancelled = true;
         };
-    }, [id, routeKey, url, hasUrl, linkOnly, linkId, thumbHandle]);
+    }, [id, routeKey, url, hasUrl, linkOnly, linkId, thumbHandle, logError]);
 
     const onCacheError = useCallback(() => {
         const request = requestRef.current;
         setState(prev => ({ ...prev, cachedUri: undefined }));
         if (isCacheable(request)) {
             try {
-                useRouteThumbnailCache().invalidate(request).catch(() => undefined);
-            } catch {
+                useRouteThumbnailCache().invalidate(request).catch((err: any) => logError(err, 'useCachedThumbnail.invalidate'));
+            } catch (err: any) {
                 // nothing to clean up
+                logError(err, 'useCachedThumbnail.onCacheError');
             }
         }
-    }, []);
+    }, [logError]);
 
     if (!id) {
         return { ready: true, onCacheError };

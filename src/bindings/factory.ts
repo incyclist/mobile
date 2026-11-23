@@ -20,6 +20,16 @@ import { MobileDownloadManager } from './download';
 import { getMapAvailabilityBinding } from './mapAvailability';
 import { getFileAccessBinding } from './fileAccess';
 import { getSecureStorageBinding } from './secureStorage';
+import { EventLogger } from 'gd-eventlog';
+
+const logError = (err: any, fn: string): void => {
+    try {
+        new EventLogger('Bindings').logEvent({ message: 'error', fn, error: err?.message ?? String(err), stack: err?.stack })
+    }
+    catch {
+        // nothing left to report to
+    }
+}
 
 
 let _bindings:IncyclistBindings|undefined
@@ -50,8 +60,19 @@ export const initBindings = async  ()=> {
     bindings.crypto = getCryptoBinding()
     bindings.fetch = getFetchBinding()
     bindings.form = getFormBinding()
-    bindings.downloadManager = new MobileDownloadManager()
-    bindings.secureStorage = getSecureStorageBinding()
+    // the bridge-mode bindings are optional for the app: a failure leaves them absent
+    try {
+        bindings.downloadManager = new MobileDownloadManager()
+    }
+    catch (err: any) {
+        logError(err, 'initBindings.downloadManager')
+    }
+    try {
+        bindings.secureStorage = getSecureStorageBinding()
+    }
+    catch (err: any) {
+        logError(err, 'initBindings.secureStorage')
+    }
 
     // Access to files outside the app sandbox (iCloud/picked folders). iOS only - there is no
     // Android or web-ui/desktop implementation, so the binding stays absent everywhere else.

@@ -10,7 +10,12 @@ export const useLogging =  ( name:string)=> {
     },[])
 
     const logError = useCallback((err:any,fn:string)=> {
-        refLogger.current?.logEvent( {message:'error', fn, error:err.message, stack:err.stack})
+        try {
+            refLogger.current?.logEvent( {message:'error', fn, error:err?.message ?? String(err), stack:err?.stack})
+        }
+        catch {
+            // logging must never throw
+        }
     },[])
 
 

@@ -6,13 +6,28 @@ import {Platform} from 'react-native';
 import {v4} from 'uuid';
 import DefaultPreference from 'react-native-default-preference';
 import settings from '@settings';
+import { EventLogger } from 'gd-eventlog';
 import { hasNativeFeature } from '../nativeCapabilities';
+
+const logError = (err: any, fn: string): void => {
+    try {
+        new EventLogger('AppInfo').logEvent({ message: 'error', fn, error: err?.message ?? String(err), stack: err?.stack });
+    } catch {
+        // nothing left to report to
+    }
+};
 
 export const getOS = () => {
     const arch = 'react-native';
-    const platform = Platform.OS;
-    const release = Platform.Version.toString();
-    return {platform, arch, release};
+    try {
+        const platform = Platform.OS;
+        const release = Platform.Version.toString();
+        return {platform, arch, release};
+    }
+    catch (err: any) {
+        logError(err, 'getOS');
+        return {platform: 'unknown', arch, release: ''};
+    }
 };
 
 export const getChannel = ():AppChannel=> {
@@ -26,15 +41,29 @@ export const getChannel = ():AppChannel=> {
  * and that bundle is served as a hot update to every installed native version, so it would report
  * the same value on every device regardless of what native version is actually installed.
  */
-export const getAppVersion = ():string => DeviceInfo.getVersion();
+export const getAppVersion = ():string => {
+    try {
+        return DeviceInfo.getVersion();
+    }
+    catch (err: any) {
+        logError(err, 'getAppVersion');
+        return '';
+    }
+};
 
 export const getAppInfo = () => {
-    const {name} = info;
-    const appVersion = getAppVersion();
-    const appDir = RNFS.DocumentDirectoryPath;
-    const tempDir = RNFS.TemporaryDirectoryPath;
+    try {
+        const {name} = info;
+        const appVersion = getAppVersion();
+        const appDir = RNFS.DocumentDirectoryPath;
+        const tempDir = RNFS.TemporaryDirectoryPath;
 
-    return {version:appVersion, name, appDir, tempDir};
+        return {version:appVersion, name, appDir, tempDir};
+    }
+    catch (err: any) {
+        logError(err, 'getAppInfo');
+        return {version:'', name:'', appDir:'', tempDir:''};
+    }
 };
 
 type AppChannel = 'desktop' | 'mobile' | 'web' | 'tv' | 'backend';
@@ -42,25 +71,77 @@ type AppChannel = 'desktop' | 'mobile' | 'web' | 'tv' | 'backend';
 let activeVersion:string|undefined|null;
 let session:string|undefined;
 
+const readActiveVersion = async (): Promise<string|undefined|null> => {
+    try {
+        return await DefaultPreference.get('active_bundle_version');
+    }
+    catch (err: any) {
+        logError(err, 'readActiveVersion');
+        return undefined;
+    }
+};
+
+const getUIVersion = (): string => {
+    try {
+        const {bundleVersion} = info as any;
+        return activeVersion??bundleVersion??appJson.bundleVersion
+    }
+    catch (err: any) {
+        logError(err, 'getUIVersion');
+        return '';
+    }
+};
+
+const getAppDir = (): string => {
+    try {
+        return RNFS.DocumentDirectoryPath;
+    }
+    catch (err: any) {
+        logError(err, 'getAppDir');
+        return '';
+    }
+};
+
+const getTempDir = (): string => {
+    try {
+        return RNFS.TemporaryDirectoryPath;
+    }
+    catch (err: any) {
+        logError(err, 'getTempDir');
+        return '';
+    }
+};
+
+const getChannelSafe = (): AppChannel => {
+    try {
+        return getChannel();
+    }
+    catch (err: any) {
+        logError(err, 'getChannel');
+        return 'mobile';
+    }
+};
+
 export const getAppInfoBinding = async () => {
 
-    activeVersion = activeVersion ?? await DefaultPreference.get('active_bundle_version'); 
-    session = session ?? v4()
-
-    const getUIVersion = ()=> { 
-        const {bundleVersion} = info as any;       
-        return activeVersion??bundleVersion??appJson.bundleVersion
+    try {
+        activeVersion = activeVersion ?? await readActiveVersion();
+        session = session ?? v4()
+    }
+    catch (err: any) {
+        logError(err, 'getAppInfoBinding');
+        session = session ?? 'unknown'
     }
 
     return {
         getOS,
         getAppVersion,
         getUIVersion,
-        getAppDir:()=>RNFS.DocumentDirectoryPath,
+        getAppDir,
         getSourceDir:()=>'',
-        getTempDir:()=>RNFS.TemporaryDirectoryPath,
+        getTempDir,
         isApp:()=>false,
-        getChannel:()=>getChannel(),
+        getChannel:getChannelSafe,
         hasNativeFeature,
         session
     }

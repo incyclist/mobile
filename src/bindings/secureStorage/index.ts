@@ -8,11 +8,22 @@ type ISecureStorageBinding = NonNullable<IncyclistBindings['secureStorage']>;
 const SERVICE_PREFIX = 'incyclist-secure:';
 const USERNAME = 'value';
 
-const logger = new EventLogger('Incyclist');
+let _logger: EventLogger | undefined;
+const getLogger = (): EventLogger => {
+    _logger ??= new EventLogger('Incyclist');
+    return _logger;
+};
 
 const scope = (key: string) => ({ service: `${SERVICE_PREFIX}${key}` });
 
-const reason = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+// same event shape as the logError of the other bindings; logging itself must never throw
+const logError = (err: any, fn: string): void => {
+    try {
+        getLogger().logEvent({ message: 'error', fn, error: err?.message ?? String(err), stack: err?.stack });
+    } catch {
+        // nothing left to report to
+    }
+};
 
 /**
  * Small secrets (the pairing secrets of the local link) in the iOS Keychain / the Android
@@ -24,7 +35,7 @@ export class SecureStorageBinding implements ISecureStorageBinding {
             const credentials = await Keychain.getGenericPassword(scope(key));
             return credentials ? credentials.password : undefined;
         } catch (err: unknown) {
-            logger.logEvent({ message: 'secure storage read failed', reason: reason(err) });
+            logError(err, 'SecureStorageBinding.get');
             return undefined;
         }
     }
@@ -37,7 +48,7 @@ export class SecureStorageBinding implements ISecureStorageBinding {
             });
             return result !== false;
         } catch (err: unknown) {
-            logger.logEvent({ message: 'secure storage write failed', reason: reason(err) });
+            logError(err, 'SecureStorageBinding.set');
             return false;
         }
     }
@@ -47,7 +58,7 @@ export class SecureStorageBinding implements ISecureStorageBinding {
             await Keychain.resetGenericPassword(scope(key));
             return true;
         } catch (err: unknown) {
-            logger.logEvent({ message: 'secure storage delete failed', reason: reason(err) });
+            logError(err, 'SecureStorageBinding.delete');
             return false;
         }
     }

@@ -17,8 +17,9 @@ jest.mock('react-native-keychain', () => {
         }),
     };
 });
+const mockLogEvent = jest.fn();
 jest.mock('gd-eventlog', () => ({
-    EventLogger: jest.fn().mockImplementation(() => ({ logEvent: jest.fn() })),
+    EventLogger: jest.fn().mockImplementation(() => ({ logEvent: mockLogEvent })),
 }));
 
 import * as Keychain from 'react-native-keychain';
@@ -64,6 +65,24 @@ describe('SecureStorageBinding', () => {
         expect(await binding.set('a', '1')).toBe(false);
         expect(await binding.get('a')).toBeUndefined();
         expect(await binding.delete('a')).toBe(false);
+        expect(mockLogEvent).toHaveBeenCalledTimes(3);
+        expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'SecureStorageBinding.set', error: 'boom' }));
+    });
+
+    test('a synchronous throw of the keychain and a non-Error rejection are contained', async () => {
+        (Keychain.getGenericPassword as jest.Mock).mockImplementationOnce(() => { throw new Error('sync'); });
+        (Keychain.setGenericPassword as jest.Mock).mockRejectedValueOnce('plain string');
+        (Keychain.resetGenericPassword as jest.Mock).mockRejectedValueOnce(undefined);
+        await expect(binding.get('a')).resolves.toBeUndefined();
+        await expect(binding.set('a', '1')).resolves.toBe(false);
+        await expect(binding.delete('a')).resolves.toBe(false);
+        expect(mockLogEvent).toHaveBeenCalledTimes(3);
+    });
+
+    test('a failing logger does not turn a keychain failure into a throw', async () => {
+        (Keychain.getGenericPassword as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+        mockLogEvent.mockImplementationOnce(() => { throw new Error('log down'); });
+        await expect(binding.get('a')).resolves.toBeUndefined();
     });
 
     test('a refused write is reported as false', async () => {

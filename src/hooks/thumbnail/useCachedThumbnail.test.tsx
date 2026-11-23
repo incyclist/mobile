@@ -2,6 +2,8 @@ import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useRouteThumbnailCache } from 'incyclist-services';
 import { useCachedThumbnail } from './useCachedThumbnail';
 
+const mockLogError = jest.fn();
+jest.mock('../logging', () => ({ useLogging: () => ({ logEvent: jest.fn(), logError: mockLogError }) }));
 jest.mock('incyclist-services', () => ({
     useRouteThumbnailCache: jest.fn(),
 }));
@@ -12,6 +14,7 @@ describe('useCachedThumbnail', () => {
     let cache: { getCached: jest.Mock; cache: jest.Mock; invalidate: jest.Mock };
 
     beforeEach(() => {
+        mockLogError.mockClear();
         cache = {
             getCached: jest.fn().mockResolvedValue(undefined),
             cache: jest.fn().mockResolvedValue('file:///app/thumbnails/x.img'),
@@ -54,6 +57,27 @@ describe('useCachedThumbnail', () => {
         const { result } = renderHook(() => useCachedThumbnail('r1', URL));
         await waitFor(() => expect(result.current.ready).toBe(true));
         expect(result.current.cachedUri).toBeUndefined();
+    });
+
+    it('a failing lookup is logged and the background fetch rejection is contained', async () => {
+        cache.getCached.mockRejectedValue(new Error('boom'));
+        const { result } = renderHook(() => useCachedThumbnail('r1', URL));
+        await waitFor(() => expect(result.current.ready).toBe(true));
+        expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }), 'useCachedThumbnail.lookup');
+
+        cache.getCached.mockResolvedValue(undefined);
+        cache.cache.mockRejectedValue(new Error('fetch down'));
+        const second = renderHook(() => useCachedThumbnail('r2', URL));
+        await waitFor(() => expect(second.result.current.ready).toBe(true));
+        await waitFor(() => expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'fetch down' }), 'useCachedThumbnail.cache'));
+    });
+
+    it('a throwing cache service and a failing invalidate never escape', async () => {
+        (useRouteThumbnailCache as jest.Mock).mockImplementation(() => { throw new Error('no service'); });
+        const { result } = renderHook(() => useCachedThumbnail('r1', URL));
+        await waitFor(() => expect(result.current.ready).toBe(true));
+        expect(() => act(() => result.current.onCacheError())).not.toThrow();
+        expect(mockLogError).toHaveBeenCalledWith(expect.anything(), 'useCachedThumbnail.onCacheError');
     });
 
     it('a cached file that cannot be displayed is dropped and invalidated', async () => {

@@ -5,6 +5,10 @@ jest.mock('incyclist-services', () => ({
     withExternalFileAccess: jest.fn((inner) => ({ wrapped: true, inner })),
 }));
 
+const mockLogEvent = jest.fn();
+jest.mock('gd-eventlog', () => ({
+    EventLogger: jest.fn().mockImplementation(() => ({ logEvent: mockLogEvent })),
+}));
 jest.mock('./logging', () => ({ getLogBinding: jest.fn(() => ({ logging: true })) }));
 jest.mock('./appInfo', () => ({ getAppInfoBinding: jest.fn().mockResolvedValue({ appInfo: true }) }));
 jest.mock('./user-settings', () => ({ getUserSettingsBinding: jest.fn(() => ({ settings: true })) }));
@@ -74,5 +78,23 @@ describe('bindings/factory initBindings', () => {
         expect(bindings.downloadManager).toBeDefined();
         expect(bindings.mapAvailability).toBeDefined();
         expect(bindings.secureStorage).toBeDefined();
+    });
+
+    it('a failing optional binding is logged and left absent, initBindings still resolves', async () => {
+        Platform.OS = 'android';
+
+        const { getSecureStorageBinding } = require('./secureStorage');
+        const { MobileDownloadManager } = require('./download');
+        getSecureStorageBinding.mockImplementationOnce(() => { throw new Error('keychain boom'); });
+        MobileDownloadManager.mockImplementationOnce(() => { throw new Error('dm boom'); });
+
+        const { initBindings } = require('./factory');
+        const bindings = await initBindings();
+
+        expect(bindings.secureStorage).toBeUndefined();
+        expect(bindings.downloadManager).toBeUndefined();
+        expect(bindings.logging).toBeDefined();
+        expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'initBindings.secureStorage', error: 'keychain boom' }));
+        expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ fn: 'initBindings.downloadManager' }));
     });
 });

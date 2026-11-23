@@ -19,9 +19,10 @@ jest.mock('react-native-zeroconf', () => ({
     default: jest.fn().mockImplementation(() => new MockZeroconf()),
 }))
 
+const mockLogEvent = jest.fn()
 jest.mock('gd-eventlog', () => ({
     EventLogger: jest.fn().mockImplementation(() => ({
-        logEvent: jest.fn(),
+        logEvent: mockLogEvent,
     })),
 }))
 
@@ -523,6 +524,42 @@ describe('ReactNativeMdnsBinding', () => {
             expect(newB.scan.mock.calls.length).toBeGreaterThan(0)
             expect([oldA.scan.mock.calls.length, oldB.scan.mock.calls.length]).toEqual(oldScans)
             expect(jest.getTimerCount()).toBe(1)
+        })
+    })
+
+    describe('event handlers never throw', () => {
+        beforeEach(() => {
+            mockLogEvent.mockClear()
+            binding.connect()
+        })
+
+        test('a throwing onup callback is contained and logged', () => {
+            binding.find({ type: 'svc-a' }, () => { throw new Error('onup boom') })
+
+            expect(() => browserFor(0).emit('resolved', service('a'))).not.toThrow()
+            expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ message: 'error', fn: 'onResolved', error: 'onup boom' }))
+        })
+
+        test('a malformed resolved event is contained', () => {
+            binding.find({ type: 'svc-a' }, jest.fn())
+
+            expect(() => browserFor(0).emit('resolved', undefined)).not.toThrow()
+            expect(() => browserFor(0).emit('resolved', { addresses: [] })).not.toThrow()
+        })
+
+        test('a browser error event is logged instead of thrown', () => {
+            binding.find({ type: 'svc-a' }, jest.fn())
+
+            expect(() => browserFor(0).emit('error', new Error('scan failed'))).not.toThrow()
+            expect(mockLogEvent).toHaveBeenCalledWith(expect.objectContaining({ fn: 'onBrowserError', error: 'scan failed' }))
+        })
+
+        test('a failing scan() is logged by the rotation, and a null error does not break logging', () => {
+            binding.find({ type: 'svc-a' }, jest.fn())
+            browserFor(0).scan.mockImplementation(() => { throw new Error('scan boom') })
+            expect(() => jest.advanceTimersByTime(SCAN_WINDOW)).not.toThrow()
+
+            expect(() => browserFor(0).emit('error', null)).not.toThrow()
         })
     })
 })
