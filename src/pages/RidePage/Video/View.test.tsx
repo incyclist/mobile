@@ -15,6 +15,8 @@ jest.mock('incyclist-services', () => ({
     useAvatars: () => ({ get: (id: string) => mockAvatarGet(id) }),
 }));
 
+const mockVideoMount = jest.fn();
+const mockVideoUnmount = jest.fn();
 const mockStartRideDisplay = jest.fn();
 const mockRideOverlay = jest.fn();
 const mockInfoText = jest.fn();
@@ -23,7 +25,14 @@ const mockFreeMap = jest.fn();
 const mockRideGestureHintOverlay = jest.fn();
 const mockRideSwipeFeedback = jest.fn();
 jest.mock('../../../components', () => ({
-    Video: () => null,
+    Video: () => {
+        const { useEffect } = require('react');
+        useEffect(() => {
+            mockVideoMount();
+            return () => mockVideoUnmount();
+        }, []);
+        return null;
+    },
     Button: () => null,
     Dynamic: ({ children }: any) => children,
     ErrorBoundary: ({ children }: any) => children,
@@ -60,6 +69,10 @@ jest.mock('../../../components', () => ({
         const { Text } = require('react-native');
         return <Text>ride-overlay</Text>;
     },
+}));
+
+jest.mock('react-native-gesture-handler', () => ({
+    GestureDetector: ({ children }: any) => children,
 }));
 
 const mockUseScreenLayout = jest.fn(() => 'normal');
@@ -587,5 +600,47 @@ describe('VideoRidePageView — video source lost notice', () => {
         render(<VideoRidePageView {...withVideo({ info: { text: 'Hello', routeDistance: 10 } })} />);
 
         expect(mockInfoText.mock.calls.at(-1)?.[0].text).toBe('Hello');
+    });
+});
+
+// Regression: the Video was unmounted/remounted (reloading with an empty buffer) when the start
+// overlay closed, because the gesture wrapper only existed after that point.
+describe('VideoRidePageView — Video survives the start overlay closing', () => {
+    const makeGesture = () => {
+        const g: any = { enabledState: undefined };
+        g.enabled = jest.fn((v: boolean) => {
+            g.enabledState = v;
+            return g;
+        });
+        return g;
+    };
+    const video = { src: 'http://host/video.mp4' };
+
+    beforeEach(() => {
+        mockVideoMount.mockClear();
+        mockVideoUnmount.mockClear();
+    });
+
+    it('does not remount the Video when startOverlayProps clears and a gesture is present', () => {
+        const gesture = makeGesture();
+        const props = { ...baseProps, gesture };
+        const { rerender } = render(
+            <VideoRidePageView {...props} displayProps={{ ...baseProps.displayProps, video }} />
+        );
+        expect(mockVideoMount).toHaveBeenCalledTimes(1);
+        expect(gesture.enabledState).toBe(false);
+
+        rerender(
+            <VideoRidePageView {...props} displayProps={{ ...baseProps.displayProps, startOverlayProps: null, video }} />
+        );
+        expect(mockVideoMount).toHaveBeenCalledTimes(1);
+        expect(mockVideoUnmount).not.toHaveBeenCalled();
+        expect(gesture.enabledState).toBe(true);
+    });
+
+    it('keeps the gesture disabled while the start overlay is shown', () => {
+        const gesture = makeGesture();
+        render(<VideoRidePageView {...baseProps} gesture={gesture} displayProps={{ ...baseProps.displayProps, video }} />);
+        expect(gesture.enabled).toHaveBeenLastCalledWith(false);
     });
 });

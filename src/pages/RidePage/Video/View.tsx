@@ -168,8 +168,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
     // duplicating this whole subtree - same reasoning as Workout/View.tsx's identical `content`.
     // Stays mounted (just invisible-styled) during the start overlay, unlike GPX/Workout's
-    // equivalent block, so gesture-wrapping must itself stay gated on !startOverlayProps below -
-    // otherwise a swipe could register while the start overlay is still showing.
+    // equivalent block, so the gesture is disabled (not unwrapped) while the start overlay is
+    // showing - otherwise a swipe could register under it.
     const mainContent = (
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
@@ -306,8 +306,11 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 </View>
             </View>}
 
-            {(!startOverlayProps && gesture) ? (
-                <GestureDetector gesture={gesture}>
+            {/* The tree shape must not change when the start overlay closes, otherwise the Video
+                inside mainContent is unmounted and reloaded. The gesture is therefore always
+                wrapped and merely disabled while the start overlay is shown. */}
+            {gesture ? (
+                <GestureDetector gesture={gesture.enabled(!startOverlayProps)}>
                     {mainContent}
                 </GestureDetector>
             ) : mainContent}
