@@ -14,8 +14,8 @@ import com.facebook.react.module.annotations.ReactModule
  *
  * - "local-link": the control connection and discovery are possible (the build carries the
  *   inert pair host; raw TCP needs no further configuration).
- * - "local-link-media" is intentionally NOT reported yet: it is reserved for the release that
- *   ships the loopback network configuration and pipe.
+ * - "local-link-media": the native loopback pipe (LoopbackPipeModule) is registered. Reported only
+ *   when LoopbackPipePackage created its module.
  */
 @ReactModule(name = NativeCapabilitiesModule.NAME)
 class NativeCapabilitiesModule(reactContext: ReactApplicationContext) :
@@ -26,7 +26,10 @@ class NativeCapabilitiesModule(reactContext: ReactApplicationContext) :
     // Never throws into the bridge: on any failure the binary reports no capability.
     override fun getConstants(): MutableMap<String, Any> =
         try {
-            hashMapOf<String, Any>("capabilities" to listOf("local-link"))
+            val capabilities = mutableListOf("local-link")
+            // only when the loopback pipe module is really registered in this binary
+            if (LoopbackPipePackage.registered) capabilities.add("local-link-media")
+            hashMapOf<String, Any>("capabilities" to capabilities)
         } catch (e: Throwable) {
             Log.e(NAME, "getConstants failed", e)
             hashMapOf<String, Any>("capabilities" to emptyList<String>())

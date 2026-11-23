@@ -1,6 +1,9 @@
+import { Platform } from 'react-native';
 import TcpSocket from 'react-native-tcp-socket';
 import { EventLogger } from 'gd-eventlog';
 import type { IncyclistBindings } from 'incyclist-services';
+import { hasNativeFeature, NATIVE_FEATURE_LOCAL_LINK_MEDIA } from '../nativeCapabilities';
+import { getNativeLoopbackPipeModule, NativeLoopbackPipeBinding } from './native';
 
 // the services package does not export the interface by name
 type ILoopbackPipeBinding = NonNullable<IncyclistBindings['loopbackPipe']>;
@@ -212,4 +215,19 @@ export class LoopbackPipeBinding implements ILoopbackPipeBinding {
     }
 }
 
-export const getLoopbackPipeBinding = (): ILoopbackPipeBinding => new LoopbackPipeBinding();
+/**
+ * The native (Kotlin) pipe when the installed binary carries it and reports 'local-link-media';
+ * the JS pipe otherwise (old binaries reached by a hot update, iOS, jest).
+ */
+export const getLoopbackPipeBinding = (): ILoopbackPipeBinding => {
+    const jsPipe = new LoopbackPipeBinding();
+    try {
+        if (Platform.OS === 'android' && hasNativeFeature(NATIVE_FEATURE_LOCAL_LINK_MEDIA)) {
+            const native = getNativeLoopbackPipeModule();
+            if (native) return new NativeLoopbackPipeBinding(native, jsPipe);
+        }
+    } catch (err: unknown) {
+        logError(err, 'getLoopbackPipeBinding');
+    }
+    return jsPipe;
+};
