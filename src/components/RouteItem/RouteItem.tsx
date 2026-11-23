@@ -82,8 +82,13 @@ export const RouteItem = memo((props: RouteItemDisplayProps) => {
     } ,[logEvent, id, title, page])
 
     const onDeleteLocalCopy = useCallback( (routeId:string) => {
-        logEvent({message:'local copy deleted', id, title, eventSource:'user' })
-        page.deleteLocalCopy(routeId)?.catch( (err:Error) => logError(err,'deleteLocalCopy'))
+        try {
+            logEvent({message:'local copy deleted', id, title, eventSource:'user' })
+            page.deleteLocalCopy(routeId)?.catch( (err:Error) => logError(err,'deleteLocalCopy'))
+        }
+        catch (err:any) {
+            logError(err,'deleteLocalCopy')
+        }
     } ,[logEvent, logError, id, title, page])
 
     const points = details?.points ?? props.points;

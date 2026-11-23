@@ -19,6 +19,9 @@ const mockSharing = {
     getRepo: () => ({ getForLink: () => [{}, {}, {}] }),
 };
 
+const mockLogEvent = jest.fn();
+const mockLogError = jest.fn();
+jest.mock('../../hooks/logging', () => ({ useLogging: () => ({ logEvent: mockLogEvent, logError: mockLogError }) }));
 jest.mock('incyclist-services', () => ({
     useLocalLinkClient: () => mockClient,
     useRouteSharingClient: () => mockSharing,
@@ -55,5 +58,29 @@ describe('RouteSharingSettings', () => {
         expect(getByText('Renamed PC')).toBeTruthy();
         unmount();
         expect(mockClient.listenerCount('state-changed')).toBe(0);
+    });
+
+    describe('never throws out of an effect or handler', () => {
+        it('contains a rejecting checkAgain on open and a throwing getDisplayProps in the effect', async () => {
+            mockCheckAgain.mockRejectedValueOnce(new Error('check down'));
+            render(<RouteSharingSettings onClose={jest.fn()} />);
+            await act(async () => { await Promise.resolve(); });
+            expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'check down' }), 'RouteSharingSettings.checkAgain');
+        });
+
+        it('contains a throwing subscription', () => {
+            mockClient.on = jest.fn(() => { throw new Error('on boom'); });
+            expect(() => render(<RouteSharingSettings onClose={jest.fn()} />)).not.toThrow();
+            expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'on boom' }), 'RouteSharingSettings.subscribe');
+            delete (mockClient as any).on;
+        });
+
+        it('contains a repo that throws while building the rows', () => {
+            const original = mockSharing.getRepo;
+            mockSharing.getRepo = () => { throw new Error('repo boom'); };
+            expect(() => render(<RouteSharingSettings onClose={jest.fn()} />)).not.toThrow();
+            expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'repo boom' }), 'RouteSharingSettings.rows');
+            mockSharing.getRepo = original;
+        });
     });
 });

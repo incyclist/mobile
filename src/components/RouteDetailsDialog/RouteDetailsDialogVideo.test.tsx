@@ -88,8 +88,10 @@ jest.mock('incyclist-services', () => ({
     useOnlineStatusMonitoring: () => ({ onlineStatus: true }),
 }));
 
+const mockLogEvent = jest.fn();
+const mockLogError = jest.fn();
 jest.mock('../../hooks', () => ({
-    useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
+    useLogging: () => ({ logEvent: mockLogEvent, logError: mockLogError }),
     useUnmountEffect: jest.fn(),
     useScreenLayout: () => 'normal',
     useIsTablet: () => true,

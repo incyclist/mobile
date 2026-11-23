@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Image, Platform, ImageProps } from 'react-native';
 import { getFileSystemBinding } from '../../bindings/fs';
-import { useUnmountEffect } from '../../hooks';
+import { useLogging, useUnmountEffect } from '../../hooks';
 import type { ThumbnailLinkSource } from 'incyclist-services';
 import { useCachedThumbnail } from '../../hooks/thumbnail/useCachedThumbnail';
 
@@ -29,6 +29,7 @@ export type SecureImageProps = Omit<ImageProps, 'source'> & {
 export const SecureImage = (allProps: SecureImageProps) => {
     const { thumbnailRouteKey, thumbnailLink, ...props } = allProps;
     const { source } = props;
+    const { logError } = useLogging('SecureImage');
 
     const uri = typeof source === 'object' && !Array.isArray(source)
         ? (source as { uri?: string }).uri
@@ -48,21 +49,32 @@ export const SecureImage = (allProps: SecureImageProps) => {
         }
         refInitialized.current = true;
 
-        if (needsGate && !hasAccess && typeof uri === 'string') {
-            getFileSystemBinding().requestAccess(uri)
-                .then((isGranted) => {
-                    if (isGranted) {
-                        setHasAccess(true);
-                        refHasGrant.current = true;
-                    }
-                });
+        try {
+            if (needsGate && !hasAccess && typeof uri === 'string') {
+                getFileSystemBinding().requestAccess(uri)
+                    .then((isGranted) => {
+                        if (isGranted) {
+                            setHasAccess(true);
+                            refHasGrant.current = true;
+                        }
+                    })
+                    .catch((err: any) => logError(err, 'SecureImage.requestAccess'));
+            }
         }
-    }, [needsGate, hasAccess, uri]);
+        catch (err: any) {
+            logError(err, 'SecureImage.requestAccess');
+        }
+    }, [needsGate, hasAccess, uri, logError]);
 
     useUnmountEffect(() => {
-        if (refHasGrant.current && typeof uri === 'string') {
-            getFileSystemBinding().releaseAccess(uri);
-            refHasGrant.current = false;
+        try {
+            if (refHasGrant.current && typeof uri === 'string') {
+                getFileSystemBinding().releaseAccess(uri);
+                refHasGrant.current = false;
+            }
+        }
+        catch (err: any) {
+            logError(err, 'SecureImage.releaseAccess');
         }
     });
 

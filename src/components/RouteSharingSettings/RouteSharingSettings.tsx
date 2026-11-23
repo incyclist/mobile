@@ -34,49 +34,113 @@ const getMode = (props: LocalLinkClientDisplayProps): 'unsupported' | 'empty' | 
 export const RouteSharingSettings = ({ onClose }: RouteSharingSettingsProps) => {
     const client = useLocalLinkClient();
     const sharing = useRouteSharingClient();
-    const { logEvent } = useLogging('RouteSharingSettings');
+    const { logEvent, logError } = useLogging('RouteSharingSettings');
     const [displayProps, setDisplayProps] = useState<LocalLinkClientDisplayProps>(() => client.getDisplayProps());
     const [adding, setAdding] = useState(false);
 
     useEffect(() => {
-        const onChange = (props: LocalLinkClientDisplayProps) => setDisplayProps(props);
-        client.on('state-changed', onChange);
-        setDisplayProps(client.getDisplayProps());
-        logEvent({ message: 'dialog shown', dialog: 'RouteSharingSettings' });
+        const onChange = (props: LocalLinkClientDisplayProps) => {
+            try {
+                setDisplayProps(props);
+            }
+            catch (err: any) {
+                logError(err, 'RouteSharingSettings.onChange');
+            }
+        };
+        try {
+            client.on('state-changed', onChange);
+            setDisplayProps(client.getDisplayProps());
+            logEvent({ message: 'dialog shown', dialog: 'RouteSharingSettings' });
 
-        // opening the dialog checks once, so that the dots are true when the user looks at them
-        if (client.getDisplayProps().available) {
-            sharing.checkAgain().catch(() => { /* the service reports its own failures */ });
+            // opening the dialog checks once, so that the dots are true when the user looks at them
+            if (client.getDisplayProps().available) {
+                sharing.checkAgain().catch((err: any) => logError(err, 'RouteSharingSettings.checkAgain'));
+            }
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.subscribe');
         }
         return () => {
-            client.off('state-changed', onChange);
+            try {
+                client.off('state-changed', onChange);
+            }
+            catch (err: any) {
+                logError(err, 'RouteSharingSettings.unsubscribe');
+            }
         };
-    }, [client, sharing, logEvent]);
+    }, [client, sharing, logEvent, logError]);
 
     const handleCheckAgain = useCallback(() => {
-        sharing.checkAgain().catch(() => { /* the service reports its own failures */ });
-    }, [sharing]);
+        try {
+            sharing.checkAgain().catch((err: any) => logError(err, 'RouteSharingSettings.handleCheckAgain'));
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleCheckAgain');
+        }
+    }, [sharing, logError]);
 
-    const handleAddComputer = useCallback(() => setAdding(true), []);
-    const handleAddClose = useCallback(() => setAdding(false), []);
+    const handleAddComputer = useCallback(() => {
+        try {
+            setAdding(true);
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleAddComputer');
+        }
+    }, [logError]);
+    const handleAddClose = useCallback(() => {
+        try {
+            setAdding(false);
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleAddClose');
+        }
+    }, [logError]);
 
     const handleRename = useCallback((linkId: string, name: string) => {
-        client.rename(linkId, name);
-    }, [client]);
+        try {
+            client.rename(linkId, name);
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleRename');
+        }
+    }, [client, logError]);
 
     const handleForget = useCallback((linkId: string) => {
-        client.forget(linkId);
-    }, [client]);
+        try {
+            client.forget(linkId);
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleForget');
+        }
+    }, [client, logError]);
 
     const handleOpenIosSettings = useCallback(() => {
-        Linking.openSettings().catch(() => { /* nothing else to offer */ });
-    }, []);
+        try {
+            Linking.openSettings().catch((err: any) => logError(err, 'RouteSharingSettings.handleOpenIosSettings'));
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleOpenIosSettings');
+        }
+    }, [logError]);
 
     const handleOpenStore = useCallback(() => {
-        Linking.openURL(STORE_URLS[getPlatform()]).catch(() => { /* nothing else to offer */ });
-    }, []);
+        try {
+            Linking.openURL(STORE_URLS[getPlatform()]).catch((err: any) => logError(err, 'RouteSharingSettings.handleOpenStore'));
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.handleOpenStore');
+        }
+    }, [logError]);
 
-    const rows = useMemo(() => (displayProps.available ? toRows(displayProps, sharing.getRepo()) : []), [displayProps, sharing]);
+    const rows = useMemo(() => {
+        try {
+            return displayProps.available ? toRows(displayProps, sharing.getRepo()) : [];
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.rows');
+            return [];
+        }
+    }, [displayProps, sharing, logError]);
 
     if (adding) {
         return <AddComputerDialog onClose={handleAddClose} />;

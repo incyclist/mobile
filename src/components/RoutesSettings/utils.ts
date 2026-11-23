@@ -1,4 +1,5 @@
 import { useLocalLinkClient, useAppState } from 'incyclist-services';
+import { useLogging } from '../../hooks';
 import type { LinkClientLink, RouteServerItem } from 'incyclist-services';
 import type { RoutesCardSummary } from './types';
 
@@ -47,9 +48,11 @@ export const getSharingSummary = (
  * Evaluated once per render of the caller, never throws.
  */
 export const useRouteSharingAvailable = (): boolean => {
+    const { logError } = useLogging('RoutesSettings');
     try {
         return useAppState().hasFeature('BRIDGE_MODE') === true && useLocalLinkClient().getDisplayProps().available === true;
-    } catch {
+    } catch (err: any) {
+        logError(err, 'useRouteSharingAvailable');
         return false;
     }
 };

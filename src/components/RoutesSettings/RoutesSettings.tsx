@@ -17,48 +17,86 @@ const RoutesSection = ({ onClose }: RoutesSettingsProps) => {
     const client = useLocalLinkClient();
     const sharing = useRouteSharingClient();
     const servers = useRouteServersSettingsDisplay();
-    const { logEvent } = useLogging('RoutesSettings');
+    const { logEvent, logError } = useLogging('RoutesSettings');
     const [screen, setScreen] = useState<Screen>('section');
     const [sharingProps, setSharingProps] = useState<LocalLinkClientDisplayProps>(() => client.getDisplayProps());
 
     useEffect(() => {
-        const onChange = (props: LocalLinkClientDisplayProps) => setSharingProps(props);
-        client.on('state-changed', onChange);
-        setSharingProps(client.getDisplayProps());
-        logEvent({ message: 'dialog shown', dialog: 'RoutesSettings' });
-        return () => {
-            client.off('state-changed', onChange);
+        const onChange = (props: LocalLinkClientDisplayProps) => {
+            try {
+                setSharingProps(props);
+            }
+            catch (err: any) {
+                logError(err, 'RoutesSettings.onChange');
+            }
         };
-    }, [client, logEvent]);
+        try {
+            client.on('state-changed', onChange);
+            setSharingProps(client.getDisplayProps());
+            logEvent({ message: 'dialog shown', dialog: 'RoutesSettings' });
+        }
+        catch (err: any) {
+            logError(err, 'RoutesSettings.subscribe');
+        }
+        return () => {
+            try {
+                client.off('state-changed', onChange);
+            }
+            catch (err: any) {
+                logError(err, 'RoutesSettings.unsubscribe');
+            }
+        };
+    }, [client, logEvent, logError]);
 
     // read again whenever the rider comes back from one of the screens: servers and routes may have changed
     const cards: RoutesCard[] = useMemo(() => {
-        const repo = sharing.getRepo();
-        return [
-            {
-                key: 'servers',
-                title: 'Route Servers',
-                description: SERVERS_DESCRIPTION,
-                icon: 'route',
-                summary: getServersSummary(servers.getDisplayProps().servers),
-            },
-            {
-                key: 'sharing',
-                title: 'Route Sharing',
-                description: SHARING_DESCRIPTION,
-                icon: 'monitor',
-                summary: getSharingSummary(sharingProps.links, linkId => repo.getForLink(linkId).length),
-            },
-        ];
+        try {
+            const repo = sharing.getRepo();
+            return [
+                {
+                    key: 'servers',
+                    title: 'Route Servers',
+                    description: SERVERS_DESCRIPTION,
+                    icon: 'route',
+                    summary: getServersSummary(servers.getDisplayProps().servers),
+                },
+                {
+                    key: 'sharing',
+                    title: 'Route Sharing',
+                    description: SHARING_DESCRIPTION,
+                    icon: 'monitor',
+                    summary: getSharingSummary(sharingProps.links, linkId => repo.getForLink(linkId).length),
+                },
+            ];
+        }
+        catch (err: any) {
+            logError(err, 'RoutesSettings.cards');
+            return [
+                { key: 'servers', title: 'Route Servers', description: SERVERS_DESCRIPTION, icon: 'route', summary: { text: '' } },
+                { key: 'sharing', title: 'Route Sharing', description: SHARING_DESCRIPTION, icon: 'monitor', summary: { text: '' } },
+            ];
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [servers, sharing, sharingProps, screen]);
 
     const handleOpenCard = useCallback((key: RoutesCardKey) => {
-        logEvent({ message: 'card selected', card: key, eventSource: 'user' });
-        setScreen(key);
-    }, [logEvent]);
+        try {
+            logEvent({ message: 'card selected', card: key, eventSource: 'user' });
+            setScreen(key);
+        }
+        catch (err: any) {
+            logError(err, 'RoutesSettings.handleOpenCard');
+        }
+    }, [logEvent, logError]);
 
-    const handleBack = useCallback(() => setScreen('section'), []);
+    const handleBack = useCallback(() => {
+        try {
+            setScreen('section');
+        }
+        catch (err: any) {
+            logError(err, 'RoutesSettings.handleBack');
+        }
+    }, [logError]);
 
     if (screen === 'servers') {
         return <RouteServersDialog origin="settings" onClose={handleBack} />;

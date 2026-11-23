@@ -50,7 +50,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // web-ui's RouteDetails wrapper derives `isOnline` separately from `canStart`.
     const onlineStatusMonitor = useOnlineStatusMonitoring();
 
-    const { logEvent } = useLogging('RouteDetailsDialog');
+    const { logEvent, logError } = useLogging('RouteDetailsDialog');
     const refMounted = useRef(true);
     const refInitialized = useRef(false);
     const refDownloadObserver = useRef<any>(null);
@@ -222,13 +222,18 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // A finished copy changes what the route is (a local file now) - read the card and the
     // availability again, and show the finished download.
     useEffect(() => {
-        const prev = refCopyStatus.current;
-        refCopyStatus.current = copyState.state.status;
-        if (prev !== 'copying' || copyState.state.status !== 'idle' || !card) return;
-        setCardProps(card.openSettings());
-        setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
-        setDownloadRow({ routeId, title: routeDescr?.title ?? '', status: 'done' });
-    }, [copyState.state.status, card, pageService, routeId, routeDescr]);
+        try {
+            const prev = refCopyStatus.current;
+            refCopyStatus.current = copyState.state.status;
+            if (prev !== 'copying' || copyState.state.status !== 'idle' || !card) return;
+            setCardProps(card.openSettings());
+            setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+            setDownloadRow({ routeId, title: routeDescr?.title ?? '', status: 'done' });
+        }
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.copyFinished');
+        }
+    }, [copyState.state.status, card, pageService, routeId, routeDescr, logError]);
 
     const onClearWorkout = useCallback(() => {
         pageService.onClearWorkoutSelection();
@@ -333,54 +338,65 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     }
 
     const onDownloadPress = useCallback(() => {
-        if (copyable) {
-            if (downloadStatus !== 'downloading') copyState.copy();
+        try {
+            if (copyable) {
+                if (downloadStatus !== 'downloading') copyState.copy();
+                setShowDownloadModal(true);
+                return;
+            }
+            if (downloadStatus === 'none' || downloadStatus === 'failed') {
+                const observer = card.download();
+                setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
+                subscribeToObserver(observer);
+            }
             setShowDownloadModal(true);
-            return;
         }
-        if (downloadStatus === 'none' || downloadStatus === 'failed') {
-            const observer = card.download();
-            setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
-            subscribeToObserver(observer);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadPress');
         }
-        setShowDownloadModal(true);
-    }, [card, copyable, copyState, downloadStatus, routeId, routeDescr, subscribeToObserver]);
+    }, [card, copyable, copyState, downloadStatus, routeId, routeDescr, subscribeToObserver, logError]);
 
     const onDownloadModalClose = useCallback(() => {
         setShowDownloadModal(false);
     }, []);
 
     const onDownloadStop = useCallback((id: string) => {
-        if (copyable) {
-            copyState.cancel();
-            return;
+        try {
+            if (copyable) {
+                copyState.cancel();
+                return;
+            }
+            const c = service.getCard(id)
+            if (c) {
+                c.stopDownload(true);
+            }
         }
-        const c = service.getCard(id)
-        if (c) {
-            c.stopDownload(true);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadStop');
         }
-    }, [service, copyable, copyState]);
+    }, [service, copyable, copyState, logError]);
 
     const onDownloadRetry = useCallback((id: string) => {
-        if (copyable) {
-            copyState.copy();
-            return;
+        try {
+            if (copyable) {
+                copyState.copy();
+                return;
+            }
+            const c = service.getCard(id);
+            if (c) {
+                const observer = c.download();
+                setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
+                subscribeToObserver(observer);
+            }
         }
-        const c = service.getCard(id);
-        if (c) {
-            const observer = c.download();
-            setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
-            subscribeToObserver(observer);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadRetry');
         }
-    }, [service, copyable, copyState, routeId, routeDescr, subscribeToObserver]);
+    }, [service, copyable, copyState, routeId, routeDescr, subscribeToObserver, logError]);
 
-    const onDownloadDelete = useCallback((id: string) => {
-        if (copyable) {
-            copyState.clear();
-            return;
-        }
-        if (routeDescr.linkShared) {
-            // only the copy on this device goes; the route stays (it is still shared by the computer)
+    // only the copy on this device goes; the route stays (it is still shared by the computer)
+    const deleteSharedCopy = useCallback((id: string) => {
+        try {
             pageService.deleteLocalCopy(id)
                 ?.then(() => {
                     if (!refMounted.current) return;
@@ -388,12 +404,30 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
                     if (card) setCardProps(card.openSettings());
                     setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
                 })
-                .catch((err: Error) => logEvent({ message: 'error', fn: 'deleteLocalCopy', error: err.message }));
-            return;
+                .catch((err: Error) => logError(err, 'deleteLocalCopy'));
         }
-        service.getCard(id)?.delete();
-        setDownloadRow(null);
-    }, [service, pageService, card, copyable, copyState, routeDescr, routeId, logEvent]);
+        catch (err: any) {
+            logError(err, 'deleteLocalCopy');
+        }
+    }, [pageService, card, routeId, logError]);
+
+    const onDownloadDelete = useCallback((id: string) => {
+        try {
+            if (copyable) {
+                copyState.clear();
+                return;
+            }
+            if (routeDescr.linkShared) {
+                deleteSharedCopy(id);
+                return;
+            }
+            service.getCard(id)?.delete();
+            setDownloadRow(null);
+        }
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadDelete');
+        }
+    }, [service, copyable, copyState, routeDescr, deleteSharedCopy, logError]);
 
     const downloadRows: DownloadRowDisplayProps[] = shownRow ? [shownRow] : [];
     const copyFailureText = copyable ? getCopyFailureText(copyState.state) : undefined;

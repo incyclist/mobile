@@ -6,6 +6,9 @@ import { AddComputerDialog } from './AddComputerDialog';
 const mockClient = new EventEmitter() as EventEmitter & Record<string, unknown>;
 let mockDisplay: Record<string, unknown>;
 
+const mockLogEvent = jest.fn();
+const mockLogError = jest.fn();
+jest.mock('../../hooks/logging', () => ({ useLogging: () => ({ logEvent: mockLogEvent, logError: mockLogError }) }));
 jest.mock('incyclist-services', () => ({
     useLocalLinkClient: () => mockClient,
     useRouteSharingClient: () => ({ getRepo: () => ({ getForLink: () => [] }) }),
@@ -22,6 +25,7 @@ const display = (pairing: Record<string, unknown>) => ({
 
 describe('AddComputerDialog', () => {
     beforeEach(() => {
+        mockLogError.mockClear();
         mockClient.removeAllListeners();
         mockDisplay = display({ step: 'idle' });
         mockClient.getDisplayProps = jest.fn(() => mockDisplay);
@@ -68,5 +72,35 @@ describe('AddComputerDialog', () => {
         expect(getByText("Home PC isn't ready to connect")).toBeTruthy();
         fireEvent.press(getByText('Try Again'));
         expect(mockClient.retryPairing).toHaveBeenCalled();
+    });
+
+    describe('never throws out of a handler or event callback', () => {
+        it('contains a rejecting and a synchronously throwing startSearch/selectComputer/retryPairing', async () => {
+            mockClient.startSearch = jest.fn().mockRejectedValue(new Error('search down'));
+            const { getByText } = render(<AddComputerDialog onClose={jest.fn()} />);
+            await act(async () => { await Promise.resolve(); });
+            expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'search down' }), 'AddComputerDialog.startSearch');
+
+            act(() => { mockClient.emit('state-changed', display({ step: 'not-ready', computerId: 'c', name: 'Home PC' })); });
+            mockClient.retryPairing = jest.fn(() => { throw new Error('sync retry'); });
+            expect(() => fireEvent.press(getByText('Try Again'))).not.toThrow();
+            expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'sync retry' }), 'AddComputerDialog.handleRetry');
+        });
+
+        it('contains throwing cancel and rename/cancelPairing on Done, and still closes', () => {
+            mockClient.cancelSearch = jest.fn(() => { throw new Error('cancel boom'); });
+            const onClose = jest.fn();
+            const { getByText } = render(<AddComputerDialog onClose={onClose} />);
+            expect(() => fireEvent.press(getByText('Cancel'))).not.toThrow();
+            expect(onClose).toHaveBeenCalled();
+            expect(mockLogError).toHaveBeenCalledWith(expect.anything(), 'AddComputerDialog.handleCancel');
+        });
+
+        it('contains a throwing subscription and a throwing unsubscribe on unmount', () => {
+            mockClient.cancelPairing = jest.fn(() => { throw new Error('unmount boom'); });
+            const { unmount } = render(<AddComputerDialog onClose={jest.fn()} />);
+            expect(() => unmount()).not.toThrow();
+            expect(mockLogError).toHaveBeenCalledWith(expect.anything(), 'AddComputerDialog.unsubscribe');
+        });
     });
 });

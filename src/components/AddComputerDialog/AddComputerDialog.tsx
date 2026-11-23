@@ -8,75 +8,157 @@ import type { AddComputerDialogProps } from './types';
 
 const COUNTDOWN_INTERVAL_MS = 1000;
 
+const getRouteCount = (
+    sharing: ReturnType<typeof useRouteSharingClient>,
+    linkId: string | undefined,
+    logError: (err: any, fn: string) => void,
+): number | undefined => {
+    try {
+        return linkId ? sharing.getRepo().getForLink(linkId).length : undefined;
+    }
+    catch (err: any) {
+        logError(err, 'AddComputerDialog.getRouteCount');
+        return undefined;
+    }
+};
+
 export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
     const client = useLocalLinkClient();
     const sharing = useRouteSharingClient();
-    const { logEvent } = useLogging('AddComputerDialog');
+    const { logEvent, logError } = useLogging('AddComputerDialog');
     const [displayProps, setDisplayProps] = useState<LocalLinkClientDisplayProps>(() => client.getDisplayProps());
     const [now, setNow] = useState(() => Date.now());
     const refStarted = useRef(false);
 
     useEffect(() => {
-        const onChange = (props: LocalLinkClientDisplayProps) => setDisplayProps(props);
-        client.on('state-changed', onChange);
-        if (!refStarted.current) {
-            refStarted.current = true;
-            logEvent({ message: 'dialog shown', dialog: 'AddComputerDialog' });
-            // tapping Add Computer is the user action that starts the (time-boxed) search
-            client.startSearch().catch(() => { /* the service reports its own failures */ });
+        const onChange = (props: LocalLinkClientDisplayProps) => {
+            try {
+                setDisplayProps(props);
+            }
+            catch (err: any) {
+                logError(err, 'AddComputerDialog.onChange');
+            }
+        };
+        try {
+            client.on('state-changed', onChange);
+            if (!refStarted.current) {
+                refStarted.current = true;
+                logEvent({ message: 'dialog shown', dialog: 'AddComputerDialog' });
+                // tapping Add Computer is the user action that starts the (time-boxed) search
+                client.startSearch().catch((err: any) => logError(err, 'AddComputerDialog.startSearch'));
+            }
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.subscribe');
         }
         return () => {
-            client.off('state-changed', onChange);
-            client.cancelSearch();
-            client.cancelPairing();
+            try {
+                client.off('state-changed', onChange);
+                client.cancelSearch();
+                client.cancelPairing();
+            }
+            catch (err: any) {
+                logError(err, 'AddComputerDialog.unsubscribe');
+            }
         };
-    }, [client, logEvent]);
+    }, [client, logEvent, logError]);
 
     const { pairing } = displayProps;
     const waitingForRetry = pairing.step === 'failed' && pairing.retryAt !== undefined;
     useEffect(() => {
         if (!waitingForRetry) return;
-        const timer = setInterval(() => setNow(Date.now()), COUNTDOWN_INTERVAL_MS);
+        const timer = setInterval(() => {
+            try {
+                setNow(Date.now());
+            }
+            catch (err: any) {
+                logError(err, 'AddComputerDialog.countdown');
+            }
+        }, COUNTDOWN_INTERVAL_MS);
         return () => clearInterval(timer);
-    }, [waitingForRetry]);
+    }, [waitingForRetry, logError]);
 
     const handleCancel = useCallback(() => {
-        client.cancelSearch();
-        client.cancelPairing();
+        try {
+            client.cancelSearch();
+            client.cancelPairing();
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleCancel');
+        }
         onClose();
-    }, [client, onClose]);
+    }, [client, onClose, logError]);
 
     const handleSearchAgain = useCallback(() => {
-        client.startSearch().catch(() => { /* the service reports its own failures */ });
-    }, [client]);
+        try {
+            client.startSearch().catch((err: any) => logError(err, 'AddComputerDialog.handleSearchAgain'));
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleSearchAgain');
+        }
+    }, [client, logError]);
 
     const handleSelect = useCallback((id: string) => {
-        client.selectComputer(id).catch(() => { /* the service reports its own failures */ });
-    }, [client]);
+        try {
+            client.selectComputer(id).catch((err: any) => logError(err, 'AddComputerDialog.handleSelect'));
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleSelect');
+        }
+    }, [client, logError]);
 
-    const handleSubmitCode = useCallback((pin: string) => client.submitCode(pin), [client]);
+    const handleSubmitCode = useCallback((pin: string) => {
+        try {
+            client.submitCode(pin);
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleSubmitCode');
+        }
+    }, [client, logError]);
 
     const handleRetry = useCallback(() => {
-        client.retryPairing().catch(() => { /* the service reports its own failures */ });
-    }, [client]);
+        try {
+            client.retryPairing().catch((err: any) => logError(err, 'AddComputerDialog.handleRetry'));
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleRetry');
+        }
+    }, [client, logError]);
 
-    const handleBack = useCallback(() => client.cancelPairing(), [client]);
+    const handleBack = useCallback(() => {
+        try {
+            client.cancelPairing();
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleBack');
+        }
+    }, [client, logError]);
 
     const handleOpenIosSettings = useCallback(() => {
-        Linking.openSettings().catch(() => { /* nothing else to offer */ });
-    }, []);
+        try {
+            Linking.openSettings().catch((err: any) => logError(err, 'AddComputerDialog.handleOpenIosSettings'));
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleOpenIosSettings');
+        }
+    }, [logError]);
 
     const handleDone = useCallback((name: string) => {
-        if (pairing.step === 'connected' && name.trim() !== pairing.name) {
-            client.rename(pairing.linkId, name);
+        try {
+            if (pairing.step === 'connected' && name.trim() !== pairing.name) {
+                client.rename(pairing.linkId, name);
+            }
+            client.cancelPairing();
         }
-        client.cancelPairing();
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleDone');
+        }
         onClose();
-    }, [client, pairing, onClose]);
+    }, [client, pairing, onClose, logError]);
 
     const connectedId = pairing.step === 'connected' ? pairing.linkId : undefined;
     const link = displayProps.links.find(l => l.linkId === connectedId);
-    const routeCount = connectedId ? sharing.getRepo().getForLink(connectedId).length : undefined;
+    const routeCount = getRouteCount(sharing, connectedId, logError);
     const syncDone = link ? link.catalogVersion !== undefined : undefined;
 
     return (

@@ -68,20 +68,33 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         downloadObserver,
     } = props;
 
-    const { logEvent } = useLogging('RoutesPageView');
+    const { logEvent, logError } = useLogging('RoutesPageView');
     const { height } = useWindowDimensions();
     const [dismissed, setDismissed] = useState(explainerDismissed);
 
     // names of the computers that the listed routes need and that can not be reached; empty (and
     // so no line) as soon as they can
-    const unreachableComputers = useMemo(() => getUnreachableComputers(routes), [routes]);
+    const unreachableComputers = useMemo(() => {
+        try {
+            return getUnreachableComputers(routes);
+        }
+        catch (err: any) {
+            logError(err, 'RoutesPageView.unreachableComputers');
+            return [];
+        }
+    }, [routes, logError]);
     const explainerFits = !compact || height >= MIN_HEIGHT_FOR_LONG_COPY;
 
     const handleExplainerDismiss = useCallback(() => {
-        logEvent({ message: 'button clicked', button: 'dismiss-route-source-explainer', eventSource: 'user' });
-        explainerDismissed = true;
-        setDismissed(true);
-    }, [logEvent]);
+        try {
+            logEvent({ message: 'button clicked', button: 'dismiss-route-source-explainer', eventSource: 'user' });
+            explainerDismissed = true;
+            setDismissed(true);
+        }
+        catch (err: any) {
+            logError(err, 'RoutesPageView.handleExplainerDismiss');
+        }
+    }, [logEvent, logError]);
 
     const handleDownloadPillPress = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
