@@ -97,11 +97,15 @@ export const RouteItem = memo((props: RouteItemDisplayProps) => {
     const displayProps = updated? 
     {
         ...updated,
-        // where the route plays from is computed for the whole list, not by the card
-        availability: props.availability,
-        sourceLabel: props.sourceLabel,
-        unavailableReason: props.unavailableReason,
-        thumbnailLink: props.thumbnailLink,
+        // where the route plays from is computed by the page service; the card carries the latest
+        // value (pushed through its own observer when a computer comes or goes), the list props
+        // are the fallback until it has one
+        ...(updated.availability === undefined ? {
+            availability: props.availability,
+            sourceLabel: props.sourceLabel,
+            unavailableReason: props.unavailableReason,
+            thumbnailLink: props.thumbnailLink,
+        } : {}),
         linkShared: updated.linkShared ?? props.linkShared,
         points: updated.points??details?.points??props.points,
         loaded: loaded || !!points || !!previewUrl,

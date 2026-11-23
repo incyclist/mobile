@@ -106,6 +106,21 @@ describe('RouteItem', () => {
         expect(lastViewProps).toMatchObject({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' });
     });
 
+    // A computer coming back reaches the row through its own observer only; the list props are
+    // not rendered again.
+    test('takes where the route plays from out of an update that carries it', () => {
+        const observer = new FakeObserver();
+        const props = { ...baseProps(observer), availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' };
+        render(<RouteItem {...props} />);
+
+        act(() => {
+            observer.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, availability: 'fromLink', sourceLabel: 'Den PC' });
+        });
+
+        expect(lastViewProps.availability).toBe('fromLink');
+        expect(lastViewProps.unavailableReason).toBeUndefined();
+    });
+
     test('deleting the copy of a computer route goes through the page service and keeps the row', () => {
         const observer = new FakeObserver();
         const { getByTestId } = render(<RouteItem {...baseProps(observer)} />);
