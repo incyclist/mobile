@@ -15,7 +15,11 @@ import com.facebook.react.module.annotations.ReactModule
  * - "local-link": the control connection and discovery are possible (the build carries the
  *   inert pair host; raw TCP needs no further configuration).
  * - "local-link-media": the native loopback pipe (LoopbackPipeModule) is registered. Reported only
- *   when LoopbackPipePackage created its module.
+ *   when LoopbackPipePackage created its module. The media player reaches the pipe over cleartext
+ *   HTTP on 127.0.0.1, which release builds only permit through
+ *   res/xml/network_security_config.xml (referenced from the manifest); a binary must carry that
+ *   configuration together with the module, so the capability is reported only by builds that
+ *   ship both.
  */
 @ReactModule(name = NativeCapabilitiesModule.NAME)
 class NativeCapabilitiesModule(reactContext: ReactApplicationContext) :

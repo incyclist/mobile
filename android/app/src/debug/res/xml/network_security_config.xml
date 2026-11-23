@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug build type only (overrides src/main). Keeps the previous behaviour of
+  usesCleartextTraffic="true": the Metro dev server and local test servers are reached over
+  cleartext HTTP on LAN addresses. Never packaged into release.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

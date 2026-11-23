@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dev build type only (overrides src/main). Keeps the previous behaviour of
+  usesCleartextTraffic="true" for this release-like test build that talks to local HTTP servers.
+  Never packaged into release.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
