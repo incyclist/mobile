@@ -183,6 +183,35 @@ describe('RouteDetailsDialog video state subscription', () => {
     });
 });
 
+describe('RouteDetailsDialog route on a computer', () => {
+    const availability = (props: object) => ({ routeId: 'r1', attachedWorkout: null, ...props });
+    const startButton = (utils: ReturnType<typeof renderDialog>) => footerButtons(utils).find(b => b.label === 'Start');
+
+    beforeEach(() => { jest.clearAllMocks(); });
+
+    it('follows the computer coming back: availability and Start are read again on route-details-update', () => {
+        mockRouteData.description.linkShared = true;
+        mockCard.canStart = jest.fn(() => false);
+        mockCardProps.canStart = false;
+        try {
+            mockPageService.getRouteDetailsProps.mockReturnValue(availability({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' }));
+            const utils = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+            expect(startButton(utils)).toBeUndefined();
+
+            mockCard.canStart.mockReturnValue(true);
+            mockPageService.getRouteDetailsProps.mockReturnValue(availability({ availability: 'fromLink', sourceLabel: 'Den PC' }));
+            act(() => { handlerFor('route-details-update')('r1'); });
+
+            expect(startButton(utils)).toBeDefined();
+        }
+        finally {
+            delete mockRouteData.description.linkShared;
+            delete mockCard.canStart;
+            mockCardProps.canStart = true;
+        }
+    });
+});
+
 describe('RouteDetailsDialog video actions reach the page service', () => {
     beforeEach(() => { jest.clearAllMocks(); });
 

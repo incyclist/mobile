@@ -201,7 +201,18 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // (e.g. clearing the workout from the Workouts page) is picked up on next mount instead, and
     // the in-dialog '[x]' below already re-emits 'page-update' when it clears the selection.
     useEffect(() => {
-        const refresh = () => setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+        // `cardProps` is captured at mount, and for a route that plays from a computer its `canStart`
+        // is the availability of that moment: it must follow the computer coming back (or leaving).
+        const refreshCanStart = () => {
+            if (!card?.getData()?.description?.linkShared)
+                return;
+            const canStart = card.canStart();
+            setCardProps(prev => (prev && prev.canStart !== canStart ? { ...prev, canStart } : prev));
+        };
+        const refresh = () => {
+            setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+            refreshCanStart();
+        };
         // The video state changes on its own - a download progresses, iOS frees a file, the app
         // comes back to the foreground - so this dialog is told about its own route separately
         // from the page-wide update above. Other routes' updates are ignored.
@@ -217,7 +228,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             observer?.off('page-update', refresh);
             observer?.off('route-details-update', refreshRoute);
         };
-    }, [pageService, routeId]);
+    }, [pageService, routeId, card]);
 
     // A finished copy changes what the route is (a local file now) - read the card and the
     // availability again, and show the finished download.
