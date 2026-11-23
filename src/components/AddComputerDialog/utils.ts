@@ -1,4 +1,4 @@
-import type { DiscoveryState, LinkPairingFailure, LinkPairingRecovery, LinkPairingState } from 'incyclist-services';
+import type { DiscoveryState, LinkPairingFailure, LinkPairingRecovery, LinkPairingState, SyncStateName } from 'incyclist-services';
 
 export type AddComputerScreen =
     | { kind: 'blocked' }
@@ -9,9 +9,9 @@ export type AddComputerScreen =
     | { kind: 'not-ready', name: string }
     | { kind: 'code', name: string, wrong: boolean, attemptsLeft?: number }
     | { kind: 'failed', name: string, reason: LinkPairingFailure, recovery: LinkPairingRecovery, retryAt?: number }
-    | { kind: 'connected', name: string, linkId: string, already: boolean };
+    | { kind: 'connected', name: string, linkId: string, already: boolean, sync?: SyncStateName };
 
-export const getScreen = (discovery: DiscoveryState, pairing: LinkPairingState): AddComputerScreen => {
+export const getScreen = (discovery: DiscoveryState, pairing: LinkPairingState, sync?: SyncStateName): AddComputerScreen => {
     switch (pairing.step) {
         case 'connecting':
             return { kind: 'connecting', name: pairing.name };
@@ -22,7 +22,7 @@ export const getScreen = (discovery: DiscoveryState, pairing: LinkPairingState):
         case 'failed':
             return { kind: 'failed', name: pairing.name, reason: pairing.reason, recovery: pairing.recovery, retryAt: pairing.retryAt };
         case 'connected':
-            return { kind: 'connected', name: pairing.name, linkId: pairing.linkId, already: pairing.already === true };
+            return { kind: 'connected', name: pairing.name, linkId: pairing.linkId, already: pairing.already === true, sync };
     }
 
     switch (discovery.phase) {

@@ -1,24 +1,31 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { useLocalLinkClient, useRouteSharingClient } from 'incyclist-services';
-import type { LocalLinkClientDisplayProps } from 'incyclist-services';
+import type { LinkSyncState, LocalLinkClientDisplayProps, SyncStateName } from 'incyclist-services';
 import { useLogging } from '../../hooks';
 import { AddComputerDialogView } from './AddComputerDialogView';
 import type { AddComputerDialogProps } from './types';
 
 const COUNTDOWN_INTERVAL_MS = 1000;
 
-const getRouteCount = (
+interface SyncInfo {
+    state?: SyncStateName;
+    routeCount?: number;
+}
+
+const getSyncInfo = (
     sharing: ReturnType<typeof useRouteSharingClient>,
     linkId: string | undefined,
     logError: (err: any, fn: string) => void,
-): number | undefined => {
+): SyncInfo => {
     try {
-        return linkId ? sharing.getRepo().getForLink(linkId).length : undefined;
+        if (!linkId) return {};
+        const sync = sharing.getSyncState(linkId);
+        return { state: sync.state, routeCount: sync.routeCount ?? sharing.getRepo().getForLink(linkId).length };
     }
     catch (err: any) {
-        logError(err, 'AddComputerDialog.getRouteCount');
-        return undefined;
+        logError(err, 'AddComputerDialog.getSyncInfo');
+        return {};
     }
 };
 
@@ -28,6 +35,7 @@ export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
     const { logEvent, logError } = useLogging('AddComputerDialog');
     const [displayProps, setDisplayProps] = useState<LocalLinkClientDisplayProps>(() => client.getDisplayProps());
     const [now, setNow] = useState(() => Date.now());
+    const [, setSyncTick] = useState(0);
     const refStarted = useRef(false);
 
     useEffect(() => {
@@ -62,6 +70,31 @@ export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
             }
         };
     }, [client, logEvent, logError]);
+
+    useEffect(() => {
+        const onSync = (_state: LinkSyncState) => {
+            try {
+                setSyncTick(tick => tick + 1);
+            }
+            catch (err: any) {
+                logError(err, 'AddComputerDialog.onSyncState');
+            }
+        };
+        try {
+            sharing.on('sync-state', onSync);
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.subscribeSync');
+        }
+        return () => {
+            try {
+                sharing.off('sync-state', onSync);
+            }
+            catch (err: any) {
+                logError(err, 'AddComputerDialog.unsubscribeSync');
+            }
+        };
+    }, [sharing, logError]);
 
     const { pairing } = displayProps;
     const waitingForRetry = pairing.step === 'failed' && pairing.retryAt !== undefined;
@@ -134,6 +167,16 @@ export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
         }
     }, [client, logError]);
 
+    const handleCheckAgain = useCallback(() => {
+        try {
+            logEvent({ message: 'button clicked', button: 'check again', eventSource: 'user' });
+            sharing.checkAgain().catch((err: any) => logError(err, 'AddComputerDialog.handleCheckAgain'));
+        }
+        catch (err: any) {
+            logError(err, 'AddComputerDialog.handleCheckAgain');
+        }
+    }, [sharing, logEvent, logError]);
+
     const handleOpenIosSettings = useCallback(() => {
         try {
             Linking.openSettings().catch((err: any) => logError(err, 'AddComputerDialog.handleOpenIosSettings'));
@@ -157,16 +200,14 @@ export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
     }, [client, pairing, onClose, logError]);
 
     const connectedId = pairing.step === 'connected' ? pairing.linkId : undefined;
-    const link = displayProps.links.find(l => l.linkId === connectedId);
-    const routeCount = getRouteCount(sharing, connectedId, logError);
-    const syncDone = link ? link.catalogVersion !== undefined : undefined;
+    const { state: syncState, routeCount } = getSyncInfo(sharing, connectedId, logError);
 
     return (
         <AddComputerDialogView
             discovery={displayProps.discovery}
             pairing={pairing}
             routeCount={routeCount}
-            syncDone={syncDone}
+            syncState={syncState}
             now={now}
             onCancel={handleCancel}
             onSearchAgain={handleSearchAgain}
@@ -175,6 +216,7 @@ export const AddComputerDialog = ({ onClose }: AddComputerDialogProps) => {
             onRetry={handleRetry}
             onBack={handleBack}
             onOpenIosSettings={handleOpenIosSettings}
+            onCheckAgain={handleCheckAgain}
             onDone={handleDone}
         />
     );

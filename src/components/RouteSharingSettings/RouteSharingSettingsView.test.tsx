@@ -27,6 +27,8 @@ describe('RouteSharingSettingsView', () => {
         const { getByText } = render(<RouteSharingSettingsView {...baseProps()} />);
         expect(getByText('Connected • 42 routes')).toBeTruthy();
         expect(getByText('Adding routes…')).toBeTruthy();
+        expect(getByText('Connected • routes could not be loaded')).toBeTruthy();
+        expect(getByText('Connected • routes not available on this device yet')).toBeTruthy();
         expect(getByText('Not reachable • last seen 3 hours ago')).toBeTruthy();
         expect(getByText('Not reached yet')).toBeTruthy();
         expect(getByText('Checking…')).toBeTruthy();

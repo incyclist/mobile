@@ -14,10 +14,11 @@ const mockDisplay = {
 };
 const mockCheckAgain = jest.fn().mockResolvedValue([]);
 // one stable instance, as the real service is a singleton
-const mockSharing = {
+const mockSharing = Object.assign(new EventEmitter(), {
     checkAgain: mockCheckAgain,
+    getSyncState: jest.fn((linkId: string) => ({ linkId, state: 'done' })),
     getRepo: () => ({ getForLink: () => [{}, {}, {}] }),
-};
+});
 
 const mockLogEvent = jest.fn();
 const mockLogError = jest.fn();
@@ -40,6 +41,18 @@ describe('RouteSharingSettings', () => {
         expect(getByText('Home PC')).toBeTruthy();
         expect(getByText('Connected • 3 routes')).toBeTruthy();
         expect(mockCheckAgain).toHaveBeenCalledTimes(1);
+    });
+
+    it('says Adding routes only while the service syncs, and says so when the routes could not be loaded', () => {
+        mockSharing.getSyncState.mockImplementation((linkId: string) => ({ linkId, state: 'syncing' }));
+        const { getByText, queryByText } = render(<RouteSharingSettings onClose={jest.fn()} />);
+        expect(getByText('Adding routes…')).toBeTruthy();
+
+        mockSharing.getSyncState.mockImplementation((linkId: string) => ({ linkId, state: 'failed' }));
+        act(() => { mockSharing.emit('sync-state', { linkId: 'l1', state: 'failed' }); });
+        expect(queryByText('Adding routes…')).toBeNull();
+        expect(getByText('Connected • routes could not be loaded')).toBeTruthy();
+        mockSharing.getSyncState.mockImplementation((linkId: string) => ({ linkId, state: 'done' }));
     });
 
     it('does not check when the feature is not available, and shows the update prompt', () => {

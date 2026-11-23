@@ -31,6 +31,7 @@ const meta: Meta<typeof AddComputerDialogView> = {
         onRetry: fn(),
         onBack: fn(),
         onOpenIosSettings: fn(),
+        onCheckAgain: fn(),
         onDone: fn(),
     },
 };
@@ -77,8 +78,14 @@ export const ConnectionLost: Story = { args: { pairing: mock.failed('connection-
 
 export const VersionMismatch: Story = { args: { pairing: mock.failed('version-mismatch', 'back') } };
 
-export const ConnectedAdding: Story = { args: { pairing: mock.CONNECTED, routeCount: 18, syncDone: false } };
+export const ConnectedAdding: Story = { args: { pairing: mock.CONNECTED, syncState: 'syncing' } };
 
-export const ConnectedNothingShared: Story = { args: { pairing: mock.CONNECTED, routeCount: 0, syncDone: true } };
+export const ConnectedDone: Story = { args: { pairing: mock.CONNECTED, routeCount: 18, syncState: 'done' } };
+
+export const ConnectedNothingShared: Story = { args: { pairing: mock.CONNECTED, routeCount: 0, syncState: 'done' } };
+
+export const ConnectedSyncFailed: Story = { args: { pairing: mock.CONNECTED, syncState: 'failed' } };
+
+export const ConnectedMediaUnavailable: Story = { args: { pairing: mock.CONNECTED, syncState: 'media-unavailable' } };
 
 export const AlreadyConnected: Story = { args: { pairing: mock.ALREADY } };

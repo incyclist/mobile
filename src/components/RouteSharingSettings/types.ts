@@ -1,4 +1,4 @@
-import type { LinkReachability } from 'incyclist-services';
+import type { LinkReachability, SyncStateName } from 'incyclist-services';
 
 export type RouteSharingPlatform = 'ios' | 'android';
 
@@ -14,8 +14,8 @@ export interface RouteSharingRow {
     downloadedCount?: number;
     /** epoch ms */
     lastSeenAt?: number;
-    /** the first catalog fetch of this computer has not finished */
-    addingRoutes: boolean;
+    /** where the route sync of this computer stands, as the service reports it */
+    sync: SyncStateName;
 }
 
 export interface RouteSharingSettingsProps {

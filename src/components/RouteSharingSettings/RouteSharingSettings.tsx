@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import { useLocalLinkClient, useRouteSharingClient } from 'incyclist-services';
-import type { LocalLinkClientDisplayProps, SharedRouteRepo } from 'incyclist-services';
+import type { LocalLinkClientDisplayProps, SharedRouteRepo, SyncStateName } from 'incyclist-services';
 import { useLogging } from '../../hooks';
 import { AddComputerDialog } from '../AddComputerDialog';
 import { RouteSharingSettingsView } from './RouteSharingSettingsView';
@@ -15,14 +15,18 @@ const STORE_URLS: Record<RouteSharingPlatform, string> = {
 
 const getPlatform = (): RouteSharingPlatform => Platform.OS === 'ios' ? 'ios' : 'android';
 
-const toRows = (props: LocalLinkClientDisplayProps, repo: SharedRouteRepo): RouteSharingRow[] => {
+const toRows = (
+    props: LocalLinkClientDisplayProps,
+    repo: SharedRouteRepo,
+    getSync: (linkId: string) => SyncStateName,
+): RouteSharingRow[] => {
     return props.links.map(link => ({
         linkId: link.linkId,
         name: link.displayName,
         reachability: link.reachability,
         routeCount: repo.getForLink(link.linkId).length,
         lastSeenAt: link.lastSeenAt,
-        addingRoutes: link.reachability === 'reachable' && link.catalogVersion === undefined,
+        sync: getSync(link.linkId),
     }));
 };
 
@@ -37,6 +41,7 @@ export const RouteSharingSettings = ({ onClose }: RouteSharingSettingsProps) => 
     const { logEvent, logError } = useLogging('RouteSharingSettings');
     const [displayProps, setDisplayProps] = useState<LocalLinkClientDisplayProps>(() => client.getDisplayProps());
     const [adding, setAdding] = useState(false);
+    const [, setSyncTick] = useState(0);
 
     useEffect(() => {
         const onChange = (props: LocalLinkClientDisplayProps) => {
@@ -69,6 +74,31 @@ export const RouteSharingSettings = ({ onClose }: RouteSharingSettingsProps) => 
             }
         };
     }, [client, sharing, logEvent, logError]);
+
+    useEffect(() => {
+        const onSync = () => {
+            try {
+                setSyncTick(tick => tick + 1);
+            }
+            catch (err: any) {
+                logError(err, 'RouteSharingSettings.onSyncState');
+            }
+        };
+        try {
+            sharing.on('sync-state', onSync);
+        }
+        catch (err: any) {
+            logError(err, 'RouteSharingSettings.subscribeSync');
+        }
+        return () => {
+            try {
+                sharing.off('sync-state', onSync);
+            }
+            catch (err: any) {
+                logError(err, 'RouteSharingSettings.unsubscribeSync');
+            }
+        };
+    }, [sharing, logError]);
 
     const handleCheckAgain = useCallback(() => {
         try {
@@ -132,15 +162,15 @@ export const RouteSharingSettings = ({ onClose }: RouteSharingSettingsProps) => 
         }
     }, [logError]);
 
-    const rows = useMemo(() => {
-        try {
-            return displayProps.available ? toRows(displayProps, sharing.getRepo()) : [];
-        }
-        catch (err: any) {
-            logError(err, 'RouteSharingSettings.rows');
-            return [];
-        }
-    }, [displayProps, sharing, logError]);
+    // not memoised: the sync state is read from the service on every render; a `sync-state` event only triggers the render
+    let rows: RouteSharingRow[] = [];
+    try {
+        const getSync = (linkId: string): SyncStateName => sharing.getSyncState(linkId).state;
+        rows = displayProps.available ? toRows(displayProps, sharing.getRepo(), getSync) : [];
+    }
+    catch (err: any) {
+        logError(err, 'RouteSharingSettings.rows');
+    }
 
     if (adding) {
         return <AddComputerDialog onClose={handleAddClose} />;

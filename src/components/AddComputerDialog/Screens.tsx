@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
-import type { DiscoveredComputer, DiscoveryState } from 'incyclist-services';
+import type { DiscoveredComputer, DiscoveryState, SyncStateName } from 'incyclist-services';
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
 import { RouteSharingChecklist } from '../RouteSharingChecklist';
@@ -9,6 +9,8 @@ import { getFailureMessage, getWrongCodeMessage } from './utils';
 
 const PREREQUISITE = 'On the computer, Settings › Routes › Route Sharing › Connect your phone or tablet must be open.';
 const MAX_NAME_LENGTH = 40;
+const AFTER_ADDING = (name: string) =>
+    `They'll appear in your Routes list. They play while ${name} is on and you're on the same Wi‑Fi — download the ones you want to ride elsewhere.`;
 
 export const Heading = ({ title, text }: { title: string, text?: string }) => (
     <View style={styles.block}>
@@ -143,12 +145,48 @@ interface ConnectedProps {
     name: string;
     already: boolean;
     routeCount?: number;
-    syncDone?: boolean;
+    sync?: SyncStateName;
     onNameChange: (name: string) => void;
 }
 
+const SyncStatus = ({ name, sync, routeCount }: { name: string, sync?: SyncStateName, routeCount?: number }) => {
+    switch (sync) {
+        case 'syncing':
+            return (
+                <>
+                    <View style={styles.searching}>
+                        <ActivityIndicator color={colors.text} />
+                        <Text style={styles.searchText}>{`Adding routes from ${name}…`}</Text>
+                    </View>
+                    <Text style={styles.text}>{AFTER_ADDING(name)}</Text>
+                </>
+            );
+        case 'done':
+            return routeCount ? (
+                <>
+                    <Text style={styles.text}>{`Connected • ${routeCount} ${routeCount === 1 ? 'route' : 'routes'}`}</Text>
+                    <Text style={styles.text}>{AFTER_ADDING(name)}</Text>
+                </>
+            ) : (
+                <Text style={styles.text}>
+                    {`Connected to ${name}. It isn't sharing any routes yet — routes with a video that you add to Incyclist on ${name} will appear here.`}
+                </Text>
+            );
+        case 'failed':
+            return <Text style={styles.text}>{`Connected to ${name}, but the routes could not be loaded. Tap Check Again to try once more.`}</Text>;
+        case 'media-unavailable':
+            return (
+                <Text style={styles.text}>
+                    {`Connected to ${name}. This device cannot load routes from your computer yet.`}
+                </Text>
+            );
+        default:
+            return <Text style={styles.text}>{`Connected to ${name}.`}</Text>;
+    }
+};
+
 /** A-5 and A-6. */
-export const ConnectedScreen = ({ name, already, routeCount, syncDone, onNameChange }: ConnectedProps) => {
+export const ConnectedScreen = ({ name, already, routeCount, sync, onNameChange }: ConnectedProps) => {
     const [value, setValue] = useState(name);
     const handleChange = useCallback((text: string) => {
         setValue(text);
@@ -163,25 +201,9 @@ export const ConnectedScreen = ({ name, already, routeCount, syncDone, onNameCha
         );
     }
 
-    const nothingShared = syncDone === true && routeCount === 0;
-    const progress = syncDone ? styles.progressDone : styles.progressRunning;
-    const adding = routeCount ? `Adding ${routeCount} routes from ${name}…` : `Adding routes from ${name}…`;
-
     return (
         <View style={styles.block}>
-            {nothingShared ? (
-                <Text style={styles.text}>
-                    {`Connected to ${name}. It isn't sharing any routes yet — routes with a video that you add to Incyclist on ${name} will appear here.`}
-                </Text>
-            ) : (
-                <>
-                    <Text style={styles.text}>{adding}</Text>
-                    <View style={styles.progressTrack}><View style={progress} /></View>
-                    <Text style={styles.text}>
-                        {`They'll appear in your Routes list. They play while ${name} is on and you're on the same Wi‑Fi — download the ones you want to ride elsewhere.`}
-                    </Text>
-                </>
-            )}
+            <SyncStatus name={name} sync={sync} routeCount={routeCount} />
             <Text style={styles.label}>Name on this device</Text>
             <TextInput
                 style={styles.input}
@@ -274,23 +296,5 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.listSeparator,
         paddingVertical: 4,
-    },
-    progressTrack: {
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        marginVertical: 8,
-    },
-    progressRunning: {
-        width: '40%',
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.buttonPrimary,
-    },
-    progressDone: {
-        width: '100%',
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.success,
     },
 });

@@ -17,7 +17,7 @@ interface ContentProps extends AddComputerDialogViewProps {
 }
 
 const Content = (props: ContentProps) => {
-    const { screen, compact, seconds, discovery, routeCount, syncDone } = props;
+    const { screen, compact, seconds, discovery, routeCount, syncState } = props;
     switch (screen.kind) {
         case 'blocked':
             return <BlockedScreen />;
@@ -47,7 +47,7 @@ const Content = (props: ContentProps) => {
                     name={screen.name}
                     already={screen.already}
                     routeCount={routeCount}
-                    syncDone={syncDone}
+                    sync={syncState}
                     onNameChange={props.onNameChange}
                 />
             );
@@ -57,12 +57,12 @@ const Content = (props: ContentProps) => {
 };
 
 export const AddComputerDialogView = (props: AddComputerDialogViewProps) => {
-    const { discovery, pairing, now, compact: compactProp, onCancel, onSearchAgain, onRetry, onBack, onOpenIosSettings, onDone } = props;
+    const { discovery, pairing, now, compact: compactProp, onCancel, onSearchAgain, onRetry, onBack, onOpenIosSettings, onCheckAgain, onDone } = props;
     const layout = useScreenLayout();
     const compact = compactProp ?? layout === 'compact';
     const refName = useRef<string | undefined>(undefined);
 
-    const screen = getScreen(discovery, pairing);
+    const screen = getScreen(discovery, pairing, props.syncState);
     const seconds = screen.kind === 'failed' ? secondsLeft(screen.retryAt, now ?? Date.now()) : 0;
 
     const handleNameChange = useCallback((name: string) => { refName.current = name; }, []);
@@ -70,7 +70,7 @@ export const AddComputerDialogView = (props: AddComputerDialogViewProps) => {
         onDone(refName.current ?? (pairing.step === 'connected' ? pairing.name : ''));
     }, [onDone, pairing]);
 
-    const buttons = getButtons(screen, { onCancel, onSearchAgain, onRetry, onBack, onOpenIosSettings, onDone: handleDone }, compact, seconds);
+    const buttons = getButtons(screen, { onCancel, onSearchAgain, onRetry, onBack, onOpenIosSettings, onCheckAgain, onDone: handleDone }, compact, seconds);
 
     return (
         <Dialog title="Add Computer" variant="full" visible={true} scrollable={false} onOutsideClick={onCancel} buttons={buttons}>

@@ -9,9 +9,10 @@ let mockDisplay: Record<string, unknown>;
 const mockLogEvent = jest.fn();
 const mockLogError = jest.fn();
 jest.mock('../../hooks/logging', () => ({ useLogging: () => ({ logEvent: mockLogEvent, logError: mockLogError }) }));
+const mockSharing = new EventEmitter() as EventEmitter & Record<string, unknown>;
 jest.mock('incyclist-services', () => ({
     useLocalLinkClient: () => mockClient,
-    useRouteSharingClient: () => ({ getRepo: () => ({ getForLink: () => [] }) }),
+    useRouteSharingClient: () => mockSharing,
 }));
 
 const display = (pairing: Record<string, unknown>) => ({
@@ -27,6 +28,10 @@ describe('AddComputerDialog', () => {
     beforeEach(() => {
         mockLogError.mockClear();
         mockClient.removeAllListeners();
+        mockSharing.removeAllListeners();
+        mockSharing.getRepo = () => ({ getForLink: () => [] });
+        mockSharing.getSyncState = jest.fn((linkId: string) => ({ linkId, state: 'idle' }));
+        mockSharing.checkAgain = jest.fn().mockResolvedValue([]);
         mockDisplay = display({ step: 'idle' });
         mockClient.getDisplayProps = jest.fn(() => mockDisplay);
         mockClient.startSearch = jest.fn().mockResolvedValue({});
@@ -62,6 +67,46 @@ describe('AddComputerDialog', () => {
         const { getByText } = render(<AddComputerDialog onClose={jest.fn()} />);
         fireEvent.press(getByText('Done'));
         expect(mockClient.rename).not.toHaveBeenCalled();
+    });
+
+    it('follows the sync state of the service and retries a failed sync; Done closes at any time', () => {
+        mockDisplay = display({ step: 'connected', linkId: 'l1', name: 'Home PC' });
+        mockSharing.getSyncState = jest.fn(() => ({ linkId: 'l1', state: 'syncing' }));
+        const onClose = jest.fn();
+        const { getByText, queryByText } = render(<AddComputerDialog onClose={onClose} />);
+        expect(getByText('Adding routes from Home PC…')).toBeTruthy();
+
+        mockSharing.getSyncState = jest.fn(() => ({ linkId: 'l1', state: 'failed', reason: 'unreachable' }));
+        act(() => { mockSharing.emit('sync-state', { linkId: 'l1', state: 'failed' }); });
+        expect(queryByText(/Adding routes/)).toBeNull();
+        fireEvent.press(getByText('Check Again'));
+        expect(mockSharing.checkAgain).toHaveBeenCalled();
+
+        mockSharing.getSyncState = jest.fn(() => ({ linkId: 'l1', state: 'done', routeCount: 4 }));
+        act(() => { mockSharing.emit('sync-state', { linkId: 'l1', state: 'done', routeCount: 4 }); });
+        expect(getByText('Connected • 4 routes')).toBeTruthy();
+        fireEvent.press(getByText('Done'));
+        expect(onClose).toHaveBeenCalled();
+        expect(mockSharing.listenerCount('sync-state')).toBe(1);
+    });
+
+    it('can be closed while syncing', () => {
+        mockDisplay = display({ step: 'connected', linkId: 'l1', name: 'Home PC' });
+        mockSharing.getSyncState = jest.fn(() => ({ linkId: 'l1', state: 'syncing' }));
+        const onClose = jest.fn();
+        const { getByText, unmount } = render(<AddComputerDialog onClose={onClose} />);
+        fireEvent.press(getByText('Done'));
+        expect(onClose).toHaveBeenCalled();
+        unmount();
+        expect(mockSharing.listenerCount('sync-state')).toBe(0);
+    });
+
+    it('does not hang when the sync state cannot be read', () => {
+        mockDisplay = display({ step: 'connected', linkId: 'l1', name: 'Home PC' });
+        mockSharing.getSyncState = jest.fn(() => { throw new Error('state boom'); });
+        const { getByText } = render(<AddComputerDialog onClose={jest.fn()} />);
+        expect(getByText('Connected to Home PC.')).toBeTruthy();
+        expect(mockLogError).toHaveBeenCalledWith(expect.objectContaining({ message: 'state boom' }), 'AddComputerDialog.getSyncInfo');
     });
 
     it('follows the pairing state of the service', () => {

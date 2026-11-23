@@ -17,6 +17,7 @@ const baseProps = (): AddComputerDialogViewProps => ({
     onRetry: jest.fn(),
     onBack: jest.fn(),
     onOpenIosSettings: jest.fn(),
+    onCheckAgain: jest.fn(),
     onDone: jest.fn(),
 });
 
@@ -112,9 +113,9 @@ describe('AddComputerDialogView', () => {
     });
 
     it('A-5: Done passes the name on this device', () => {
-        const props = { ...baseProps(), pairing: mock.CONNECTED, routeCount: 7, syncDone: false };
+        const props = { ...baseProps(), pairing: mock.CONNECTED, syncState: 'syncing' as const };
         const { getByText, getByLabelText } = render(<AddComputerDialogView {...props} />);
-        expect(getByText('Adding 7 routes from Home PC…')).toBeTruthy();
+        expect(getByText('Adding routes from Home PC…')).toBeTruthy();
         fireEvent.changeText(getByLabelText('Name on this device'), 'Living room');
         fireEvent.press(getByText('Done'));
         expect(props.onDone).toHaveBeenCalledWith('Living room');
@@ -128,9 +129,37 @@ describe('AddComputerDialogView', () => {
     });
 
     it('A-5: a computer that shares nothing', () => {
-        const props = { ...baseProps(), pairing: mock.CONNECTED, routeCount: 0, syncDone: true };
+        const props = { ...baseProps(), pairing: mock.CONNECTED, routeCount: 0, syncState: 'done' as const };
         const { getByText } = render(<AddComputerDialogView {...props} />);
         expect(getByText(/It isn't sharing any routes yet/)).toBeTruthy();
+    });
+
+    it('A-5: only says Adding routes while the service is syncing', () => {
+        const idle = render(<AddComputerDialogView {...baseProps()} pairing={mock.CONNECTED} />);
+        expect(idle.queryByText(/Adding routes/)).toBeNull();
+        expect(idle.getByText('Connected to Home PC.')).toBeTruthy();
+        idle.unmount();
+        const done = render(<AddComputerDialogView {...baseProps()} pairing={mock.CONNECTED} syncState="done" routeCount={18} />);
+        expect(done.queryByText(/Adding routes/)).toBeNull();
+        expect(done.getByText('Connected • 18 routes')).toBeTruthy();
+    });
+
+    it('A-5: a failed sync says so and offers Check Again, Done stays available', () => {
+        const props = { ...baseProps(), pairing: mock.CONNECTED, syncState: 'failed' as const };
+        const { getByText, queryByText } = render(<AddComputerDialogView {...props} />);
+        expect(getByText(/the routes could not be loaded/)).toBeTruthy();
+        expect(queryByText(/Adding routes/)).toBeNull();
+        fireEvent.press(getByText('Check Again'));
+        expect(props.onCheckAgain).toHaveBeenCalled();
+        fireEvent.press(getByText('Done'));
+        expect(props.onDone).toHaveBeenCalled();
+    });
+
+    it('A-5: media that cannot be loaded on this device', () => {
+        const props = { ...baseProps(), pairing: mock.CONNECTED, syncState: 'media-unavailable' as const };
+        const { getByText } = render(<AddComputerDialogView {...props} />);
+        expect(getByText(/This device cannot load routes from your computer yet\./)).toBeTruthy();
+        expect(getByText('Check Again')).toBeTruthy();
     });
 
     it('A-6: already connected', () => {

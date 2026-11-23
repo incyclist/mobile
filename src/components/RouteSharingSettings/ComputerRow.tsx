@@ -34,6 +34,12 @@ const Body = ({ row, platform, now, onRename, onForget, onOpenIosSettings }: Omi
         content = (
             <>
                 <Text style={styles.text}>{getExpandedSummary(row)}</Text>
+                {row.reachability === 'reachable' && row.sync === 'failed' && (
+                    <Text style={styles.text}>{`Connected to ${row.name}, but the routes could not be loaded.`}</Text>
+                )}
+                {row.reachability === 'reachable' && row.sync === 'media-unavailable' && (
+                    <Text style={styles.text}>This device cannot load routes from your computer yet.</Text>
+                )}
                 <Text style={styles.text}>{`Last connected: ${formatWhen(row.lastSeenAt, now)}`}</Text>
             </>
         );

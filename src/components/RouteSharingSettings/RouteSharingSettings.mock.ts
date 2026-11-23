@@ -12,7 +12,7 @@ export const REACHABLE: RouteSharingRow = {
     routeCount: 42,
     downloadedCount: 5,
     lastSeenAt: NOW - MINUTE,
-    addingRoutes: false,
+    sync: 'done',
 };
 
 export const ADDING: RouteSharingRow = {
@@ -21,7 +21,7 @@ export const ADDING: RouteSharingRow = {
     name: 'Office Laptop',
     routeCount: 0,
     downloadedCount: undefined,
-    addingRoutes: true,
+    sync: 'syncing',
 };
 
 export const NOT_REACHABLE: RouteSharingRow = {
@@ -29,14 +29,14 @@ export const NOT_REACHABLE: RouteSharingRow = {
     name: 'Basement Mac',
     reachability: 'not-reachable',
     lastSeenAt: NOW - 3 * 60 * MINUTE,
-    addingRoutes: false,
+    sync: 'done',
 };
 
 export const NEVER_REACHED: RouteSharingRow = {
     linkId: 'link-4',
     name: 'Garage PC',
     reachability: 'never-reached',
-    addingRoutes: false,
+    sync: 'done',
 };
 
 export const CHECKING: RouteSharingRow = {
@@ -45,14 +45,30 @@ export const CHECKING: RouteSharingRow = {
     reachability: 'checking',
     routeCount: 12,
     lastSeenAt: NOW - 10 * MINUTE,
-    addingRoutes: false,
+    sync: 'done',
 };
 
 export const VERSION_MISMATCH: RouteSharingRow = {
     linkId: 'link-6',
     name: 'Old Desktop',
     reachability: 'version-mismatch',
-    addingRoutes: false,
+    sync: 'done',
 };
 
-export const ALL_ROWS: RouteSharingRow[] = [REACHABLE, ADDING, NOT_REACHABLE, NEVER_REACHED, CHECKING, VERSION_MISMATCH];
+export const SYNC_FAILED: RouteSharingRow = {
+    ...REACHABLE,
+    linkId: 'link-7',
+    name: 'Tablet Dock PC',
+    routeCount: 0,
+    downloadedCount: undefined,
+    sync: 'failed',
+};
+
+export const MEDIA_UNAVAILABLE: RouteSharingRow = {
+    ...SYNC_FAILED,
+    linkId: 'link-8',
+    name: 'Spare Laptop',
+    sync: 'media-unavailable',
+};
+
+export const ALL_ROWS: RouteSharingRow[] = [REACHABLE, ADDING, SYNC_FAILED, MEDIA_UNAVAILABLE, NOT_REACHABLE, NEVER_REACHED, CHECKING, VERSION_MISMATCH];

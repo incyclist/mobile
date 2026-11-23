@@ -21,13 +21,25 @@ export const formatWhen = (timestamp: number | undefined, now: number): string =
 
 export const routesText = (n: number): string => `${n} ${n === 1 ? 'route' : 'routes'}`;
 
+const getReachableSubLine = (row: RouteSharingRow): string => {
+    switch (row.sync) {
+        case 'syncing':
+            return 'Adding routes…';
+        case 'failed':
+            return 'Connected • routes could not be loaded';
+        case 'media-unavailable':
+            return 'Connected • routes not available on this device yet';
+        default:
+            return `Connected • ${routesText(row.routeCount ?? 0)}`;
+    }
+};
+
 export const getSubLine = (row: RouteSharingRow, now: number): string => {
     switch (row.reachability) {
         case 'checking':
             return 'Checking…';
         case 'reachable':
-            if (row.addingRoutes) return 'Adding routes…';
-            return `Connected • ${routesText(row.routeCount ?? 0)}`;
+            return getReachableSubLine(row);
         case 'not-reachable':
             return `Not reachable • last seen ${formatWhen(row.lastSeenAt, now)}`;
         case 'never-reached':
