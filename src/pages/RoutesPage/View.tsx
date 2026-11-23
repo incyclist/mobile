@@ -1,10 +1,11 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ActivityIndicator,
-    TouchableOpacity
+    TouchableOpacity,
+    useWindowDimensions
 } from 'react-native';
 import { RoutePageDisplayProps, SearchFilter, IObserver } from 'incyclist-services';
 import {
@@ -15,7 +16,9 @@ import {
     DownloadModalView,
     Dynamic,
     DownloadPill,
+    RouteSourceExplainer,
 } from '../../components';
+import { getUnreachableComputers, MIN_HEIGHT_FOR_LONG_COPY } from '../../components/RouteSource/utils';
 import { Icon } from '../../components/Icon'; 
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
@@ -38,6 +41,9 @@ interface RoutesPageViewProps extends RoutePageDisplayProps {
     onDownloadKeepInstead: (routeId: string) => void;
     downloadObserver?: IObserver;
 }
+
+// the explainer line stays dismissed until the app is started again, also when the page is left and reopened
+let explainerDismissed = false;
 
 export const RoutesPageView = (props: RoutesPageViewProps) => {
     const {
@@ -62,7 +68,33 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
         downloadObserver,
     } = props;
 
-    const { logEvent } = useLogging('RoutesPageView');
+    const { logEvent, logError } = useLogging('RoutesPageView');
+    const { height } = useWindowDimensions();
+    const [dismissed, setDismissed] = useState(explainerDismissed);
+
+    // names of the computers that the listed routes need and that can not be reached; empty (and
+    // so no line) as soon as they can
+    const unreachableComputers = useMemo(() => {
+        try {
+            return getUnreachableComputers(routes);
+        }
+        catch (err: any) {
+            logError(err, 'RoutesPageView.unreachableComputers');
+            return [];
+        }
+    }, [routes, logError]);
+    const explainerFits = !compact || height >= MIN_HEIGHT_FOR_LONG_COPY;
+
+    const handleExplainerDismiss = useCallback(() => {
+        try {
+            logEvent({ message: 'button clicked', button: 'dismiss-route-source-explainer', eventSource: 'user' });
+            explainerDismissed = true;
+            setDismissed(true);
+        }
+        catch (err: any) {
+            logError(err, 'RoutesPageView.handleExplainerDismiss');
+        }
+    }, [logEvent, logError]);
 
     const handleDownloadPillPress = useCallback(() => {
         logEvent({ message: 'button clicked', button: 'download-pill', eventSource: 'user' });
@@ -146,6 +178,9 @@ export const RoutesPageView = (props: RoutesPageViewProps) => {
                         onToggle={onFilterToggle}
                         resultCount={routes?.length ?? 0}
                     />
+                    {!dismissed && explainerFits && (
+                        <RouteSourceExplainer computerNames={unreachableComputers} onDismiss={handleExplainerDismiss} />
+                    )}
                 </View>
             }
         >

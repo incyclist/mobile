@@ -23,6 +23,8 @@
 		DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */ = {isa = PBXBuildFile; fileRef = DFA5700A2FB3000000000003 /* RCTStreetViewComponentView.mm */; };
 		DFA5700B2FB3000000000004 /* RCTSatelliteViewComponentView.mm in Sources */ = {isa = PBXBuildFile; fileRef = DFA5700B2FB3000000000003 /* RCTSatelliteViewComponentView.mm */; };
 		DFA5700C2FB3000000000002 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DFA5700C2FB3000000000001 /* MapKit.framework */; };
+		DFA5701A2FB4000000000001 /* NativeCapabilitiesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA5701A2FB4000000000003 /* NativeCapabilitiesModule.swift */; };
+		DFA5701A2FB4000000000002 /* NativeCapabilitiesModule.m in Sources */ = {isa = PBXBuildFile; fileRef = DFA5701A2FB4000000000004 /* NativeCapabilitiesModule.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +53,8 @@
 		DFFF0FC02F819D9000109CC5 /* Incyclist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Incyclist.entitlements; path = Incyclist/Incyclist.entitlements; sourceTree = "<group>"; };
 		E9D6821723439ED529EBAFF2 /* Pods-Incyclist.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Incyclist.debug.xcconfig"; path = "Target Support Files/Pods-Incyclist/Pods-Incyclist.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		DFA5701A2FB4000000000003 /* NativeCapabilitiesModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCapabilitiesModule.swift; sourceTree = "<group>"; };
+		DFA5701A2FB4000000000004 /* NativeCapabilitiesModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NativeCapabilitiesModule.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +85,7 @@
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				DF2F0E632FA9F4D700340FFD /* FolderAccess */,
 				4EEC379234C831AA5B90364D /* AudioCue */,
+				DFA5701A2FB4000000000005 /* NativeCapabilities */,
 				DFA5700A2FB3000000000001 /* StreetView */,
 				DFA5700B2FB3000000000001 /* SatelliteView */,
 			);
@@ -95,6 +100,15 @@
 				248FDA5EC935888A4907CBC2 /* libPods-Incyclist.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DFA5701A2FB4000000000005 /* NativeCapabilities */ = {
+			isa = PBXGroup;
+			children = (
+				DFA5701A2FB4000000000004 /* NativeCapabilitiesModule.m */,
+				DFA5701A2FB4000000000003 /* NativeCapabilitiesModule.swift */,
+			);
+			path = NativeCapabilities;
 			sourceTree = "<group>";
 		};
 		4EEC379234C831AA5B90364D /* AudioCue */ = {
@@ -397,6 +411,8 @@
 				DF1E4356305B3A6800590588 /* ExternalFileAccessModule.swift in Sources */,
 				23C55DBB81501447054C2570 /* AudioCueModule.swift in Sources */,
 				C77663009711C6FF7AC08B15 /* AudioCueModule.m in Sources */,
+				DFA5701A2FB4000000000001 /* NativeCapabilitiesModule.swift in Sources */,
+				DFA5701A2FB4000000000002 /* NativeCapabilitiesModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				DF295F9C2FB26ABD008468D0 /* FullScreenViewController.swift in Sources */,
 				DFA5700A2FB3000000000004 /* RCTStreetViewComponentView.mm in Sources */,

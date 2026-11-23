@@ -1,6 +1,7 @@
 import { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { fn } from 'storybook/test';
 import { RouteItemView } from './RouteItemView';
+import { ROUTE_ITEM_FROM_LINK, ROUTE_ITEM_UNAVAILABLE, ROUTE_ITEM_LOCAL_COPY } from './RouteItem.mock';
 
 // Import real route data
 import teideRoute from '../../../__tests__/testdata/ES_Teide.json';
@@ -140,4 +141,20 @@ export const InICloudWithNewBadge: StoryObj<typeof RouteItemView> = {
         isNew: true,
         cntActive: 3,
     },
+};
+
+export const FromComputer: StoryObj<typeof RouteItemView> = {
+    args: { ...(ROUTE_ITEM_FROM_LINK as any), previewUrl: 'https://placehold.co/400x300/png' },
+};
+
+export const NeedsComputer: StoryObj<typeof RouteItemView> = {
+    args: { ...(ROUTE_ITEM_UNAVAILABLE as any), previewUrl: 'https://placehold.co/400x300/png' },
+};
+
+export const NeedsComputerWithElevation: StoryObj<typeof RouteItemView> = {
+    args: { ...(ROUTE_ITEM_UNAVAILABLE as any), hasVideo: true, points: teideRoute.points as any },
+};
+
+export const LocalCopyOfComputerRoute: StoryObj<typeof RouteItemView> = {
+    args: { ...(ROUTE_ITEM_LOCAL_COPY as any), onDeleteLocalCopy: fn() },
 };

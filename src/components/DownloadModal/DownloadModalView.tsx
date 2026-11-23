@@ -14,6 +14,7 @@ interface DownloadRowProps {
     onRetry: (routeId: string) => void;
     onDelete: (routeId: string) => void;
     onKeepInstead: (routeId: string) => void;
+    failedText?: string;
 }
 
 const TONE_COLOR: Record<RowTone, string> = {
@@ -25,7 +26,7 @@ const TONE_COLOR: Record<RowTone, string> = {
 
 // Server-hosted downloads (the existing, non-iCloud case). This renders exactly as it always
 // has - status drives the text and the single action button, nothing else may change it.
-const ServerDownloadRow = memo(({ row, onStop, onRetry, onDelete }: Omit<DownloadRowProps, 'compact' | 'onKeepInstead'>) => {
+const ServerDownloadRow = memo(({ row, onStop, onRetry, onDelete, failedText }: Omit<DownloadRowProps, 'compact' | 'onKeepInstead'>) => {
     const { logEvent } = useLogging('RoutesDownload');
     const { routeId, title, status, pct } = row;
 
@@ -67,7 +68,7 @@ const ServerDownloadRow = memo(({ row, onStop, onRetry, onDelete }: Omit<Downloa
                 )}
                 {status === 'failed' && (
                     <Text style={[styles.statusText, { color: colors.error }]}>
-                        Download failed
+                        {failedText ?? 'Download failed'}
                     </Text>
                 )}
                 {status === 'required' && (
@@ -179,11 +180,11 @@ const ICloudDownloadRow = memo(({ row, compact, onStop, onRetry, onKeepInstead }
     );
 });
 
-const DownloadRow = memo(({ row, compact, onStop, onRetry, onDelete, onKeepInstead }: DownloadRowProps) => {
+const DownloadRow = memo(({ row, compact, onStop, onRetry, onDelete, onKeepInstead, failedText }: DownloadRowProps) => {
     if (row.source === 'icloud')
         return <ICloudDownloadRow row={row} compact={compact} onStop={onStop} onRetry={onRetry} onKeepInstead={onKeepInstead} />;
 
-    return <ServerDownloadRow row={row} onStop={onStop} onRetry={onRetry} onDelete={onDelete} />;
+    return <ServerDownloadRow row={row} onStop={onStop} onRetry={onRetry} onDelete={onDelete} failedText={failedText} />;
 });
 
 export const DownloadModalView = memo(({
@@ -195,6 +196,7 @@ export const DownloadModalView = memo(({
     onRetry,
     onDelete,
     onKeepInstead = () => {},
+    failedText,
     onClose,
 }: DownloadModalViewProps) => {
     return (
@@ -221,6 +223,7 @@ export const DownloadModalView = memo(({
                             onRetry={onRetry}
                             onDelete={onDelete}
                             onKeepInstead={onKeepInstead}
+                            failedText={failedText}
                         />
                     ))
                 )}

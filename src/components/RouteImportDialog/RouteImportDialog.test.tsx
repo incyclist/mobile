@@ -28,11 +28,13 @@ const mockPageService = {
     importSelected: jest.fn(),
 };
 
-const mockAppState = { hasFeature: jest.fn(() => false) };
+const mockAppState = { hasFeature: jest.fn((_: string) => false) };
+const mockLinkClient = { getDisplayProps: jest.fn(() => ({ available: true })) };
 
 jest.mock('incyclist-services', () => ({
     getRoutesPageService: () => mockPageService,
     useAppState: () => mockAppState,
+    useLocalLinkClient: () => mockLinkClient,
 }));
 
 const mockSelectDirectory = jest.fn();
@@ -79,11 +81,27 @@ jest.mock('./RouteImportDialogView', () => ({
                 <RNTouchableOpacity testID="add-route-server" onPress={props.onAddRouteServer}>
                     <RNText>Add Route Server</RNText>
                 </RNTouchableOpacity>
+                {props.onUseRouteSharing && (
+                    <RNTouchableOpacity testID="use-route-sharing" onPress={props.onUseRouteSharing}>
+                        <RNText>Use Route Sharing</RNText>
+                    </RNTouchableOpacity>
+                )}
                 <RNText testID="show-video-route-option">{String(props.showVideoRouteOption)}</RNText>
             </RNView>
         );
     },
 }));
+
+jest.mock('../RouteSharingSettings', () => {
+    const { TouchableOpacity, Text, View } = require('react-native');
+    return {
+        RouteSharingSettings: ({ onClose }: any) => (
+            <View>
+                <TouchableOpacity testID="sharing-close" onPress={onClose}><Text>close</Text></TouchableOpacity>
+            </View>
+        ),
+    };
+});
 
 // Stub the route servers page: lets the test report the reason it closed with
 jest.mock('../RouteServersDialog', () => {
@@ -299,5 +317,41 @@ describe('RouteImportDialog - route servers page closes with a reason', () => {
         expect(onClose).not.toHaveBeenCalled();
         expect(queryByTestId('servers-done')).toBeNull();
         expect(getByTestId('add-route-server')).toBeTruthy();
+    });
+});
+
+
+describe('RouteImportDialog - Route Sharing link', () => {
+    beforeEach(() => {
+        mockAppState.hasFeature.mockImplementation((feature: string) => feature === 'BRIDGE_MODE');
+        mockLinkClient.getDisplayProps.mockReturnValue({ available: true });
+    });
+
+    afterEach(() => {
+        mockAppState.hasFeature.mockImplementation(() => false);
+    });
+
+    it('hides the link while BRIDGE_MODE is off', () => {
+        mockAppState.hasFeature.mockImplementation(() => false);
+        const { queryByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+        expect(queryByTestId('use-route-sharing')).toBeNull();
+    });
+
+    it('hides the link when the app does not support Route Sharing', () => {
+        mockLinkClient.getDisplayProps.mockReturnValue({ available: false });
+        const { queryByTestId } = render(<RouteImportDialog onClose={jest.fn()} />);
+        expect(queryByTestId('use-route-sharing')).toBeNull();
+    });
+
+    it('opens Route Sharing in place and returns to the landing view when it is closed', () => {
+        const onClose = jest.fn();
+        const { getByTestId, queryByTestId } = render(<RouteImportDialog onClose={onClose} />);
+
+        fireEvent.press(getByTestId('use-route-sharing'));
+        expect(queryByTestId('add-gpx')).toBeNull();
+
+        fireEvent.press(getByTestId('sharing-close'));
+        expect(onClose).not.toHaveBeenCalled();
+        expect(getByTestId('add-gpx')).toBeTruthy();
     });
 });

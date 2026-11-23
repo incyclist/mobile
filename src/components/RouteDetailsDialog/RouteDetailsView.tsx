@@ -20,6 +20,7 @@ import { ChipSelect } from '../ChipSelect';
 import { SingleSelect } from '../SingleSelect';
 import { DownloadModalView } from '../DownloadModal';
 import { SecureImage } from '../SecureImage';
+import { RouteSourceInfo, MIN_HEIGHT_FOR_LONG_COPY } from '../RouteSource';
 import { AttachmentChip } from '../AttachmentChip';
 import { ElevationGraph } from '../ElevationGraph';
 import { VideoNoticeView } from './video/VideoNoticeView';
@@ -62,6 +63,7 @@ type MediaLayoutInputs = {
     hasGpx: boolean;
     isOnline: boolean;
     previewUrl?: string;
+    hasThumbnailLink?: boolean;
     screenWidth: number;
     screenHeight: number;
 };
@@ -103,7 +105,7 @@ const MEDIA_ROW_GAP = 10;
  * boxes with it) to make room, rather than letting the three of them overflow the screen width.
  */
 const computeMediaLayout = (inputs: MediaLayoutInputs): MediaLayout => {
-    const { loading, points, routeData, hasGpx, isOnline, previewUrl, screenWidth, screenHeight } = inputs;
+    const { loading, points, routeData, hasGpx, isOnline, previewUrl, hasThumbnailLink, screenWidth, screenHeight } = inputs;
 
     const hasProfile = !loading && !!points?.length && !!routeData?.points?.length;
     const showMap = hasProfile && hasGpx && isOnline;
@@ -112,7 +114,7 @@ const computeMediaLayout = (inputs: MediaLayoutInputs): MediaLayout => {
     // With a map, the profile gets its own column alongside the still - a peer, not an overlay.
     const showProfileStrip = hasProfile && hasGpx;
     const showMapPanel = loading || showMap || showProfileInMapSlot;
-    const hasStill = !!previewUrl;
+    const hasStill = !!previewUrl || !!hasThumbnailLink;
     // The still column shows whenever there is one, and also as the graph-less fallback (loading
     // spinner or "No preview available") whenever the graph isn't taking its place instead.
     const showPreviewColumn = hasStill || !showProfileStrip;
@@ -431,7 +433,7 @@ const buildVideoDetailsUI = (props: VideoDetailsInput) => {
 
 export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
-        title, compact, hasGpx, points, previewUrl, routeData, isOnline, totalDistance,
+        title, compact, hasGpx, points, previewUrl, thumbnailLink, availability, sourceLabel, unavailableReason, routeData, isOnline, totalDistance,
         totalElevation, routeType, canStart, canNotStartReason,
         showLoopOverwrite, showNextOverwrite, loading,
         initialSettings, segments, prevRides, showPrev: initialShowPrev,
@@ -441,7 +443,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
         onStart, onCancel, onAddWorkout, onClearWorkout, onSettingsChanged, onUpdateStartPos,
         downloadButtonLabel, downloadButtonDisabled, onDownloadPress,
         showDownloadModal, onDownloadModalClose, downloadRows,
-        onDownloadStop, onDownloadRetry, onDownloadDelete,
+        onDownloadStop, onDownloadRetry, onDownloadDelete, copyFailureText, copySizeBytes,
         video, deviceWord = DEFAULT_DEVICE_WORD, videoNow,
         onVideoDownloadPressed, onVideoDownloadConfirmed, onVideoDownloadDismissed,
         onVideoRetry, onVideoStop, onVideoConfirmAccess, onVideoKeepInstead,
@@ -589,7 +591,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     const {
         hasProfile, showMap, showMapPanel, showProfileStrip, showPreviewColumn,
         mediaRowStyle, mediaBoxSize, graphColumnSize,
-    } = computeMediaLayout({ loading, points, routeData, hasGpx, isOnline, previewUrl, screenWidth, screenHeight });
+    } = computeMediaLayout({ loading, points, routeData, hasGpx, isOnline, previewUrl, hasThumbnailLink: !!thumbnailLink, screenWidth, screenHeight });
 
     const smoothedFigure = smoothingLevel > 0 ? preview.smoothedElevation : undefined;
     const smoothingActive = smoothingLevel > 0 && hasProfile && !!preview.smoothedPoints?.length;
@@ -642,8 +644,18 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const renderPreview = () => {
         if (loading) return <ActivityIndicator color={colors.text} />;
-        if (previewUrl) {
-            return <SecureImage source={{ uri: previewUrl }} style={styles.fullMedia} resizeMode="cover" />;
+        if (previewUrl || thumbnailLink) {
+            const source = previewUrl ? { uri: previewUrl } : undefined;
+            return (
+                <SecureImage
+                    source={source}
+                    thumbnailRouteKey={routeData?.id}
+                    thumbnailLink={thumbnailLink}
+                    fallback={<Text style={styles.placeholderText}>No preview available</Text>}
+                    style={styles.fullMedia}
+                    resizeMode="cover"
+                />
+            );
         }
         return <Text style={styles.placeholderText}>No preview available</Text>;
     };
@@ -698,7 +710,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
 
     const downloadButton = downloadButtonLabel ? [{
         label: downloadButtonLabel,
-        disabled: downloadButtonDisabled,
+        disabled: downloadButtonDisabled || availability === 'unavailable',
         onClick: onDownloadPress ?? (() => {}),
         primary: downloadButtonPrimary ?? false,
     }] : []
@@ -728,7 +740,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
     };
 
     if (compact) {
-        const showCompactPanel = loading || showMap || hasProfile || !!previewUrl;
+        const showCompactPanel = loading || showMap || hasProfile || !!previewUrl || !!thumbnailLink;
 
         const infoBarSuffix = getInfoBarSuffix(video);
 
@@ -744,6 +756,16 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 {!!canNotStartReason && <Text style={styles.errorText}>{canNotStartReason}</Text>}
             </View>
         );
+        const sourceInfo = (
+            <RouteSourceInfo
+                availability={availability}
+                sourceLabel={sourceLabel}
+                unavailableReason={unavailableReason}
+                shortHint={screenHeight < MIN_HEIGHT_FOR_LONG_COPY}
+                sizeBytes={copySizeBytes}
+                reasonShown
+            />
+        );
 
         return (
             <Dialog
@@ -755,6 +777,8 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
             >
                 {workoutChip && <View style={styles.chipWrapper}>{workoutChip}</View>}
                 {infoBar}
+                {sourceInfo}
+                {!!copyFailureText && <Text style={styles.errorText}>{copyFailureText}</Text>}
                 <View style={styles.compactRoot}>
                     <View style={styles.compactLeft}>
                         <ScrollView
@@ -806,6 +830,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                     onStop={onDownloadStop ?? (() => {})}
                     onRetry={onDownloadRetry ?? (() => {})}
                     onDelete={onDownloadDelete ?? (() => {})}
+                    failedText={copyFailureText}
                     onClose={onDownloadModalClose ?? (() => {})}
                 />
                 {videoDialogs}
@@ -893,6 +918,14 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 />
                 {!!canNotStartReason && <Text style={styles.fullErrorText}>{canNotStartReason}</Text>}
             </View>
+            <RouteSourceInfo
+                availability={availability}
+                sourceLabel={sourceLabel}
+                unavailableReason={unavailableReason}
+                sizeBytes={copySizeBytes}
+                reasonShown
+            />
+            {!!copyFailureText && <Text style={styles.fullErrorText}>{copyFailureText}</Text>}
             <DownloadModalView
                 visible={!!showDownloadModal}
                 rows={downloadRows ?? []}
@@ -900,6 +933,7 @@ export const RouteDetailsView = (props: RouteDetailsViewProps) => {
                 onStop={onDownloadStop ?? (() => {})}
                 onRetry={onDownloadRetry ?? (() => {})}
                 onDelete={onDownloadDelete ?? (() => {})}
+                    failedText={copyFailureText}
                 onClose={onDownloadModalClose ?? (() => {})}
             />
             {videoDialogs}

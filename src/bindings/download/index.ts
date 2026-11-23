@@ -6,6 +6,17 @@ import path from 'path-browserify';
 import { IDownloadManager, IDownloadSession, DownloadProps } from 'incyclist-services';
 import { EventLogger } from 'gd-eventlog';
 
+const moduleLogger = (): EventLogger => new EventLogger('MobileDownload');
+
+// logging itself must never throw
+const logError = (err: any, fn: string, logger: EventLogger = moduleLogger()): void => {
+    try {
+        logger.logEvent({message: 'error', fn, error: scrubLogText(String(err?.message ?? err)), stack: err?.stack});
+    } catch {
+        // nothing left to report to
+    }
+};
+
 /**
  * Builds a `video://` URL for a given file path, using the correct number of
  * slashes depending on whether the path is absolute or relative.
@@ -23,14 +34,99 @@ import { EventLogger } from 'gd-eventlog';
  *   their own: `video://./path`
  */
 export const buildVideoUrl = (filePath: string): string => {
-    if (filePath.startsWith('/')) {
+    try {
+        if (filePath.startsWith('/')) {
+            return `video://${filePath}`;
+        }
+        if (/^[A-Za-z]:[/\\]/.test(filePath)) {
+            return `video:///${filePath}`;
+        }
         return `video://${filePath}`;
     }
-    if (/^[A-Za-z]:[/\\]/.test(filePath)) {
-        return `video:///${filePath}`;
+    catch (err: any) {
+        logError(err, 'buildVideoUrl');
+        return '';
     }
-    return `video://${filePath}`;
 }
+
+const PRIVATE_IPV4 = /^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.)/;
+
+const isPrivateHost = (host: string): boolean => {
+    try {
+        const h = host.toLowerCase().replace(/^\[|\]$/g, '');
+        return h === 'localhost' || h.endsWith('.local') || PRIVATE_IPV4.test(h)
+            || h === '::1' || /^(fc|fd|fe80)/.test(h) || (!h.includes('.') && !h.includes(':'));
+    }
+    catch (err: any) {
+        logError(err, 'isPrivateHost');
+        return true; // unknown host: treat as private so that it is not logged
+    }
+};
+
+/**
+ * Returns a form of a URL that is safe to write to logs: no query string, fragment or userinfo.
+ * For http(s) URLs on private/loopback hosts (e.g. the local-link media listener, whose URL carries
+ * a media token and the LAN address) the host is omitted too and only the path shape is kept,
+ * without the handle value: `/v/<redacted>`.
+ */
+export const toLogSafeUrl = (url: string | undefined): string => {
+    try {
+        if (!url) return '';
+        const m = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)([^?#]*)/i.exec(url);
+        if (!m) return url.split(/[?#]/)[0];
+        const scheme = m[1].toLowerCase();
+        const host = m[2].slice(m[2].lastIndexOf('@') + 1);
+        const hostname = host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.split(':')[0];
+        const pathname = m[3];
+        if ((scheme === 'http' || scheme === 'https') && isPrivateHost(hostname)) {
+            const segments = pathname.split('/').filter(Boolean);
+            return segments.length === 0 ? '/' : '/' + [segments[0], ...segments.slice(1).map(() => '<redacted>')].join('/');
+        }
+        return `${scheme}://${host}${pathname}`;
+    }
+    catch (err: any) {
+        logError(err, 'toLogSafeUrl');
+        return '';
+    }
+};
+
+/** Replaces URLs (and stray `t=` token values) in free text, e.g. an error message, by their log-safe form. */
+export const scrubLogText = (text: string): string => {
+    try {
+        return text
+            .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>)\]]+/gi, (u) => toLogSafeUrl(u))
+            .replace(/([?&;\s]t=)[^&\s'"]+/g, '$1<redacted>');
+    }
+    catch {
+        // not logged here: logError scrubs its text with this function
+        return '';
+    }
+};
+
+// Android DownloadManager.ERROR_INSUFFICIENT_SPACE
+const ANDROID_ERROR_INSUFFICIENT_SPACE = 1006;
+const OUT_OF_SPACE_TEXT = /ENOSPC|no space|not enough (space|storage)|out of space|NSFileWriteOutOfSpace/i;
+
+/**
+ * Makes a failed transfer recognisable as "the device is full": the native layers report that
+ * differently (an Android error code, an ENOSPC errno text, an iOS NSFileWriteOutOfSpace error),
+ * and the caller classifies on the message only.
+ */
+export const toDownloadError = (error: unknown, errorCode?: number): Error => {
+    try {
+        const raw = typeof error === 'string' ? error : (error as Error | undefined)?.message ?? '';
+        // the native message may embed the request URL (media token, LAN address): it gets logged/emitted
+        const message = scrubLogText(raw);
+        if (errorCode === ANDROID_ERROR_INSUFFICIENT_SPACE && !OUT_OF_SPACE_TEXT.test(message))
+            return new Error(`no space left on device (code ${errorCode}) ${message}`.trim());
+        if (error instanceof Error && message === raw) return error;
+        return new Error(message);
+    }
+    catch (err: any) {
+        logError(err, 'toDownloadError');
+        return new Error('download failed');
+    }
+};
 
 export class MobileDownloadSession extends EventEmitter implements IDownloadSession {
     private task?: any;
@@ -58,106 +154,186 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
     // the buggy cleanup runs, the temp path is already empty/gone and the real
     // bytes live somewhere DownloadManager has no record of.
     private readonly tempFileName: string;
+    private readonly logUrl: string;
+
+    private progressLoggedAt = 0;
 
     constructor(private url: string, private fileName: string) {
         super();
         this.tempFileName = `${fileName}.part`;
+        this.logUrl = toLogSafeUrl(url);
+    }
+
+    protected logError(err: any, fn: string): void {
+        logError(err, `MobileDownloadSession.${fn}`, this.logger);
+    }
+
+    // An 'error' event without a listener (or a throwing listener) must never escape into the
+    // native callback that triggered it.
+    private safeEmit(event: string, ...args: any[]): void {
+        try {
+            if (event === 'error' && this.listenerCount('error') === 0) {
+                this.logError(args[0], 'emit.unhandled-error');
+                return;
+            }
+            this.emit(event, ...args);
+        }
+        catch (err: any) {
+            this.logError(err, `emit.${event}`);
+        }
     }
 
     public start(): void {
-        this.logger.logEvent({message: 'DownloadSession start', url: this.url})
+        try {
+            this.logger.logEvent({message: 'DownloadSession start', url: this.logUrl})
 
-        if (this.task) {
-            this.attachHandlers();
-            return;
-        }
-
-        const videoDir = path.parse(this.fileName).dir
-
-
-        RNFS.mkdir(videoDir)
-            .then(() => {
-                if (this.stopped) return;
-
-                const id = path.parse(this.fileName).name;
-                this.task = createDownloadTask({
-                    id,
-                    url: this.url,
-                    destination: this.tempFileName,
-                    metadata: {},
-                    isAllowedOverRoaming: true,
-                    isAllowedOverMetered: true,
-                })
-
+            if (this.task) {
                 this.attachHandlers();
-            })
-            .catch((err) => {
-                this.logger.logEvent({message: 'DownloadSession mkdir error', error: err.message})
-                this.emit('error', err);
-            });
+                return;
+            }
+
+            const videoDir = path.parse(this.fileName).dir
+
+            RNFS.mkdir(videoDir)
+                .then(() => this.onDirReady())
+                .catch((err) => {
+                    this.logError(err, 'start.mkdir');
+                    this.safeEmit('error', toDownloadError(err));
+                });
+        }
+        catch (err: any) {
+            this.logError(err, 'start');
+            this.safeEmit('error', toDownloadError(err));
+        }
+    }
+
+    private onDirReady(): void {
+        if (this.stopped) return;
+
+        const id = path.parse(this.fileName).name;
+        this.task = createDownloadTask({
+            id,
+            url: this.url,
+            destination: this.tempFileName,
+            metadata: {},
+            isAllowedOverRoaming: true,
+            isAllowedOverMetered: true,
+        })
+
+        this.attachHandlers();
     }
 
     public stop(): void {
-        this.logger.logEvent({message: 'DownloadSession stop', url: this.url})
-        this.stopped = true;
-        if (this.task) {
-            this.task.stop();
+        try {
+            this.logger.logEvent({message: 'DownloadSession stop', url: this.logUrl})
+            this.stopped = true;
+            if (this.task) {
+                this.task.stop();
+            }
         }
-        this.emit('stopped')
+        catch (err: any) {
+            this.logError(err, 'stop');
+        }
+        this.removeTempFile();
+        this.safeEmit('stopped')
     }
 
     private attachHandlers(): void {
-        if (!this.task) return;
+        try {
+            if (!this.task) return;
 
-        let ts=0, prev=0
+            this.task
+                .begin(() => this.onBegin())
+                .progress((p: { bytesDownloaded: number, bytesTotal: number }) => this.onProgress(p))
+                .done(() => this.onDone())
+                .error((e: { error: string, errorCode: number }) => this.onError(e))
 
-        this.task
-            .begin(({ expectedBytes: _expectedBytes }: { expectedBytes: number }) => {
-                this.logger.logEvent({message: 'DownloadSession download has started', url: this.url})
-                if (this.stopped) return;
-                this.emit('started');
-            })
-            .progress(({ bytesDownloaded, bytesTotal }: { bytesDownloaded: number, bytesTotal: number }) => {
-                if (this.stopped) return;
+            this.logger.logEvent({message: 'DownloadSession start download', url: this.logUrl})
 
-                const now = Date.now();
-                let speed = '0.0 MB/s';
-                if (this.lastUpdate > 0) {
-                    const duration = (now - this.lastUpdate) / 1000;
-                    if (duration > 0) {
-                        const bps = (bytesDownloaded - this.lastBytes) / duration;
-                        speed = `${(bps / 1024 / 1024).toFixed(1)} MB/s`;
-                    }
+            this.task.start()
+        }
+        catch (err: any) {
+            this.logError(err, 'attachHandlers');
+            this.safeEmit('error', toDownloadError(err));
+        }
+    }
+
+    private onBegin(): void {
+        try {
+            this.logger.logEvent({message: 'DownloadSession download has started', url: this.logUrl})
+            if (this.stopped) return;
+            this.safeEmit('started');
+        }
+        catch (err: any) {
+            this.logError(err, 'onBegin');
+        }
+    }
+
+    private onProgress(p: { bytesDownloaded: number, bytesTotal: number }): void {
+        try {
+            const { bytesDownloaded, bytesTotal } = p;
+            if (this.stopped) return;
+
+            const now = Date.now();
+            let speed = '0.0 MB/s';
+            if (this.lastUpdate > 0) {
+                const duration = (now - this.lastUpdate) / 1000;
+                if (duration > 0) {
+                    const bps = (bytesDownloaded - this.lastBytes) / duration;
+                    speed = `${(bps / 1024 / 1024).toFixed(1)} MB/s`;
                 }
-                this.lastUpdate = now;
-                this.lastBytes = bytesDownloaded;
+            }
+            this.lastUpdate = now;
+            this.lastBytes = bytesDownloaded;
 
-                const pct = bytesTotal > 0
-                    ? ((bytesDownloaded / bytesTotal) * 100).toFixed(1)
-                    : '0.0';
+            const pct = bytesTotal > 0
+                ? ((bytesDownloaded / bytesTotal) * 100).toFixed(1)
+                : '0.0';
 
-                // log progress only every 10 seconds
-                ts = Date.now()
-                if (ts-prev>10000) {                
-                    this.logger.logEvent({message: 'DownloadSession progress', pct, speed, bytesDownloaded})
-                    prev = ts
-                }
-                this.emit('progress', pct, speed, bytesDownloaded);
-            })
-            .done(() => {
-                this.logger.logEvent({message: 'DownloadSession done', url: this.url})
-                if (this.stopped) return;
-                this.finalizeDownload();
-            })
-            .error(({ error, errorCode }: { error: string, errorCode: number }) => {
-                this.logger.logEvent({message: 'DownloadSession error', url: this.url, error, errorCode})
-                if (this.stopped) return;
-                this.emit('error', new Error(error));
-            })
+            // log progress only every 10 seconds
+            if (now - this.progressLoggedAt > 10000) {
+                this.logger.logEvent({message: 'DownloadSession progress', pct, speed, bytesDownloaded})
+                this.progressLoggedAt = now
+            }
+            this.safeEmit('progress', pct, speed, bytesDownloaded);
+        }
+        catch (err: any) {
+            this.logError(err, 'onProgress');
+        }
+    }
 
-        this.logger.logEvent({message: 'DownloadSession start download', url: this.url})
+    private onDone(): void {
+        try {
+            this.logger.logEvent({message: 'DownloadSession done', url: this.logUrl})
+            if (this.stopped) return;
+            this.finalizeDownload().catch((err: any) => this.logError(err, 'onDone'));
+        }
+        catch (err: any) {
+            this.logError(err, 'onDone');
+        }
+    }
 
-        this.task.start()
+    private onError(e: { error: string, errorCode: number }): void {
+        try {
+            const { error, errorCode } = e;
+            this.logger.logEvent({message: 'DownloadSession error', url: this.logUrl, error: scrubLogText(String(error)), errorCode})
+            if (this.stopped) return;
+            this.safeEmit('error', toDownloadError(error, errorCode));
+        }
+        catch (err: any) {
+            this.logError(err, 'onError');
+        }
+    }
+
+    // A stopped transfer must not leave its partial file behind: only the destination is known to
+    // the caller, so the temp file is ours to remove.
+    private removeTempFile(): void {
+        try {
+            RNFS.unlink(this.tempFileName).catch(() => { /* nothing was written yet */ });
+        }
+        catch (err: any) {
+            this.logError(err, 'removeTempFile');
+        }
     }
 
     // Relocates the completed download from the temp path to the real
@@ -176,12 +352,12 @@ export class MobileDownloadSession extends EventEmitter implements IDownloadSess
 
             await RNFS.moveFile(this.tempFileName, this.fileName);
 
-            this.logger.logEvent({message: 'DownloadSession finalized', url: this.url, fileName: this.fileName})
-            this.emit('done', buildVideoUrl(this.fileName));
+            this.logger.logEvent({message: 'DownloadSession finalized', url: this.logUrl, fileName: this.fileName})
+            this.safeEmit('done', buildVideoUrl(this.fileName));
         }
         catch (err: any) {
-            this.logger.logEvent({message: 'DownloadSession finalize error', url: this.url, error: err.message})
-            this.emit('error', err);
+            this.logError(err, 'finalizeDownload');
+            this.safeEmit('error', toDownloadError(err));
         }
     }
 }
@@ -190,26 +366,56 @@ export class MobileDownloadManager implements IDownloadManager {
     protected logger = new EventLogger('DownloadManager')
 
     public createSession(url: string, fileName: string, _props?: DownloadProps): IDownloadSession {
-        this.logger.logEvent({message: 'DownloadManager createSession', url, fileName})
+        try {
+            this.logger.logEvent({message: 'DownloadManager createSession', url: toLogSafeUrl(url), fileName})
+        }
+        catch (err: any) {
+            logError(err, 'MobileDownloadManager.createSession', this.logger);
+        }
+        // the session constructor only derives strings; it is the one place that has no safe fallback
         return new MobileDownloadSession(url, fileName);
     }
 
+    public async getFreeSpace(volumePath?: string): Promise<number | undefined> {
+        try {
+            // react-native-fs reports the volume of the app's storage, which is where the videos go
+            const info = await RNFS.getFSInfo();
+            const free = info?.freeSpace;
+            this.logger.logEvent({message: 'DownloadManager getFreeSpace', path: volumePath, freeBytes: free})
+            return typeof free === 'number' && free >= 0 ? free : undefined;
+        }
+        catch (err: any) {
+            logError(err, 'MobileDownloadManager.getFreeSpace', this.logger);
+            return undefined;
+        }
+    }
+
     public getVideoDir(): string {
-        this.logger.logEvent({message: 'DownloadManager getVideoDir'})
-        return getDownloadVideoDir()
+        try {
+            this.logger.logEvent({message: 'DownloadManager getVideoDir'})
+            return getDownloadVideoDir()
+        }
+        catch (err: any) {
+            logError(err, 'MobileDownloadManager.getVideoDir', this.logger);
+            return ''
+        }
     }
 }
 
 
 export const getDownloadVideoDir = ():string =>  {
+    try {
+        const logger = new EventLogger('DownloadManager')
 
-    const logger = new EventLogger('DownloadManager')
+        const videoDir = (Platform.OS === 'android'
+            ? RNFS.ExternalDirectoryPath
+            : RNFS.DocumentDirectoryPath) + '/videos'
 
-    const videoDir = (Platform.OS === 'android'
-        ? RNFS.ExternalDirectoryPath
-        : RNFS.DocumentDirectoryPath) + '/videos'
-
-
-    logger.logEvent({message: 'getDownloadVideoDir', platform: Platform.OS, videoDir})
-    return videoDir
+        logger.logEvent({message: 'getDownloadVideoDir', platform: Platform.OS, videoDir})
+        return videoDir
+    }
+    catch (err: any) {
+        logError(err, 'getDownloadVideoDir')
+        return ''
+    }
 }

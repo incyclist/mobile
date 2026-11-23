@@ -63,4 +63,16 @@ describe('LandingView route server tile', () => {
         fireEvent.press(getByText('Add Route Server'));
         expect(onAddRouteServer).toHaveBeenCalledTimes(1);
     });
+
+    it('shows no Route Sharing link unless a handler is provided', () => {
+        const { queryByText } = render(<LandingView {...props} />);
+        expect(queryByText('Use Route Sharing')).toBeNull();
+    });
+
+    it('invokes onUseRouteSharing when the link is pressed', () => {
+        const onUseRouteSharing = jest.fn();
+        const { getByText } = render(<LandingView {...props} onUseRouteSharing={onUseRouteSharing} />);
+        fireEvent.press(getByText('Use Route Sharing'));
+        expect(onUseRouteSharing).toHaveBeenCalledTimes(1);
+    });
 });

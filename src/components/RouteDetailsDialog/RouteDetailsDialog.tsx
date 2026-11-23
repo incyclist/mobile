@@ -5,17 +5,24 @@ import { useLogging, useUnmountEffect, useIsTablet, useScreenLayout } from '../.
 import { RouteDetailsView } from './RouteDetailsView';
 import { RouteDetailsDialogProps, RouteSettingsChangeResult } from './types';
 import { navigate } from '../../services';
+import { getUnavailableText } from '../RouteSource/utils';
+import type { RouteSourceProps } from '../RouteSource/types';
+import { useRouteCopyState } from './useRouteCopyState';
+import { getCopyButtonLabel, getCopyFailureText, getCopyRow } from './routeCopy';
 
 /**
  * Explains a Start button that is actually unavailable. Being offline is not by itself a reason -
  * a downloaded video plays from local storage and starts fine offline - so this only ever
  * describes a route that genuinely cannot be started. AVI takes precedence when both apply.
  */
-const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnline: boolean }): string | undefined => {
-    const { canStart, isAvi, isOnline } = props;
+const getCanNotStartReason = (props: { canStart: boolean, isAvi: boolean, isOnline: boolean, source: RouteSourceProps }): string | undefined => {
+    const { canStart, isAvi, isOnline, source } = props;
 
     if (canStart)
         return undefined;
+    // a route that no source can deliver right now: the reason comes from the page service's state
+    if (source.availability === 'unavailable')
+        return getUnavailableText(source);
     if (isAvi)
         return 'AVI videos are not supported on mobile';
     if (!isOnline)
@@ -43,7 +50,7 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // web-ui's RouteDetails wrapper derives `isOnline` separately from `canStart`.
     const onlineStatusMonitor = useOnlineStatusMonitoring();
 
-    const { logEvent } = useLogging('RouteDetailsDialog');
+    const { logEvent, logError } = useLogging('RouteDetailsDialog');
     const refMounted = useRef(true);
     const refInitialized = useRef(false);
     const refDownloadObserver = useRef<any>(null);
@@ -66,6 +73,12 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
 
     const route = card?.getData();
     const routeDescr = route?.description;
+
+    // A route that plays from (or needs) a computer is copied to this device through the copy
+    // service; the Download button then drives that copy instead of a server download.
+    const copyable = !!routeDescr?.linkShared && (routeDetailsProps.availability === 'fromLink' || routeDetailsProps.availability === 'unavailable');
+    const copyState = useRouteCopyState(routeId, copyable);
+    const refCopyStatus = useRef(copyState.state.status);
 
     // Full download row state — carries pct so progress bar updates correctly
     const [downloadRow, setDownloadRow] = useState<DownloadRowDisplayProps | null>(() => {
@@ -188,7 +201,18 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     // (e.g. clearing the workout from the Workouts page) is picked up on next mount instead, and
     // the in-dialog '[x]' below already re-emits 'page-update' when it clears the selection.
     useEffect(() => {
-        const refresh = () => setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+        // `cardProps` is captured at mount, and for a route that plays from a computer its `canStart`
+        // is the availability of that moment: it must follow the computer coming back (or leaving).
+        const refreshCanStart = () => {
+            if (!card?.getData()?.description?.linkShared)
+                return;
+            const canStart = card.canStart();
+            setCardProps(prev => (prev && prev.canStart !== canStart ? { ...prev, canStart } : prev));
+        };
+        const refresh = () => {
+            setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+            refreshCanStart();
+        };
         // The video state changes on its own - a download progresses, iOS frees a file, the app
         // comes back to the foreground - so this dialog is told about its own route separately
         // from the page-wide update above. Other routes' updates are ignored.
@@ -204,7 +228,23 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             observer?.off('page-update', refresh);
             observer?.off('route-details-update', refreshRoute);
         };
-    }, [pageService, routeId]);
+    }, [pageService, routeId, card]);
+
+    // A finished copy changes what the route is (a local file now) - read the card and the
+    // availability again, and show the finished download.
+    useEffect(() => {
+        try {
+            const prev = refCopyStatus.current;
+            refCopyStatus.current = copyState.state.status;
+            if (prev !== 'copying' || copyState.state.status !== 'idle' || !card) return;
+            setCardProps(card.openSettings());
+            setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+            setDownloadRow({ routeId, title: routeDescr?.title ?? '', status: 'done' });
+        }
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.copyFinished');
+        }
+    }, [copyState.state.status, card, pageService, routeId, routeDescr, logError]);
 
     const onClearWorkout = useCallback(() => {
         pageService.onClearWorkoutSelection();
@@ -271,20 +311,31 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
         : undefined;
     const routeType = `${hasVideo ? 'Video' : 'GPX'} - ${isLoop ? 'Loop' : 'Point to Point'}`;
     const isAvi = videoFormat?.toLowerCase() === 'avi';
-    const downloadStatus = downloadRow?.status ?? 'none'
+    const copyRow = copyable ? getCopyRow(routeId, routeDescr.title ?? '', copyState.state) : null;
+    const shownRow = copyable ? copyRow : downloadRow;
+    const downloadStatus = shownRow?.status ?? 'none'
     // Nothing is startable on provisional settings - a GPX route has no points to ride yet, and
     // for a video route the location of the video is still unknown.
-    const canStart = !isAvi && (cardCanStart ?? true) && downloadStatus !== 'downloading' && !loading;
+    const source: RouteSourceProps = {
+        availability: routeDetailsProps.availability,
+        sourceLabel: routeDetailsProps.sourceLabel,
+        unavailableReason: routeDetailsProps.unavailableReason,
+    };
+    const canStart = !isAvi && (cardCanStart ?? true) && source.availability !== 'unavailable' && downloadStatus !== 'downloading' && !loading;
     const isOnline = onlineStatusMonitor.onlineStatus;
-    const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline });
+    const canNotStartReason = getCanNotStartReason({ canStart, isAvi, isOnline, source });
 
     const hasDownloadUrl = !!(routeDescr.downloadUrl || (routeDescr.videoUrl?.startsWith('https://')));
-    const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true;
+    const hasSharedCopy = !!routeDescr.linkShared && downloadStatus === 'done';
+    const showDownloadButton = hasDownloadUrl || routeDescr.requiresDownload === true || copyable || hasSharedCopy;
 
     let downloadButtonLabel: string | undefined;
     let downloadButtonDisabled = false;
 
-    if (showDownloadButton) {
+    if (copyable) {
+        downloadButtonLabel = getCopyButtonLabel(copyState.state);
+        downloadButtonDisabled = copyState.state.status === 'copying';
+    } else if (showDownloadButton) {
         if (downloadStatus === 'downloading') {
             downloadButtonLabel = 'Downloading…';
             downloadButtonDisabled = true;
@@ -298,40 +349,99 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
     }
 
     const onDownloadPress = useCallback(() => {
-        if (downloadStatus === 'none' || downloadStatus === 'failed') {
-            const observer = card.download();
-            setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
-            subscribeToObserver(observer);
+        try {
+            if (copyable) {
+                if (downloadStatus !== 'downloading') copyState.copy();
+                setShowDownloadModal(true);
+                return;
+            }
+            if (downloadStatus === 'none' || downloadStatus === 'failed') {
+                const observer = card.download();
+                setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
+                subscribeToObserver(observer);
+            }
+            setShowDownloadModal(true);
         }
-        setShowDownloadModal(true);
-    }, [card, downloadStatus, routeId, routeDescr, subscribeToObserver]);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadPress');
+        }
+    }, [card, copyable, copyState, downloadStatus, routeId, routeDescr, subscribeToObserver, logError]);
 
     const onDownloadModalClose = useCallback(() => {
         setShowDownloadModal(false);
     }, []);
 
     const onDownloadStop = useCallback((id: string) => {
-        const c = service.getCard(id)
-        if (c) {
-            c.stopDownload(true);
+        try {
+            if (copyable) {
+                copyState.cancel();
+                return;
+            }
+            const c = service.getCard(id)
+            if (c) {
+                c.stopDownload(true);
+            }
         }
-    }, [service]);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadStop');
+        }
+    }, [service, copyable, copyState, logError]);
 
     const onDownloadRetry = useCallback((id: string) => {
-        const c = service.getCard(id);
-        if (c) {
-            const observer = c.download();
-            setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
-            subscribeToObserver(observer);
+        try {
+            if (copyable) {
+                copyState.copy();
+                return;
+            }
+            const c = service.getCard(id);
+            if (c) {
+                const observer = c.download();
+                setDownloadRow({ routeId, title: routeDescr.title ?? '', status: 'downloading' });
+                subscribeToObserver(observer);
+            }
         }
-    }, [service, routeId, routeDescr, subscribeToObserver]);
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadRetry');
+        }
+    }, [service, copyable, copyState, routeId, routeDescr, subscribeToObserver, logError]);
+
+    // only the copy on this device goes; the route stays (it is still shared by the computer)
+    const deleteSharedCopy = useCallback((id: string) => {
+        try {
+            pageService.deleteLocalCopy(id)
+                ?.then(() => {
+                    if (!refMounted.current) return;
+                    setDownloadRow(null);
+                    if (card) setCardProps(card.openSettings());
+                    setRouteDetailsProps(pageService.getRouteDetailsProps(routeId));
+                })
+                .catch((err: Error) => logError(err, 'deleteLocalCopy'));
+        }
+        catch (err: any) {
+            logError(err, 'deleteLocalCopy');
+        }
+    }, [pageService, card, routeId, logError]);
 
     const onDownloadDelete = useCallback((id: string) => {
-        service.getCard(id)?.delete();
-        setDownloadRow(null);
-    }, [service]);
+        try {
+            if (copyable) {
+                copyState.clear();
+                return;
+            }
+            if (routeDescr.linkShared) {
+                deleteSharedCopy(id);
+                return;
+            }
+            service.getCard(id)?.delete();
+            setDownloadRow(null);
+        }
+        catch (err: any) {
+            logError(err, 'RouteDetailsDialog.onDownloadDelete');
+        }
+    }, [service, copyable, copyState, routeDescr, deleteSharedCopy, logError]);
 
-    const downloadRows: DownloadRowDisplayProps[] = downloadRow ? [downloadRow] : [];
+    const downloadRows: DownloadRowDisplayProps[] = shownRow ? [shownRow] : [];
+    const copyFailureText = copyable ? getCopyFailureText(copyState.state) : undefined;
     const downloadButtonPrimary = routeDescr.requiresDownload === true;
 
     return (
@@ -341,6 +451,10 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             hasGpx={hasGpx ?? false}
             points={points}
             previewUrl={previewUrl}
+            thumbnailLink={routeDetailsProps.thumbnailLink}
+            availability={source.availability}
+            sourceLabel={source.sourceLabel}
+            unavailableReason={source.unavailableReason}
             routeData={routeData}
             isOnline={isOnline}
             totalDistance={totalDistance}
@@ -393,6 +507,8 @@ export const RouteDetailsDialog = ({ routeId, onStart }: RouteDetailsDialogProps
             showDownloadModal={showDownloadModal}
             onDownloadModalClose={onDownloadModalClose}
             downloadRows={downloadRows}
+            copyFailureText={copyFailureText}
+            copySizeBytes={copyable ? copyState.sizeBytes : undefined}
             onDownloadStop={onDownloadStop}
             onDownloadRetry={onDownloadRetry}
             onDownloadDelete={onDownloadDelete}

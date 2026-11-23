@@ -11,7 +11,7 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PropsWithChildren, ReactElement, useEffect, useRef, useState } from 'react';
-import { AppFeatures, IncyclistBindings } from 'incyclist-services';
+import { AppFeatures, IncyclistBindings, initLocalLinkClient, initRouteSharingClient } from 'incyclist-services';
 import { ApiConfiguration, flushLogs, notifySessionAppState, useIncyclist } from './services';
 import { initBindings } from './bindings/factory';
 import app from '../app.json';
@@ -22,6 +22,7 @@ import { RootNavigator } from './pages/RootNavigator';
 import { getUIBinding } from './bindings/ui';
 import { logDeviceInfo } from './utils/deviceInfo';
 import { useOnlineStatusMonitoringInit } from './hooks/network/useOnlineStatusMonitoring';
+import { useLocalLinkNetworkChange } from './hooks/network/useLocalLinkNetworkChange';
 import { MainPage } from './pages/MainPage/MainPage';
 import { NavigationBar } from '@zoontek/react-native-navigation-bar';
 import { SecretsStatus } from './bindings/secret/types';
@@ -68,6 +69,7 @@ export const App = ({ secretsStatus }: AppProps) => {
 
     const { stopMonitoring } = useOnlineStatusMonitoringInit();
     const refStopMonitoring = useRef<() => void>(stopMonitoring);
+    useLocalLinkNetworkChange();
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', nextState => {
@@ -134,6 +136,17 @@ export const App = ({ secretsStatus }: AppProps) => {
 
                 const uiVersion = bindings.appInfo?.getUIVersion() ?? app.bundleVersion;
                 await service.onAppLaunch('mobile', uiVersion, features);
+
+                // Route Sharing: both stay inert unless BRIDGE_MODE is on and the platform is supported.
+                // The link client has to be loaded first: the route sharing client subscribes to it.
+                // A failure here must never keep the app from starting.
+                try {
+                    await initLocalLinkClient();
+                    await initRouteSharingClient();
+                }
+                catch (err: any) {
+                    logError(err, 'App.initRouteSharing');
+                }
 
                 // Ensure x-uuid is in API headers — initRestLogging may have run before
                 // uuid was generated on first launch

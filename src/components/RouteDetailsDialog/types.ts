@@ -1,7 +1,7 @@
 import type {
     UIRouteSettings, UIStartSettings, DownloadRowDisplayProps, AttachedWorkoutProps,
     RouteApiDetail, RoutePoint as ServiceRoutePoint, SmoothingGradient,
-    RouteVideoDisplayProps, VideoKeepChoice
+    RouteVideoDisplayProps, VideoKeepChoice, RouteDetailsProps
 } from 'incyclist-services';
 
 export interface RouteDetailsDialogProps {
@@ -62,6 +62,15 @@ export interface RouteDetailsViewProps extends SmoothingPreviewProps {
     hasGpx: boolean;
     points?: RoutePoint[];
     previewUrl?: string;
+    /** Where the thumbnail of a route that only a computer shares comes from; the thumbnail cache fetches it. */
+    thumbnailLink?: RouteDetailsProps['thumbnailLink'];
+    /**
+     * Where the route plays from, as reported by the page service. The view renders the copy and
+     * never works the state out itself.
+     */
+    availability?: RouteDetailsProps['availability'];
+    sourceLabel?: RouteDetailsProps['sourceLabel'];
+    unavailableReason?: RouteDetailsProps['unavailableReason'];
     /**
      * The route record the elevation profile is drawn from - `points` above only says whether
      * there is a profile to draw, `ElevationGraph` needs the whole record.
@@ -132,6 +141,10 @@ export interface RouteDetailsViewProps extends SmoothingPreviewProps {
     onDownloadStop?: (routeId: string) => void;
     onDownloadRetry?: (routeId: string) => void;
     onDownloadDelete?: (routeId: string) => void;
+    /** Why the copy of the video from a computer to this device failed, when it did. */
+    copyFailureText?: string;
+    /** Size of the video on the computer, named in the hint to download it. */
+    copySizeBytes?: number;
 
     /**
      * Everything about the route's own video file: which state it is in, which buttons apply,

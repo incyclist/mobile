@@ -27,6 +27,7 @@ export const RouteImportDialogView = ({
     onAddVideoRoute,
     onSelectFolder,
     onAddRouteServer,
+    onUseRouteSharing,
     onToggleRoute,
     onSelectAll,
     onDeselectAll,
@@ -56,6 +57,7 @@ export const RouteImportDialogView = ({
                         onAddVideoRoute={onAddVideoRoute}
                         onSelectFolder={onSelectFolder}
                         onAddRouteServer={onAddRouteServer}
+                        onUseRouteSharing={onUseRouteSharing}
                         showVideoRouteOption={showVideoRouteOption}
                     />
                 );

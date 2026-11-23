@@ -37,6 +37,8 @@ class MainApplication : Application(), ReactApplication {
                 packages.add(MapAvailabilityPackage())
                 packages.add(AudioCuePackage())
                 packages.add(ExitReasonPackage())
+                packages.add(LoopbackPipePackage()) // must precede NativeCapabilitiesPackage
+                packages.add(NativeCapabilitiesPackage())
 
                 return packages
             }
@@ -122,6 +124,8 @@ class MainApplication : Application(), ReactApplication {
         packages.add(MapAvailabilityPackage())
         packages.add(AudioCuePackage())
         packages.add(ExitReasonPackage())
+        packages.add(LoopbackPipePackage()) // must precede NativeCapabilitiesPackage
+        packages.add(NativeCapabilitiesPackage())
 
         getDefaultReactHost(
             context = applicationContext,

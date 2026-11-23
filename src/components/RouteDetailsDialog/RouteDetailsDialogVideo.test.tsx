@@ -67,7 +67,19 @@ const mockRouteListService = {
     getRouteDetails: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockRouteCopy = {
+    getState: jest.fn((): any => ({ status: 'idle' })),
+    on: jest.fn(),
+    off: jest.fn(),
+    copyToDevice: jest.fn().mockResolvedValue({ status: 'idle' }),
+    cancel: jest.fn(),
+    clear: jest.fn(),
+};
+const mockSharingClient = { getRowsForRoute: jest.fn((): any[] => []) };
+
 jest.mock('incyclist-services', () => ({
+    useRouteCopy: () => mockRouteCopy,
+    useRouteSharingClient: () => mockSharingClient,
     useRouteList: () => mockRouteListService,
     useActivityList: () => ({ getPastActivitiesWithDetails: jest.fn().mockResolvedValue([]) }),
     getRoutesPageService: () => mockPageService,
@@ -76,8 +88,10 @@ jest.mock('incyclist-services', () => ({
     useOnlineStatusMonitoring: () => ({ onlineStatus: true }),
 }));
 
+const mockLogEvent = jest.fn();
+const mockLogError = jest.fn();
 jest.mock('../../hooks', () => ({
-    useLogging: () => ({ logEvent: jest.fn(), logError: jest.fn() }),
+    useLogging: () => ({ logEvent: mockLogEvent, logError: mockLogError }),
     useUnmountEffect: jest.fn(),
     useScreenLayout: () => 'normal',
     useIsTablet: () => true,
@@ -166,6 +180,35 @@ describe('RouteDetailsDialog video state subscription', () => {
     it('still renders when the page service reports no video state at all', () => {
         const utils = renderDialog(undefined);
         expect(footerButtons(utils).map(b => b.label)).toEqual(['Cancel', 'Start', 'Add Workout']);
+    });
+});
+
+describe('RouteDetailsDialog route on a computer', () => {
+    const availability = (props: object) => ({ routeId: 'r1', attachedWorkout: null, ...props });
+    const startButton = (utils: ReturnType<typeof renderDialog>) => footerButtons(utils).find(b => b.label === 'Start');
+
+    beforeEach(() => { jest.clearAllMocks(); });
+
+    it('follows the computer coming back: availability and Start are read again on route-details-update', () => {
+        mockRouteData.description.linkShared = true;
+        mockCard.canStart = jest.fn(() => false);
+        mockCardProps.canStart = false;
+        try {
+            mockPageService.getRouteDetailsProps.mockReturnValue(availability({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' }));
+            const utils = render(<RouteDetailsDialog routeId="r1" onStart={jest.fn()} />);
+            expect(startButton(utils)).toBeUndefined();
+
+            mockCard.canStart.mockReturnValue(true);
+            mockPageService.getRouteDetailsProps.mockReturnValue(availability({ availability: 'fromLink', sourceLabel: 'Den PC' }));
+            act(() => { handlerFor('route-details-update')('r1'); });
+
+            expect(startButton(utils)).toBeDefined();
+        }
+        finally {
+            delete mockRouteData.description.linkShared;
+            delete mockCard.canStart;
+            mockCardProps.canStart = true;
+        }
     });
 });
 

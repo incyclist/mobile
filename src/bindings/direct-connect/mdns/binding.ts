@@ -20,18 +20,17 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
     private rotationTimer?: ReturnType<typeof setTimeout>
     private activeKey?: string
 
+    /**
+     * Idempotent: the trainer discovery and the link watch both call it, and neither may reset the
+     * browsers the other has registered. Release browsers with {@link stopFind} (one type) or
+     * {@link disconnect} (all).
+     */
     connect(): void {
         try {
-            let log = true
-            if (this._connected) {
-                this.disconnect()
-                log = false
-            }
+            if (this._connected)
+                return
             this._connected = true
-
-            if (log)
-                this.logger.logEvent({ message: 'Connect to bonjour ' })
-            return
+            this.logger.logEvent({ message: 'Connect to bonjour ' })
         }
         catch (err: any) {
             this.logError(err, 'connect')
@@ -86,6 +85,7 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
 
             const key = `${type}:${protocol}:${domain}`
             let entry = this.browsers.get(key)
+            const isNew = !entry
 
             if (!entry) {
                 this.logger.logEvent({ message: 'create new scanner', type })
@@ -97,10 +97,56 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
                 entry.onup = onup
             }
 
-            this.startRotation()
+            // an existing browser must not restart a scan that is already running (idempotent re-arm)
+            if (isNew || (!this.activeKey && !this.rotationTimer))
+                this.startRotation()
         }
         catch (err: any) {
             this.logError(err, 'find')
+        }
+    }
+
+    /**
+     * Stops the browser of one service type and leaves all other browsers (and the connection) alone.
+     * Safe to call for a type that is not browsed.
+     * @param type service type as passed to find()
+     * @param protocol defaults to 'tcp'
+     */
+    stopFind(type: string, protocol: 'tcp' | 'udp' = 'tcp'): void {
+        try {
+            const key = `${type}:${protocol}:local.`
+            const entry = this.browsers.get(key)
+            if (!entry)
+                return
+
+            const wasActive = this.activeKey === key
+            this.browsers.delete(key)
+            try {
+                entry.browser.stop()
+                entry.browser.removeAllListeners()
+            }
+            catch (err: any) {
+                this.logError(err, 'stopFind')
+            }
+
+            if (wasActive)
+                this.activeKey = undefined
+
+            if (this.browsers.size === 0) {
+                this.stopRotation()
+                return
+            }
+            // the slice that was running ended with its browser: continue with the next one right away
+            if (wasActive) {
+                if (this.rotationTimer) {
+                    clearTimeout(this.rotationTimer)
+                    this.rotationTimer = undefined
+                }
+                this.scanNext()
+            }
+        }
+        catch (err: any) {
+            this.logError(err, 'stopFind')
         }
     }
 
@@ -113,21 +159,31 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
         const { type, protocol, domain, browser } = entry
 
         browser.on('resolved', (service: any) => {
-            if (!service.addresses?.length) return
+            try {
+                if (!service?.addresses?.length) return
 
-            this.logger.logEvent({ message: 'got announcement', type, protocol, domain, service })
+                this.logger.logEvent({ message: 'got announcement', type, protocol, domain, service })
 
-            const announcement: MulticastDnsAnnouncement = {
-                type,
-                address: service.addresses[0],
-                port: service.port,
-                name: service.name,
-                serialNo: service.txt?.serialNo,
-                serviceUUIDs: service.txt?.['ble-service-uuids']?.split(','),
-                transport: 'tcp'
+                const announcement: MulticastDnsAnnouncement = {
+                    type,
+                    address: service.addresses[0],
+                    port: service.port,
+                    name: service.name,
+                    serialNo: service.txt?.serialNo,
+                    serviceUUIDs: service.txt?.['ble-service-uuids']?.split(','),
+                    transport: 'tcp'
+                }
+
+                entry.onup?.(announcement)
             }
+            catch (err: any) {
+                this.logError(err, 'onResolved')
+            }
+        })
 
-            entry.onup?.(announcement)
+        // an 'error' event without a listener would throw inside the native event handler
+        browser.on('error', (err: any) => {
+            this.logError(err, 'onBrowserError')
         })
     }
 
@@ -179,6 +235,8 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
 
             this.activeKey = next.key
             this.logger.logEvent({ message: 'start scan', type: next.type, protocol: next.protocol, domain: next.domain })
+            // Note: scan() cancels any prior scan on the same browser on both platforms,
+            // which is why only one browser is scanned at a time (see stopActive above)
             next.browser.scan(next.type, next.protocol, next.domain)
 
             // with a single browser there is nothing to alternate with
@@ -198,6 +256,11 @@ export class ReactNativeMdnsBinding implements MulticastDnsBinding {
     }
 
     protected logError(err: any, fn: string) {
-        this.logger.logEvent({ message: 'error', fn, error: err.message, stack: err.stack })
+        try {
+            this.logger.logEvent({ message: 'error', fn, error: err?.message ?? String(err), stack: err?.stack })
+        }
+        catch {
+            // nothing left to report to
+        }
     }
 }

@@ -19,12 +19,15 @@ class FakeObserver {
 }
 
 const mockGetRouteDetails = jest.fn().mockResolvedValue(undefined);
+const mockCancel = jest.fn();
+const mockRequestRouteDetails = jest.fn((_id: string, _onResult: (d?: any) => void) => mockCancel);
 const mockOnSelect = jest.fn();
 const mockOnDelete = jest.fn();
+const mockDeleteLocalCopy = jest.fn().mockResolvedValue(true);
 
 jest.mock('incyclist-services', () => ({
-    useRouteList: () => ({ getRouteDetails: mockGetRouteDetails }),
-    getRoutesPageService: () => ({ onSelect: mockOnSelect, onDelete: mockOnDelete }),
+    useRouteList: () => ({ getRouteDetails: mockGetRouteDetails, requestRouteDetails: mockRequestRouteDetails }),
+    getRoutesPageService: () => ({ onSelect: mockOnSelect, onDelete: mockOnDelete, deleteLocalCopy: mockDeleteLocalCopy }),
 }));
 
 let lastViewProps: any;
@@ -88,5 +91,86 @@ describe('RouteItem', () => {
         });
 
         expect(getByTestId('pill').props.children).toBe('none');
+    });
+
+    // Where a route plays from is computed for the whole list, not by the card, so an update
+    // that comes through the card's own observer must not drop it.
+    test('keeps where the route plays from when an update arrives through its own observer', () => {
+        const observer = new FakeObserver();
+        const props = { ...baseProps(observer), availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' };
+        render(<RouteItem {...props} />);
+
+        act(() => {
+            observer.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, videoPill: 'downloading' });
+        });
+
+        expect(lastViewProps.videoPill).toBe('downloading');
+        expect(lastViewProps).toMatchObject({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' });
+    });
+
+    // A computer coming back reaches the row through its own observer only; the list props are
+    // not rendered again.
+    test('takes where the route plays from out of an update that carries it', () => {
+        const observer = new FakeObserver();
+        const props = { ...baseProps(observer), availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' };
+        render(<RouteItem {...props} />);
+
+        act(() => {
+            observer.emit('update', { id: 'r1', title: 'Alpe du Zwift', loaded: true, availability: 'fromLink', sourceLabel: 'Den PC' });
+        });
+
+        expect(lastViewProps.availability).toBe('fromLink');
+        expect(lastViewProps.unavailableReason).toBeUndefined();
+    });
+
+    test('deleting the copy of a computer route goes through the page service and keeps the row', () => {
+        const observer = new FakeObserver();
+        const { getByTestId } = render(<RouteItem {...baseProps(observer)} />);
+
+        act(() => { lastViewProps.onDeleteLocalCopy('r1'); });
+
+        expect(mockDeleteLocalCopy).toHaveBeenCalledWith('r1');
+        expect(mockOnDelete).not.toHaveBeenCalled();
+        expect(getByTestId('pill')).toBeTruthy();
+    });
+
+    describe('details of the row', () => {
+        const rowProps = (over: Record<string, unknown>) => ({ id: 'r9', title: 'Row', loaded: false, outsideFold: false, observer: new FakeObserver(), ...over }) as any;
+
+        test('a row that is not loaded asks for its details through the cancellable queue', () => {
+            render(<RouteItem {...rowProps({})} />);
+
+            expect(mockRequestRouteDetails).toHaveBeenCalledWith('r9', expect.any(Function));
+            expect(mockGetRouteDetails).not.toHaveBeenCalled();
+        });
+
+        test('a row of a computer route with a thumbnail makes no request and counts as loaded', () => {
+            render(<RouteItem {...rowProps({ id: 'r10', linkShared: true, thumbnailLink: { url: 'http://pc/t' } })} />);
+
+            expect(mockRequestRouteDetails).not.toHaveBeenCalled();
+            expect(mockGetRouteDetails).not.toHaveBeenCalled();
+            expect(lastViewProps.loaded).toBe(true);
+        });
+
+        test('a row of a computer route without a thumbnail shows the placeholder and makes no request', () => {
+            render(<RouteItem {...rowProps({ id: 'r11', linkShared: true })} />);
+
+            expect(mockRequestRouteDetails).not.toHaveBeenCalled();
+            expect(lastViewProps.loaded).toBe(false);
+        });
+
+        test('a row outside the fold makes no request', () => {
+            render(<RouteItem {...rowProps({ id: 'r12', outsideFold: true })} />);
+
+            expect(mockRequestRouteDetails).not.toHaveBeenCalled();
+        });
+
+        test('the request is cancelled when the row goes away', () => {
+            const { unmount } = render(<RouteItem {...rowProps({ id: 'r13' })} />);
+
+            unmount();
+
+            expect(mockCancel).toHaveBeenCalled();
+        });
     });
 });

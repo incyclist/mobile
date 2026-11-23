@@ -7,6 +7,7 @@ import { FreeMap } from '../FreeMap';
 import { ElevationGraph } from '../ElevationGraph';
 import { Icon } from '../Icon';
 import { SecureImage } from '../SecureImage';
+import { RouteSourcePill, RouteSourceSubline, PILL_WIDTH } from '../RouteSource';
 
 // Conditional import to prevent Storybook Vite from crashing
 let Swipeable: any = View;
@@ -36,9 +37,20 @@ export const RouteItemView = (props: RouteItemViewProps) => {
         outsideFold,
         onSelect,
         onDelete,
+        onDeleteLocalCopy,
         sourceTreeUri,
         videoPill,
+        availability,
+        sourceLabel,
+        thumbnailLink,
+        linkShared,
     } = props;
+
+    const unavailable = availability === 'unavailable';
+    const fromLink = availability === 'fromLink';
+    // a copy on this device of a route a computer shares: only the copy is deleted
+    const hasLocalCopyOfSharedRoute = availability === 'local' && !!linkShared && !!onDeleteLocalCopy;
+    const hasSwipeAction = !unavailable && !fromLink;
 
     if (outsideFold) {
         return <View style={styles.placeholderContainer} />;
@@ -46,10 +58,24 @@ export const RouteItemView = (props: RouteItemViewProps) => {
 
     const renderMedia = () => {
 
-        if (hasVideo && previewUrl) {
-            return <SecureImage source={{ uri: previewUrl }} style={styles.media} resizeMode="cover" />;
+        if (hasVideo && (previewUrl || thumbnailLink)) {
+            const source = previewUrl ? { uri: previewUrl } : undefined;
+            return (
+                <SecureImage
+                    source={source}
+                    thumbnailRouteKey={id}
+                    thumbnailLink={thumbnailLink}
+                    fallback={renderShape()}
+                    style={styles.media}
+                    resizeMode="cover"
+                />
+            );
         }
+        return renderShape();
+    };
 
+    // the route's shape; also what a thumbnail that could not be fetched is replaced with
+    const renderShape = () => {
         if (points && points.length > 0) {
             return (
                 <FreeMap
@@ -69,8 +95,11 @@ export const RouteItemView = (props: RouteItemViewProps) => {
     };
 
     const renderRightActions = () => (
-        <TouchableOpacity style={styles.deleteAction} onPress={() => onDelete(id!)}>
-            <Text style={styles.deleteText}>Delete</Text>
+        <TouchableOpacity
+            style={styles.deleteAction}
+            onPress={() => (hasLocalCopyOfSharedRoute ? onDeleteLocalCopy!(id!) : onDelete(id!))}
+        >
+            <Text style={styles.deleteText}>{hasLocalCopyOfSharedRoute ? 'Delete download' : 'Delete'}</Text>
         </TouchableOpacity>
     );
 
@@ -85,14 +114,14 @@ export const RouteItemView = (props: RouteItemViewProps) => {
             : undefined;
 
     return (
-        <Swipeable renderRightActions={renderRightActions}>
+        <Swipeable renderRightActions={hasSwipeAction ? renderRightActions : undefined}>
             <TouchableOpacity
                 style={styles.container}
                 onPress={() => onSelect(id!)}
                 activeOpacity={0.9}
             >
                 <View style={styles.leftColumn}>
-                    <View style={styles.mediaWrapper}>{renderMedia()}</View>
+                    <View style={[styles.mediaWrapper, unavailable && styles.dimmed]}>{renderMedia()}</View>
                     {routeData ? (
                         <ElevationGraph
                             routeData={routeData}
@@ -100,29 +129,31 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                             showColors={false}
                             showXAxis={false}
                             showYAxis={false}
-                            style={styles.graphPlaceholder}
+                            style={unavailable ? styles.graphDimmed : styles.graphPlaceholder}
                             minElevationRange={300}
                         />
                     ) : (
-                        <View style={styles.graphPlaceholder} />
+                        <View style={unavailable ? styles.graphDimmed : styles.graphPlaceholder} />
                     )}
                 </View>
 
                 <View style={styles.middleColumn}>
-                    <View style={styles.titleRow}>
-                        <Text style={styles.title} numberOfLines={1}>
+                    <View style={[styles.titleRow, (fromLink || unavailable) && styles.titleRowWithSource]}>
+                        <Text style={[styles.title, unavailable && styles.disabledText]} numberOfLines={1}>
                             {title}
                         </Text>
                         <Text style={styles.flag}>{getFlagEmoji(country)}</Text>
                     </View>
 
                     <View style={styles.detailsRow}>
-                        <Text style={styles.detailText}>{hasVideo ? 'Video' : 'GPX'}</Text>
-                        <Text style={styles.detailSeparator}>•</Text>
-                        <Text style={styles.detailText}>{isLoop ? 'Loop' : 'Point to Point'}</Text>
+                        <Text style={[styles.detailText, unavailable && styles.disabledText]}>{hasVideo ? 'Video' : 'GPX'}</Text>
+                        <Text style={[styles.detailSeparator, unavailable && styles.disabledText]}>•</Text>
+                        <Text style={[styles.detailText, unavailable && styles.disabledText]}>{isLoop ? 'Loop' : 'Point to Point'}</Text>
+                        <RouteSourceSubline availability={availability} sourceLabel={sourceLabel} />
                     </View>
 
                     <View style={styles.pillContainer}>
+                        <RouteSourcePill availability={availability} />
                         {!!sourceTreeUri && (
                             <View style={[styles.pill, styles.pillExternal]}>
                                 <Icon name="import-route" size={10} color={colors.text} />
@@ -161,14 +192,14 @@ export const RouteItemView = (props: RouteItemViewProps) => {
                     <View style={styles.statsGrid}>
                         {totalDistance!==undefined && totalDistance!==null && <View style={styles.statsCol}>
                             <Icon name="distance" size={16} color={colors.text} />
-                            <Text style={styles.statsValue}>{totalDistance.value}</Text>
-                            <Text style={styles.statsUnit}>{totalDistance.unit}</Text>
+                            <Text style={[styles.statsValue, unavailable && styles.disabledText]}>{totalDistance.value}</Text>
+                            <Text style={[styles.statsUnit, unavailable && styles.disabledText]}>{totalDistance.unit}</Text>
                         </View> }
                         
                         {totalElevation!==undefined && totalElevation!==null && <View style={styles.statsCol}>
                             <Icon name="elevation" size={16} color={colors.text} />
-                            <Text style={styles.statsValue}>{totalElevation.value}</Text>
-                            <Text style={styles.statsUnit}>{totalElevation.unit}</Text>
+                            <Text style={[styles.statsValue, unavailable && styles.disabledText]}>{totalElevation.value}</Text>
+                            <Text style={[styles.statsUnit, unavailable && styles.disabledText]}>{totalElevation.unit}</Text>
                         </View>}
                     </View>
                 </View>
@@ -228,6 +259,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    // the pill container is laid over the title row: keep the title clear of the source pill
+    titleRowWithSource: {
+        paddingRight: PILL_WIDTH + 4,
+    },
+    // thumbnail and elevation graph of a route that can not be started: dimmed, the text is not
+    dimmed: { opacity: 0.4 },
+    graphDimmed: {
+        flex: 1,
+        height: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 4,
+        opacity: 0.4,
+    },
+    disabledText: { color: colors.disabled },
+
     title: {
         color: colors.text,
         fontSize: 18,

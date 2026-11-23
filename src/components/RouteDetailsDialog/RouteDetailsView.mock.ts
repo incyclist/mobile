@@ -43,3 +43,36 @@ export const MOCK_SMOOTHED_GRADIENT = { routeSteepest: 20.4, smoothedSteepest: 8
 
 /** a level that barely changes this route - the third copy state, not an error */
 export const MOCK_BARELY_VISIBLE_GRADIENT = { routeSteepest: 5.1, smoothedSteepest: 5.0, hasVisibleEffect: false };
+
+/** Route Details of a route that plays from a computer. */
+export const MOCK_SOURCE_FROM_LINK = {
+    availability: 'fromLink' as const,
+    sourceLabel: 'Den PC',
+    thumbnailLink: { linkId: 'link-1', thumbHandle: 'thumb-1' },
+};
+
+/** Route Details of a route that needs a computer that can not be reached; the view gets `canStart: false` with the reason. */
+export const MOCK_SOURCE_UNAVAILABLE = {
+    availability: 'unavailable' as const,
+    sourceLabel: 'Den PC',
+    unavailableReason: 'linkUnreachable' as const,
+    thumbnailLink: { linkId: 'link-1', thumbHandle: 'thumb-1' },
+};
+
+/** A copy of a route's video from a computer that is running: the download row and the button that shows it. */
+export const MOCK_COPY_RUNNING = {
+    ...MOCK_SOURCE_FROM_LINK,
+    copySizeBytes: 4_200_000_000,
+    downloadButtonLabel: 'Downloading…',
+    downloadButtonDisabled: true,
+    showDownloadModal: true,
+    downloadRows: [{ routeId: 'r1', title: 'Alblasserwaard (SD)', status: 'downloading' as const, pct: 42 }],
+};
+
+/** A copy that was refused because the video does not fit on this device. */
+export const MOCK_COPY_NO_SPACE = {
+    ...MOCK_SOURCE_FROM_LINK,
+    copySizeBytes: 4_200_000_000,
+    downloadButtonLabel: 'Retry Download',
+    copyFailureText: 'Not enough space on this device. This route needs 4.2 GB; 1.1 GB is free.',
+};

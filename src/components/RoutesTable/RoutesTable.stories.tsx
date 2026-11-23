@@ -51,3 +51,15 @@ export const LargeTable: StoryObj<typeof RoutesTable> = {
         routes: generateMockRoutes(1000) as Array<RouteItemProps>
     },
 };
+// every tenth route needs a computer that cannot be reached; every fifth plays from one
+export const WithComputerRoutes: StoryObj<typeof RoutesTable> = {
+    args: {
+        routes: generateMockRoutes(200).map((r, i) => {
+            if (i % 10 === 0)
+                return { ...r, hasVideo: true, linkShared: true, availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' };
+            if (i % 5 === 0)
+                return { ...r, hasVideo: true, linkShared: true, availability: 'fromLink', sourceLabel: 'Den PC' };
+            return { ...r, availability: 'local' };
+        }) as Array<RouteItemProps>
+    },
+};

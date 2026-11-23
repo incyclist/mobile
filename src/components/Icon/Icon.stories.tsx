@@ -57,6 +57,15 @@ export const Activity: Story = {
     ),
 };
 
+export const Computer: Story = {
+    render: () => (
+        <View style={styles.row}>
+            <Icon name='monitor' size={32} color={colors.tileIdle} />
+            <Icon name='monitor-off' size={32} color={colors.disabled} />
+        </View>
+    ),
+};
+
 export const Route: Story = {
     args: {
         name: 'route',

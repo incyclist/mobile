@@ -15,6 +15,7 @@ import {
     RideSwipeFeedback,
     ErrorBoundary,
 } from '../../../components';
+import { getSourceLostText, SOURCE_LOST_TIMEOUT_MS } from '../../../components/RouteSource/utils';
 import { LatLng } from '../../../components/FreeMap/types';
 import { colors } from '../../../theme';
 import { useScreenLayout  } from '../../../hooks';
@@ -76,6 +77,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     const lapMode = route?.description?.isLoop;
     const currentVideo = video ?? videos?.find(v => !v.hidden);
     const infoText = currentVideo?.info;
+    // the computer the video streams from stopped delivering it: told for a while, observation only
+    const sourceLostText = currentVideo?.sourceLost ? getSourceLostText(currentVideo.sourceLost.computerName) : undefined;
 
     const layout = useScreenLayout();
     const isCompact = layout === 'compact';
@@ -165,8 +168,8 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
     // Extracted so the swipe-gesture surface (GestureDetector, below) can wrap it without
     // duplicating this whole subtree - same reasoning as Workout/View.tsx's identical `content`.
     // Stays mounted (just invisible-styled) during the start overlay, unlike GPX/Workout's
-    // equivalent block, so gesture-wrapping must itself stay gated on !startOverlayProps below -
-    // otherwise a swipe could register while the start overlay is still showing.
+    // equivalent block, so the gesture is disabled (not unwrapped) while the start overlay is
+    // showing - otherwise a swipe could register under it.
     const mainContent = (
             <View style={[StyleSheet.absoluteFill, startOverlayProps ? styles.invisible : undefined]}>
                 {/* Video Layer */}
@@ -267,7 +270,7 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                     />
                 )}
 
-                {infoText && <InfoText {...infoText} />}
+                {sourceLostText ? <InfoText text={sourceLostText} timeout={SOURCE_LOST_TIMEOUT_MS} /> : infoText && <InfoText {...infoText} />}
 
                 {/* Bottom bar: Menu button + Full route elevation, plus the Ride Menu it opens */}
                 <RideBottomBarAndMenu
@@ -303,8 +306,11 @@ export const VideoRidePageView = (props: VideoRidePageViewProps) => {
                 </View>
             </View>}
 
-            {(!startOverlayProps && gesture) ? (
-                <GestureDetector gesture={gesture}>
+            {/* The tree shape must not change when the start overlay closes, otherwise the Video
+                inside mainContent is unmounted and reloaded. The gesture is therefore always
+                wrapped and merely disabled while the start overlay is shown. */}
+            {gesture ? (
+                <GestureDetector gesture={gesture.enabled(!startOverlayProps)}>
                     {mainContent}
                 </GestureDetector>
             ) : mainContent}

@@ -70,6 +70,9 @@ jest.mock('./View', () => {
                 {(props.routes ?? []).map((r: any) => (
                     <Text key={r.id} testID={`pill-${r.id}`}>{r.videoPill ?? 'none'}</Text>
                 ))}
+                {(props.routes ?? []).map((r: any) => (
+                    <Text key={`a-${r.id}`} testID={`avail-${r.id}`}>{r.availability ?? 'none'}</Text>
+                ))}
             </>
         ),
     };
@@ -163,5 +166,37 @@ describe('RoutesPage video pill updates', () => {
         act(() => { pageUpdateHandler?.(); });
 
         expect(getByTestId('pill-r1').props.children).toBe('in-icloud');
+    });
+
+    // A computer coming back online changes only availability/sourceLabel/unavailableReason of an
+    // existing route (same id, same position); the stabilized routes reference must not hide it.
+    it('reflects an availability change on an existing route after a later page-update', () => {
+        let pageUpdateHandler: (() => void) | undefined;
+        mockOpenPage.mockReturnValue({
+            on: jest.fn((event: string, cb: () => void) => {
+                if (event === 'page-update')
+                    pageUpdateHandler = cb;
+            }),
+            stop: jest.fn(),
+        });
+
+        const displayProps = (route: object) => ({
+            loading: false,
+            synchronizing: false,
+            routes: [{ id: 'r1', linkShared: true, loaded: false, ...route }],
+            filters: {},
+            filterOptions: { countries: [], contentTypes: [], routeTypes: [], routeSources: [] },
+            filterVisible: false,
+            detailRouteId: undefined,
+        } as any);
+
+        mockGetPageDisplayProps.mockReturnValue(displayProps({ availability: 'unavailable', unavailableReason: 'linkUnreachable', sourceLabel: 'Den PC' }));
+
+        const { getByTestId } = render(<RoutesPage />);
+        expect(getByTestId('avail-r1').props.children).toBe('unavailable');
+
+        mockGetPageDisplayProps.mockReturnValue(displayProps({ availability: 'fromLink', sourceLabel: 'Den PC' }));
+        act(() => { pageUpdateHandler?.(); });
+        expect(getByTestId('avail-r1').props.children).toBe('fromLink');
     });
 });

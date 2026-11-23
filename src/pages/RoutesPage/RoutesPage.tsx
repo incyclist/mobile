@@ -39,7 +39,7 @@ const initialProps: RoutePageDisplayProps = {
 // id never changes when e.g. its video pill or preview arrives asynchronously after the initial
 // render, and an id-only hash would then never refresh that route's props at all.
 const hashRoutes = (routes: RouteItemProps[]) =>
-    routes.map(r => `${r.id}:${r.videoPill ?? ''}:${r.previewUrl ?? ''}:${r.cntActive ?? 0}:${r.isNew ? 1 : 0}:${r.loaded ? 1 : 0}`).join(',')
+    routes.map(r => `${r.id}:${r.videoPill ?? ''}:${r.previewUrl ?? ''}:${r.cntActive ?? 0}:${r.isNew ? 1 : 0}:${r.loaded ? 1 : 0}:${r.availability ?? ''}:${r.sourceLabel ?? ''}:${r.unavailableReason ?? ''}:${r.thumbnailLink?.linkId ?? ''}:${r.thumbnailLink?.thumbHandle ?? ''}`).join(',')
 
 
 export const RoutesPage = () => {

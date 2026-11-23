@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release network policy: cleartext HTTP is blocked everywhere except the loopback address, which
+  the native loopback pipe (LoopbackPipeModule) exposes to the media player for local-link media
+  (video, thumbnails, route descriptors). Subdomains are not covered, no other host is opened up.
+
+  The debug and dev build types override this file (src/debug/res/xml, src/dev/res/xml) with a
+  permissive base-config, because Metro / dev servers run on LAN addresses. On API 24+ this file
+  takes precedence over android:usesCleartextTraffic, so it must exist in every variant.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

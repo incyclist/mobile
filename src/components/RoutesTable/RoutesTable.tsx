@@ -2,6 +2,7 @@ import  { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { Observer } from 'incyclist-services';
 import { RoutesTableProps } from './types';
+import { areRoutesEqual } from './utils';
 import { RouteItem } from '../RouteItem';
 import { Dynamic } from '../Dynamic';
 import { useUnmountEffect } from '../../hooks';
@@ -96,12 +97,7 @@ export const RoutesTable = memo(({
             </ScrollView>
         </View>
     );
-}, (prev, next) => {
-    if (prev.routes?.length !== next.routes?.length) return false;
-    const prevHash = prev.routes?.map(r => r.id).join(':') ?? '';
-    const nextHash = next.routes?.map(r => r.id).join(':') ?? '';
-    return prevHash === nextHash;
-});
+}, (prev, next) => areRoutesEqual(prev.routes, next.routes));
 
 const styles = StyleSheet.create({
     container: {

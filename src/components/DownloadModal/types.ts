@@ -12,5 +12,7 @@ export interface DownloadModalViewProps {
     /** Optional so existing call sites that predate iCloud rows don't have to pass it - those
      *  never render an iCloud "done, for this ride" row, so it would never be invoked anyway. */
     onKeepInstead?: (routeId: string) => void;
+    /** Replaces "Download failed" on a failed row, when the reason is known (e.g. not enough space). */
+    failedText?: string;
     onClose: () => void;
 }
