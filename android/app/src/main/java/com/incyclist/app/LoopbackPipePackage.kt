@@ -8,6 +8,13 @@ import com.facebook.react.uimanager.ViewManager
 
 /** Registers LoopbackPipeModule. A plain ReactPackage, like NativeCapabilitiesPackage. */
 class LoopbackPipePackage : ReactPackage {
+    companion object {
+        /** true once the module has been created in this process; read by NativeCapabilitiesModule */
+        @Volatile
+        @JvmStatic
+        var registered: Boolean = false
+    }
+
     override fun createNativeModules(
         reactContext: ReactApplicationContext,
     ): List<NativeModule> =
