@@ -10,6 +10,7 @@ const meta: Meta<typeof LandingView> = {
         onAddGpx: fn(),
         onAddVideoRoute: fn(),
         onSelectFolder: fn(),
+        onUseRouteSharing: undefined,
         showVideoRouteOption: false,
     },
 };
@@ -34,5 +35,19 @@ export const VideoRouteEnabled: Story = {
     args: {
         compact: false,
         showVideoRouteOption: true,
+    },
+};
+
+export const WithRouteSharingLink: Story = {
+    args: {
+        compact: false,
+        onUseRouteSharing: fn(),
+    },
+};
+
+export const CompactWithRouteSharingLink: Story = {
+    args: {
+        compact: true,
+        onUseRouteSharing: fn(),
     },
 };

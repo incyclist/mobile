@@ -15,6 +15,8 @@ import { useFilePicker } from '../../hooks/files/useFilePicker';
 import { getUIBinding } from '../../bindings/ui';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { RouteServersDialog } from '../RouteServersDialog';
+import { RouteSharingSettings } from '../RouteSharingSettings';
+import { useRouteSharingAvailable } from '../RoutesSettings/utils';
 
 /**
  * Smart component for the Import Routes dialog.
@@ -38,6 +40,9 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
     const [isSingleImporting, setIsSingleImporting] = useState(false);
     // the add view of the route servers replaces the import dialog in place (no second modal stacked)
     const [showRouteServers, setShowRouteServers] = useState(false);
+    // Route Sharing replaces the import dialog in place as well; closing it returns to the landing view
+    const [showRouteSharing, setShowRouteSharing] = useState(false);
+    const routeSharingAvailable = useRouteSharingAvailable();
 
     const refParsedRoutes = useRef<ParsedRoute[]>([]);
     const refInitialized = useRef(false);
@@ -304,6 +309,9 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         [onDone]
     );
 
+    const onUseRouteSharing = useCallback(() => setShowRouteSharing(true), []);
+    const onRouteSharingClosed = useCallback(() => setShowRouteSharing(false), []);
+
     // Handle 'Try Again' by triggering the GPX picker again if in result phase
     const handleTryAgain = useCallback(() => {
         onAddGpx();
@@ -411,6 +419,14 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
         );
     }
 
+    if (showRouteSharing) {
+        return (
+            <ErrorBoundary>
+                <RouteSharingSettings onClose={onRouteSharingClosed} />
+            </ErrorBoundary>
+        );
+    }
+
     return (
         <ErrorBoundary>
             <RouteImportDialogView
@@ -426,6 +442,7 @@ export const RouteImportDialog = ({ onClose }: RouteImportDialogProps) => {
                 onAddVideoRoute={onAddVideoRoute}
                 onSelectFolder={onSelectFolder}
                 onAddRouteServer={onAddRouteServer}
+                onUseRouteSharing={routeSharingAvailable ? onUseRouteSharing : undefined}
                 onToggleRoute={onToggleRoute}
                 onSelectAll={onSelectAll}
                 onDeselectAll={onDeselectAll}

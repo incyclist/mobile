@@ -12,6 +12,8 @@ interface LandingViewProps {
     onSelectFolder: () => void;
     /** Opens the route server add view. The tile is only shown if provided. */
     onAddRouteServer?: () => void;
+    /** Opens Route Sharing. The link is only shown if provided. */
+    onUseRouteSharing?: () => void;
     /** Whether the "Add Video Route" option tile should be shown - driven by the
      * VIDEO_ROUTE feature toggle (and platform support) in the parent smart component. */
     showVideoRouteOption: boolean;
@@ -52,6 +54,7 @@ export const LandingView = ({
     onAddVideoRoute,
     onSelectFolder,
     onAddRouteServer,
+    onUseRouteSharing,
     showVideoRouteOption,
 }: LandingViewProps) => {
     const { logEvent } = useLogging('LandingView');
@@ -75,6 +78,11 @@ export const LandingView = ({
         logEvent({ message: 'button clicked', button: 'add-route-server', eventSource: 'user' });
         onAddRouteServer?.();
     }, [logEvent, onAddRouteServer]);
+
+    const handleUseRouteSharing = useCallback(() => {
+        logEvent({ message: 'button clicked', button: 'use-route-sharing', eventSource: 'user' });
+        onUseRouteSharing?.();
+    }, [logEvent, onUseRouteSharing]);
 
     return (
         <View style={[styles.container, compact && styles.containerCompact]}>
@@ -110,6 +118,18 @@ export const LandingView = ({
                         onPress={handleAddRouteServer}
                         compact={compact}
                     />
+                )}
+                {onUseRouteSharing && (
+                    <Text style={styles.linkLine}>
+                        {'Videos on your computer? '}
+                        <Text
+                            style={styles.link}
+                            onPress={handleUseRouteSharing}
+                            accessibilityRole="link"
+                        >
+                            Use Route Sharing
+                        </Text>
+                    </Text>
                 )}
             </View>
         </View>
@@ -163,5 +183,15 @@ const styles = StyleSheet.create({
     },
     tileSubtitleCompact: {
         fontSize: textSizes.smallText,
+    },
+    linkLine: {
+        fontSize: textSizes.smallText,
+        color: colors.disabled,
+        textAlign: 'center',
+        marginTop: 12,
+    },
+    link: {
+        color: colors.link,
+        fontWeight: '700',
     },
 });

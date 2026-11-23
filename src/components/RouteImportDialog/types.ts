@@ -22,6 +22,8 @@ export interface RouteImportDialogViewProps {
     onAddVideoRoute: () => void;
     onSelectFolder: () => void;
     onAddRouteServer?: () => void;
+    /** Opens Route Sharing. The link under the tiles is only shown if provided. */
+    onUseRouteSharing?: () => void;
     onToggleRoute: (id: string) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;
