@@ -115,14 +115,13 @@ export class BlePeripheralRN
         }
     }
 
-    private async waitForNativeDisconnect(id:string): Promise<boolean> {
-        const start = Date.now()
-        let connected = await this.isNativeConnected(id)
-        while (connected && Date.now()-start < DISCONNECT_VERIFY_TIMEOUT) {
-            await new Promise( done => setTimeout(done, DISCONNECT_VERIFY_INTERVAL) )
-            connected = await this.isNativeConnected(id)
-        }
-        return connected
+    private async waitForNativeDisconnect(id:string, start:number=Date.now()): Promise<boolean> {
+        const connected = await this.isNativeConnected(id)
+        if (!connected || Date.now()-start >= DISCONNECT_VERIFY_TIMEOUT)
+            return connected
+
+        await new Promise( done => setTimeout(done, DISCONNECT_VERIFY_INTERVAL) )
+        return this.waitForNativeDisconnect(id, start)
     }
 
     private async isNativeConnected(id:string): Promise<boolean> {
