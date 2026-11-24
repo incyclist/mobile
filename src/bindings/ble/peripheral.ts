@@ -11,6 +11,12 @@ import { EventLogger } from 'gd-eventlog'
 const DISCONNECT_VERIFY_TIMEOUT = 800
 const DISCONNECT_VERIFY_INTERVAL = 100
 
+// After the last GATT client of a device is closed, Android keeps the LE link up for a short idle timeout.
+// A connect() within that window attaches to the old link (connected within ~30ms, no new link, the peripheral
+// never sees a disconnect). A reconnect must therefore not start before this time has passed.
+const LINK_IDLE_SETTLE_TIME = 2000
+const lastDisconnect: Record<string,number> = {}
+
 export class BlePeripheralRN
     extends EventEmitter
     implements BleRawPeripheral {
@@ -38,7 +44,8 @@ export class BlePeripheralRN
     }
 
     async connectAsync(): Promise<void> {
-        
+
+        await this.waitForLinkIdle()
         await BleManager.connect(this.id!)
         this.state = 'connected'
 
@@ -88,10 +95,23 @@ export class BlePeripheralRN
             this.logger.logEvent({message:'error', fn:'disconnectAsync', address:id, error:err?.message})
         }
 
+        lastDisconnect[id] = Date.now()
         this.state = 'disconnected'
         if (this.subDisconnect) {
             this.subDisconnect.remove()
             delete this.subDisconnect
+        }
+    }
+
+    private async waitForLinkIdle(): Promise<void> {
+        const last = lastDisconnect[this.id!]
+        if (last===undefined)
+            return
+
+        const wait = LINK_IDLE_SETTLE_TIME - (Date.now()-last)
+        if (wait>0) {
+            this.logger.logEvent({message:'waiting for the old link to be released before reconnect', address:this.id, waitMs:wait})
+            await new Promise( done => setTimeout(done, wait) )
         }
     }
 

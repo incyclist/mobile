@@ -134,6 +134,38 @@ describe('BlePeripheralRN', () => {
         })
     })
 
+    describe('reconnect after a disconnect', () => {
+
+        test('does not connect before the old link has been released', async () => {
+            jest.useFakeTimers()
+            try {
+                bleManager.disconnect.mockResolvedValue(undefined as any)
+                bleManager.isPeripheralConnected.mockResolvedValue(false)
+                const id = 'AA:BB:CC:00:00:01'
+                const peripheral = new BlePeripheralRN({ id, name: 'Test' } as any)
+
+                await peripheral.disconnectAsync()
+                const p = peripheral.connectAsync()
+
+                await jest.advanceTimersByTimeAsync(1000)
+                expect(bleManager.connect).not.toHaveBeenCalled()
+
+                await jest.advanceTimersByTimeAsync(1100)
+                await p
+                expect(bleManager.connect).toHaveBeenCalledWith(id)
+            }
+            finally {
+                jest.useRealTimers()
+            }
+        })
+
+        test('connects immediately if the peripheral was not disconnected recently', async () => {
+            const peripheral = new BlePeripheralRN({ id: 'AA:BB:CC:00:00:02', name: 'Test' } as any)
+            await peripheral.connectAsync()
+            expect(bleManager.connect).toHaveBeenCalledTimes(1)
+        })
+    })
+
     describe('discoverServicesAsync', () => {
         test('returns no services (and does not throw) when the native call fails', async () => {
             bleManager.retrieveServices.mockRejectedValue(new Error('gatt stalled'))
