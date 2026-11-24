@@ -8,6 +8,15 @@ import { matches } from './utils'
 import { EventLogger } from 'gd-eventlog'
 
 
+const DISCONNECT_VERIFY_TIMEOUT = 800
+const DISCONNECT_VERIFY_INTERVAL = 100
+
+// After the last GATT client of a device is closed, Android keeps the LE link up for a short idle timeout.
+// A connect() within that window attaches to the old link (connected within ~30ms, no new link, the peripheral
+// never sees a disconnect). A reconnect must therefore not start before this time has passed.
+const LINK_IDLE_SETTLE_TIME = 2000
+const lastDisconnect: Record<string,number> = {}
+
 export class BlePeripheralRN
     extends EventEmitter
     implements BleRawPeripheral {
@@ -35,7 +44,8 @@ export class BlePeripheralRN
     }
 
     async connectAsync(): Promise<void> {
-        
+
+        await this.waitForLinkIdle()
         await BleManager.connect(this.id!)
         this.state = 'connected'
 
@@ -58,18 +68,69 @@ export class BlePeripheralRN
         })
     }
 
+    /**
+     * Tears down the native GATT connection and waits until the OS reports the peripheral as disconnected.
+     *
+     * The disconnect has to be forced: without `force`, Android only calls gatt.disconnect() and resolves
+     * immediately, keeping the BluetoothGatt object open. A reconnect right afterwards then attaches to the
+     * still-open (possibly stalled) link, `connect` returns instantly and the peripheral is never really
+     * restarted.
+     */
     async disconnectAsync(): Promise<void> {
+        const id = this.id!
         try {
-            await BleManager.disconnect(this.id!)
-            this.state = 'disconnected'
+            await BleManager.disconnect(id, true)
+            let stillConnected = await this.waitForNativeDisconnect(id)
 
-            if (this.subDisconnect) {
-                this.subDisconnect.remove()
-                delete this.subDisconnect
+            if (stillConnected) {
+                this.logger.logEvent({message:'peripheral still connected after disconnect, retrying', address:id})
+                await BleManager.disconnect(id, true)
+                stillConnected = await this.waitForNativeDisconnect(id)
+                if (stillConnected) {
+                    this.logger.logEvent({message:'peripheral still connected after forced disconnect', address:id})
+                }
             }
         }
         catch(err:any) {
-            console.log('[BlePeripheral] disconnectAsync error',err.message)
+            this.logger.logEvent({message:'error', fn:'disconnectAsync', address:id, error:err?.message})
+        }
+
+        lastDisconnect[id] = Date.now()
+        this.state = 'disconnected'
+        if (this.subDisconnect) {
+            this.subDisconnect.remove()
+            delete this.subDisconnect
+        }
+    }
+
+    private async waitForLinkIdle(): Promise<void> {
+        const last = lastDisconnect[this.id!]
+        if (last===undefined)
+            return
+
+        const wait = LINK_IDLE_SETTLE_TIME - (Date.now()-last)
+        if (wait>0) {
+            this.logger.logEvent({message:'waiting for the old link to be released before reconnect', address:this.id, waitMs:wait})
+            await new Promise( done => setTimeout(done, wait) )
+        }
+    }
+
+    private async waitForNativeDisconnect(id:string, start:number=Date.now()): Promise<boolean> {
+        const connected = await this.isNativeConnected(id)
+        if (!connected || Date.now()-start >= DISCONNECT_VERIFY_TIMEOUT)
+            return connected
+
+        await new Promise( done => setTimeout(done, DISCONNECT_VERIFY_INTERVAL) )
+        return this.waitForNativeDisconnect(id, start)
+    }
+
+    private async isNativeConnected(id:string): Promise<boolean> {
+        try {
+            return await BleManager.isPeripheralConnected(id)
+        }
+        catch(err:any) {
+            this.logger.logEvent({message:'error', fn:'isPeripheralConnected', address:id, error:err?.message})
+            return false
         }
     }
 
@@ -94,7 +155,7 @@ export class BlePeripheralRN
 
         }
         catch(err:any) {
-            console.log('[BlePeripheralRN] discoverServicesAsync error',err.message)
+            this.logger.logEvent({message:'error', fn:'discoverServicesAsync', address:this.id, error:err?.message})
             return []
         }
     }
@@ -156,7 +217,7 @@ export class BlePeripheralRN
             return res;
         }
         catch(err:any) {
-            console.log('[BlePeripheral] discoverSomeServicesAndCharacteristicsAsync error',err.message)
+            this.logger.logEvent({message:'error', fn:'discoverSomeServicesAndCharacteristicsAsync', address:this.id, error:err?.message})
             return {services:[], characteristics:[]}
         }
 
