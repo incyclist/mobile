@@ -1,6 +1,6 @@
 import {
-    deviceKind, isResolvedDevice, lineSlot, orderOpenSensors, resolvedSummary, severity, showOptionalDivider,
-    splitDevices, startNotice, RankMap,
+    deviceKind, deviceRowStatus, isResolvedDevice, lineSlot, orderOpenSensors, resolvedSummary, rowKind, severity,
+    showOptionalDivider, splitDevices, startNotice, RankMap, RECONNECT_LINE,
 } from './phasedStart';
 import { startDevice, startDevices } from './StartRideDisplay.mock';
 import { StartReadyInfo } from './types';
@@ -29,11 +29,45 @@ describe('deviceKind', () => {
     });
 });
 
+describe('rowKind', () => {
+    it('names a control device with resistance control a trainer', () => {
+        expect(rowKind({ isControl: true, capabilities: ['control', 'power', 'cadence', 'speed'] } as never)).toBe('Trainer');
+    });
+
+    it('names a speed or cadence sensor in the control role after what it measures', () => {
+        expect(rowKind({ isControl: true, capabilities: ['cadence', 'speed'] } as never)).toBe('Cadence sensor');
+        expect(rowKind({ isControl: true, capabilities: ['speed'] } as never)).toBe('Speed sensor');
+    });
+
+    it('names a sensor after what it measures', () => {
+        expect(rowKind({ isControl: false, capabilities: ['heartrate'] } as never)).toBe('Heart rate sensor');
+    });
+});
+
+describe('deviceRowStatus', () => {
+    it('shows a spinner and Reconnecting while the control device is restarted automatically', () => {
+        const status = deviceRowStatus(startDevice({ startState: 'reconnecting', status: 'Starting' } as never));
+        expect(status).toEqual(expect.objectContaining({ glyph: 'spinner', text: 'Reconnecting ...' }));
+    });
+
+    it('keeps the text short when the restart is slow, the line below the heading carries the rest', () => {
+        const status = deviceRowStatus(startDevice({ startState: 'reconnecting', status: 'Starting', slow: true } as never));
+        expect(status.text).toBe('Reconnecting ...');
+    });
+
+    it('shows the progress of an upload', () => {
+        const status = deviceRowStatus(startDevice({ startState: 'uploading', stateText: 'uploading (40%)' } as never));
+        expect(status.text).toBe('uploading (40%)');
+    });
+});
+
 describe('severity', () => {
     it.each([
         [{ startState: 'not-connected' }, 3],
         [{ startState: 'starting', slow: true }, 2],
         [{ startState: 'starting' }, 1],
+        [{ startState: 'reconnecting' }, 1],
+        [{ startState: 'reconnecting', slow: true }, 2],
         [{ startState: 'uploading' }, 1],
         [{ startState: 'ignored' }, 0],
         [{ startState: 'started' }, 0],
@@ -199,6 +233,15 @@ describe('showOptionalDivider', () => {
 describe('lineSlot', () => {
     it('is empty in the ready phase', () => {
         expect(lineSlot('ready', true, undefined)).toBeUndefined();
+    });
+
+    it('prefers the reconnect line over the slow line', () => {
+        expect(lineSlot('devices', true, undefined, true)).toBe(RECONNECT_LINE);
+        expect(lineSlot('devices', false, undefined, true)).toBe(RECONNECT_LINE);
+    });
+
+    it('is empty in the ready phase even while reconnecting', () => {
+        expect(lineSlot('ready', false, undefined, true)).toBeUndefined();
     });
 
     it('prefers slow over the AVI line', () => {

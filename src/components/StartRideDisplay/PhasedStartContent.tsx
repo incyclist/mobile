@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { colors, textSizes } from '../../theme';
 import { useLogging } from '../../hooks';
-import { GLYPH_TEXT, RowStatus, StartNoticeInfo, deviceKind } from './phasedStart';
+import { GLYPH_TEXT, RowStatus, StartNoticeInfo, rowKind } from './phasedStart';
 import { ScrollRows } from './ScrollRows';
 import { StartNotice } from './StartNotice';
 import { StartDeviceInfo } from './types';
@@ -121,7 +121,7 @@ export const PhasedStartContent = ({
         <Row
             key={device.udid}
             label={device.name}
-            kind={device.isControl ? 'Trainer' : deviceKind(device)}
+            kind={rowKind(device)}
             status={statusOf(device)}
             device={device}
             reserveActions={reserveActions}

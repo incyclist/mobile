@@ -107,7 +107,8 @@ export const StartRideDisplay = (props: StartRideDisplayProps) => {
         return undefined;
     };
 
-    const getLine = (): string | undefined => lineSlot(startPhase, startSlow, startContent);
+    const isReconnecting = ((devices ?? []) as StartDeviceInfo[]).some(d => d.isControl && d.startState === 'reconnecting');
+    const getLine = (): string | undefined => lineSlot(startPhase, startSlow, startContent, isReconnecting);
 
     const getContentRow =(): ContentRowInfo | undefined => {
         if (!startContent || !phasedModel.showContentRow) return undefined;
