@@ -56,8 +56,15 @@ describe('OAuthAppSettings - credentials handed to the AppsService', () => {
                 refreshtoken: 'rt',
                 id: '42',
                 expiration: '1767261600000',
+                useragent: null,
             });
         }
+    });
+
+    it('passes the User-Agent that the auth-server defines on (TrainingPeaks)', async () => {
+        await connectWith('trainingpeaks', { accesstoken: 'at', refreshtoken: 'rt', id: '42', expiration: '1767261600000', useragent: 'Incyclist/1.0.0' });
+
+        expect(mockConnect).toHaveBeenCalledWith('trainingpeaks', expect.objectContaining({ useragent: 'Incyclist/1.0.0' }));
     });
 
     it('passes expiration as null if the auth-server does not provide one (Strava, Intervals)', async () => {
