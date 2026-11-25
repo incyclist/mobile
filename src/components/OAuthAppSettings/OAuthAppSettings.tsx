@@ -102,6 +102,8 @@ const OAuthAppSettings = ({ appKey, name, onBack }: OAuthAppSettingsProps) => {
                 id: parsed.searchParams.get('id'),
                 // same contract for all apps: whatever the auth-server provides is passed on, services handles the formats
                 expiration: parsed.searchParams.get('expiration'),
+                // TrainingPeaks: the User-Agent that the auth-server uses is also used for the requests of the app
+                useragent: parsed.searchParams.get('useragent'),
             };
 
             await service.connect(appKey, credentials);
