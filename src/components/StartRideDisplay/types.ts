@@ -19,7 +19,7 @@ export type StartCancelReason = {
  * pinned services version; services always emits them, the component defaults `startPhase`.
  */
 export type StartPhase = 'devices' | 'content' | 'ready'
-export type StartDeviceState = 'starting' | 'uploading' | 'started' | 'not-connected' | 'failed' | 'ignored'
+export type StartDeviceState = 'starting' | 'reconnecting' | 'uploading' | 'started' | 'not-connected' | 'failed' | 'ignored'
 export type StartContentInfo = {
     kind: 'video' | 'map' | 'satellite' | 'streetview'
     label: string
@@ -31,7 +31,9 @@ export type StartReadyInfo = {
     notConnectedSensors: string[]
     viewFallback: boolean
 }
-export type StartDeviceInfo = CurrentRideDeviceInfo & {
+// startState is replaced, not intersected: an installed incyclist-services that does not know
+// 'reconnecting' yet would otherwise narrow it away
+export type StartDeviceInfo = Omit<CurrentRideDeviceInfo, 'startState'> & {
     startState?: StartDeviceState
     slow?: boolean
     canRetry?: boolean

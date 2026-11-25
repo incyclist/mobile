@@ -85,6 +85,17 @@ export const PhasedDevicesSlowTrainer: Story = {
     } as any,
 };
 
+export const PhasedDevicesTrainerReconnecting: Story = {
+    args: {
+        mode: 'GPX',
+        rideState: 'Starting',
+        readyToStart: false,
+        startPhase: 'devices',
+        devices: [kickr({ status: 'Starting', startState: 'reconnecting' }), hrmPro()],
+        startContent: { kind: 'map', label: 'Map', state: 'loading' },
+    } as any,
+};
+
 export const PhasedContentMap: Story = {
     args: {
         mode: 'GPX',

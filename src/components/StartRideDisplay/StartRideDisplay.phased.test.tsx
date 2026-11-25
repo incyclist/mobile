@@ -65,6 +65,26 @@ describe('StartRideDisplay (phased)', () => {
     });
 
     describe('line slot', () => {
+        it('shows Reconnecting on the trainer row and the reconnect line instead of the slow line', () => {
+            const props = make({
+                startSlow: true,
+                devices: [trainer({ startState: 'reconnecting', status: 'Starting' })],
+            });
+            const { getByText, getByTestId, queryByText } = render(<StartRideDisplay {...props} />);
+            expect(getByText('Reconnecting ...')).toBeTruthy();
+            expect(getByTestId('start-line').props.children).toBe('No response yet. Reconnecting automatically ...');
+            expect(queryByText('This is taking longer than usual.')).toBeNull();
+        });
+
+        it('names a speed or cadence sensor in the control role after what it measures', () => {
+            const props = make({
+                devices: [trainer({ name: 'Cadence 123', capabilities: ['cadence', 'speed'], startState: 'starting', status: 'Starting' })],
+            });
+            const { getByText, queryByText } = render(<StartRideDisplay {...props} />);
+            expect(getByText('Cadence sensor')).toBeTruthy();
+            expect(queryByText('Trainer')).toBeNull();
+        });
+
         it('prefers the slow line over the AVI line', () => {
             const props = make({
                 startPhase: 'content', startSlow: true,

@@ -23,6 +23,7 @@ export const GLYPH_TEXT: Record<Exclude<RowGlyph, 'spinner'>, string> = {
 
 export const AVI_LINE = 'This video has to be prepared before it can play. This can take a minute.';
 export const SLOW_LINE = 'This is taking longer than usual.';
+export const RECONNECT_LINE = 'No response yet. Reconnecting automatically ...';
 
 export const phaseHeading = (phase: StartPhase, content?: StartContentInfo): string => {
     if (phase === 'devices') return 'Starting devices ...';
@@ -50,6 +51,8 @@ export const deviceRowStatus = (device: StartDeviceInfo): RowStatus => {
         case 'failed': return { glyph: 'error', text: 'Failed', color: colors.error };
         case 'ignored': return { glyph: 'dash', text: 'Ignored', color: MUTED_COLOR, muted: true };
         case 'uploading': return { glyph: 'spinner', text: device.stateText ?? 'Uploading ...', color: colors.text };
+        // short on purpose: the status cell is 144 dp wide, the line below the heading carries the rest
+        case 'reconnecting': return { glyph: 'spinner', text: 'Reconnecting ...', color: colors.text };
         case 'starting':
         default: {
             const text = device.slow ? 'Still starting ...' : (device.stateText ?? 'Starting ...');
@@ -81,13 +84,18 @@ export const contentRowStatus = (content: StartContentInfo, loadingText?: string
 
 const sensorCount = (info: StartReadyInfo) => info.pendingSensors.length + info.notConnectedSensors.length;
 
-/** One line slot (devices / content phase): slow > AVI expectation. The ready phase uses the notice instead. */
+/**
+ * One line slot (devices / content phase): reconnecting > slow > AVI expectation. The ready phase uses the
+ * notice instead.
+ */
 export const lineSlot = (
     phase: StartPhase,
     slow: boolean | undefined,
     content: StartContentInfo | undefined,
+    reconnecting?: boolean,
 ): string | undefined => {
     if (phase === 'ready') return undefined;
+    if (reconnecting) return RECONNECT_LINE;
     if (slow) return SLOW_LINE;
     if (content?.kind === 'video' && content.progress && content.state !== 'ready') return AVI_LINE;
     return undefined;
@@ -120,7 +128,8 @@ export const severity = (device: StartDeviceInfo): number => {
     switch (effectiveState(device)) {
         case 'not-connected':
         case 'failed': return 3;
-        case 'starting': return device.slow ? 2 : 1;
+        case 'starting':
+        case 'reconnecting': return device.slow ? 2 : 1;
         case 'uploading': return 1;
         default: return 0;
     }
@@ -160,6 +169,16 @@ const KIND_BY_CAPABILITY: [string, string][] = [
 export const deviceKind = (device: Pick<StartDeviceInfo, 'capabilities'> | undefined): string => {
     const caps: string[] = (device?.capabilities as string[] | undefined) ?? [];
     return KIND_BY_CAPABILITY.find(([cap]) => caps.includes(cap))?.[1] ?? 'Sensor';
+};
+
+/**
+ * The second line of a device row. A control device is a trainer only if it can control resistance: a speed or
+ * cadence sensor that takes the control role (a ride without a trainer) is named after what it measures.
+ */
+export const rowKind = (device: Pick<StartDeviceInfo, 'capabilities' | 'isControl'>): string => {
+    const caps: string[] = (device.capabilities as string[] | undefined) ?? [];
+    if (device.isControl && caps.includes('control')) return 'Trainer';
+    return deviceKind(device);
 };
 
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
